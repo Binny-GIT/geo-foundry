@@ -8,7 +8,7 @@ import {
 import { assertNever } from "../shared/assert-never"
 
 export const CMS_BUCKET = "geo-foundry"
-export const CMS_MEDIA_PREFIX = "objects/cms-bootstrap/media"
+export const CMS_MEDIA_PREFIX = "objects/media"
 export const CMS_POSTGRES_SCHEMA = "geo_foundry"
 export const RUSTFS_REGION = "us-east-1"
 

@@ -9,6 +9,55 @@ import { validateEditionBody } from "../editor/validate-body"
 const idOf = (reference: unknown): number | string | null =>
   typeof reference === "number" || typeof reference === "string" ? reference : null
 
+const isRow = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null
+
+const MEDIA_SRC_PATTERN = /\/media\/tenants\/(\d+)\/([^/?#]+)(?:[?#]|$)/
+
+/**
+ * Media reference guard: every image block whose src points into the
+ * tenant-partitioned media store must reference an existing media object of
+ * the edition's own tenant. Deleted sources and foreign-tenant sources are
+ * rejected before the write reaches storage.
+ */
+const ensureMediaReferences: CollectionBeforeChangeHook = async ({ data, req }) => {
+  const body = data["body"]
+  const editionTenantId = idOf(data["tenant"])
+  if (!Array.isArray(body)) {
+    return data
+  }
+  for (const block of body) {
+    if (!isRow(block) || block["blockType"] !== "image") {
+      continue
+    }
+    const src = block["src"]
+    if (typeof src !== "string") {
+      continue
+    }
+    const match = MEDIA_SRC_PATTERN.exec(src)
+    if (match === null) {
+      continue
+    }
+    const [, mediaTenantId, filename] = match
+    if (editionTenantId !== null && mediaTenantId !== String(editionTenantId)) {
+      throw new APIError("CMS_MEDIA_TENANT_MISMATCH", 400)
+    }
+    const existing = await req.payload.find({
+      collection: "media",
+      where: {
+        mediaPath: { equals: `/media/tenants/${mediaTenantId}/${filename}` },
+      },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    if (existing.docs.length === 0) {
+      throw new APIError("CMS_MEDIA_MISSING", 400)
+    }
+  }
+  return data
+}
+
 const ensureTenantConsistency: CollectionBeforeChangeHook = async ({ data, req, originalDoc }) => {
   const contentId = idOf(data["content"])
   if (contentId !== null) {
@@ -79,7 +128,7 @@ export const ContentEditions = {
     drafts: true,
   },
   hooks: {
-    beforeChange: [ensureTenantConsistency],
+    beforeChange: [ensureTenantConsistency, ensureMediaReferences],
   },
   fields: [
     {

@@ -73,7 +73,7 @@ export interface Config {
     domains: Domain
     contents: Content
     "content-editions": ContentEdition
-    "bootstrap-media": BootstrapMedia
+    media: Media
     "payload-kv": PayloadKv
     "payload-locked-documents": PayloadLockedDocument
     "payload-preferences": PayloadPreference
@@ -87,7 +87,7 @@ export interface Config {
     domains: DomainsSelect<false> | DomainsSelect<true>
     contents: ContentsSelect<false> | ContentsSelect<true>
     "content-editions": ContentEditionsSelect<false> | ContentEditionsSelect<true>
-    "bootstrap-media": BootstrapMediaSelect<false> | BootstrapMediaSelect<true>
+    media: MediaSelect<false> | MediaSelect<true>
     "payload-kv": PayloadKvSelect<false> | PayloadKvSelect<true>
     "payload-locked-documents":
       | PayloadLockedDocumentsSelect<false>
@@ -502,11 +502,14 @@ export interface ContentEdition {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "bootstrap-media".
+ * via the `definition` "media".
  */
-export interface BootstrapMedia {
+export interface Media {
   id: number
+  tenant: number | Tenant
+  mediaPath?: string | null
   alt: string
+  caption?: string | null
   prefix?: string | null
   updatedAt: string
   createdAt: string
@@ -569,8 +572,8 @@ export interface PayloadLockedDocument {
         value: number | ContentEdition
       } | null)
     | ({
-        relationTo: "bootstrap-media"
-        value: number | BootstrapMedia
+        relationTo: "media"
+        value: number | Media
       } | null)
   globalSlug?: string | null
   user: {
@@ -889,10 +892,13 @@ export interface ContentEditionsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "bootstrap-media_select".
+ * via the `definition` "media_select".
  */
-export interface BootstrapMediaSelect<T extends boolean = true> {
+export interface MediaSelect<T extends boolean = true> {
+  tenant?: T
+  mediaPath?: T
   alt?: T
+  caption?: T
   prefix?: T
   updatedAt?: T
   createdAt?: T

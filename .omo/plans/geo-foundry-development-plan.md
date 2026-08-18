@@ -245,7 +245,7 @@ Your next move: 使用 `$start-work geo-foundry-development-plan` 在独立 work
   QA scenarios: happy: Site A technical angle and Site B operations angle coexist; failure: second active Edition for same Site/version lineage, direct published-row mutation, cross-tenant Content relation, and body failing shared block schema are rejected. Evidence `<attemptDir>/task-12-geo-foundry-development-plan.json`.
   Commit: Y | `feat(cms): 建立内容与站点版本模型`
 
-- [ ] 13. Secure tenant media and S3-compatible object paths
+- [x] 13. Secure tenant media and S3-compatible object paths
   What to do / Must NOT do: Add Media collection, image metadata/alt/caption, object storage adapter, tenant/site-prefixed keys, file type/size policy, private original versus published derivative policy, and signed/admin access. Compiler-visible media metadata must be immutable by release version. Do not expose raw private object URLs or permit a tenant to reference another tenant's media ID/key.
   Parallelization: Wave 2 | Blocked by: 4,9,10 | Blocks: 15,17-28,38-40
   References: this plan tenant isolation and artifact key rules; target `apps/cms/src/collections/Media.ts`, `src/storage/*`, `packages/schema/src/media/*`.

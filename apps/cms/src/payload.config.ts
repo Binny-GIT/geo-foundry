@@ -6,10 +6,10 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { buildConfig } from "payload"
 
-import { BootstrapMedia } from "./collections/BootstrapMedia"
 import { ContentEditions } from "./collections/ContentEditions"
 import { Contents } from "./collections/Contents"
 import { Domains } from "./collections/Domains"
+import { Media } from "./collections/Media"
 import { Sites } from "./collections/Sites"
 import { Tenants } from "./collections/Tenants"
 import { Users } from "./collections/Users"
@@ -27,7 +27,7 @@ export default buildConfig({
     },
     user: Users.slug,
   },
-  collections: [Tenants, Users, Sites, Domains, Contents, ContentEditions, BootstrapMedia],
+  collections: [Tenants, Users, Sites, Domains, Contents, ContentEditions, Media],
   db: postgresAdapter(
     createPostgresAdapterOptions(environment, path.resolve(dirname, "migrations")),
   ),
@@ -45,10 +45,11 @@ export default buildConfig({
     s3Storage({
       bucket: environment.rustfs.bucket,
       collections: {
-        [BootstrapMedia.slug]: {
+        [Media.slug]: {
           prefix: environment.rustfs.mediaPrefix,
         },
       },
+      useCompositePrefixes: true,
       config: {
         credentials: {
           accessKeyId: environment.rustfs.accessKeyId,
