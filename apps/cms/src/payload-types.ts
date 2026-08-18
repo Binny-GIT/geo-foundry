@@ -76,6 +76,7 @@ export interface Config {
     media: Media
     "url-records": UrlRecord
     "quality-assessments": QualityAssessment
+    "outbox-events": OutboxEvent
     "payload-kv": PayloadKv
     "payload-locked-documents": PayloadLockedDocument
     "payload-preferences": PayloadPreference
@@ -92,6 +93,7 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>
     "url-records": UrlRecordsSelect<false> | UrlRecordsSelect<true>
     "quality-assessments": QualityAssessmentsSelect<false> | QualityAssessmentsSelect<true>
+    "outbox-events": OutboxEventsSelect<false> | OutboxEventsSelect<true>
     "payload-kv": PayloadKvSelect<false> | PayloadKvSelect<true>
     "payload-locked-documents":
       | PayloadLockedDocumentsSelect<false>
@@ -601,6 +603,40 @@ export interface QualityAssessment {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "outbox-events".
+ */
+export interface OutboxEvent {
+  id: number
+  eventId: string
+  type:
+    | "edition.transitioned"
+    | "edition.draft-written"
+    | "assessment.recorded"
+    | "edition.compile-recorded"
+    | "publish.requested"
+  aggregateType: "edition"
+  aggregateId: number
+  tenant: number | Tenant
+  eventPayload:
+    | {
+        [k: string]: unknown
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null
+  operationId?: string | null
+  requestId?: string | null
+  status: "pending" | "dispatched"
+  attempts?: number | null
+  lastError?: string | null
+  dispatchedAt?: string | null
+  updatedAt: string
+  createdAt: string
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -658,6 +694,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: "quality-assessments"
         value: number | QualityAssessment
+      } | null)
+    | ({
+        relationTo: "outbox-events"
+        value: number | OutboxEvent
       } | null)
   globalSlug?: string | null
   user: {
@@ -1036,6 +1076,26 @@ export interface QualityAssessmentsSelect<T extends boolean = true> {
   promptVersion?: T
   provider?: T
   thresholdsHash?: T
+  updatedAt?: T
+  createdAt?: T
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "outbox-events_select".
+ */
+export interface OutboxEventsSelect<T extends boolean = true> {
+  eventId?: T
+  type?: T
+  aggregateType?: T
+  aggregateId?: T
+  tenant?: T
+  eventPayload?: T
+  operationId?: T
+  requestId?: T
+  status?: T
+  attempts?: T
+  lastError?: T
+  dispatchedAt?: T
   updatedAt?: T
   createdAt?: T
 }

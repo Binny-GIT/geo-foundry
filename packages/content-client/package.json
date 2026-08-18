@@ -19,12 +19,16 @@
     "build": "tsc --project tsconfig.build.json",
     "dev": "tsc --project tsconfig.build.json --watch",
     "lint": "biome lint --config-path ../../biome.json .",
-    "test": "node --input-type=module --eval \"\"",
+    "test": "vitest run --configLoader runner",
     "test:integration": "node --input-type=module --eval \"\"",
     "test:e2e": "node --input-type=module --eval \"\"",
     "typecheck": "tsc --noEmit --project tsconfig.json"
   },
   "devDependencies": {
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "4.1.10"
+  },
+  "dependencies": {
+    "zod": "4.4.3"
   }
 }

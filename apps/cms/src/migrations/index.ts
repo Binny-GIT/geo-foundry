@@ -6,6 +6,7 @@ import * as migration_20260818_125941_task13_media from "./20260818_125941_task1
 import * as migration_20260818_132154_task13b_media_path from "./20260818_132154_task13b_media_path"
 import * as migration_20260818_135403_task14_url_records from "./20260818_135403_task14_url_records"
 import * as migration_20260818_142113_task15_workflow from "./20260818_142113_task15_workflow"
+import * as migration_20260818_162613_task16_outbox from "./20260818_162613_task16_outbox"
 
 export const migrations = [
   {
@@ -47,5 +48,10 @@ export const migrations = [
     up: migration_20260818_142113_task15_workflow.up,
     down: migration_20260818_142113_task15_workflow.down,
     name: "20260818_142113_task15_workflow",
+  },
+  {
+    up: migration_20260818_162613_task16_outbox.up,
+    down: migration_20260818_162613_task16_outbox.down,
+    name: "20260818_162613_task16_outbox",
   },
 ]

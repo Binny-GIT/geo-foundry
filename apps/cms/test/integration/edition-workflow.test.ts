@@ -123,6 +123,7 @@ describe("edition workflow gating integration", () => {
   beforeAll(async () => {
     payload = await getPayload({ config })
     for (const collection of [
+      "outbox-events",
       "quality-assessments",
       "content-editions",
       "contents",
@@ -205,6 +206,7 @@ describe("edition workflow gating integration", () => {
 
   afterAll(async () => {
     for (const collection of [
+      "outbox-events",
       "quality-assessments",
       "content-editions",
       "contents",

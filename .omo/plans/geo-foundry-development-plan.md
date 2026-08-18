@@ -269,7 +269,7 @@ Your next move: 使用 `$start-work geo-foundry-development-plan` 在独立 work
   QA scenarios: happy: editor -> evaluator -> reviewer -> publisher flow; failure: stale assessment, changed body after assessment, provider error, critical issue, unauthorized actor, and direct status field mutation fail closed. Evidence `<attemptDir>/task-15-geo-foundry-development-plan.json`.
   Commit: Y | `feat(cms): 固化内容审核与发布门禁`
 
-- [ ] 16. Expose zero-trust CMS integration endpoints and event outbox
+- [x] 16. Expose zero-trust CMS integration endpoints and event outbox
   What to do / Must NOT do: Create authenticated internal endpoints/SDK calls for reading immutable Edition input, writing generated draft versions/assessments, recording compile results, and requesting publish; validate Zod bodies, tenant/service scope, CORS, rate/size limits, and request IDs. Add PostgreSQL outbox rows in the same transaction as workflow changes, with a dispatcher that safely creates BullMQ jobs. Do not let workers write the Payload database directly or trust unsigned webhooks.
   Parallelization: Wave 2 | Blocked by: 9-15 | Blocks: 17-24,38-40
   References: this plan data ownership/idempotency/API requirements; target `apps/cms/src/endpoints/internal/*`, `src/outbox/*`, `packages/content-client/*`.

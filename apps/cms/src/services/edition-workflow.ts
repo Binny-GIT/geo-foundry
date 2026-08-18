@@ -15,7 +15,13 @@ import {
 } from "@geo/domain"
 import type { Payload } from "payload"
 
-import { resolveSessionClaims } from "../access/session"
+import { resolveSessionClaims, type SessionClaims } from "../access/session"
+import {
+  OUTBOX_EVENT,
+  appendOutboxEvent,
+  runOutboxScopedTransaction,
+  type TransactionScope,
+} from "../outbox/outbox"
 import { hashEditionContent, type EditionContentSnapshot } from "./edition-input-hash"
 
 export class EditionWorkflowError extends Error {
@@ -43,7 +49,7 @@ const systemClock: Clock = {
   },
 }
 
-type WorkflowEditionDoc = {
+export type WorkflowEditionDoc = {
   readonly id: number
   readonly content: unknown
   readonly site: unknown
@@ -59,12 +65,13 @@ type WorkflowEditionDoc = {
   readonly auditLog: unknown
 }
 
-const numberField = (value: unknown): number | null => (typeof value === "number" ? value : null)
+export const numberFieldOf = (value: unknown): number | null =>
+  typeof value === "number" ? value : null
 
 const stringField = (value: unknown): string | null =>
   typeof value === "string" && value.length > 0 ? value : null
 
-const parseStatus = (value: unknown): ContentEditionState => {
+export const parseWorkflowStatus = (value: unknown): ContentEditionState => {
   switch (value) {
     case "approved":
     case "archived":
@@ -86,10 +93,11 @@ export type SerializedAuditActor = {
   readonly userId: string
 }
 
-type AuditEntry = {
+export type AuditEntry = {
   readonly action: string
   readonly actor: SerializedAuditActor
   readonly at: string
+  readonly detail?: Record<string, unknown>
   readonly from: ContentEditionState
   readonly reason?: string
   readonly tenantId: number
@@ -111,7 +119,7 @@ const actorOf = (user: unknown): AuditActor | null => {
   })
 }
 
-const serializedActorOf = (user: unknown): SerializedAuditActor | null => {
+export const serializedActorOf = (user: unknown): SerializedAuditActor | null => {
   const claims = resolveSessionClaims(user)
   if (claims === null) {
     return null
@@ -124,11 +132,50 @@ const serializedActorOf = (user: unknown): SerializedAuditActor | null => {
   }
 }
 
+/**
+ * Zero-trust tenant guard: every service-level mutation re-checks that the
+ * actor's session tenant matches the edition's tenant. Super-admin is the
+ * only cross-tenant role.
+ */
+export const assertEditionTenantScope = (user: unknown, doc: WorkflowEditionDoc): SessionClaims => {
+  const claims = resolveSessionClaims(user)
+  if (claims === null) {
+    throw fail("EDITION_WORKFLOW_ACTOR_INVALID", "session has no valid claims")
+  }
+  if (claims.role === "super-admin") {
+    return claims
+  }
+  const editionTenant = numberFieldOf(doc.tenant)
+  if (
+    claims.tenantId === null ||
+    editionTenant === null ||
+    String(claims.tenantId) !== String(editionTenant)
+  ) {
+    throw fail(
+      "EDITION_WORKFLOW_TENANT_MISMATCH",
+      `actor tenant ${String(claims.tenantId)} edition tenant ${String(editionTenant)}`,
+    )
+  }
+  return claims
+}
+
+/** Service-identity guard for generated-content integration operations. */
+export const requireServiceIdentity = (user: unknown): SessionClaims => {
+  const claims = resolveSessionClaims(user)
+  if (claims === null || claims.kind !== "service" || claims.role !== "content-service") {
+    throw fail(
+      "EDITION_WORKFLOW_SERVICE_REQUIRED",
+      "operation requires the content-service identity",
+    )
+  }
+  return claims
+}
+
 const aggregateOf = (doc: WorkflowEditionDoc): ContentEdition => {
   const editionId = parseEditionId(String(doc.id))
-  const contentId = parseContentId(String(numberField(doc.content) ?? -1))
-  const siteId = parseSiteId(String(numberField(doc.site) ?? -1))
-  const tenantId = parseTenantId(String(numberField(doc.tenant) ?? -1))
+  const contentId = parseContentId(String(numberFieldOf(doc.content) ?? -1))
+  const siteId = parseSiteId(String(numberFieldOf(doc.site) ?? -1))
+  const tenantId = parseTenantId(String(numberFieldOf(doc.tenant) ?? -1))
   if (!editionId.ok || !contentId.ok || !siteId.ok || !tenantId.ok) {
     throw fail("EDITION_WORKFLOW_ROW_INVALID", `edition ${doc.id} identity`)
   }
@@ -141,13 +188,13 @@ const aggregateOf = (doc: WorkflowEditionDoc): ContentEdition => {
       siteId: siteId.value,
       tenantId: tenantId.value,
     }),
-    revision: numberField(doc.workflowRevision) ?? 0,
-    state: parseStatus(doc.workflowStatus),
+    revision: numberFieldOf(doc.workflowRevision) ?? 0,
+    state: parseWorkflowStatus(doc.workflowStatus),
     version: 1,
   })
 }
 
-const snapshotOf = (doc: WorkflowEditionDoc): EditionContentSnapshot => ({
+export const editionContentSnapshotOf = (doc: WorkflowEditionDoc): EditionContentSnapshot => ({
   body: doc.body,
   primaryTopic: doc.primaryTopic,
   secondaryTopics: doc.secondaryTopics,
@@ -155,14 +202,27 @@ const snapshotOf = (doc: WorkflowEditionDoc): EditionContentSnapshot => ({
   title: doc.title,
 })
 
-const loadEdition = async (payload: Payload, editionId: number): Promise<WorkflowEditionDoc> => {
-  const doc = (await payload.findByID({
-    collection: "content-editions",
-    id: editionId,
-    depth: 0,
-    overrideAccess: true,
-  })) as unknown as WorkflowEditionDoc
-  return doc
+const isNotFoundError = (error: unknown): boolean => (error as { status?: unknown }).status === 404
+
+export const loadWorkflowEdition = async (
+  payload: Payload,
+  editionId: number,
+  req: TransactionScope = {},
+): Promise<WorkflowEditionDoc> => {
+  try {
+    return (await payload.findByID({
+      collection: "content-editions",
+      id: editionId,
+      depth: 0,
+      overrideAccess: true,
+      req,
+    })) as unknown as WorkflowEditionDoc
+  } catch (error) {
+    if (isNotFoundError(error)) {
+      throw fail("EDITION_WORKFLOW_NOT_FOUND", `edition ${editionId}`)
+    }
+    throw error
+  }
 }
 
 /**
@@ -173,6 +233,7 @@ const loadEdition = async (payload: Payload, editionId: number): Promise<Workflo
 const verifiedAssessmentState = async (
   payload: Payload,
   doc: WorkflowEditionDoc,
+  req: TransactionScope,
 ): Promise<"passed"> => {
   const found = await payload.find({
     collection: "quality-assessments",
@@ -181,6 +242,7 @@ const verifiedAssessmentState = async (
     limit: 1,
     depth: 0,
     overrideAccess: true,
+    req,
   })
   const assessment = found.docs[0]
   if (assessment === undefined) {
@@ -189,7 +251,7 @@ const verifiedAssessmentState = async (
   if (assessment.state !== "passed") {
     throw fail("EDITION_WORKFLOW_ASSESSMENT_NOT_PASSED", `edition ${doc.id}`)
   }
-  const liveHash = hashEditionContent(snapshotOf(doc))
+  const liveHash = hashEditionContent(editionContentSnapshotOf(doc))
   if (assessment.inputHash !== liveHash) {
     throw fail("EDITION_WORKFLOW_STALE_ASSESSMENT", `edition ${doc.id}`)
   }
@@ -201,7 +263,9 @@ export type TransitionOptions = {
   readonly target: ContentEditionState
   readonly user: unknown
   readonly compiledReleaseId?: string
+  readonly operationId?: string
   readonly reason?: string
+  readonly requestId?: string
 }
 
 export async function transitionEdition(
@@ -212,66 +276,90 @@ export async function transitionEdition(
   if (actor === null) {
     throw fail("EDITION_WORKFLOW_ACTOR_INVALID", "session has no valid user actor")
   }
-  const doc = await loadEdition(payload, options.editionId)
-  const aggregate = aggregateOf(doc)
+  return runOutboxScopedTransaction(payload, async (req) => {
+    const doc = await loadWorkflowEdition(payload, options.editionId, req)
+    assertEditionTenantScope(options.user, doc)
+    const aggregate = aggregateOf(doc)
 
-  const needsAssessment = options.target === "approved" || options.target === "compiled"
-  const qualityAssessmentState = needsAssessment
-    ? await verifiedAssessmentState(payload, doc)
-    : null
+    const needsAssessment = options.target === "approved" || options.target === "compiled"
+    const qualityAssessmentState = needsAssessment
+      ? await verifiedAssessmentState(payload, doc, req)
+      : null
 
-  if (options.target === "compiled" && stringField(options.compiledReleaseId) === null) {
-    throw fail("EDITION_WORKFLOW_RELEASE_REQUIRED", "compile intent requires artifact metadata")
-  }
-  if (options.target === "published" && stringField(doc.compiledRelease) === null) {
-    throw fail("EDITION_WORKFLOW_NOT_COMPILED", "publish intent requires a compiled release")
-  }
+    if (options.target === "compiled" && stringField(options.compiledReleaseId) === null) {
+      throw fail("EDITION_WORKFLOW_RELEASE_REQUIRED", "compile intent requires artifact metadata")
+    }
+    if (options.target === "published" && stringField(doc.compiledRelease) === null) {
+      throw fail("EDITION_WORKFLOW_NOT_COMPILED", "publish intent requires a compiled release")
+    }
 
-  const transitioned = transitionContentEdition(aggregate, options.target, {
-    actor,
-    clock: systemClock,
-    expectedRevision: aggregate.revision,
-    qualityAssessmentState,
+    const transitioned = transitionContentEdition(aggregate, options.target, {
+      actor,
+      clock: systemClock,
+      expectedRevision: aggregate.revision,
+      qualityAssessmentState,
+    })
+    if (!transitioned.ok) {
+      throw new EditionWorkflowError(transitioned.error.code, transitioned.error.message)
+    }
+
+    const serializedActor = serializedActorOf(options.user)
+    if (serializedActor === null) {
+      throw fail("EDITION_WORKFLOW_ACTOR_INVALID", "session has no serializable actor")
+    }
+    const entry: AuditEntry = {
+      action: `content-edition.${aggregate.state}.${options.target}`,
+      actor: serializedActor,
+      at: systemClock.now().value,
+      from: aggregate.state,
+      ...(options.reason === undefined ? {} : { reason: options.reason }),
+      tenantId: numberFieldOf(doc.tenant) ?? -1,
+      to: options.target,
+    }
+    const existingAudit = Array.isArray(doc.auditLog) ? doc.auditLog : []
+    const updated = await payload.update({
+      collection: "content-editions",
+      where: {
+        and: [
+          { id: { equals: options.editionId } },
+          { workflowRevision: { equals: aggregate.revision } },
+        ],
+      },
+      data: {
+        auditLog: [...existingAudit, entry],
+        ...(options.target === "compiled" ? { compiledRelease: options.compiledReleaseId } : {}),
+        workflowRevision: aggregate.revision + 1,
+        workflowStatus: options.target,
+      },
+      overrideAccess: true,
+      depth: 0,
+      req,
+    })
+    if (updated.docs.length === 0) {
+      throw fail("EDITION_WORKFLOW_REVISION_CONFLICT", `edition ${options.editionId}`)
+    }
+    await appendOutboxEvent(
+      payload,
+      {
+        aggregateId: options.editionId,
+        eventPayload: {
+          from: aggregate.state,
+          to: options.target,
+          workflowRevision: aggregate.revision + 1,
+          ...(options.target === "compiled" && options.compiledReleaseId !== undefined
+            ? { releaseId: options.compiledReleaseId }
+            : {}),
+          ...(options.reason === undefined ? {} : { reason: options.reason }),
+        },
+        tenantId: numberFieldOf(doc.tenant) ?? -1,
+        type: OUTBOX_EVENT.EDITION_TRANSITIONED,
+        ...(options.operationId === undefined ? {} : { operationId: options.operationId }),
+        ...(options.requestId === undefined ? {} : { requestId: options.requestId }),
+      },
+      req,
+    )
+    return options.target
   })
-  if (!transitioned.ok) {
-    throw new EditionWorkflowError(transitioned.error.code, transitioned.error.message)
-  }
-
-  const serializedActor = serializedActorOf(options.user)
-  if (serializedActor === null) {
-    throw fail("EDITION_WORKFLOW_ACTOR_INVALID", "session has no serializable actor")
-  }
-  const entry: AuditEntry = {
-    action: `content-edition.${aggregate.state}.${options.target}`,
-    actor: serializedActor,
-    at: systemClock.now().value,
-    from: aggregate.state,
-    ...(options.reason === undefined ? {} : { reason: options.reason }),
-    tenantId: numberField(doc.tenant) ?? -1,
-    to: options.target,
-  }
-  const existingAudit = Array.isArray(doc.auditLog) ? doc.auditLog : []
-  const updated = await payload.update({
-    collection: "content-editions",
-    where: {
-      and: [
-        { id: { equals: options.editionId } },
-        { workflowRevision: { equals: aggregate.revision } },
-      ],
-    },
-    data: {
-      auditLog: [...existingAudit, entry],
-      ...(options.target === "compiled" ? { compiledRelease: options.compiledReleaseId } : {}),
-      workflowRevision: aggregate.revision + 1,
-      workflowStatus: options.target,
-    },
-    overrideAccess: true,
-    depth: 0,
-  })
-  if (updated.docs.length === 0) {
-    throw fail("EDITION_WORKFLOW_REVISION_CONFLICT", `edition ${options.editionId}`)
-  }
-  return options.target
 }
 
 /**
@@ -289,42 +377,56 @@ export async function createDraftFromPublished(
   if (actor === null) {
     throw fail("EDITION_WORKFLOW_ACTOR_INVALID", "session has no valid user actor")
   }
-  const doc = await loadEdition(payload, editionId)
-  const aggregate = aggregateOf(doc)
-  const drafted = createDraftEditionFromPublished(aggregate, aggregate.id, {
-    actor,
-    clock: systemClock,
-    expectedRevision: aggregate.revision,
-  })
-  if (!drafted.ok) {
-    throw new EditionWorkflowError(drafted.error.code, drafted.error.message)
-  }
-  const serializedActor = serializedActorOf(user)
-  if (serializedActor === null) {
-    throw fail("EDITION_WORKFLOW_ACTOR_INVALID", "session has no serializable actor")
-  }
-  const entry: AuditEntry = {
-    action: "content-edition.published.draft",
-    actor: serializedActor,
-    at: systemClock.now().value,
-    from: "published",
-    ...(reason === undefined ? {} : { reason }),
-    tenantId: numberField(doc.tenant) ?? -1,
-    to: "draft",
-  }
-  const existingAudit = Array.isArray(doc.auditLog) ? doc.auditLog : []
-  await payload.update({
-    collection: "content-editions",
-    id: editionId,
-    draft: true,
-    data: {
-      auditLog: [...existingAudit, entry],
-      compiledRelease: null,
-      workflowRevision: 0,
-      workflowStatus: "draft",
-    },
-    overrideAccess: true,
-    depth: 0,
+  await runOutboxScopedTransaction(payload, async (req) => {
+    const doc = await loadWorkflowEdition(payload, editionId, req)
+    assertEditionTenantScope(user, doc)
+    const aggregate = aggregateOf(doc)
+    const drafted = createDraftEditionFromPublished(aggregate, aggregate.id, {
+      actor,
+      clock: systemClock,
+      expectedRevision: aggregate.revision,
+    })
+    if (!drafted.ok) {
+      throw new EditionWorkflowError(drafted.error.code, drafted.error.message)
+    }
+    const serializedActor = serializedActorOf(user)
+    if (serializedActor === null) {
+      throw fail("EDITION_WORKFLOW_ACTOR_INVALID", "session has no serializable actor")
+    }
+    const entry: AuditEntry = {
+      action: "content-edition.published.draft",
+      actor: serializedActor,
+      at: systemClock.now().value,
+      from: "published",
+      ...(reason === undefined ? {} : { reason }),
+      tenantId: numberFieldOf(doc.tenant) ?? -1,
+      to: "draft",
+    }
+    const existingAudit = Array.isArray(doc.auditLog) ? doc.auditLog : []
+    await payload.update({
+      collection: "content-editions",
+      id: editionId,
+      draft: true,
+      data: {
+        auditLog: [...existingAudit, entry],
+        compiledRelease: null,
+        workflowRevision: 0,
+        workflowStatus: "draft",
+      },
+      overrideAccess: true,
+      depth: 0,
+      req,
+    })
+    await appendOutboxEvent(
+      payload,
+      {
+        aggregateId: editionId,
+        eventPayload: { to: "draft", version: aggregate.version + 1 },
+        tenantId: numberFieldOf(doc.tenant) ?? -1,
+        type: OUTBOX_EVENT.EDITION_TRANSITIONED,
+      },
+      req,
+    )
   })
 }
 
@@ -337,41 +439,70 @@ export type RecordAssessmentInput = {
   readonly provider: string
   readonly state: "error" | "failed" | "passed"
   readonly thresholdsHash: string
+  readonly operationId?: string
+  readonly requestId?: string
+  readonly user?: unknown
 }
 
 /**
  * Write-once quality evidence. The CMS records the assessment produced by
  * the content-service; it never computes quality itself, and manual
- * overrides do not exist in P0.
+ * overrides do not exist in P0. When called through the integration surface
+ * the caller must be the tenant-scoped content-service identity.
  */
 export async function recordAssessment(
   payload: Payload,
   input: RecordAssessmentInput,
 ): Promise<number> {
-  const doc = await loadEdition(payload, input.editionId)
-  const created = await payload.create({
-    collection: "quality-assessments",
-    data: {
-      edition: input.editionId,
-      inputHash: input.inputHash,
-      issues: input.issues.map((issue) => ({ ...issue })),
-      modelId: input.modelId,
-      promptVersion: input.promptVersion,
-      provider: input.provider,
-      site: numberField(doc.site) ?? -1,
-      state: input.state,
-      tenant: numberField(doc.tenant) ?? -1,
-      thresholdsHash: input.thresholdsHash,
-    },
-    overrideAccess: true,
-    depth: 0,
+  if (input.user !== undefined) {
+    requireServiceIdentity(input.user)
+  }
+  return runOutboxScopedTransaction(payload, async (req) => {
+    const doc = await loadWorkflowEdition(payload, input.editionId, req)
+    if (input.user !== undefined) {
+      assertEditionTenantScope(input.user, doc)
+    }
+    const created = await payload.create({
+      collection: "quality-assessments",
+      data: {
+        edition: input.editionId,
+        inputHash: input.inputHash,
+        issues: input.issues.map((issue) => ({ ...issue })),
+        modelId: input.modelId,
+        promptVersion: input.promptVersion,
+        provider: input.provider,
+        site: numberFieldOf(doc.site) ?? -1,
+        state: input.state,
+        tenant: numberFieldOf(doc.tenant) ?? -1,
+        thresholdsHash: input.thresholdsHash,
+      },
+      overrideAccess: true,
+      depth: 0,
+      req,
+    })
+    await appendOutboxEvent(
+      payload,
+      {
+        aggregateId: input.editionId,
+        eventPayload: {
+          assessmentId: created.id,
+          inputHash: input.inputHash,
+          state: input.state,
+        },
+        tenantId: numberFieldOf(doc.tenant) ?? -1,
+        type: OUTBOX_EVENT.ASSESSMENT_RECORDED,
+        ...(input.operationId === undefined ? {} : { operationId: input.operationId }),
+        ...(input.requestId === undefined ? {} : { requestId: input.requestId }),
+      },
+      req,
+    )
+    return created.id
   })
-  return created.id
 }
 
 export const currentEditionInputHash = (doc: WorkflowEditionDoc): string =>
-  hashEditionContent(snapshotOf(doc))
+  hashEditionContent(editionContentSnapshotOf(doc))
 
-export const loadWorkflowEdition = loadEdition
+export const systemClockOf = (): { readonly value: string } => systemClock.now()
 
-export type { WorkflowEditionDoc, AuditEntry }
+export type { TransactionScope }

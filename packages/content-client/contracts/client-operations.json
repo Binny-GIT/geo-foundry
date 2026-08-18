@@ -1,0 +1,29 @@
+{
+  "operations": [
+    {
+      "method": "get",
+      "operationId": "getEditionInput",
+      "path": "/internal/editions/{id}/input"
+    },
+    {
+      "method": "post",
+      "operationId": "writeDraftVersion",
+      "path": "/internal/editions/{id}/versions"
+    },
+    {
+      "method": "post",
+      "operationId": "recordAssessment",
+      "path": "/internal/editions/{id}/assessments"
+    },
+    {
+      "method": "post",
+      "operationId": "recordCompileResult",
+      "path": "/internal/editions/{id}/compile-results"
+    },
+    {
+      "method": "post",
+      "operationId": "requestPublish",
+      "path": "/internal/editions/{id}/publish-requests"
+    }
+  ]
+}

@@ -50,6 +50,7 @@ const expectedTables = [
   "contents",
   "domains",
   "media",
+  "outbox_events",
   "payload_kv",
   "payload_locked_documents",
   "payload_locked_documents_rels",

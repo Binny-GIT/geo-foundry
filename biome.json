@@ -67,7 +67,8 @@
       "!**/next-env.d.ts",
       "!**/.turbo",
       "!**/coverage",
-      "!**/.omo/evidence"
+      "!**/.omo/evidence",
+      "!packages/content-client/contracts"
     ]
   },
   "javascript": {
