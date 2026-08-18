@@ -7,6 +7,8 @@ import { fileURLToPath } from "node:url"
 import { buildConfig } from "payload"
 
 import { BootstrapMedia } from "./collections/BootstrapMedia"
+import { ContentEditions } from "./collections/ContentEditions"
+import { Contents } from "./collections/Contents"
 import { Domains } from "./collections/Domains"
 import { Sites } from "./collections/Sites"
 import { Tenants } from "./collections/Tenants"
@@ -25,7 +27,7 @@ export default buildConfig({
     },
     user: Users.slug,
   },
-  collections: [Tenants, Users, Sites, Domains, BootstrapMedia],
+  collections: [Tenants, Users, Sites, Domains, Contents, ContentEditions, BootstrapMedia],
   db: postgresAdapter(
     createPostgresAdapterOptions(environment, path.resolve(dirname, "migrations")),
   ),

@@ -1,0 +1,162 @@
+import { APIError, type CollectionBeforeChangeHook, type CollectionConfig } from "payload"
+
+import { collectionAccess } from "../access/functions"
+import { CMS_RESOURCE } from "../access/policy"
+import { forceTenantFromSession } from "../access/tenant-field"
+import { PAGE_DOCUMENT_BLOCKS } from "../editor/page-document-blocks"
+import { validateEditionBody } from "../editor/validate-body"
+
+const idOf = (reference: unknown): number | string | null =>
+  typeof reference === "number" || typeof reference === "string" ? reference : null
+
+const ensureTenantConsistency: CollectionBeforeChangeHook = async ({ data, req, originalDoc }) => {
+  const contentId = idOf(data["content"])
+  if (contentId !== null) {
+    const content = await req.payload.findByID({
+      collection: "contents",
+      id: contentId,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const contentTenantId = idOf(content.tenant)
+    const editionTenantId = idOf(data["tenant"])
+    if (
+      contentTenantId !== null &&
+      editionTenantId !== null &&
+      String(contentTenantId) !== String(editionTenantId)
+    ) {
+      throw new APIError("CMS_EDITION_TENANT_MISMATCH", 400)
+    }
+  }
+
+  const siteId = idOf(data["site"])
+  if (siteId !== null) {
+    const site = await req.payload.findByID({
+      collection: "sites",
+      id: siteId,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const siteTenantId = idOf(site.tenant)
+    const editionTenantId = idOf(data["tenant"])
+    if (
+      siteTenantId !== null &&
+      editionTenantId !== null &&
+      String(siteTenantId) !== String(editionTenantId)
+    ) {
+      throw new APIError("CMS_EDITION_TENANT_MISMATCH", 400)
+    }
+  }
+
+  const existing = await req.payload.find({
+    collection: "content-editions",
+    where: {
+      and: [
+        { content: { equals: idOf(data["content"]) } },
+        { site: { equals: idOf(data["site"]) } },
+      ],
+    },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
+  })
+  const selfId = idOf(originalDoc?.id)
+  const duplicate = existing.docs.find((doc) => String(doc.id) !== String(selfId))
+  if (duplicate !== undefined) {
+    throw new APIError("CMS_EDITION_SITE_DUPLICATE", 409)
+  }
+
+  return data
+}
+
+export const ContentEditions = {
+  slug: "content-editions",
+  admin: {
+    useAsTitle: "title",
+  },
+  access: collectionAccess(CMS_RESOURCE.EDITIONS),
+  versions: {
+    drafts: true,
+  },
+  hooks: {
+    beforeChange: [ensureTenantConsistency],
+  },
+  fields: [
+    {
+      name: "content",
+      type: "relationship",
+      relationTo: "contents",
+      required: true,
+    },
+    {
+      name: "site",
+      type: "relationship",
+      relationTo: "sites",
+      required: true,
+    },
+    {
+      name: "tenant",
+      type: "relationship",
+      relationTo: "tenants",
+      required: true,
+      hooks: {
+        beforeValidate: [forceTenantFromSession],
+      },
+    },
+    {
+      name: "angle",
+      type: "text",
+      required: true,
+    },
+    {
+      name: "title",
+      type: "text",
+      required: true,
+    },
+    {
+      name: "summary",
+      type: "textarea",
+      required: true,
+    },
+    {
+      name: "body",
+      type: "blocks",
+      blocks: PAGE_DOCUMENT_BLOCKS,
+      required: true,
+      validate: validateEditionBody,
+    },
+    {
+      name: "primaryTopic",
+      type: "text",
+      required: true,
+    },
+    {
+      name: "secondaryTopics",
+      type: "text",
+      hasMany: true,
+    },
+    {
+      name: "citations",
+      type: "json",
+    },
+    {
+      name: "entities",
+      type: "json",
+    },
+    {
+      name: "creationOrigin",
+      type: "select",
+      options: ["ai", "human", "hybrid"],
+      required: true,
+      defaultValue: "human",
+    },
+    {
+      name: "workflowStatus",
+      type: "select",
+      options: ["draft", "generating", "review", "approved", "compiled", "published", "archived"],
+      required: true,
+      defaultValue: "draft",
+      admin: { description: "Owned by the edition workflow service (Todo 15)" },
+    },
+  ],
+} satisfies CollectionConfig

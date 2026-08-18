@@ -71,6 +71,8 @@ export interface Config {
     users: User
     sites: Site
     domains: Domain
+    contents: Content
+    "content-editions": ContentEdition
     "bootstrap-media": BootstrapMedia
     "payload-kv": PayloadKv
     "payload-locked-documents": PayloadLockedDocument
@@ -83,6 +85,8 @@ export interface Config {
     users: UsersSelect<false> | UsersSelect<true>
     sites: SitesSelect<false> | SitesSelect<true>
     domains: DomainsSelect<false> | DomainsSelect<true>
+    contents: ContentsSelect<false> | ContentsSelect<true>
+    "content-editions": ContentEditionsSelect<false> | ContentEditionsSelect<true>
     "bootstrap-media": BootstrapMediaSelect<false> | BootstrapMediaSelect<true>
     "payload-kv": PayloadKvSelect<false> | PayloadKvSelect<true>
     "payload-locked-documents":
@@ -216,6 +220,288 @@ export interface Domain {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contents".
+ */
+export interface Content {
+  id: number
+  topic: string
+  intent: string
+  tenant: number | Tenant
+  createdBy: "ai" | "human" | "hybrid"
+  updatedAt: string
+  createdAt: string
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "content-editions".
+ */
+export interface ContentEdition {
+  id: number
+  content: number | Content
+  site: number | Site
+  tenant: number | Tenant
+  angle: string
+  title: string
+  summary: string
+  body: (
+    | {
+        text: string
+        extensions?:
+          | {
+              [k: string]: unknown
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null
+        id?: string | null
+        blockName?: string | null
+        blockType: "paragraph"
+      }
+    | {
+        level: "2" | "3" | "4" | "5" | "6"
+        text: string
+        extensions?:
+          | {
+              [k: string]: unknown
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null
+        id?: string | null
+        blockName?: string | null
+        blockType: "heading"
+      }
+    | {
+        src: string
+        alt: string
+        caption?: string | null
+        width?: number | null
+        height?: number | null
+        extensions?:
+          | {
+              [k: string]: unknown
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null
+        id?: string | null
+        blockName?: string | null
+        blockType: "image"
+      }
+    | {
+        text: string
+        attribution?: string | null
+        citeUrl?: string | null
+        extensions?:
+          | {
+              [k: string]: unknown
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null
+        id?: string | null
+        blockName?: string | null
+        blockType: "quote"
+      }
+    | {
+        style: "ordered" | "unordered"
+        items: {
+          text: string
+          id?: string | null
+        }[]
+        extensions?:
+          | {
+              [k: string]: unknown
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null
+        id?: string | null
+        blockName?: string | null
+        blockType: "list"
+      }
+    | {
+        columns: {
+          text: string
+          id?: string | null
+        }[]
+        rows: {
+          cells: {
+            text: string
+            id?: string | null
+          }[]
+          id?: string | null
+        }[]
+        caption?: string | null
+        extensions?:
+          | {
+              [k: string]: unknown
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null
+        id?: string | null
+        blockName?: string | null
+        blockType: "table"
+      }
+    | {
+        items: {
+          question: string
+          answer: string
+          id?: string | null
+        }[]
+        extensions?:
+          | {
+              [k: string]: unknown
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null
+        id?: string | null
+        blockName?: string | null
+        blockType: "faq"
+      }
+    | {
+        tone: "info" | "success" | "warning" | "danger"
+        title?: string | null
+        text: string
+        extensions?:
+          | {
+              [k: string]: unknown
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null
+        id?: string | null
+        blockName?: string | null
+        blockType: "callout"
+      }
+    | {
+        language: string
+        code: string
+        caption?: string | null
+        extensions?:
+          | {
+              [k: string]: unknown
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null
+        id?: string | null
+        blockName?: string | null
+        blockType: "code"
+      }
+    | {
+        src: string
+        title: string
+        poster?: string | null
+        transcript?: string | null
+        extensions?:
+          | {
+              [k: string]: unknown
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null
+        id?: string | null
+        blockName?: string | null
+        blockType: "video"
+      }
+    | {
+        provider: string
+        url: string
+        title: string
+        extensions?:
+          | {
+              [k: string]: unknown
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null
+        id?: string | null
+        blockName?: string | null
+        blockType: "embed"
+      }
+    | {
+        items: {
+          citationId: string
+          label: string
+          id?: string | null
+        }[]
+        extensions?:
+          | {
+              [k: string]: unknown
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null
+        id?: string | null
+        blockName?: string | null
+        blockType: "references"
+      }
+  )[]
+  primaryTopic: string
+  secondaryTopics?: string[] | null
+  citations?:
+    | {
+        [k: string]: unknown
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null
+  entities?:
+    | {
+        [k: string]: unknown
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null
+  creationOrigin: "ai" | "human" | "hybrid"
+  /**
+   * Owned by the edition workflow service (Todo 15)
+   */
+  workflowStatus:
+    | "draft"
+    | "generating"
+    | "review"
+    | "approved"
+    | "compiled"
+    | "published"
+    | "archived"
+  updatedAt: string
+  createdAt: string
+  _status?: ("draft" | "published") | null
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "bootstrap-media".
  */
 export interface BootstrapMedia {
@@ -273,6 +559,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: "domains"
         value: number | Domain
+      } | null)
+    | ({
+        relationTo: "contents"
+        value: number | Content
+      } | null)
+    | ({
+        relationTo: "content-editions"
+        value: number | ContentEdition
       } | null)
     | ({
         relationTo: "bootstrap-media"
@@ -408,6 +702,190 @@ export interface DomainsSelect<T extends boolean = true> {
   status?: T
   updatedAt?: T
   createdAt?: T
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contents_select".
+ */
+export interface ContentsSelect<T extends boolean = true> {
+  topic?: T
+  intent?: T
+  tenant?: T
+  createdBy?: T
+  updatedAt?: T
+  createdAt?: T
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "content-editions_select".
+ */
+export interface ContentEditionsSelect<T extends boolean = true> {
+  content?: T
+  site?: T
+  tenant?: T
+  angle?: T
+  title?: T
+  summary?: T
+  body?:
+    | T
+    | {
+        paragraph?:
+          | T
+          | {
+              text?: T
+              extensions?: T
+              id?: T
+              blockName?: T
+            }
+        heading?:
+          | T
+          | {
+              level?: T
+              text?: T
+              extensions?: T
+              id?: T
+              blockName?: T
+            }
+        image?:
+          | T
+          | {
+              src?: T
+              alt?: T
+              caption?: T
+              width?: T
+              height?: T
+              extensions?: T
+              id?: T
+              blockName?: T
+            }
+        quote?:
+          | T
+          | {
+              text?: T
+              attribution?: T
+              citeUrl?: T
+              extensions?: T
+              id?: T
+              blockName?: T
+            }
+        list?:
+          | T
+          | {
+              style?: T
+              items?:
+                | T
+                | {
+                    text?: T
+                    id?: T
+                  }
+              extensions?: T
+              id?: T
+              blockName?: T
+            }
+        table?:
+          | T
+          | {
+              columns?:
+                | T
+                | {
+                    text?: T
+                    id?: T
+                  }
+              rows?:
+                | T
+                | {
+                    cells?:
+                      | T
+                      | {
+                          text?: T
+                          id?: T
+                        }
+                    id?: T
+                  }
+              caption?: T
+              extensions?: T
+              id?: T
+              blockName?: T
+            }
+        faq?:
+          | T
+          | {
+              items?:
+                | T
+                | {
+                    question?: T
+                    answer?: T
+                    id?: T
+                  }
+              extensions?: T
+              id?: T
+              blockName?: T
+            }
+        callout?:
+          | T
+          | {
+              tone?: T
+              title?: T
+              text?: T
+              extensions?: T
+              id?: T
+              blockName?: T
+            }
+        code?:
+          | T
+          | {
+              language?: T
+              code?: T
+              caption?: T
+              extensions?: T
+              id?: T
+              blockName?: T
+            }
+        video?:
+          | T
+          | {
+              src?: T
+              title?: T
+              poster?: T
+              transcript?: T
+              extensions?: T
+              id?: T
+              blockName?: T
+            }
+        embed?:
+          | T
+          | {
+              provider?: T
+              url?: T
+              title?: T
+              extensions?: T
+              id?: T
+              blockName?: T
+            }
+        references?:
+          | T
+          | {
+              items?:
+                | T
+                | {
+                    citationId?: T
+                    label?: T
+                    id?: T
+                  }
+              extensions?: T
+              id?: T
+              blockName?: T
+            }
+      }
+  primaryTopic?: T
+  secondaryTopics?: T
+  citations?: T
+  entities?: T
+  creationOrigin?: T
+  workflowStatus?: T
+  updatedAt?: T
+  createdAt?: T
+  _status?: T
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

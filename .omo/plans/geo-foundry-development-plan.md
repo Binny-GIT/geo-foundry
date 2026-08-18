@@ -237,7 +237,7 @@ Your next move: 使用 `$start-work geo-foundry-development-plan` 在独立 work
   QA scenarios: happy: resolve `www.site-a.test` to Site A canonical host; failure: mixed-case duplicate, trailing-dot duplicate, cross-tenant reuse, unknown host, and disabled Site produce stable errors. Evidence `<attemptDir>/task-11-geo-foundry-development-plan.json`.
   Commit: Y | `feat(cms): 建立站点与域名配置模型`
 
-- [ ] 12. Model P0 Content and versioned Site Editions
+- [x] 12. Model P0 Content and versioned Site Editions
   What to do / Must NOT do: Add Content and ContentEdition collections with shared topic/intent, tenant, Site, angle, title, summary, structured body, primary/secondary topics, optional citations/entities, creation origin, status, version links, and Payload drafts/versions. A Content may have one active Edition per Site/version lineage; editing published content creates a new draft version. Keep Source/Fact/Claim management and autonomous research outside P0; represent the operator-supplied research bundle only as immutable Operation input evidence.
   Parallelization: Wave 2 | Blocked by: 9,10 | Blocks: 16,18-28,38-40
   References: this plan `Must have` generation scope and Edition state machine; target `apps/cms/src/collections/Contents.ts`, `ContentEditions.ts`, shared block adapters.
