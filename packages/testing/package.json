@@ -1,0 +1,40 @@
+{
+  "name": "@geo/testing",
+  "version": "0.0.0",
+  "private": false,
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "package.json"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./architecture": {
+      "types": "./dist/architecture/index.d.ts",
+      "import": "./dist/architecture/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json",
+    "lint": "biome lint --config-path ../../biome.json .",
+    "test": "vitest run --configLoader runner",
+    "test:integration": "vitest run --configLoader runner test/integration --no-file-parallelism",
+    "test:e2e": "node --input-type=module --eval \"\"",
+    "typecheck": "tsc --noEmit --project tsconfig.json"
+  },
+  "dependencies": {
+    "fast-check": "4.9.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "@vitest/coverage-v8": "4.1.10",
+    "typescript": "5.9.3",
+    "vitest": "4.1.10"
+  }
+}

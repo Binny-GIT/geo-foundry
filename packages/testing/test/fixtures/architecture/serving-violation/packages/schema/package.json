@@ -1,0 +1,17 @@
+{
+  "name": "@geo/schema",
+  "version": "0.0.0",
+  "private": false,
+  "type": "module",
+  "files": [
+    "dist",
+    "package.json"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  }
+}
