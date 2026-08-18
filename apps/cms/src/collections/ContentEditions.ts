@@ -203,9 +203,41 @@ export const ContentEditions = {
       name: "workflowStatus",
       type: "select",
       options: ["draft", "generating", "review", "approved", "compiled", "published", "archived"],
-      required: true,
       defaultValue: "draft",
-      admin: { description: "Owned by the edition workflow service (Todo 15)" },
+      admin: { readOnly: true, description: "Owned by the edition workflow service" },
+      access: {
+        create: () => false,
+        update: () => false,
+      },
+    },
+    {
+      name: "workflowRevision",
+      type: "number",
+      defaultValue: 0,
+      admin: { hidden: true },
+      access: {
+        create: () => false,
+        update: () => false,
+      },
+    },
+    {
+      name: "compiledRelease",
+      type: "text",
+      admin: { hidden: true },
+      access: {
+        create: () => false,
+        update: () => false,
+      },
+    },
+    {
+      name: "auditLog",
+      type: "json",
+      defaultValue: [],
+      admin: { hidden: true },
+      access: {
+        create: () => false,
+        update: () => false,
+      },
     },
   ],
 } satisfies CollectionConfig

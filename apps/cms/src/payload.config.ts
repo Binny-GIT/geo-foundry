@@ -10,6 +10,7 @@ import { ContentEditions } from "./collections/ContentEditions"
 import { Contents } from "./collections/Contents"
 import { Domains } from "./collections/Domains"
 import { Media } from "./collections/Media"
+import { QualityAssessments } from "./collections/QualityAssessments"
 import { Sites } from "./collections/Sites"
 import { Tenants } from "./collections/Tenants"
 import { UrlRecords } from "./collections/UrlRecords"
@@ -28,7 +29,17 @@ export default buildConfig({
     },
     user: Users.slug,
   },
-  collections: [Tenants, Users, Sites, Domains, Contents, ContentEditions, Media, UrlRecords],
+  collections: [
+    Tenants,
+    Users,
+    Sites,
+    Domains,
+    Contents,
+    ContentEditions,
+    Media,
+    UrlRecords,
+    QualityAssessments,
+  ],
   db: postgresAdapter(
     createPostgresAdapterOptions(environment, path.resolve(dirname, "migrations")),
   ),

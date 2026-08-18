@@ -75,6 +75,7 @@ export interface Config {
     "content-editions": ContentEdition
     media: Media
     "url-records": UrlRecord
+    "quality-assessments": QualityAssessment
     "payload-kv": PayloadKv
     "payload-locked-documents": PayloadLockedDocument
     "payload-preferences": PayloadPreference
@@ -90,6 +91,7 @@ export interface Config {
     "content-editions": ContentEditionsSelect<false> | ContentEditionsSelect<true>
     media: MediaSelect<false> | MediaSelect<true>
     "url-records": UrlRecordsSelect<false> | UrlRecordsSelect<true>
+    "quality-assessments": QualityAssessmentsSelect<false> | QualityAssessmentsSelect<true>
     "payload-kv": PayloadKvSelect<false> | PayloadKvSelect<true>
     "payload-locked-documents":
       | PayloadLockedDocumentsSelect<false>
@@ -488,16 +490,22 @@ export interface ContentEdition {
     | null
   creationOrigin: "ai" | "human" | "hybrid"
   /**
-   * Owned by the edition workflow service (Todo 15)
+   * Owned by the edition workflow service
    */
-  workflowStatus:
-    | "draft"
-    | "generating"
-    | "review"
-    | "approved"
-    | "compiled"
-    | "published"
-    | "archived"
+  workflowStatus?:
+    | ("draft" | "generating" | "review" | "approved" | "compiled" | "published" | "archived")
+    | null
+  workflowRevision?: number | null
+  compiledRelease?: string | null
+  auditLog?:
+    | {
+        [k: string]: unknown
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null
   updatedAt: string
   createdAt: string
   _status?: ("draft" | "published") | null
@@ -556,6 +564,43 @@ export interface UrlRecord {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "quality-assessments".
+ */
+export interface QualityAssessment {
+  id: number
+  edition: number | ContentEdition
+  site: number | Site
+  tenant: number | Tenant
+  state: "pending" | "running" | "passed" | "failed" | "error"
+  inputHash: string
+  issues:
+    | {
+        [k: string]: unknown
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null
+  overall?: number | null
+  dimensions?:
+    | {
+        [k: string]: unknown
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null
+  modelId: string
+  promptVersion: string
+  provider: string
+  thresholdsHash: string
+  updatedAt: string
+  createdAt: string
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -609,6 +654,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: "url-records"
         value: number | UrlRecord
+      } | null)
+    | ({
+        relationTo: "quality-assessments"
+        value: number | QualityAssessment
       } | null)
   globalSlug?: string | null
   user: {
@@ -921,6 +970,9 @@ export interface ContentEditionsSelect<T extends boolean = true> {
   entities?: T
   creationOrigin?: T
   workflowStatus?: T
+  workflowRevision?: T
+  compiledRelease?: T
+  auditLog?: T
   updatedAt?: T
   createdAt?: T
   _status?: T
@@ -964,6 +1016,26 @@ export interface UrlRecordsSelect<T extends boolean = true> {
   targetUrl?: T
   revision?: T
   audit?: T
+  updatedAt?: T
+  createdAt?: T
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "quality-assessments_select".
+ */
+export interface QualityAssessmentsSelect<T extends boolean = true> {
+  edition?: T
+  site?: T
+  tenant?: T
+  state?: T
+  inputHash?: T
+  issues?: T
+  overall?: T
+  dimensions?: T
+  modelId?: T
+  promptVersion?: T
+  provider?: T
+  thresholdsHash?: T
   updatedAt?: T
   createdAt?: T
 }

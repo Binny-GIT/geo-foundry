@@ -56,6 +56,7 @@ const expectedTables = [
   "payload_migrations",
   "payload_preferences",
   "payload_preferences_rels",
+  "quality_assessments",
   "sites",
   "sites_texts",
   "tenants",

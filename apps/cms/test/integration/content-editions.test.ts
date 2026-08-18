@@ -158,7 +158,6 @@ describe("content and edition versioning integration", () => {
         body: validBody,
         primaryTopic: "AI support",
         creationOrigin: "human",
-        workflowStatus: "draft",
       },
       ...asUser(editor),
     })) as ContentEdition
@@ -175,7 +174,6 @@ describe("content and edition versioning integration", () => {
         body: validBody,
         primaryTopic: "AI support",
         creationOrigin: "human",
-        workflowStatus: "draft",
       },
       ...asUser(editor),
     })) as ContentEdition
@@ -216,7 +214,6 @@ describe("content and edition versioning integration", () => {
           body: validBody,
           primaryTopic: "AI support",
           creationOrigin: "human",
-          workflowStatus: "draft",
         },
         ...asUser(editor),
       }),
@@ -237,7 +234,6 @@ describe("content and edition versioning integration", () => {
           body: validBody,
           primaryTopic: "AI support",
           creationOrigin: "human",
-          workflowStatus: "draft",
         },
         ...asUser(foreignEditor),
       }),
@@ -266,22 +262,32 @@ describe("content and edition versioning integration", () => {
           body: invalidBody,
           primaryTopic: "AI support",
           creationOrigin: "human",
-          workflowStatus: "draft",
         },
         ...asUser(editor),
       }),
     ).rejects.toThrow(/field is invalid: Body/)
   })
 
-  it("Given a published edition, when edited as a draft, then the published record stays unchanged and a new draft version exists", async () => {
-    const published = await payload.update({
+  it("Given a direct workflowStatus write, when an editor attempts it, then the locked field is ignored and the status stays draft", async () => {
+    const attempted = await payload.update({
       collection: "content-editions",
       id: technicalEdition.id,
       data: { workflowStatus: "review" },
       ...asUser(editor),
     })
-    expect(published.title).toBe("How AI customer service is built")
+    expect(attempted.workflowStatus).toBe("draft")
 
+    const stored = await payload.findByID({
+      collection: "content-editions",
+      id: technicalEdition.id,
+      depth: 0,
+      overrideAccess: true,
+    })
+    expect(stored.workflowStatus).toBe("draft")
+    expect(Number(stored.workflowRevision)).toBe(0)
+  })
+
+  it("Given a published edition, when edited as a draft, then the published record stays unchanged and a new draft version exists", async () => {
     await payload.update({
       collection: "content-editions",
       id: technicalEdition.id,

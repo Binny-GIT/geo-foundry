@@ -261,7 +261,7 @@ Your next move: 使用 `$start-work geo-foundry-development-plan` 在独立 work
   QA scenarios: happy: reserve/activate/update/rename/gone; failure: duplicate concurrent reserve, redirect loop/chain, cross-site target, invalid locale/path, and transaction interruption leave no partial active state. Evidence `<attemptDir>/task-14-geo-foundry-development-plan.json`.
   Commit: Y | `feat(cms): 持久化 URL 注册生命周期`
 
-- [ ] 15. Enforce editorial, quality, compile, and publish workflow guards
+- [x] 15. Enforce editorial, quality, compile, and publish workflow guards
   What to do / Must NOT do: Implement Edition transition service, reviewer/publisher role checks, immutable assessment references, quality threshold snapshot, compile/publish preconditions, version supersession, and audit events. The CMS may record publish intent but must not perform compiler/AI work in request hooks. Manual quality override is not part of P0; any provider error or blocking issue prevents approval/publish.
   Parallelization: Wave 2 | Blocked by: 9-14 | Blocks: 16,17-32,38-40
   References: this plan Edition/Assessment/Release state machines and role matrix; target `apps/cms/src/services/edition-workflow.ts`, `audit/*`, collection hooks limited to validation/event enqueue.

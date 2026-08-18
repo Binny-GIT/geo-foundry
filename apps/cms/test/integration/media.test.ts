@@ -211,7 +211,6 @@ describe("tenant-isolated media storage integration", () => {
         ],
         primaryTopic: "media",
         creationOrigin: "human",
-        workflowStatus: "draft",
       },
       ...asUser(editorA),
     })
@@ -261,7 +260,6 @@ describe("tenant-isolated media storage integration", () => {
           ],
           primaryTopic: "media",
           creationOrigin: "human",
-          workflowStatus: "draft",
         },
         ...asUser(editorB),
       }),
@@ -303,7 +301,6 @@ describe("tenant-isolated media storage integration", () => {
           body: [{ blockType: "image" as const, src: mediaRef, alt: "Dangling derivative" }],
           primaryTopic: "media",
           creationOrigin: "human",
-          workflowStatus: "draft",
         },
         ...asUser(editorA),
       }),
