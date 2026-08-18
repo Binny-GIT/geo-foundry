@@ -1,0 +1,41 @@
+{
+  "name": "@geo/schema",
+  "version": "0.0.0",
+  "private": false,
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "package.json"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./page-document.schema.json": "./dist/page-document.schema.json",
+    "./release/v1": {
+      "types": "./dist/release/v1/index.d.ts",
+      "import": "./dist/release/v1/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json && node scripts/export-json-schema.mjs",
+    "lint": "biome lint --config-path ../../biome.json .",
+    "test": "vitest run --configLoader runner",
+    "test:release:coverage": "vitest run --configLoader runner --coverage",
+    "typecheck": "tsc --noEmit --project tsconfig.json"
+  },
+  "dependencies": {
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "4.1.10",
+    "ajv": "8.17.1",
+    "ajv-formats": "3.0.1",
+    "fast-check": "4.9.0",
+    "typescript": "5.9.3",
+    "vitest": "4.1.10"
+  }
+}
