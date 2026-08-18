@@ -6,8 +6,9 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { buildConfig } from "payload"
 
-import { BootstrapAdmins } from "./collections/BootstrapAdmins"
 import { BootstrapMedia } from "./collections/BootstrapMedia"
+import { Tenants } from "./collections/Tenants"
+import { Users } from "./collections/Users"
 import { createPostgresAdapterOptions } from "./config/database"
 import { parseCmsEnvironment } from "./config/environment"
 import { PAGE_DOCUMENT_BLOCKS } from "./editor/page-document-blocks"
@@ -20,9 +21,9 @@ export default buildConfig({
     importMap: {
       baseDir: dirname,
     },
-    user: BootstrapAdmins.slug,
+    user: Users.slug,
   },
-  collections: [BootstrapAdmins, BootstrapMedia],
+  collections: [Tenants, Users, BootstrapMedia],
   db: postgresAdapter(
     createPostgresAdapterOptions(environment, path.resolve(dirname, "migrations")),
   ),

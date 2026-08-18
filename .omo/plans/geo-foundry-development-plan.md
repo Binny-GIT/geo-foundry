@@ -221,7 +221,7 @@ Your next move: 使用 `$start-work geo-foundry-development-plan` 在独立 work
   QA scenarios: happy: empty DB migrate/boot/readiness; failure: missing migration, mismatched Payload adapter patch, unavailable DB, and unavailable RustFS each produce non-zero readiness with typed dependency status. Evidence `<attemptDir>/task-9-geo-foundry-development-plan.json`.
   Commit: Y | `feat(cms): 初始化 Payload 与 PostgreSQL 迁移基线`
 
-- [ ] 10. Implement tenant identity, roles, and deny-by-default access controls
+- [x] 10. Implement tenant identity, roles, and deny-by-default access controls
   What to do / Must NOT do: Add Tenants and Users collections, roles from the authorization baseline, tenant memberships, authenticated session/claims resolution, reusable collection/field access functions, service-account authentication, and audit actor extraction. Super-admin is the only cross-tenant role; every other query and mutation must include tenant scope server-side. Do not rely on admin UI filtering, client-supplied tenant IDs, or a default tenant.
   Parallelization: Wave 2 | Blocked by: 9 | Blocks: 11-16,38-40
   References: this plan `Authorization baseline`; target `apps/cms/src/collections/Tenants.ts`, `Users.ts`, `access/*`, `auth/*`.

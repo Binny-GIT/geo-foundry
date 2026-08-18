@@ -59,6 +59,9 @@ importers:
       '@aws-sdk/client-s3':
         specifier: 3.1112.0
         version: 3.1112.0
+      '@geo/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@payloadcms/db-postgres':
         specifier: 3.88.0
         version: 3.88.0(payload@3.88.0(graphql@16.11.0)(supports-color@8.1.1)(typescript@5.9.3))(supports-color@8.1.1)

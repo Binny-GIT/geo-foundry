@@ -63,11 +63,12 @@ export type SupportedTimezones =
 
 export interface Config {
   auth: {
-    "bootstrap-admins": BootstrapAdminAuthOperations
+    users: UserAuthOperations
   }
   blocks: {}
   collections: {
-    "bootstrap-admins": BootstrapAdmin
+    tenants: Tenant
+    users: User
     "bootstrap-media": BootstrapMedia
     "payload-kv": PayloadKv
     "payload-locked-documents": PayloadLockedDocument
@@ -76,7 +77,8 @@ export interface Config {
   }
   collectionsJoins: {}
   collectionsSelect: {
-    "bootstrap-admins": BootstrapAdminsSelect<false> | BootstrapAdminsSelect<true>
+    tenants: TenantsSelect<false> | TenantsSelect<true>
+    users: UsersSelect<false> | UsersSelect<true>
     "bootstrap-media": BootstrapMediaSelect<false> | BootstrapMediaSelect<true>
     "payload-kv": PayloadKvSelect<false> | PayloadKvSelect<true>
     "payload-locked-documents":
@@ -95,13 +97,13 @@ export interface Config {
   widgets: {
     collections: CollectionsWidget
   }
-  user: BootstrapAdmin
+  user: User
   jobs: {
     tasks: unknown
     workflows: unknown
   }
 }
-export interface BootstrapAdminAuthOperations {
+export interface UserAuthOperations {
   forgotPassword: {
     email: string
     password: string
@@ -121,12 +123,27 @@ export interface BootstrapAdminAuthOperations {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "bootstrap-admins".
+ * via the `definition` "tenants".
  */
-export interface BootstrapAdmin {
+export interface Tenant {
   id: number
+  name: string
   updatedAt: string
   createdAt: string
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users".
+ */
+export interface User {
+  id: number
+  role: "content-service" | "editor" | "publisher" | "reviewer" | "super-admin" | "tenant-admin"
+  tenant?: (number | null) | Tenant
+  updatedAt: string
+  createdAt: string
+  enableAPIKey?: boolean | null
+  apiKey?: string | null
+  apiKeyIndex?: string | null
   email: string
   resetPasswordToken?: string | null
   resetPasswordExpiration?: string | null
@@ -142,7 +159,7 @@ export interface BootstrapAdmin {
       }[]
     | null
   password?: string | null
-  collection: "bootstrap-admins"
+  collection: "users"
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -189,8 +206,12 @@ export interface PayloadLockedDocument {
   id: number
   document?:
     | ({
-        relationTo: "bootstrap-admins"
-        value: number | BootstrapAdmin
+        relationTo: "tenants"
+        value: number | Tenant
+      } | null)
+    | ({
+        relationTo: "users"
+        value: number | User
       } | null)
     | ({
         relationTo: "bootstrap-media"
@@ -198,8 +219,8 @@ export interface PayloadLockedDocument {
       } | null)
   globalSlug?: string | null
   user: {
-    relationTo: "bootstrap-admins"
-    value: number | BootstrapAdmin
+    relationTo: "users"
+    value: number | User
   }
   updatedAt: string
   createdAt: string
@@ -211,8 +232,8 @@ export interface PayloadLockedDocument {
 export interface PayloadPreference {
   id: number
   user: {
-    relationTo: "bootstrap-admins"
-    value: number | BootstrapAdmin
+    relationTo: "users"
+    value: number | User
   }
   key?: string | null
   value?:
@@ -240,11 +261,25 @@ export interface PayloadMigration {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "bootstrap-admins_select".
+ * via the `definition` "tenants_select".
  */
-export interface BootstrapAdminsSelect<T extends boolean = true> {
+export interface TenantsSelect<T extends boolean = true> {
+  name?: T
   updatedAt?: T
   createdAt?: T
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users_select".
+ */
+export interface UsersSelect<T extends boolean = true> {
+  role?: T
+  tenant?: T
+  updatedAt?: T
+  createdAt?: T
+  enableAPIKey?: T
+  apiKey?: T
+  apiKeyIndex?: T
   email?: T
   resetPasswordToken?: T
   resetPasswordExpiration?: T

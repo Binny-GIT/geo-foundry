@@ -7,8 +7,6 @@ import { parseCmsEnvironment } from "../../src/config/environment"
 import { checkRuntimeReadiness } from "../../src/readiness/runtime-readiness"
 
 const expectedTables = [
-  "bootstrap_admins",
-  "bootstrap_admins_sessions",
   "bootstrap_media",
   "payload_kv",
   "payload_locked_documents",
@@ -16,6 +14,9 @@ const expectedTables = [
   "payload_migrations",
   "payload_preferences",
   "payload_preferences_rels",
+  "tenants",
+  "users",
+  "users_sessions",
 ] as const
 
 describe("CMS shared-service integration", () => {
@@ -32,12 +33,12 @@ describe("CMS shared-service integration", () => {
     })
 
     const payload = await getPayload({ config })
-    const administrators = await payload.count({ collection: "bootstrap-admins" })
-    expect(administrators.totalDocs).toBeGreaterThanOrEqual(0)
+    const users = await payload.count({ collection: "users" })
+    expect(users.totalDocs).toBeGreaterThanOrEqual(0)
     await payload.destroy()
   })
 
-  it("Given two migration passes, when the live schema is inspected, then one record and exactly nine tables exist", async () => {
+  it("Given two migration passes, when the live schema is inspected, then one record per migration and schema-qualified tables exist", async () => {
     const environment = parseCmsEnvironment(process.env)
     const client = new pg.Client({ connectionString: environment.postgres.connectionString })
     await client.connect()
@@ -49,9 +50,13 @@ describe("CMS shared-service integration", () => {
       const migrations = await client.query<{ count: string }>(
         'SELECT count(*) AS count FROM "geo_foundry"."payload_migrations"',
       )
+      const publicTables = await client.query<{ count: string }>(
+        "SELECT count(*) AS count FROM information_schema.tables WHERE table_schema = 'public'",
+      )
 
-      expect(tables.rows.map(({ table_name }) => table_name)).toEqual(expectedTables)
-      expect(migrations.rows[0]?.count).toBe("1")
+      expect(tables.rows.map(({ table_name }) => table_name)).toEqual([...expectedTables])
+      expect(Number(migrations.rows[0]?.count)).toBeGreaterThanOrEqual(2)
+      expect(Number(publicTables.rows[0]?.count)).toBe(0)
     } finally {
       await client.end()
     }
