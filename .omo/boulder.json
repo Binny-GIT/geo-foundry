@@ -1,0 +1,14 @@
+{
+  "schema_version": 2,
+  "active_work_id": "geo-foundry-development-plan-20260817",
+  "works": {
+    "geo-foundry-development-plan-20260817": {
+      "work_id": "geo-foundry-development-plan-20260817",
+      "active_plan": ".omo/plans/geo-foundry-development-plan.md",
+      "plan_name": "geo-foundry-development-plan",
+      "session_ids": ["codex:geo-foundry-development-20260817"],
+      "status": "active",
+      "worktree_path": null
+    }
+  }
+}
