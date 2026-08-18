@@ -1,0 +1,21 @@
+{
+  "name": "@geo/examples",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json"
+  },
+  "devDependencies": {
+    "@geo/packages": "workspace:*"
+  },
+  "scripts": {
+    "build": "node --input-type=module --eval \"\"",
+    "dev": "node --input-type=module --eval \"\"",
+    "lint": "pnpm exec biome lint --config-path ../biome.json .",
+    "test": "node --input-type=module --eval \"\"",
+    "test:integration": "node --input-type=module --eval \"\"",
+    "test:e2e": "node --input-type=module --eval \"\"",
+    "typecheck": "pnpm exec tsc --noEmit --project ../tsconfig.base.json"
+  }
+}
