@@ -1,0 +1,50 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "globalPassThroughEnv": [
+    "GEO_FOUNDRY_CMS_SECRET_FILE",
+    "GEO_FOUNDRY_PG_BOOTSTRAP_DATABASE",
+    "GEO_FOUNDRY_PG_DATABASE",
+    "GEO_FOUNDRY_PG_HOST",
+    "GEO_FOUNDRY_PG_PASSWORD_FILE",
+    "GEO_FOUNDRY_PG_PORT",
+    "GEO_FOUNDRY_PG_SCHEMA",
+    "GEO_FOUNDRY_PG_USER_FILE",
+    "GEO_FOUNDRY_S3_ACCESS_KEY_FILE",
+    "GEO_FOUNDRY_S3_ENDPOINT",
+    "GEO_FOUNDRY_S3_FORCE_PATH_STYLE",
+    "GEO_FOUNDRY_S3_PORT",
+    "GEO_FOUNDRY_S3_SECRET_KEY_FILE",
+    "GEO_FOUNDRY_S3_USE_SSL",
+    "NODE_ENV"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "dev": {
+      "cache": false
+    },
+    "lint": {
+      "cache": false,
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "test:integration": {
+      "cache": false,
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "test:e2e": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "typecheck": {
+      "cache": false,
+      "outputs": []
+    }
+  }
+}

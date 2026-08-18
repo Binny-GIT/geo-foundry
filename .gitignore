@@ -1,0 +1,20 @@
+# Local agent working state. Approved plans remain trackable.
+.omo/drafts/
+.omo/evidence/
+
+# Dependencies and generated outputs
+node_modules/
+dist/
+build/
+coverage/
+temp/
+.turbo/
+.next/
+*.tsbuildinfo
+
+# Local configuration and services
+.env
+.env.*
+!.env.example
+volumes/
+mydocs/

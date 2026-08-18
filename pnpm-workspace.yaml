@@ -1,0 +1,13 @@
+packages:
+  - "apps"
+  - "apps/*"
+  - "packages"
+  - "packages/*"
+  - "examples"
+  - "examples/*"
+allowBuilds:
+  esbuild: set this to true or false
+minimumReleaseAgeExclude:
+  - '@aws-sdk/client-s3@3.1112.0'
+onlyBuiltDependencies:
+  - esbuild
