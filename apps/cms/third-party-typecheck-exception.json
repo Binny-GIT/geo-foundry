@@ -1,0 +1,17 @@
+{
+  "scope": "@geo/cms",
+  "compilerOption": "skipLibCheck",
+  "enabled": true,
+  "verifiedCommand": "pnpm --filter @geo/cms exec tsc --noEmit --project tsconfig.json --skipLibCheck false",
+  "reasonCodes": [
+    "PAYLOAD_3_88_DECLARATION_INCOMPATIBILITY",
+    "DRIZZLE_OPTIONAL_PEER_DECLARATIONS",
+    "NEXT_16_URLPATTERN_DECLARATIONS"
+  ],
+  "versions": {
+    "payload": "3.88.0",
+    "@payloadcms/db-postgres": "3.88.0",
+    "next": "16.3.0",
+    "typescript": "5.9.3"
+  }
+}
