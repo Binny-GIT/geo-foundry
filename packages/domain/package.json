@@ -1,0 +1,34 @@
+{
+  "name": "@geo/domain",
+  "version": "0.0.0",
+  "private": false,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "package.json"
+  ],
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json",
+    "dev": "tsc --project tsconfig.build.json --watch",
+    "lint": "biome lint --config-path ../../biome.json .",
+    "test": "vitest run --configLoader runner",
+    "test:url-contract": "vitest run --configLoader runner test/url-transition-errors.test.ts --no-file-parallelism && pnpm run build && node scripts/generate-url-transition-report.mjs",
+    "test:integration": "node --input-type=module --eval \"\"",
+    "test:e2e": "node --input-type=module --eval \"\"",
+    "typecheck": "tsc --noEmit --project tsconfig.json"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "4.1.10",
+    "fast-check": "4.9.0",
+    "typescript": "5.9.3",
+    "vitest": "4.1.10"
+  }
+}
