@@ -11,10 +11,16 @@ const readContractFixture = async <T>(fileName: string): Promise<T> =>
   JSON.parse(await readFile(new URL(`../contracts/${fileName}`, import.meta.url), "utf8")) as T
 
 const clientMethodByOperation: Readonly<Record<string, string>> = {
+  cancelOperation: "cancelOperation",
+  completeOperationStage: "completeOperationStage",
   getEditionInput: "getEditionInput",
+  getOperation: "getOperation",
+  listNonTerminalOperations: "listNonTerminalOperations",
   recordAssessment: "recordAssessment",
   recordCompileResult: "recordCompileResult",
   requestPublish: "requestPublish",
+  startOperationStage: "startOperationStage",
+  submitOperation: "submitOperation",
   writeDraftVersion: "writeDraftVersion",
 }
 

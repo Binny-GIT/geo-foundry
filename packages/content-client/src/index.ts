@@ -6,11 +6,18 @@ export {
 } from "./client.js"
 export type {
   AssessmentReceipt,
+  CancelOperationRequest,
+  CompleteOperationStageRequest,
   CompileResultReceipt,
   DraftWriteReceipt,
   EditionInput,
+  OperationSnapshot,
+  OperationState,
+  OperationType,
   PublishRequestReceipt,
   RecordAssessmentRequest,
+  StartOperationStageRequest,
+  SubmitOperationRequest,
   RecordCompileResultRequest,
   RequestPublishRequest,
   WorkflowStatus,

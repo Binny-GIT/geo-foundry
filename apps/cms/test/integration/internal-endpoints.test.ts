@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest"
 
 import config from "../../src/payload.config"
 import type { ContentEdition, Site, Tenant, User } from "../../src/payload-types"
-import { internalEndpoints } from "../../src/endpoints/internal/editions"
+import { allInternalEndpoints as internalEndpoints } from "../../src/endpoints/internal/index"
 import { resetInternalGuardsForTests } from "../../src/endpoints/internal/guards"
 import {
   currentEditionInputHash,

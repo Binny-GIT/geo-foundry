@@ -7,6 +7,7 @@ export const config = defineConfig({
   test: {
     projects: [
       "apps/cms/vitest.config.ts",
+      "apps/content-service/vitest.config.ts",
       "packages/content-client/vitest.config.ts",
       "packages/domain/vitest.config.ts",
       "packages/publisher/vitest.config.ts",

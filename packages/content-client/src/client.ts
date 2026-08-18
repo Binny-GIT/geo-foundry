@@ -2,23 +2,35 @@ import type { z } from "zod"
 
 import {
   assessmentReceiptSchema,
+  cancelOperationRequestSchema,
   compileResultReceiptSchema,
+  completeOperationStageRequestSchema,
   draftWriteReceiptSchema,
   editionInputSchema,
   internalErrorSchema,
+  nonTerminalOperationsResponseSchema,
+  operationResponseSchema,
   publishRequestReceiptSchema,
   recordAssessmentRequestSchema,
   recordCompileResultRequestSchema,
   requestPublishRequestSchema,
+  startOperationStageRequestSchema,
+  submitOperationRequestSchema,
+  submitOperationResponseSchema,
   writeDraftVersionRequestSchema,
   type AssessmentReceipt,
+  type CancelOperationRequest,
   type CompileResultReceipt,
+  type CompleteOperationStageRequest,
   type DraftWriteReceipt,
   type EditionInput,
+  type OperationSnapshot,
   type PublishRequestReceipt,
   type RecordAssessmentRequest,
   type RecordCompileResultRequest,
   type RequestPublishRequest,
+  type StartOperationStageRequest,
+  type SubmitOperationRequest,
   type WriteDraftVersionRequest,
 } from "./schemas.js"
 
@@ -121,6 +133,95 @@ export class ContentServiceClient {
       publishRequestReceiptSchema,
       options,
     )
+  }
+
+  async submitOperation(
+    request: SubmitOperationRequest,
+    options: CallOptions = {},
+  ): Promise<{ created: boolean; operation: OperationSnapshot }> {
+    return this.#call(
+      "POST",
+      "/internal/operations/submit",
+      submitOperationRequestSchema,
+      request,
+      submitOperationResponseSchema,
+      options,
+    )
+  }
+
+  async getOperation(operationId: string): Promise<OperationSnapshot> {
+    return (
+      await this.#call(
+        "GET",
+        `/internal/operations/${encodeURIComponent(operationId)}`,
+        null,
+        null,
+        operationResponseSchema,
+      )
+    ).operation
+  }
+
+  async startOperationStage(
+    operationId: string,
+    request: StartOperationStageRequest,
+    options: CallOptions = {},
+  ): Promise<OperationSnapshot> {
+    return (
+      await this.#call(
+        "POST",
+        `/internal/operations/${encodeURIComponent(operationId)}/stages/start`,
+        startOperationStageRequestSchema,
+        request,
+        operationResponseSchema,
+        options,
+      )
+    ).operation
+  }
+
+  async completeOperationStage(
+    operationId: string,
+    request: CompleteOperationStageRequest,
+    options: CallOptions = {},
+  ): Promise<OperationSnapshot> {
+    return (
+      await this.#call(
+        "POST",
+        `/internal/operations/${encodeURIComponent(operationId)}/stages/complete`,
+        completeOperationStageRequestSchema,
+        request,
+        operationResponseSchema,
+        options,
+      )
+    ).operation
+  }
+
+  async cancelOperation(
+    operationId: string,
+    request: CancelOperationRequest,
+    options: CallOptions = {},
+  ): Promise<OperationSnapshot> {
+    return (
+      await this.#call(
+        "POST",
+        `/internal/operations/${encodeURIComponent(operationId)}/cancel`,
+        cancelOperationRequestSchema,
+        request,
+        operationResponseSchema,
+        options,
+      )
+    ).operation
+  }
+
+  async listNonTerminalOperations(): Promise<readonly OperationSnapshot[]> {
+    return (
+      await this.#call(
+        "GET",
+        "/internal/operations/non-terminal",
+        null,
+        null,
+        nonTerminalOperationsResponseSchema,
+      )
+    ).operations
   }
 
   async #call<TResponse>(

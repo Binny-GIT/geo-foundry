@@ -3,6 +3,7 @@ import type { ZodType } from "zod"
 
 import { resolveSessionClaims, type SessionClaims } from "../../access/session"
 import { EditionWorkflowError } from "../../services/edition-workflow"
+import { OperationsLedgerError } from "../../services/operations-ledger"
 import { OPERATION_ID_PATTERN, REQUEST_ID_PATTERN } from "./contracts"
 
 export const INTERNAL_ERROR_CODE = {
@@ -144,6 +145,35 @@ const workflowErrorToResponse = (
   allowOrigin: string | null,
 ): Response => {
   const status = WORKFLOW_STATUS_BY_CODE[error.code] ?? 500
+  return internalErrorResponse(
+    status,
+    error.code,
+    error.detail ?? error.code,
+    requestId,
+    allowOrigin,
+  )
+}
+
+const LEDGER_STATUS_BY_CODE: Readonly<Record<string, number>> = {
+  IDEMPOTENCY_KEY_REUSED: 409,
+  OPERATION_ATTEMPT_STALE: 409,
+  OPERATION_CLOCK_INVALID: 500,
+  OPERATION_NOT_FOUND: 404,
+  OPERATION_REVISION_CONFLICT: 409,
+  OPERATION_RETRY_SOURCE_NOT_FAILED: 409,
+  OPERATION_STAGE_INVALID: 400,
+  OPERATION_STATE_INVALID: 400,
+  OPERATION_TENANT_MISMATCH: 403,
+  OPERATION_TRANSITION_NOT_ALLOWED: 409,
+  OPERATIONS_INPUT_INVALID: 400,
+}
+
+const ledgerErrorToResponse = (
+  error: OperationsLedgerError,
+  requestId: string,
+  allowOrigin: string | null,
+): Response => {
+  const status = LEDGER_STATUS_BY_CODE[error.code] ?? 500
   return internalErrorResponse(
     status,
     error.code,
@@ -354,6 +384,9 @@ export const withInternalGuards =
     } catch (error) {
       if (error instanceof EditionWorkflowError) {
         return workflowErrorToResponse(error, requestId, allowOrigin)
+      }
+      if (error instanceof OperationsLedgerError) {
+        return ledgerErrorToResponse(error, requestId, allowOrigin)
       }
       return internalErrorResponse(
         500,

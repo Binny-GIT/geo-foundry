@@ -6,6 +6,12 @@ export const INTERNAL_PATHS = {
   publishRequests: "/internal/editions/:id/publish-requests",
   assessments: "/internal/editions/:id/assessments",
   versions: "/internal/editions/:id/versions",
+  operationCancel: "/internal/operations/:operationId/cancel",
+  operationGet: "/internal/operations/:operationId",
+  operationStageComplete: "/internal/operations/:operationId/stages/complete",
+  operationStageStart: "/internal/operations/:operationId/stages/start",
+  operationSubmit: "/internal/operations/submit",
+  operationsNonTerminal: "/internal/operations/non-terminal",
 } as const
 
 export const SHA256_PATTERN = /^[0-9a-f]{64}$/
@@ -62,3 +68,45 @@ export type DraftVersionBody = z.infer<typeof draftVersionBodySchema>
 export type AssessmentBody = z.infer<typeof assessmentBodySchema>
 export type CompileResultBody = z.infer<typeof compileResultBodySchema>
 export type PublishRequestBody = z.infer<typeof publishRequestBodySchema>
+
+export const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9._-]{8,128}$/
+export const OPERATION_STAGE_NAME_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/
+
+export const submitOperationBodySchema = z
+  .object({
+    endpoint: z.string().min(1).max(200),
+    idempotencyKey: z.string().regex(IDEMPOTENCY_KEY_PATTERN),
+    operationType: z.enum(["generate", "evaluate", "publish", "rollback"]),
+    requestPayload: z.record(z.string(), z.unknown()),
+    siteId: z.number().int().positive().optional(),
+    targetIds: z.record(z.string().min(1).max(64), z.number().int().positive()).optional(),
+  })
+  .strict()
+
+export const startOperationStageBodySchema = z
+  .object({
+    attempt: z.number().int().min(1).max(1000),
+    stage: z.string().regex(OPERATION_STAGE_NAME_PATTERN),
+  })
+  .strict()
+
+export const completeOperationStageBodySchema = z
+  .object({
+    attempt: z.number().int().min(1).max(1000),
+    error: z.record(z.string(), z.unknown()).optional(),
+    outcome: z.enum(["failed", "succeeded"]),
+    result: z.record(z.string(), z.unknown()).optional(),
+    stage: z.string().regex(OPERATION_STAGE_NAME_PATTERN),
+  })
+  .strict()
+
+export const cancelOperationBodySchema = z
+  .object({
+    reason: z.string().min(1).max(500),
+  })
+  .strict()
+
+export type SubmitOperationBody = z.infer<typeof submitOperationBodySchema>
+export type StartOperationStageBody = z.infer<typeof startOperationStageBodySchema>
+export type CompleteOperationStageBody = z.infer<typeof completeOperationStageBodySchema>
+export type CancelOperationBody = z.infer<typeof cancelOperationBodySchema>

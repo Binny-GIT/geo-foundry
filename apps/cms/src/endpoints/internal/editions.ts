@@ -1,4 +1,4 @@
-import type { Endpoint, PayloadRequest } from "payload"
+import type { PayloadRequest } from "payload"
 
 import {
   readEditionInput,
@@ -18,7 +18,6 @@ import {
   type PublishRequestBody,
 } from "./contracts"
 import { internalJsonResponse, withInternalGuards } from "./guards"
-import { INTERNAL_OPERATIONS } from "./openapi"
 
 const editionIdOf = (req: PayloadRequest): number => {
   const raw = req.routeParams?.["id"]
@@ -111,22 +110,10 @@ const handleRequestPublish = withInternalGuards(
   },
 )
 
-const handlerByOperation: Record<string, typeof handleGetEditionInput> = {
+export const editionHandlerByOperation: Record<string, typeof handleGetEditionInput> = {
   getEditionInput: handleGetEditionInput,
   recordAssessment: handleRecordAssessment,
   recordCompileResult: handleRecordCompileResult,
   requestPublish: handleRequestPublish,
   writeDraftVersion: handleWriteDraftVersion,
 }
-
-export const internalEndpoints: readonly Endpoint[] = INTERNAL_OPERATIONS.map((operation) => {
-  const handler = handlerByOperation[operation.operationId]
-  if (handler === undefined) {
-    throw new Error(`missing internal handler for ${operation.operationId}`)
-  }
-  return {
-    handler,
-    method: operation.method,
-    path: operation.path,
-  }
-})

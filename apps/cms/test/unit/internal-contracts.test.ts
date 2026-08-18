@@ -3,7 +3,7 @@ import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
 
-import { internalEndpoints } from "../../src/endpoints/internal/editions"
+import { allInternalEndpoints as internalEndpoints } from "../../src/endpoints/internal/index"
 import { INTERNAL_OPERATIONS, internalOpenApiDocument } from "../../src/endpoints/internal/openapi"
 
 const contractsDirectory = resolve(

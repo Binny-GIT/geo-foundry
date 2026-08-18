@@ -9,7 +9,9 @@ import { buildConfig } from "payload"
 import { ContentEditions } from "./collections/ContentEditions"
 import { Contents } from "./collections/Contents"
 import { Domains } from "./collections/Domains"
+import { IdempotencyRecords } from "./collections/IdempotencyRecords"
 import { Media } from "./collections/Media"
+import { Operations } from "./collections/Operations"
 import { OutboxEvents } from "./collections/OutboxEvents"
 import { QualityAssessments } from "./collections/QualityAssessments"
 import { Sites } from "./collections/Sites"
@@ -18,7 +20,7 @@ import { UrlRecords } from "./collections/UrlRecords"
 import { Users } from "./collections/Users"
 import { createPostgresAdapterOptions } from "./config/database"
 import { parseCmsEnvironment } from "./config/environment"
-import { internalEndpoints } from "./endpoints/internal/editions"
+import { allInternalEndpoints } from "./endpoints/internal/index"
 import { PAGE_DOCUMENT_BLOCKS } from "./editor/page-document-blocks"
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -42,8 +44,10 @@ export default buildConfig({
     UrlRecords,
     QualityAssessments,
     OutboxEvents,
+    Operations,
+    IdempotencyRecords,
   ],
-  endpoints: [...internalEndpoints],
+  endpoints: [...allInternalEndpoints],
   db: postgresAdapter(
     createPostgresAdapterOptions(environment, path.resolve(dirname, "migrations")),
   ),

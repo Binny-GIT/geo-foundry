@@ -24,6 +24,36 @@
       "method": "post",
       "operationId": "requestPublish",
       "path": "/internal/editions/{id}/publish-requests"
+    },
+    {
+      "method": "post",
+      "operationId": "submitOperation",
+      "path": "/internal/operations/submit"
+    },
+    {
+      "method": "get",
+      "operationId": "getOperation",
+      "path": "/internal/operations/:operationId"
+    },
+    {
+      "method": "post",
+      "operationId": "startOperationStage",
+      "path": "/internal/operations/:operationId/stages/start"
+    },
+    {
+      "method": "post",
+      "operationId": "completeOperationStage",
+      "path": "/internal/operations/:operationId/stages/complete"
+    },
+    {
+      "method": "post",
+      "operationId": "cancelOperation",
+      "path": "/internal/operations/:operationId/cancel"
+    },
+    {
+      "method": "get",
+      "operationId": "listNonTerminalOperations",
+      "path": "/internal/operations/non-terminal"
     }
   ]
 }

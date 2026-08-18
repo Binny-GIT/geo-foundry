@@ -7,6 +7,8 @@ import * as migration_20260818_132154_task13b_media_path from "./20260818_132154
 import * as migration_20260818_135403_task14_url_records from "./20260818_135403_task14_url_records"
 import * as migration_20260818_142113_task15_workflow from "./20260818_142113_task15_workflow"
 import * as migration_20260818_162613_task16_outbox from "./20260818_162613_task16_outbox"
+import * as migration_20260818_221655_task17_operations from "./20260818_221655_task17_operations"
+import * as migration_20260818_221848_task17b_op_keyhash from "./20260818_221848_task17b_op_keyhash"
 
 export const migrations = [
   {
@@ -53,5 +55,15 @@ export const migrations = [
     up: migration_20260818_162613_task16_outbox.up,
     down: migration_20260818_162613_task16_outbox.down,
     name: "20260818_162613_task16_outbox",
+  },
+  {
+    up: migration_20260818_221655_task17_operations.up,
+    down: migration_20260818_221655_task17_operations.down,
+    name: "20260818_221655_task17_operations",
+  },
+  {
+    up: migration_20260818_221848_task17b_op_keyhash.up,
+    down: migration_20260818_221848_task17b_op_keyhash.down,
+    name: "20260818_221848_task17b_op_keyhash",
   },
 ]

@@ -277,7 +277,7 @@ Your next move: 使用 `$start-work geo-foundry-development-plan` 在独立 work
   QA scenarios: happy: create draft -> outbox -> one job -> service writes one version; failure: unsigned call, wrong tenant/operation, malformed body, duplicate event, dispatcher crash before/after enqueue, and Redis outage preserve recoverable outbox state. Evidence `<attemptDir>/task-16-geo-foundry-development-plan.json`.
   Commit: Y | `feat(cms): 提供安全集成接口与事务 Outbox`
 
-- [ ] 17. Persist asynchronous Operations and idempotency contracts
+- [x] 17. Persist asynchronous Operations and idempotency contracts
   What to do / Must NOT do: Add Operation and IdempotencyRecord persistence owned by PostgreSQL, including tenant, endpoint, key, canonical request hash, operation type, target IDs, state, current attempt, result/error envelope, provider/prompt/model versions, timestamps, and audit correlation. Enforce unique `(tenantId, endpoint, idempotencyKey)` and stable replay semantics; BullMQ jobId must derive from Operation ID and stage. Queue state must never be the only recovery source.
   Parallelization: Wave 3 | Blocked by: 2,3,13,16 | Blocks: 18-24,29,38-40
   References: this plan API/idempotency requirements and Operation state machine; target `apps/content-service/src/operations/*`, CMS migration/collection for Operations and IdempotencyRecords.

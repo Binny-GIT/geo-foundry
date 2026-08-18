@@ -77,6 +77,8 @@ export interface Config {
     "url-records": UrlRecord
     "quality-assessments": QualityAssessment
     "outbox-events": OutboxEvent
+    operations: Operation
+    "idempotency-records": IdempotencyRecord
     "payload-kv": PayloadKv
     "payload-locked-documents": PayloadLockedDocument
     "payload-preferences": PayloadPreference
@@ -94,6 +96,8 @@ export interface Config {
     "url-records": UrlRecordsSelect<false> | UrlRecordsSelect<true>
     "quality-assessments": QualityAssessmentsSelect<false> | QualityAssessmentsSelect<true>
     "outbox-events": OutboxEventsSelect<false> | OutboxEventsSelect<true>
+    operations: OperationsSelect<false> | OperationsSelect<true>
+    "idempotency-records": IdempotencyRecordsSelect<false> | IdempotencyRecordsSelect<true>
     "payload-kv": PayloadKvSelect<false> | PayloadKvSelect<true>
     "payload-locked-documents":
       | PayloadLockedDocumentsSelect<false>
@@ -637,6 +641,84 @@ export interface OutboxEvent {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "operations".
+ */
+export interface Operation {
+  id: number
+  operationId: string
+  tenant: number | Tenant
+  site?: (number | null) | Site
+  operationType: "generate" | "evaluate" | "publish" | "rollback"
+  endpoint: string
+  idempotencyKeyHash?: string | null
+  /**
+   * Owned by the operations-ledger service
+   */
+  state: "queued" | "running" | "succeeded" | "failed" | "cancelled"
+  attempt?: number | null
+  revision?: number | null
+  currentStage?: string | null
+  lastStageAt?: string | null
+  targetIds?:
+    | {
+        [k: string]: unknown
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null
+  result?:
+    | {
+        [k: string]: unknown
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null
+  error?:
+    | {
+        [k: string]: unknown
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null
+  providerVersion?: string | null
+  promptVersion?: string | null
+  modelId?: string | null
+  auditLog?:
+    | {
+        [k: string]: unknown
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null
+  updatedAt: string
+  createdAt: string
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "idempotency-records".
+ */
+export interface IdempotencyRecord {
+  id: number
+  uniqueKey: string
+  tenant: number | Tenant
+  endpoint: string
+  idempotencyKey: string
+  requestHash: string
+  operationId: string
+  replayCount?: number | null
+  updatedAt: string
+  createdAt: string
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -698,6 +780,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: "outbox-events"
         value: number | OutboxEvent
+      } | null)
+    | ({
+        relationTo: "operations"
+        value: number | Operation
+      } | null)
+    | ({
+        relationTo: "idempotency-records"
+        value: number | IdempotencyRecord
       } | null)
   globalSlug?: string | null
   user: {
@@ -1096,6 +1186,47 @@ export interface OutboxEventsSelect<T extends boolean = true> {
   attempts?: T
   lastError?: T
   dispatchedAt?: T
+  updatedAt?: T
+  createdAt?: T
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "operations_select".
+ */
+export interface OperationsSelect<T extends boolean = true> {
+  operationId?: T
+  tenant?: T
+  site?: T
+  operationType?: T
+  endpoint?: T
+  idempotencyKeyHash?: T
+  state?: T
+  attempt?: T
+  revision?: T
+  currentStage?: T
+  lastStageAt?: T
+  targetIds?: T
+  result?: T
+  error?: T
+  providerVersion?: T
+  promptVersion?: T
+  modelId?: T
+  auditLog?: T
+  updatedAt?: T
+  createdAt?: T
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "idempotency-records_select".
+ */
+export interface IdempotencyRecordsSelect<T extends boolean = true> {
+  uniqueKey?: T
+  tenant?: T
+  endpoint?: T
+  idempotencyKey?: T
+  requestHash?: T
+  operationId?: T
+  replayCount?: T
   updatedAt?: T
   createdAt?: T
 }
