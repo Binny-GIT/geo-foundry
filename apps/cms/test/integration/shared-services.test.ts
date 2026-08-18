@@ -8,12 +8,15 @@ import { checkRuntimeReadiness } from "../../src/readiness/runtime-readiness"
 
 const expectedTables = [
   "bootstrap_media",
+  "domains",
   "payload_kv",
   "payload_locked_documents",
   "payload_locked_documents_rels",
   "payload_migrations",
   "payload_preferences",
   "payload_preferences_rels",
+  "sites",
+  "sites_texts",
   "tenants",
   "users",
   "users_sessions",

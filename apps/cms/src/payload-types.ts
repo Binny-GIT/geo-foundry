@@ -69,6 +69,8 @@ export interface Config {
   collections: {
     tenants: Tenant
     users: User
+    sites: Site
+    domains: Domain
     "bootstrap-media": BootstrapMedia
     "payload-kv": PayloadKv
     "payload-locked-documents": PayloadLockedDocument
@@ -79,6 +81,8 @@ export interface Config {
   collectionsSelect: {
     tenants: TenantsSelect<false> | TenantsSelect<true>
     users: UsersSelect<false> | UsersSelect<true>
+    sites: SitesSelect<false> | SitesSelect<true>
+    domains: DomainsSelect<false> | DomainsSelect<true>
     "bootstrap-media": BootstrapMediaSelect<false> | BootstrapMediaSelect<true>
     "payload-kv": PayloadKvSelect<false> | PayloadKvSelect<true>
     "payload-locked-documents":
@@ -163,6 +167,55 @@ export interface User {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "sites".
+ */
+export interface Site {
+  id: number
+  name: string
+  tenant: number | Tenant
+  locale: string
+  timezone: string
+  status: "active" | "disabled"
+  contentStrategy?: {
+    positioning?: string | null
+    tone?: string | null
+    language?: string | null
+    targetAudience?: string[] | null
+    expertise?: string[] | null
+    preferredTopics?: string[] | null
+    prohibitedTopics?: string[] | null
+    contentAngles?: string[] | null
+  }
+  qualityThresholds?: {
+    crossDomainBlock?: number | null
+    crossDomainReview?: number | null
+    sameSiteTitleBlock?: number | null
+    overallMinimum?: number | null
+    dimensionMinimum?: number | null
+  }
+  seoDefaults?: {
+    titleSuffix?: string | null
+    defaultDescription?: string | null
+  }
+  updatedAt: string
+  createdAt: string
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "domains".
+ */
+export interface Domain {
+  id: number
+  hostname: string
+  site: number | Site
+  tenant: number | Tenant
+  role: "canonical" | "alias"
+  status: "active" | "disabled"
+  updatedAt: string
+  createdAt: string
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "bootstrap-media".
  */
 export interface BootstrapMedia {
@@ -212,6 +265,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: "users"
         value: number | User
+      } | null)
+    | ({
+        relationTo: "sites"
+        value: number | Site
+      } | null)
+    | ({
+        relationTo: "domains"
+        value: number | Domain
       } | null)
     | ({
         relationTo: "bootstrap-media"
@@ -294,6 +355,59 @@ export interface UsersSelect<T extends boolean = true> {
         createdAt?: T
         expiresAt?: T
       }
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "sites_select".
+ */
+export interface SitesSelect<T extends boolean = true> {
+  name?: T
+  tenant?: T
+  locale?: T
+  timezone?: T
+  status?: T
+  contentStrategy?:
+    | T
+    | {
+        positioning?: T
+        tone?: T
+        language?: T
+        targetAudience?: T
+        expertise?: T
+        preferredTopics?: T
+        prohibitedTopics?: T
+        contentAngles?: T
+      }
+  qualityThresholds?:
+    | T
+    | {
+        crossDomainBlock?: T
+        crossDomainReview?: T
+        sameSiteTitleBlock?: T
+        overallMinimum?: T
+        dimensionMinimum?: T
+      }
+  seoDefaults?:
+    | T
+    | {
+        titleSuffix?: T
+        defaultDescription?: T
+      }
+  updatedAt?: T
+  createdAt?: T
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "domains_select".
+ */
+export interface DomainsSelect<T extends boolean = true> {
+  hostname?: T
+  site?: T
+  tenant?: T
+  role?: T
+  status?: T
+  updatedAt?: T
+  createdAt?: T
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

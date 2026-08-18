@@ -229,7 +229,7 @@ Your next move: 使用 `$start-work geo-foundry-development-plan` 在独立 work
   QA scenarios: happy: editor reads/updates own-tenant draft and publisher publishes own tenant; failure: ID enumeration, forged tenant field, cross-tenant media/version access, reviewer publish, and publisher edit all return 403 without existence leakage. Evidence `<attemptDir>/task-10-geo-foundry-development-plan.json`.
   Commit: Y | `feat(cms): 建立租户身份与角色授权矩阵`
 
-- [ ] 11. Model Site and Domain configuration with deterministic host resolution
+- [x] 11. Model Site and Domain configuration with deterministic host resolution
   What to do / Must NOT do: Add Site and Domain collections with locale, timezone, status, Content Strategy, quality thresholds, publishing configuration, SEO defaults, canonical domain, aliases, and uniqueness. Domain normalization must use the shared URL package; one Domain belongs to one Site and tenant. Persist only validated settings and reject conflicting active domains. Do not embed deployment credentials or provider secrets in Site documents.
   Parallelization: Wave 2 | Blocked by: 9,10 | Blocks: 13-16,25-32,38-40
   References: this plan `Must have`, Site strategy and quality defaults; target `apps/cms/src/collections/Sites.ts`, `Domains.ts`, `packages/domain/src/site/*`.
