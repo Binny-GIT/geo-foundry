@@ -4,6 +4,7 @@ import * as migration_20260818_121725_task11_sites_domains from "./20260818_1217
 import * as migration_20260818_123425_task12_contents_editions from "./20260818_123425_task12_contents_editions"
 import * as migration_20260818_125941_task13_media from "./20260818_125941_task13_media"
 import * as migration_20260818_132154_task13b_media_path from "./20260818_132154_task13b_media_path"
+import * as migration_20260818_135403_task14_url_records from "./20260818_135403_task14_url_records"
 
 export const migrations = [
   {
@@ -35,5 +36,10 @@ export const migrations = [
     up: migration_20260818_132154_task13b_media_path.up,
     down: migration_20260818_132154_task13b_media_path.down,
     name: "20260818_132154_task13b_media_path",
+  },
+  {
+    up: migration_20260818_135403_task14_url_records.up,
+    down: migration_20260818_135403_task14_url_records.down,
+    name: "20260818_135403_task14_url_records",
   },
 ]

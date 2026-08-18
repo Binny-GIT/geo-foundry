@@ -59,6 +59,7 @@ const expectedTables = [
   "sites",
   "sites_texts",
   "tenants",
+  "url_records",
   "users",
   "users_sessions",
 ] as const

@@ -74,6 +74,7 @@ export interface Config {
     contents: Content
     "content-editions": ContentEdition
     media: Media
+    "url-records": UrlRecord
     "payload-kv": PayloadKv
     "payload-locked-documents": PayloadLockedDocument
     "payload-preferences": PayloadPreference
@@ -88,6 +89,7 @@ export interface Config {
     contents: ContentsSelect<false> | ContentsSelect<true>
     "content-editions": ContentEditionsSelect<false> | ContentEditionsSelect<true>
     media: MediaSelect<false> | MediaSelect<true>
+    "url-records": UrlRecordsSelect<false> | UrlRecordsSelect<true>
     "payload-kv": PayloadKvSelect<false> | PayloadKvSelect<true>
     "payload-locked-documents":
       | PayloadLockedDocumentsSelect<false>
@@ -525,6 +527,35 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "url-records".
+ */
+export interface UrlRecord {
+  id: number
+  site: number | Site
+  tenant: number | Tenant
+  content: number | Content
+  locale: string
+  pathname: string
+  uniqueKey: string
+  state: "reserved" | "active" | "redirected" | "gone"
+  canonicalUrl?: string | null
+  statusCode?: number | null
+  targetUrl?: (number | null) | UrlRecord
+  revision: number
+  audit?:
+    | {
+        [k: string]: unknown
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null
+  updatedAt: string
+  createdAt: string
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -574,6 +605,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: "media"
         value: number | Media
+      } | null)
+    | ({
+        relationTo: "url-records"
+        value: number | UrlRecord
       } | null)
   globalSlug?: string | null
   user: {
@@ -911,6 +946,26 @@ export interface MediaSelect<T extends boolean = true> {
   height?: T
   focalX?: T
   focalY?: T
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "url-records_select".
+ */
+export interface UrlRecordsSelect<T extends boolean = true> {
+  site?: T
+  tenant?: T
+  content?: T
+  locale?: T
+  pathname?: T
+  uniqueKey?: T
+  state?: T
+  canonicalUrl?: T
+  statusCode?: T
+  targetUrl?: T
+  revision?: T
+  audit?: T
+  updatedAt?: T
+  createdAt?: T
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

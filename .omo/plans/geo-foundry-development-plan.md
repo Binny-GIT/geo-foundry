@@ -253,7 +253,7 @@ Your next move: 使用 `$start-work geo-foundry-development-plan` 在独立 work
   QA scenarios: happy: editor uploads own-tenant image and compiler resolves a release-safe derivative; failure: cross-tenant ID/key, unsigned private access, path traversal filename, and deleted source referenced by a draft are denied. Evidence `<attemptDir>/task-13-geo-foundry-development-plan.json`.
   Commit: Y | `feat(cms): 增加租户隔离媒体存储`
 
-- [ ] 14. Persist URL Registry and enforce lifecycle transactions
+- [x] 14. Persist URL Registry and enforce lifecycle transactions
   What to do / Must NOT do: Add UrlRecords collection/table and a transaction-bound service that reserves normalized `(siteId, locale, pathname)`, activates on publish, preserves active URLs on update, creates one-hop redirect on approved slug change, and marks gone. Add database uniqueness/indexes and audit fields. Do not call `slugify(title)` during runtime or bypass reservation in publish flows.
   Parallelization: Wave 2 | Blocked by: 5,9-11 | Blocks: 15,16,25-32,38-40
   References: `packages/domain/src/url/*` from Todo 5; this plan URL state machine; target `apps/cms/src/collections/UrlRecords.ts`, `src/services/url-registry.ts`.
