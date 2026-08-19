@@ -325,7 +325,7 @@ Your next move: 使用 `$start-work geo-foundry-development-plan` 在独立 work
   QA scenarios: happy: all dimensions above threshold with no high issue passes; failure: overall 79, one dimension 74, high issue, semantic block, provider error, stale Edition hash, or absent layer blocks with stable reason. Evidence `<attemptDir>/task-22-geo-foundry-development-plan.json`.
   Commit: Y | `feat(quality): 汇总三层评估并输出发布判定`
 
-- [ ] 23. Expose generate/evaluate APIs and staged generation orchestration
+- [x] 23. Expose generate/evaluate APIs and staged generation orchestration
   What to do / Must NOT do: Create `apps/content-service` HTTP API with `POST /v1/generate`, `POST /v1/evaluate`, `GET /v1/operations/:id`, OpenAPI, auth/service scopes, request limits, idempotency, and canonical request hashing. `generate` requires Content/Edition IDs, Site strategy snapshot, and an operator-supplied `GenerationBrief` containing topic, intent, approved source snippets/facts, and constraints; orchestrate outline, draft, Site adaptation, evaluation, one bounded revision, then review. Do not implement web research, `/plan`, `/research`, `/improve`, or synchronous long-running requests.
   Parallelization: Wave 3 | Blocked by: 17-22 | Blocks: 24,29,38-40
   References: this plan API contract, generation boundary, idempotency rules; target `apps/content-service/src/http/*`, `src/pipelines/generate.ts`, `packages/content-client/*`.

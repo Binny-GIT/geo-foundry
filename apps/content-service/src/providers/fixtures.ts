@@ -1,5 +1,7 @@
 export const OUTLINE_PROMPT_VERSION = "outline-v1"
 export const DRAFT_PROMPT_VERSION = "draft-v1"
+export const ADAPTATION_PROMPT_VERSION = "adaptation-v1"
+export const REVISION_PROMPT_VERSION = "revision-v1"
 export const EVALUATION_PROMPT_VERSION = "evaluation-v1"
 export const QUALITY_EVALUATION_PROMPT_VERSION = "quality-evaluation-v1"
 export const EMBEDDING_FIXTURE_VERSION = "embedding-v1"
@@ -25,6 +27,27 @@ export const draftFixture = {
   blocks: [
     { text: "The Practitioner Playbook for Deterministic Content", type: "heading" },
     { text: "Every published edition passes three gates before it ships.", type: "paragraph" },
+  ],
+  title: "The Practitioner Playbook for Deterministic Content",
+} as const
+
+/** Site adaptation keeps the draft contract but carries the site angle. */
+export const adaptationFixture = {
+  blocks: [
+    { text: "The Practitioner Playbook for Deterministic Content", type: "heading" },
+    {
+      text: "Adapted for the site angle: gates run before anything ships.",
+      type: "paragraph",
+    },
+  ],
+  title: "The Practitioner Playbook for Deterministic Content",
+} as const
+
+export const revisionFixture = {
+  blocks: [
+    { text: "The Practitioner Playbook for Deterministic Content", type: "heading" },
+    { text: "Revised after the gate: every claim now carries a source.", type: "paragraph" },
+    { text: "The bounded revision keeps the pipeline honest.", type: "paragraph" },
   ],
   title: "The Practitioner Playbook for Deterministic Content",
 } as const
@@ -58,10 +81,12 @@ export const qualityEvaluationFixture = {
 } as const
 
 export const CHAT_FIXTURES: Readonly<Record<string, unknown>> = {
+  [ADAPTATION_PROMPT_VERSION]: adaptationFixture,
   [DRAFT_PROMPT_VERSION]: draftFixture,
   [EVALUATION_PROMPT_VERSION]: evaluationFixture,
   [OUTLINE_PROMPT_VERSION]: outlineFixture,
   [QUALITY_EVALUATION_PROMPT_VERSION]: qualityEvaluationFixture,
+  [REVISION_PROMPT_VERSION]: revisionFixture,
 }
 
 export const CHAT_FIXTURE_MODEL_ID = "fake-chat-v1"
