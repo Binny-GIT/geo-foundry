@@ -36,7 +36,10 @@ try {
   // Case 1: root redirects to /admin (also gives the page its site origin)
   const page = await context.newPage()
   const finalUrl = await withRetry("1", async () => {
-    const response = await page.goto(`${BASE}/`, { timeout: TIMEOUT_MS, waitUntil: "domcontentloaded" })
+    const response = await page.goto(`${BASE}/`, {
+      timeout: TIMEOUT_MS,
+      waitUntil: "domcontentloaded",
+    })
     if (response !== null && response.status() >= 400) {
       throw new Error(`root status ${response.status()}`)
     }
@@ -50,13 +53,10 @@ try {
     ["5", "/api/readiness", '"status":"ready"'],
   ]) {
     const body = await withRetry(id, async () => {
-      const text = await page.evaluate(
-        async (url) => {
-          const response = await fetch(url)
-          return `${response.status} ${await response.text()}`
-        },
-        `${BASE}${path}`,
-      )
+      const text = await page.evaluate(async (url) => {
+        const response = await fetch(url)
+        return `${response.status} ${await response.text()}`
+      }, `${BASE}${path}`)
       if (!text.includes("200 ") || !text.includes(expect)) {
         throw new Error(text.slice(0, 140))
       }
