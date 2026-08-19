@@ -44,3 +44,24 @@ export {
   serializeSemanticThresholds,
   type SemanticThresholds,
 } from "./semantic/thresholds.js"
+export {
+  DEFAULT_LLM_GATE_THRESHOLDS,
+  EVALUATION_DIMENSIONS,
+  EVALUATION_OUTPUT_SCHEMA_VERSION,
+  evaluationIssueSchema,
+  llmEvaluationOutputSchema,
+  llmGateThresholdsSchema,
+  parseLlmEvaluationOutput,
+  serializeLlmGateThresholds,
+  type EvaluationDimension,
+  type LlmEvaluationIssue,
+  type LlmEvaluationOutput,
+  type LlmEvaluationParse,
+  type LlmGateThresholds,
+} from "./llm/evaluation-contract.js"
+export {
+  classifyLlmEvaluation,
+  redactEvaluationText,
+  type LlmEvaluationDecision,
+  type LlmEvaluationFailed,
+} from "./llm/evaluation-gate.js"

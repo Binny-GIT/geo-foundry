@@ -309,7 +309,7 @@ Your next move: 使用 `$start-work geo-foundry-development-plan` 在独立 work
   QA scenarios: happy: distinct Editions pass and near-duplicate is review-required; failure: 0.92+ cross-domain duplicate blocks, wrong dimension, missing embedding, model-version mismatch, and cross-tenant candidate leakage fail safely. Evidence `<attemptDir>/task-20-geo-foundry-development-plan.json`.
   Commit: Y | `feat(quality): 增加语义重复与站点适配检查`
 
-- [ ] 21. Implement versioned LLM quality evaluation with fail-closed behavior
+- [x] 21. Implement versioned LLM quality evaluation with fail-closed behavior
   What to do / Must NOT do: Define a versioned evaluation prompt/input/output schema for quality, originality, SEO, GEO, siteFit, unsupported claims, structure, audience fit, logic, risk, issues, and recommendations. Persist prompt version, provider/model, input hash, raw-response hash, parsed output, latency, and error classification. Provider timeout, malformed output, or unsupported claim risk must yield Assessment `error/failed`, never an optimistic score. CI must use the fake provider only.
   Parallelization: Wave 3 | Blocked by: 4,7,13,18 | Blocks: 22,24,38-40
   References: this plan quality gate and assessment immutability; target `packages/quality-rules/src/llm/*`, `apps/content-service/src/evaluation/*`.

@@ -1,6 +1,7 @@
 export const OUTLINE_PROMPT_VERSION = "outline-v1"
 export const DRAFT_PROMPT_VERSION = "draft-v1"
 export const EVALUATION_PROMPT_VERSION = "evaluation-v1"
+export const QUALITY_EVALUATION_PROMPT_VERSION = "quality-evaluation-v1"
 export const EMBEDDING_FIXTURE_VERSION = "embedding-v1"
 
 export const outlineFixture = {
@@ -40,10 +41,27 @@ export const evaluationFixture = {
   recommendation: "approve",
 } as const
 
+/** Golden output of the versioned quality-evaluation prompt contract. */
+export const qualityEvaluationFixture = {
+  dimensions: { geo: 88, originality: 86, quality: 90, seo: 87, siteFit: 85 },
+  issues: [
+    {
+      code: "TITLE_TOO_GENERIC",
+      message: "Title could name the concrete outcome",
+      recommendation: "Name the measured outcome in the title",
+      severity: "minor",
+    },
+  ],
+  overall: 88,
+  recommendations: ["Tighten the opening summary with the concrete outcome."],
+  schemaVersion: 1,
+} as const
+
 export const CHAT_FIXTURES: Readonly<Record<string, unknown>> = {
   [DRAFT_PROMPT_VERSION]: draftFixture,
   [EVALUATION_PROMPT_VERSION]: evaluationFixture,
   [OUTLINE_PROMPT_VERSION]: outlineFixture,
+  [QUALITY_EVALUATION_PROMPT_VERSION]: qualityEvaluationFixture,
 }
 
 export const CHAT_FIXTURE_MODEL_ID = "fake-chat-v1"
