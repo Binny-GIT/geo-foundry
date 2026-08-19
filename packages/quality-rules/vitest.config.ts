@@ -9,7 +9,12 @@ export const config = defineConfig({
   cacheDir: vitestCacheDirectory({ packageName: "quality-rules" }),
   test: {
     coverage: {
-      include: ["src/deterministic/**/*.ts", "src/llm/**/*.ts", "src/semantic/**/*.ts"],
+      include: [
+        "src/aggregate.ts",
+        "src/deterministic/**/*.ts",
+        "src/llm/**/*.ts",
+        "src/semantic/**/*.ts",
+      ],
       provider: "v8",
       reporter: ["text", "json-summary"],
       thresholds: {

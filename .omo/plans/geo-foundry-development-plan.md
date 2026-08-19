@@ -317,7 +317,7 @@ Your next move: 使用 `$start-work geo-foundry-development-plan` 在独立 work
   QA scenarios: happy: fixed evaluation yields expected dimensions/issues; failure: timeout, malformed JSON, prompt-version mismatch, unsupported claim marked critical, and provider partial response all fail closed and block approval. Evidence `<attemptDir>/task-21-geo-foundry-development-plan.json`.
   Commit: Y | `feat(quality): 添加版本化 LLM 评估门禁`
 
-- [ ] 22. Aggregate deterministic, semantic, and LLM assessments into one gate
+- [x] 22. Aggregate deterministic, semantic, and LLM assessments into one gate
   What to do / Must NOT do: Build a pure aggregator that consumes all three layer results, applies the persisted Site threshold snapshot, calculates the PRD response shape, sorts issues deterministically, and returns `passed`, `review-required`, or `blocked`. Any missing required layer or `error` is blocked. Store the immutable aggregate against the exact Edition input hash; do not permit manual P0 overrides.
   Parallelization: Wave 3 | Blocked by: 18-21 | Blocks: 23-28,38-40
   References: this plan quality thresholds and workflow guards; target `packages/quality-rules/src/aggregate.ts`, shared assessment schema.

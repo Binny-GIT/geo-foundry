@@ -65,3 +65,15 @@ export {
   type LlmEvaluationDecision,
   type LlmEvaluationFailed,
 } from "./llm/evaluation-gate.js"
+export {
+  aggregateQualityGate,
+  GATE_REASON,
+  type DeterministicLayer,
+  type GateDecision,
+  type LayerError,
+  type LlmLayer,
+  type QualityAggregate,
+  type QualityGateInput,
+  type QualityGateResponse,
+  type SemanticLayer,
+} from "./aggregate.js"
