@@ -6,8 +6,8 @@ packages:
   - "examples"
   - "examples/*"
 allowBuilds:
-  esbuild: set this to true or false
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
 minimumReleaseAgeExclude:
   - '@aws-sdk/client-s3@3.1112.0'
-onlyBuiltDependencies:
-  - esbuild
