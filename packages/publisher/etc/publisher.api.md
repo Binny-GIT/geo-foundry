@@ -6,12 +6,16 @@
 
 import { ARTIFACT_CREATE_CONDITION } from '@geo/schema/release/v1';
 import { ArtifactStoreKey } from '@geo/schema/release/v1';
+import { CompileOutput } from '@geo/compiler';
 import { ContentType } from '@geo/schema/release/v1';
 import { CurrentPointer } from '@geo/schema/release/v1';
 import { CurrentPointerKey } from '@geo/schema/release/v1';
 import { ETag } from '@geo/schema/release/v1';
+import { ImmutableArtifact } from '@geo/schema/release/v1';
+import { ReleaseManifest } from '@geo/schema/release/v1';
 import { ReleaseObjectKey } from '@geo/schema/release/v1';
 import { ReleasePrefix } from '@geo/schema/release/v1';
+import { RoutingManifest } from '@geo/compiler';
 import { Sha256 } from '@geo/schema/release/v1';
 
 // @public (undocumented)
@@ -46,6 +50,24 @@ export interface ArtifactStore {
 
 // @public (undocumented)
 export function assertPointerEtagMatches(comparison: PointerEtagComparison): ETag;
+
+// @public
+export const buildReleaseDirectory: (input: ReleaseBuildInput & {
+    readonly stagingRoot: string;
+}) => Promise<BuiltRelease>;
+
+// @public (undocumented)
+export type BuiltRelease = {
+    readonly artifactManifest: readonly ImmutableArtifact[];
+    readonly manifestPath: string;
+    readonly objectInventory: readonly {
+        readonly bytes: number;
+        readonly path: string;
+        readonly sha256: string;
+    }[];
+    readonly releaseRoot: string;
+    readonly state: "built";
+};
 
 // @public (undocumented)
 export type CompareAndSwapCurrentPointerRequest = {
@@ -93,9 +115,38 @@ export type InitialCurrentPointerWrite = CurrentPointerObjectWrite & {
 };
 
 // @public (undocumented)
+export const JSON_CONTENT_TYPE = "application/json";
+
+// @public (undocumented)
 export type ListArtifactsRequest = {
     readonly prefix: ReleasePrefix;
 };
+
+// @public (undocumented)
+export type MediaObject = {
+    readonly body: Uint8Array;
+    readonly contentType: string;
+    readonly path: string;
+};
+
+// @public (undocumented)
+export type PlannedObject = {
+    readonly body: Uint8Array;
+    readonly bytes: number;
+    readonly contentType: string;
+    readonly path: string;
+    readonly sha256: string;
+};
+
+// @public (undocumented)
+export type PlannedRelease = {
+    readonly manifest: ReleaseManifest;
+    readonly objects: readonly PlannedObject[];
+    readonly plannedManifest: PlannedObject;
+};
+
+// @public
+export const planRelease: (input: ReleaseBuildInput) => PlannedRelease;
 
 // @public (undocumented)
 export type PointerEtagComparison = {
@@ -132,6 +183,52 @@ export type ReadArtifactRequest = {
 };
 
 // @public (undocumented)
+export const RELEASE_BUILD_ERROR_CODE: {
+    readonly RELEASE_COMPILER_UNSUPPORTED: "RELEASE_COMPILER_UNSUPPORTED";
+    readonly RELEASE_MANIFEST_INVALID: "RELEASE_MANIFEST_INVALID";
+    readonly RELEASE_OBJECT_BYTES_MISMATCH: "RELEASE_OBJECT_BYTES_MISMATCH";
+    readonly RELEASE_OBJECT_CONTENT_TYPE_MISMATCH: "RELEASE_OBJECT_CONTENT_TYPE_MISMATCH";
+    readonly RELEASE_OBJECT_EXTRA: "RELEASE_OBJECT_EXTRA";
+    readonly RELEASE_OBJECT_MISSING: "RELEASE_OBJECT_MISSING";
+    readonly RELEASE_OBJECT_PATH_DUPLICATE: "RELEASE_OBJECT_PATH_DUPLICATE";
+    readonly RELEASE_OBJECT_SHA256_MISMATCH: "RELEASE_OBJECT_SHA256_MISMATCH";
+    readonly RELEASE_PATH_UNSAFE: "RELEASE_PATH_UNSAFE";
+    readonly RELEASE_SCHEMA_UNSUPPORTED: "RELEASE_SCHEMA_UNSUPPORTED";
+    readonly RELEASE_WRITE_FAILED: "RELEASE_WRITE_FAILED";
+};
+
+// @public (undocumented)
+export class ReleaseBuildError extends Error {
+    constructor(code: ReleaseBuildErrorCode, message: string, state: ReleaseStageState);
+    // (undocumented)
+    readonly code: ReleaseBuildErrorCode;
+    // (undocumented)
+    readonly name = "ReleaseBuildError";
+    // (undocumented)
+    readonly state: ReleaseStageState;
+}
+
+// @public (undocumented)
+export type ReleaseBuildErrorCode = (typeof RELEASE_BUILD_ERROR_CODE)[keyof typeof RELEASE_BUILD_ERROR_CODE];
+
+// @public (undocumented)
+export type ReleaseBuildInput = {
+    readonly compileOutput: CompileOutput;
+    readonly createdAt: string;
+    readonly mediaObjects?: readonly MediaObject[];
+    readonly releaseId: string;
+    readonly routingManifest: RoutingManifest;
+    readonly siteId: string;
+    readonly sourceVersionIds: readonly string[];
+};
+
+// @public
+export type ReleaseStageState = "building" | "failed";
+
+// @public (undocumented)
+export const sha256Of: (body: Uint8Array) => string;
+
+// @public (undocumented)
 export class StalePointerEtagError extends PublisherContractError {
     constructor(expectedEtag: ETag, actualEtag: ETag);
     // (undocumented)
@@ -141,6 +238,30 @@ export class StalePointerEtagError extends PublisherContractError {
     // (undocumented)
     readonly name: string;
 }
+
+// @public (undocumented)
+export type VerifiedObject = {
+    readonly bytes: number;
+    readonly contentType: string;
+    readonly path: string;
+    readonly sha256: string;
+};
+
+// @public (undocumented)
+export type VerifiedRelease = {
+    readonly manifest: ReleaseManifest;
+    readonly objects: readonly VerifiedObject[];
+    readonly releaseRoot: string;
+    readonly state: "validated";
+};
+
+// @public
+export const verifyReleaseDirectory: (input: {
+    readonly releaseRoot: string;
+}) => Promise<VerifiedRelease>;
+
+// @public (undocumented)
+export const XML_CONTENT_TYPE = "application/xml";
 
 // (No @packageDocumentation comment for this package)
 

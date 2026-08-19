@@ -280,6 +280,9 @@ importers:
 
   packages/publisher:
     dependencies:
+      '@geo/compiler':
+        specifier: workspace:*
+        version: link:../compiler
       '@geo/schema':
         specifier: workspace:*
         version: link:../schema

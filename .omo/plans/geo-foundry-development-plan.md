@@ -365,7 +365,7 @@ Your next move: 使用 `$start-work geo-foundry-development-plan` 在独立 work
   QA scenarios: happy: compile two sites with separate lists/categories/tags/sitemaps; failure: path collision, pagination gap, redirect loop, unknown Site/domain, malformed XML character, and cross-site sitemap leak block release validation. Evidence `<attemptDir>/task-27-geo-foundry-development-plan/`.
   Commit: Y | `feat(compiler): 生成路由索引与站点地图`
 
-- [ ] 28. Build and verify complete immutable release directories
+- [x] 28. Build and verify complete immutable release directories
   What to do / Must NOT do: Implement artifact builder that writes canonical PageDocument JSON, route index, sitemap, media references, routing candidate, checksums, then `manifest.json` last into a staging directory. Verify path safety, object count, size, content type, SHA-256, source/assessment/URL versions, and schema/compiler compatibility before marking Release `validated`. Do not upload or switch pointers from incomplete/unverified staging output.
   Parallelization: Wave 4 | Blocked by: 6,24,27 | Blocks: 29-32,38-40
   References: release contracts Todo 6, compiler outputs Todos 25-27; target `packages/publisher/src/build-release.ts`, `verify-release.ts`.
