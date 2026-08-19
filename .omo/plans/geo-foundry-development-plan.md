@@ -341,7 +341,7 @@ Your next move: 使用 `$start-work geo-foundry-development-plan` 在独立 work
   QA scenarios: happy: complete staged Flow with persisted timeline; failure: crash before side effect, crash after side effect/before acknowledgment, Redis disconnect, stalled CPU task, poison job, duplicate enqueue, and optional/critical child failure all converge to defined state. Evidence `<attemptDir>/task-24-geo-foundry-development-plan.jsonl`.
   Commit: Y | `feat(worker): 实现可恢复的内容任务编排`
 
-- [ ] 25. Implement a deterministic GEO Compiler for all P0 page types
+- [x] 25. Implement a deterministic GEO Compiler for all P0 page types
   What to do / Must NOT do: Create `packages/compiler` pure compilation pipeline from immutable CMS Edition/Site/URL/media/assessment snapshots to PageDocument v1. Compile article, article-list, category, tag, redirect, and not-found documents; stable ordering, pagination, breadcrumbs, author/date, citations/entities if present, and release-scoped related links only when explicitly supplied. Inject clock/compiler version; never read current time, random values, network, CMS, or database inside pure compile functions.
   Parallelization: Wave 4 | Blocked by: 4,5,13,14,22,24 | Blocks: 26-32,38-40
   References: `packages/schema` and domain URL contracts; this plan P0 page types and deterministic evidence; target `packages/compiler/src/compile/*`.

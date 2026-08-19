@@ -1,0 +1,67 @@
+{
+  "body": [
+    {
+      "text": "Browse Articles.",
+      "type": "paragraph"
+    }
+  ],
+  "breadcrumbs": [
+    {
+      "pathname": "/",
+      "title": "Site A"
+    },
+    {
+      "pathname": "/articles",
+      "title": "Articles"
+    }
+  ],
+  "hero": {
+    "summary": "Site A default description.",
+    "title": "Articles"
+  },
+  "identity": {
+    "contentId": "list-articles",
+    "pageId": "page-list-articles",
+    "siteId": "site-a"
+  },
+  "items": [
+    {
+      "description": "How deterministic gates protect releases.",
+      "pageId": "page-101",
+      "pathname": "/guides/release-gates",
+      "title": "Deterministic release gates"
+    }
+  ],
+  "metadata": {
+    "description": "Site A default description.",
+    "modifiedAt": "2026-08-19T00:00:00Z",
+    "publishedAt": "2026-08-19T00:00:00Z",
+    "title": "Articles"
+  },
+  "pageType": "article-list",
+  "pagination": {
+    "page": 1,
+    "pageSize": 20,
+    "totalItems": 1,
+    "totalPages": 1
+  },
+  "route": {
+    "canonicalUrl": "https://site-a.test/articles",
+    "locale": "en-US",
+    "pathname": "/articles"
+  },
+  "schemaVersion": 1,
+  "seo": {
+    "description": "Site A default description.",
+    "openGraph": {
+      "description": "Site A default description.",
+      "title": "Articles",
+      "type": "website"
+    },
+    "robots": {
+      "follow": true,
+      "index": true
+    },
+    "title": "Articles"
+  }
+}

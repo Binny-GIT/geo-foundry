@@ -668,6 +668,15 @@ export interface Operation {
     | number
     | boolean
     | null
+  requestPayload?:
+    | {
+        [k: string]: unknown
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null
   result?:
     | {
         [k: string]: unknown
@@ -1206,6 +1215,7 @@ export interface OperationsSelect<T extends boolean = true> {
   currentStage?: T
   lastStageAt?: T
   targetIds?: T
+  requestPayload?: T
   result?: T
   error?: T
   providerVersion?: T

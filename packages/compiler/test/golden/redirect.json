@@ -1,0 +1,37 @@
+{
+  "identity": {
+    "contentId": "redirect-old-guides",
+    "pageId": "page-redirect-old-guides",
+    "siteId": "site-a"
+  },
+  "metadata": {
+    "description": "Site A default description.",
+    "modifiedAt": "2026-08-19T00:00:00Z",
+    "publishedAt": "2026-08-19T00:00:00Z",
+    "title": "Moved: /old-guides"
+  },
+  "pageType": "redirect",
+  "redirect": {
+    "statusCode": 301,
+    "targetUrl": "https://site-a.test/guides/release-gates"
+  },
+  "route": {
+    "canonicalUrl": "https://site-a.test/old-guides",
+    "locale": "en-US",
+    "pathname": "/old-guides"
+  },
+  "schemaVersion": 1,
+  "seo": {
+    "description": "Site A default description.",
+    "openGraph": {
+      "description": "Site A default description.",
+      "title": "Moved: /old-guides",
+      "type": "website"
+    },
+    "robots": {
+      "follow": true,
+      "index": false
+    },
+    "title": "Moved: /old-guides"
+  }
+}

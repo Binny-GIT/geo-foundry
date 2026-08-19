@@ -1,0 +1,61 @@
+{
+  "body": [
+    {
+      "text": "Browse Contracts.",
+      "type": "paragraph"
+    }
+  ],
+  "breadcrumbs": [
+    {
+      "pathname": "/",
+      "title": "Site A"
+    },
+    {
+      "pathname": "/tags/contracts",
+      "title": "Contracts"
+    }
+  ],
+  "hero": {
+    "summary": "Site A default description.",
+    "title": "Contracts"
+  },
+  "identity": {
+    "contentId": "list-tags-contracts",
+    "pageId": "page-list-tags-contracts",
+    "siteId": "site-a"
+  },
+  "items": [
+    {
+      "description": "How deterministic gates protect releases.",
+      "pageId": "page-101",
+      "pathname": "/guides/release-gates",
+      "title": "Deterministic release gates"
+    }
+  ],
+  "metadata": {
+    "description": "Site A default description.",
+    "modifiedAt": "2026-08-19T00:00:00Z",
+    "publishedAt": "2026-08-19T00:00:00Z",
+    "title": "Contracts"
+  },
+  "pageType": "tag",
+  "route": {
+    "canonicalUrl": "https://site-a.test/tags/contracts",
+    "locale": "en-US",
+    "pathname": "/tags/contracts"
+  },
+  "schemaVersion": 1,
+  "seo": {
+    "description": "Site A default description.",
+    "openGraph": {
+      "description": "Site A default description.",
+      "title": "Contracts",
+      "type": "website"
+    },
+    "robots": {
+      "follow": true,
+      "index": true
+    },
+    "title": "Contracts"
+  }
+}

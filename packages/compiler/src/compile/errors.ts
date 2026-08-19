@@ -1,0 +1,23 @@
+export const COMPILER_ERROR = {
+  ASSESSMENT_NOT_PASSED: "COMPILER_ASSESSMENT_NOT_PASSED",
+  BLOCK_UNSUPPORTED: "COMPILER_BLOCK_UNSUPPORTED",
+  EDITION_NOT_APPROVED: "COMPILER_EDITION_NOT_APPROVED",
+  INSTANT_NOT_UTC: "COMPILER_INSTANT_NOT_UTC",
+  MEDIA_ALT_MISSING: "COMPILER_MEDIA_ALT_MISSING",
+  MEDIA_MISSING: "COMPILER_MEDIA_MISSING",
+  PATH_DUPLICATE: "COMPILER_PATH_DUPLICATE",
+  URL_NOT_ACTIVE: "COMPILER_URL_NOT_ACTIVE",
+} as const
+
+export type CompilerErrorCode = (typeof COMPILER_ERROR)[keyof typeof COMPILER_ERROR]
+
+export class CompilerError extends Error {
+  override readonly name = "CompilerError"
+
+  constructor(
+    readonly code: CompilerErrorCode,
+    readonly detail: string,
+  ) {
+    super(`${code}: ${detail}`)
+  }
+}

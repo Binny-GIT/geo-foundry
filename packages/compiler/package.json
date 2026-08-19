@@ -19,12 +19,18 @@
     "build": "tsc --project tsconfig.build.json",
     "dev": "tsc --project tsconfig.build.json --watch",
     "lint": "biome lint --config-path ../../biome.json .",
-    "test": "node --input-type=module --eval \"\"",
+    "test": "vitest run --configLoader runner",
     "test:integration": "node --input-type=module --eval \"\"",
     "test:e2e": "node --input-type=module --eval \"\"",
-    "typecheck": "tsc --noEmit --project tsconfig.json"
+    "typecheck": "tsc --noEmit --project tsconfig.json",
+    "test:determinism": "vitest run --configLoader runner test/determinism.test.ts"
   },
   "devDependencies": {
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "4.1.10"
+  },
+  "dependencies": {
+    "@geo/schema": "workspace:*",
+    "zod": "4.4.3"
   }
 }

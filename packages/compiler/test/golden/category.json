@@ -1,0 +1,61 @@
+{
+  "body": [
+    {
+      "text": "Browse Guides.",
+      "type": "paragraph"
+    }
+  ],
+  "breadcrumbs": [
+    {
+      "pathname": "/",
+      "title": "Site A"
+    },
+    {
+      "pathname": "/guides",
+      "title": "Guides"
+    }
+  ],
+  "hero": {
+    "summary": "Site A default description.",
+    "title": "Guides"
+  },
+  "identity": {
+    "contentId": "list-guides",
+    "pageId": "page-list-guides",
+    "siteId": "site-a"
+  },
+  "items": [
+    {
+      "description": "How deterministic gates protect releases.",
+      "pageId": "page-101",
+      "pathname": "/guides/release-gates",
+      "title": "Deterministic release gates"
+    }
+  ],
+  "metadata": {
+    "description": "Site A default description.",
+    "modifiedAt": "2026-08-19T00:00:00Z",
+    "publishedAt": "2026-08-19T00:00:00Z",
+    "title": "Guides"
+  },
+  "pageType": "category",
+  "route": {
+    "canonicalUrl": "https://site-a.test/guides",
+    "locale": "en-US",
+    "pathname": "/guides"
+  },
+  "schemaVersion": 1,
+  "seo": {
+    "description": "Site A default description.",
+    "openGraph": {
+      "description": "Site A default description.",
+      "title": "Guides",
+      "type": "website"
+    },
+    "robots": {
+      "follow": true,
+      "index": true
+    },
+    "title": "Guides"
+  }
+}

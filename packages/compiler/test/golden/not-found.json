@@ -1,0 +1,53 @@
+{
+  "body": [
+    {
+      "text": "The requested page could not be found.",
+      "type": "paragraph"
+    }
+  ],
+  "breadcrumbs": [
+    {
+      "pathname": "/",
+      "title": "Site A"
+    },
+    {
+      "pathname": "/not-found",
+      "title": "Page not found"
+    }
+  ],
+  "hero": {
+    "summary": "Site A default description.",
+    "title": "Page not found"
+  },
+  "identity": {
+    "contentId": "not-found",
+    "pageId": "page-not-found",
+    "siteId": "site-a"
+  },
+  "metadata": {
+    "description": "Site A default description.",
+    "modifiedAt": "2026-08-19T00:00:00Z",
+    "publishedAt": "2026-08-19T00:00:00Z",
+    "title": "Page not found"
+  },
+  "pageType": "not-found",
+  "route": {
+    "canonicalUrl": "https://site-a.test/not-found",
+    "locale": "en-US",
+    "pathname": "/not-found"
+  },
+  "schemaVersion": 1,
+  "seo": {
+    "description": "Site A default description.",
+    "openGraph": {
+      "description": "Site A default description.",
+      "title": "Page not found",
+      "type": "website"
+    },
+    "robots": {
+      "follow": true,
+      "index": false
+    },
+    "title": "Page not found"
+  }
+}
