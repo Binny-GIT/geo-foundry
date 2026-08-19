@@ -1,7 +1,7 @@
 {
   "body": [
     {
-      "text": "Browse Contracts.",
+      "text": "Browse Articles.",
       "type": "paragraph"
     }
   ],
@@ -11,71 +11,72 @@
       "title": "Site A"
     },
     {
-      "pathname": "/tags/contracts",
-      "title": "Contracts"
+      "pathname": "/articles/page/2",
+      "title": "Articles"
     }
   ],
   "hero": {
     "summary": "Site A default description.",
-    "title": "Contracts"
+    "title": "Articles"
   },
   "identity": {
-    "contentId": "list-tags-contracts",
-    "pageId": "page-list-tags-contracts",
+    "contentId": "list-articles-page-2",
+    "pageId": "page-list-articles-page-2",
     "siteId": "site-a"
   },
   "items": [
     {
-      "description": "How deterministic gates protect releases.",
-      "pageId": "page-101",
-      "pathname": "/guides/release-gates",
-      "title": "Deterministic release gates"
+      "description": "Geo Foundry announces its deterministic serving plane.",
+      "pageId": "page-102",
+      "pathname": "/news/geo-foundry-live",
+      "title": "Geo Foundry goes live"
     }
   ],
   "metadata": {
     "description": "Site A default description.",
     "modifiedAt": "2026-08-19T00:00:00Z",
     "publishedAt": "2026-08-19T00:00:00Z",
-    "title": "Contracts"
+    "title": "Articles"
   },
-  "pageType": "tag",
+  "pageType": "article-list",
   "pagination": {
-    "page": 1,
+    "page": 2,
     "pageSize": 1,
-    "totalItems": 1,
-    "totalPages": 1
+    "previousPathname": "/articles",
+    "totalItems": 2,
+    "totalPages": 2
   },
   "route": {
-    "canonicalUrl": "https://site-a.test/tags/contracts",
+    "canonicalUrl": "https://site-a.test/articles/page/2",
     "locale": "en-US",
-    "pathname": "/tags/contracts"
+    "pathname": "/articles/page/2"
   },
   "schemaVersion": 1,
   "seo": {
     "description": "Site A default description.",
     "openGraph": {
       "description": "Site A default description.",
-      "title": "Contracts",
+      "title": "Articles",
       "type": "website"
     },
     "robots": {
       "follow": true,
       "index": true
     },
-    "title": "Contracts",
+    "title": "Articles",
     "twitter": {
       "card": "summary",
       "description": "Site A default description.",
-      "title": "Contracts"
+      "title": "Articles"
     }
   },
   "structuredData": [
     {
       "description": "Site A default description.",
       "id": "#collection",
-      "name": "Contracts",
+      "name": "Articles",
       "type": "CollectionPage",
-      "url": "https://site-a.test/tags/contracts"
+      "url": "https://site-a.test/articles/page/2"
     },
     {
       "id": "#breadcrumbs",
@@ -85,8 +86,8 @@
           "title": "Site A"
         },
         {
-          "pathname": "/tags/contracts",
-          "title": "Contracts"
+          "pathname": "/articles/page/2",
+          "title": "Articles"
         }
       ],
       "type": "BreadcrumbList"

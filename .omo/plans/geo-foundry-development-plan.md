@@ -357,7 +357,7 @@ Your next move: 使用 `$start-work geo-foundry-development-plan` 在独立 work
   QA scenarios: happy: Article and NewsArticle fixtures emit valid linked graph; failure: wrong-domain canonical, duplicate JSON-LD IDs, missing author/org/image fields when required, invalid date order, draft indexability, and redirect canonical mismatch fail compile. Evidence `<attemptDir>/task-26-geo-foundry-development-plan.json`.
   Commit: Y | `feat(compiler): 统一生成 SEO 与结构化数据`
 
-- [ ] 27. Compile route indexes, pagination, redirects, and sitemap artifacts
+- [x] 27. Compile route indexes, pagination, redirects, and sitemap artifacts
   What to do / Must NOT do: Build per-Site route index mapping normalized paths to PageDocument object keys/status, deterministic article-list/category/tag pagination, single-hop redirect entries, not-found metadata, and sitemap XML from active eligible URLs. Build an immutable global routing manifest mapping normalized host aliases to Site IDs and canonical hosts, ready for CAS publication. Do not include drafts, gone URLs, redirect targets as duplicate active entries, unknown hosts, or cross-site references.
   Parallelization: Wave 4 | Blocked by: 5,6,25,26 | Blocks: 28-32,38-40
   References: URL Registry from Todos 5/14; release schema Todo 6; target `packages/compiler/src/routes/*`, `sitemap/*`, `routing-manifest/*`.

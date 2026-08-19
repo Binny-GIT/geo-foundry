@@ -89,7 +89,7 @@ const request = (): CompileRequest => ({
     },
   ],
   listings: {
-    articles: { pathname: "/articles", pageSize: 20 },
+    articles: { pathname: "/articles", pageSize: 1 },
     categories: [{ id: "cat-guides", pathname: "/guides", slug: "guides", title: "Guides" }],
     tags: [
       { id: "tag-contracts", pathname: "/tags/contracts", slug: "contracts", title: "Contracts" },

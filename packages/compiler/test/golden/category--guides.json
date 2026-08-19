@@ -39,6 +39,12 @@
     "title": "Guides"
   },
   "pageType": "category",
+  "pagination": {
+    "page": 1,
+    "pageSize": 1,
+    "totalItems": 1,
+    "totalPages": 1
+  },
   "route": {
     "canonicalUrl": "https://site-a.test/guides",
     "locale": "en-US",

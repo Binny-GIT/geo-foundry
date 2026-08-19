@@ -1,5 +1,27 @@
 export { canonicalJson, sha256Hex } from "./canonical.js"
 export { compileBlocks } from "./compile/blocks.js"
+export {
+  assertPageInRange,
+  listingPagePathname,
+  paginateListing,
+  type ListingPage,
+} from "./routes/pagination.js"
+export {
+  buildRouteIndex,
+  objectKeyOf,
+  type RouteIndex,
+  type RouteIndexEntry,
+  type RouteIndexInput,
+  type RouteStatus,
+} from "./routes/route-index.js"
+export {
+  buildRoutingManifest,
+  siteIdOfHost,
+  type RoutingManifest,
+  type RoutingManifestHost,
+  type RoutingManifestSiteInput,
+} from "./routes/routing-manifest.js"
+export { buildSitemapXml, type SitemapUrl } from "./sitemap/xml.js"
 export { COMPILER_ERROR, CompilerError, type CompilerErrorCode } from "./compile/errors.js"
 export {
   compileArticle,

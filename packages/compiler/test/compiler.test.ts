@@ -180,6 +180,29 @@ describe("compileSite golden output", () => {
       "BreadcrumbList",
     ])
     expect(output.compilerVersion).toBe("geo-compiler-1")
+    expect(output.routeIndex.routes.map((route) => [route.pathname, route.status])).toEqual([
+      ["/articles", "active"],
+      ["/guides", "active"],
+      ["/guides/release-gates", "active"],
+      ["/not-found", "not-found"],
+      ["/old-guides", "redirect"],
+      ["/tags/contracts", "active"],
+    ])
+    expect(output.routeIndex.routes[2]?.objectKey).toBe("pages/guides/release-gates.json")
+    for (const line of output.sitemap.split("\n")) {
+      const match = /<loc>(https:\/\/site-a\.test[^<]*)<\/loc>/.exec(line)
+      if (match?.[1] === undefined) {
+        continue
+      }
+      const pathname = match[1].replace("https://site-a.test", "")
+      expect(
+        output.routeIndex.routes.find((route) => route.pathname === pathname)?.status,
+        `sitemap entry ${pathname} resolves as active in the route index`,
+      ).toBe("active")
+    }
+    expect(output.sitemap).not.toContain("/old-guides")
+    expect(output.sitemap).not.toContain("/not-found")
+    expect(output.sitemap).toContain("<lastmod>2026-08-17T11:00:00Z</lastmod>")
   })
 })
 
