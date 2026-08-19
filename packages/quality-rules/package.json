@@ -19,12 +19,19 @@
     "build": "tsc --project tsconfig.build.json",
     "dev": "tsc --project tsconfig.build.json --watch",
     "lint": "biome lint --config-path ../../biome.json .",
-    "test": "node --input-type=module --eval \"\"",
+    "test": "vitest run --configLoader runner --coverage",
     "test:integration": "node --input-type=module --eval \"\"",
     "test:e2e": "node --input-type=module --eval \"\"",
     "typecheck": "tsc --noEmit --project tsconfig.json"
   },
+  "dependencies": {
+    "@geo/schema": "workspace:*",
+    "zod": "4.4.3"
+  },
   "devDependencies": {
-    "typescript": "5.9.3"
+    "@vitest/coverage-v8": "4.1.10",
+    "fast-check": "4.9.0",
+    "typescript": "5.9.3",
+    "vitest": "4.1.10"
   }
 }

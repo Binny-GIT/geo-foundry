@@ -293,7 +293,7 @@ Your next move: 使用 `$start-work geo-foundry-development-plan` 在独立 work
   QA scenarios: happy: fake returns stable outline/draft/evaluation/embedding; failure: timeout, 429 with Retry-After, 500, invalid JSON, wrong vector dimension, and connection drop after submission produce defined classifications. Evidence `<attemptDir>/task-18-geo-foundry-development-plan.json`.
   Commit: Y | `feat(ai): 添加单一兼容 Provider 与确定性测试替身`
 
-- [ ] 19. Implement deterministic SEO/GEO and structural quality rules
+- [x] 19. Implement deterministic SEO/GEO and structural quality rules
   What to do / Must NOT do: Create `packages/quality-rules` pure rules for title/description, heading hierarchy, empty/malformed blocks, image alt, URL/canonical validity, publication/modified dates, link format, JSON-LD schema shape, content length, duplicate headings, slug collision input, sitemap eligibility, and citation completeness only when citations are present. Rules emit stable issue type/severity/location/message/recommendation and never call network/LLM.
   Parallelization: Wave 3 | Blocked by: 4,7,13 | Blocks: 22,24,38-40
   References: user PRD deterministic rules encoded in this plan; `packages/schema` contracts; target `packages/quality-rules/src/deterministic/*`.

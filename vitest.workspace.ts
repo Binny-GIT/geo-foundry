@@ -11,6 +11,7 @@ export const config = defineConfig({
       "packages/content-client/vitest.config.ts",
       "packages/domain/vitest.config.ts",
       "packages/publisher/vitest.config.ts",
+      "packages/quality-rules/vitest.config.ts",
       "packages/schema/vitest.config.ts",
       "packages/testing/vitest.config.ts",
     ],
