@@ -1,5 +1,7 @@
 import type { PayloadRequest } from "payload"
 
+import { findSimilarEditions } from "../../services/embedding-similarity"
+import { storeEditionEmbedding } from "../../services/embedding-store"
 import {
   readEditionInput,
   recordCompileResult,
@@ -11,11 +13,15 @@ import {
   assessmentBodySchema,
   compileResultBodySchema,
   draftVersionBodySchema,
+  embeddingStoreBodySchema,
   publishRequestBodySchema,
+  similarityQueryBodySchema,
   type AssessmentBody,
   type CompileResultBody,
   type DraftVersionBody,
+  type EmbeddingStoreBody,
   type PublishRequestBody,
+  type SimilarityQueryBody,
 } from "./contracts"
 import { internalJsonResponse, withInternalGuards } from "./guards"
 
@@ -110,10 +116,45 @@ const handleRequestPublish = withInternalGuards(
   },
 )
 
+const handleStoreEmbedding = withInternalGuards(
+  { bodySchema: embeddingStoreBodySchema, operation: "storeEmbedding" },
+  async (req, ctx, body: EmbeddingStoreBody) => {
+    const receipt = await storeEditionEmbedding(req.payload, {
+      dimension: body.dimension,
+      editionId: editionIdOf(req),
+      inputHash: body.inputHash,
+      modelId: body.modelId,
+      scope: body.scope,
+      user: req.user,
+      vector: body.vector,
+    })
+    return internalJsonResponse(200, receipt, ctx.requestId, null)
+  },
+)
+
+const handleFindSimilarEditions = withInternalGuards(
+  { bodySchema: similarityQueryBodySchema, operation: "findSimilarEditions" },
+  async (req, ctx, body: SimilarityQueryBody) => {
+    const matches = await findSimilarEditions(req.payload, {
+      comparison: body.comparison,
+      dimension: body.dimension,
+      editionId: editionIdOf(req),
+      limit: body.limit,
+      modelId: body.modelId,
+      scope: body.scope,
+      user: req.user,
+      vector: body.vector,
+    })
+    return internalJsonResponse(200, { matches }, ctx.requestId, null)
+  },
+)
+
 export const editionHandlerByOperation: Record<string, typeof handleGetEditionInput> = {
   getEditionInput: handleGetEditionInput,
+  findSimilarEditions: handleFindSimilarEditions,
   recordAssessment: handleRecordAssessment,
   recordCompileResult: handleRecordCompileResult,
   requestPublish: handleRequestPublish,
+  storeEmbedding: handleStoreEmbedding,
   writeDraftVersion: handleWriteDraftVersion,
 }

@@ -2,9 +2,11 @@ import { z } from "zod"
 
 export const INTERNAL_PATHS = {
   compileResults: "/internal/editions/:id/compile-results",
+  embeddings: "/internal/editions/:id/embeddings",
   input: "/internal/editions/:id/input",
   publishRequests: "/internal/editions/:id/publish-requests",
   assessments: "/internal/editions/:id/assessments",
+  similarity: "/internal/editions/:id/similarity",
   versions: "/internal/editions/:id/versions",
   operationCancel: "/internal/operations/:operationId/cancel",
   operationGet: "/internal/operations/:operationId",
@@ -110,3 +112,29 @@ export type SubmitOperationBody = z.infer<typeof submitOperationBodySchema>
 export type StartOperationStageBody = z.infer<typeof startOperationStageBodySchema>
 export type CompleteOperationStageBody = z.infer<typeof completeOperationStageBodySchema>
 export type CancelOperationBody = z.infer<typeof cancelOperationBodySchema>
+
+const vectorSchema = z.array(z.number().finite()).min(1).max(4096)
+
+export const embeddingStoreBodySchema = z
+  .object({
+    dimension: z.number().int().min(1).max(4096),
+    inputHash: z.string().regex(SHA256_PATTERN),
+    modelId: z.string().min(1).max(200),
+    scope: z.enum(["content", "title"]),
+    vector: vectorSchema,
+  })
+  .strict()
+
+export const similarityQueryBodySchema = z
+  .object({
+    comparison: z.enum(["cross-domain", "same-site"]),
+    dimension: z.number().int().min(1).max(4096),
+    limit: z.number().int().min(1).max(50),
+    modelId: z.string().min(1).max(200),
+    scope: z.enum(["content", "title"]),
+    vector: vectorSchema,
+  })
+  .strict()
+
+export type EmbeddingStoreBody = z.infer<typeof embeddingStoreBodySchema>
+export type SimilarityQueryBody = z.infer<typeof similarityQueryBodySchema>

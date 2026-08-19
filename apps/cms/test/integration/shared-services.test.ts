@@ -49,6 +49,7 @@ const expectedTables = [
   "content_editions_texts",
   "contents",
   "domains",
+  "embeddings",
   "idempotency_records",
   "media",
   "operations",

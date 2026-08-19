@@ -301,7 +301,7 @@ Your next move: 使用 `$start-work geo-foundry-development-plan` 在独立 work
   QA scenarios: happy: valid article fixture yields no blocking issues; failure: missing canonical/title/alt, skipped heading level, broken internal link, invalid date order, malformed block, and ineligible sitemap each produce exact issue code/location. Evidence `<attemptDir>/task-19-geo-foundry-development-plan.json`.
   Commit: Y | `feat(quality): 实现确定性内容质量规则`
 
-- [ ] 20. Implement semantic similarity and Site-fit checks with pgvector
+- [x] 20. Implement semantic similarity and Site-fit checks with pgvector
   What to do / Must NOT do: Add embedding persistence keyed by tenant/site/Edition version/model/dimension/input hash, pgvector indexes, cosine similarity queries, and pure threshold decisions. Compare within-site titles/content and cross-domain Editions; persist top matches and thresholds used. Default review/block thresholds are in Scope. Use the approved provider interface; CI uses fixed vectors. Do not create autonomous topic graphs, Knowledge Graph, or external vector database.
   Parallelization: Wave 3 | Blocked by: 2,4,7,13 | Blocks: 22,24,38-40
   References: this plan quality defaults and P0 cross-domain acceptance; target `packages/quality-rules/src/semantic/*`, `apps/content-service/src/embeddings/*`, PostgreSQL migration with vector dimension.

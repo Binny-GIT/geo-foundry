@@ -9,6 +9,7 @@ import * as migration_20260818_142113_task15_workflow from "./20260818_142113_ta
 import * as migration_20260818_162613_task16_outbox from "./20260818_162613_task16_outbox"
 import * as migration_20260818_221655_task17_operations from "./20260818_221655_task17_operations"
 import * as migration_20260818_221848_task17b_op_keyhash from "./20260818_221848_task17b_op_keyhash"
+import * as migration_20260819_092000_task20_embeddings from "./20260819_092000_task20_embeddings"
 
 export const migrations = [
   {
@@ -65,5 +66,10 @@ export const migrations = [
     up: migration_20260818_221848_task17b_op_keyhash.up,
     down: migration_20260818_221848_task17b_op_keyhash.down,
     name: "20260818_221848_task17b_op_keyhash",
+  },
+  {
+    up: migration_20260819_092000_task20_embeddings.up,
+    down: migration_20260819_092000_task20_embeddings.down,
+    name: "20260819_092000_task20_embeddings",
   },
 ]

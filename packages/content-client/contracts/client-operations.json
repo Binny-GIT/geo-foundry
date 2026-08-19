@@ -27,6 +27,16 @@
     },
     {
       "method": "post",
+      "operationId": "storeEmbedding",
+      "path": "/internal/editions/{id}/embeddings"
+    },
+    {
+      "method": "post",
+      "operationId": "findSimilarEditions",
+      "path": "/internal/editions/{id}/similarity"
+    },
+    {
+      "method": "post",
       "operationId": "submitOperation",
       "path": "/internal/operations/submit"
     },

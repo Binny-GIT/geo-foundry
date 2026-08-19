@@ -15,6 +15,7 @@
   "dependencies": {
     "@geo/content-client": "workspace:*",
     "@geo/domain": "workspace:*",
+    "@geo/quality-rules": "workspace:*",
     "zod": "4.4.3"
   },
   "devDependencies": {

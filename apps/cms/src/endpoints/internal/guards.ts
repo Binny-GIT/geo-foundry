@@ -2,6 +2,7 @@ import type { PayloadHandler, PayloadRequest } from "payload"
 import type { ZodType } from "zod"
 
 import { resolveSessionClaims, type SessionClaims } from "../../access/session"
+import { EmbeddingStoreError } from "../../services/embedding-store"
 import { EditionWorkflowError } from "../../services/edition-workflow"
 import { OperationsLedgerError } from "../../services/operations-ledger"
 import { OPERATION_ID_PATTERN, REQUEST_ID_PATTERN } from "./contracts"
@@ -174,6 +175,29 @@ const ledgerErrorToResponse = (
   allowOrigin: string | null,
 ): Response => {
   const status = LEDGER_STATUS_BY_CODE[error.code] ?? 500
+  return internalErrorResponse(
+    status,
+    error.code,
+    error.detail ?? error.code,
+    requestId,
+    allowOrigin,
+  )
+}
+
+const EMBEDDING_STATUS_BY_CODE: Readonly<Record<string, number>> = {
+  EMBEDDING_DIMENSION_MISMATCH: 400,
+  EMBEDDING_EDITION_NOT_FOUND: 404,
+  EMBEDDING_STORE_UNAVAILABLE: 500,
+  EMBEDDING_TENANT_MISMATCH: 403,
+  EMBEDDING_VECTOR_INVALID: 400,
+}
+
+const embeddingErrorToResponse = (
+  error: EmbeddingStoreError,
+  requestId: string,
+  allowOrigin: string | null,
+): Response => {
+  const status = EMBEDDING_STATUS_BY_CODE[error.code] ?? 500
   return internalErrorResponse(
     status,
     error.code,
@@ -387,6 +411,9 @@ export const withInternalGuards =
       }
       if (error instanceof OperationsLedgerError) {
         return ledgerErrorToResponse(error, requestId, allowOrigin)
+      }
+      if (error instanceof EmbeddingStoreError) {
+        return embeddingErrorToResponse(error, requestId, allowOrigin)
       }
       return internalErrorResponse(
         500,

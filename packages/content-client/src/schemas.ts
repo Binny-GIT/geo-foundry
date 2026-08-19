@@ -146,6 +146,45 @@ export const nonTerminalOperationsResponseSchema = z.object({
   operations: z.array(operationSnapshotSchema),
 })
 
+export const embeddingScopeSchema = z.enum(["content", "title"])
+
+export const semanticComparisonSchema = z.enum(["cross-domain", "same-site"])
+
+export const storeEmbeddingRequestSchema = z.object({
+  dimension: z.number().int().min(1).max(4096),
+  inputHash: sha256Schema,
+  modelId: z.string().min(1).max(200),
+  scope: embeddingScopeSchema,
+  vector: z.array(z.number().finite()).min(1).max(4096),
+})
+
+export const embeddingReceiptSchema = z.object({
+  created: z.boolean(),
+  embeddingId: z.number().int().min(1),
+  embeddingKey: z.string().min(1).max(200),
+})
+
+export const similarityQueryRequestSchema = z.object({
+  comparison: semanticComparisonSchema,
+  dimension: z.number().int().min(1).max(4096),
+  limit: z.number().int().min(1).max(50),
+  modelId: z.string().min(1).max(200),
+  scope: embeddingScopeSchema,
+  vector: z.array(z.number().finite()).min(1).max(4096),
+})
+
+export const similarityMatchSchema = z.object({
+  editionId: z.number().int().min(1),
+  inputHash: sha256Schema,
+  siteId: z.number().int().min(1),
+  similarity: z.number().finite().min(-1).max(1),
+  title: z.string().min(1).max(300).nullable(),
+})
+
+export const similarityResponseSchema = z.object({
+  matches: z.array(similarityMatchSchema).max(50),
+})
+
 export const internalErrorSchema = z.object({
   error: z.object({
     code: z.string().min(1),
@@ -172,3 +211,9 @@ export type SubmitOperationRequest = z.input<typeof submitOperationRequestSchema
 export type StartOperationStageRequest = z.input<typeof startOperationStageRequestSchema>
 export type CompleteOperationStageRequest = z.input<typeof completeOperationStageRequestSchema>
 export type CancelOperationRequest = z.input<typeof cancelOperationRequestSchema>
+export type EmbeddingScope = z.infer<typeof embeddingScopeSchema>
+export type SemanticComparison = z.infer<typeof semanticComparisonSchema>
+export type StoreEmbeddingRequest = z.input<typeof storeEmbeddingRequestSchema>
+export type EmbeddingReceipt = z.infer<typeof embeddingReceiptSchema>
+export type SimilarityQueryRequest = z.input<typeof similarityQueryRequestSchema>
+export type SimilarityMatch = z.infer<typeof similarityMatchSchema>

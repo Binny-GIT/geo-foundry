@@ -13,6 +13,7 @@ const readContractFixture = async <T>(fileName: string): Promise<T> =>
 const clientMethodByOperation: Readonly<Record<string, string>> = {
   cancelOperation: "cancelOperation",
   completeOperationStage: "completeOperationStage",
+  findSimilarEditions: "findSimilarEditions",
   getEditionInput: "getEditionInput",
   getOperation: "getOperation",
   listNonTerminalOperations: "listNonTerminalOperations",
@@ -20,6 +21,7 @@ const clientMethodByOperation: Readonly<Record<string, string>> = {
   recordCompileResult: "recordCompileResult",
   requestPublish: "requestPublish",
   startOperationStage: "startOperationStage",
+  storeEmbedding: "storeEmbedding",
   submitOperation: "submitOperation",
   writeDraftVersion: "writeDraftVersion",
 }

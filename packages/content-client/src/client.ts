@@ -7,6 +7,7 @@ import {
   completeOperationStageRequestSchema,
   draftWriteReceiptSchema,
   editionInputSchema,
+  embeddingReceiptSchema,
   internalErrorSchema,
   nonTerminalOperationsResponseSchema,
   operationResponseSchema,
@@ -14,7 +15,10 @@ import {
   recordAssessmentRequestSchema,
   recordCompileResultRequestSchema,
   requestPublishRequestSchema,
+  similarityQueryRequestSchema,
+  similarityResponseSchema,
   startOperationStageRequestSchema,
+  storeEmbeddingRequestSchema,
   submitOperationRequestSchema,
   submitOperationResponseSchema,
   writeDraftVersionRequestSchema,
@@ -24,12 +28,16 @@ import {
   type CompleteOperationStageRequest,
   type DraftWriteReceipt,
   type EditionInput,
+  type EmbeddingReceipt,
   type OperationSnapshot,
   type PublishRequestReceipt,
   type RecordAssessmentRequest,
   type RecordCompileResultRequest,
   type RequestPublishRequest,
+  type SimilarityMatch,
+  type SimilarityQueryRequest,
   type StartOperationStageRequest,
+  type StoreEmbeddingRequest,
   type SubmitOperationRequest,
   type WriteDraftVersionRequest,
 } from "./schemas.js"
@@ -222,6 +230,37 @@ export class ContentServiceClient {
         nonTerminalOperationsResponseSchema,
       )
     ).operations
+  }
+
+  async storeEmbedding(
+    editionId: number,
+    request: StoreEmbeddingRequest,
+    options: CallOptions = {},
+  ): Promise<EmbeddingReceipt> {
+    return this.#call(
+      "POST",
+      `/internal/editions/${editionId}/embeddings`,
+      storeEmbeddingRequestSchema,
+      request,
+      embeddingReceiptSchema,
+      options,
+    )
+  }
+
+  async findSimilarEditions(
+    editionId: number,
+    request: SimilarityQueryRequest,
+    options: CallOptions = {},
+  ): Promise<readonly SimilarityMatch[]> {
+    const response = await this.#call(
+      "POST",
+      `/internal/editions/${editionId}/similarity`,
+      similarityQueryRequestSchema,
+      request,
+      similarityResponseSchema,
+      options,
+    )
+    return response.matches
   }
 
   async #call<TResponse>(
