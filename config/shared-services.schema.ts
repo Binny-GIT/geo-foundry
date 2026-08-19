@@ -2,6 +2,12 @@ import { z } from "zod"
 
 const requiredString = z.string().trim().min(1)
 const sharedServiceHost = z.union([z.literal("pg-server"), z.literal("127.0.0.1")])
+/**
+ * The RustFS endpoint is 127.0.0.1 for host processes and the container
+ * network alias when the CMS runs as a Docker container attached to the
+ * rustfs-shared network.
+ */
+const s3EndpointHost = z.union([z.literal("127.0.0.1"), z.literal("rustfs-server")])
 const port = z.string().regex(/^\d+$/).transform(Number).pipe(z.number().int().min(1).max(65535))
 const redisDatabase = z
   .string()
@@ -30,7 +36,7 @@ const redisEnvironmentShape = {
 } as const
 
 const s3EnvironmentShape = {
-  GEO_FOUNDRY_S3_ENDPOINT: z.literal("127.0.0.1"),
+  GEO_FOUNDRY_S3_ENDPOINT: s3EndpointHost,
   GEO_FOUNDRY_S3_PORT: z.literal("9000").transform(Number),
   GEO_FOUNDRY_S3_USE_SSL: falseBoolean,
   GEO_FOUNDRY_S3_ACCESS_KEY: requiredString,

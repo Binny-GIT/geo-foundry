@@ -1,0 +1,15 @@
+# Verification overlay: container-level smoke without shared services.
+# Healthcheck uses /api/health only; readiness (postgres + rustfs) is not
+# asserted in this stack. Placeholder credentials come from
+# deploy/smoke/verify.env.
+
+services:
+  cms:
+    container_name: geo-foundry-cms-verify
+    ports: !override []
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 768M
+          pids: 200

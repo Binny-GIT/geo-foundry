@@ -1,0 +1,14 @@
+.git
+.omo
+node_modules
+**/node_modules
+**/dist
+**/.next
+**/coverage
+**/temp
+.turbo
+*.log
+.env
+.env.*
+!.env.example
+mydocs

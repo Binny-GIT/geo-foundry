@@ -1,0 +1,33 @@
+# mk-dev 环境运行覆盖层
+# 长期运行配置，端口绑定 127.0.0.1:3090，由 Cloudflare 隧道转发；
+# PostgreSQL 经 pg_default 网络别名 pg-server，RustFS 经 rustfs-shared
+# 网络别名 rustfs-server，均为既有共享服务，本项目不新增基础设施容器。
+
+services:
+  cms:
+    container_name: geo-foundry-cms-mk-dev
+    ports: !override
+      - "127.0.0.1:3090:3090"
+    environment:
+      GEO_FOUNDRY_PG_HOST: pg-server
+      GEO_FOUNDRY_S3_ENDPOINT: rustfs-server
+    networks:
+      - pg_default
+      - rustfs-shared
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 768M
+          pids: 200
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  pg_default:
+    external: true
+  rustfs-shared:
+    external: true
