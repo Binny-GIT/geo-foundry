@@ -1,7 +1,12 @@
-import { readdir, readFile } from "node:fs/promises"
+import { readdir, readFile, writeFile } from "node:fs/promises"
 import { describe, expect, it } from "vitest"
 
-import { canonicalJson, compileSite, type CompileRequest } from "../src/index.js"
+import {
+  type CompiledDocument,
+  type CompileRequest,
+  canonicalJson,
+  compileSite,
+} from "../src/index.js"
 
 const request = (): CompileRequest => ({
   clock: { now: "2026-08-19T00:00:00Z" },
@@ -10,6 +15,7 @@ const request = (): CompileRequest => ({
     {
       assessmentInputHash: "a".repeat(64),
       assessmentState: "passed",
+      author: { id: "author-ada", name: "Ada Chen", url: "https://site-a.test/authors/ada-chen" },
       body: [
         { blockType: "heading", level: "2", text: "Deterministic release gates" },
         { blockType: "paragraph", text: "Every edition passes three gates before it ships." },
@@ -45,6 +51,42 @@ const request = (): CompileRequest => ({
       urlPathname: "/guides/release-gates",
       urlStatus: "active",
     },
+    {
+      articleKind: "news",
+      assessmentInputHash: "b".repeat(64),
+      assessmentState: "passed",
+      author: {
+        id: "author-lin",
+        name: "Lin Zhao",
+        url: "https://site-a.test/authors/lin-zhao",
+      },
+      body: [
+        { blockType: "heading", level: "2", text: "Geo Foundry goes live" },
+        { blockType: "paragraph", text: "The serving plane now ships immutable releases." },
+        { blockType: "image", mediaId: "media-launch", alt: "Launch day control room" },
+      ],
+      categories: ["news"],
+      contentId: 13,
+      editionId: 102,
+      media: [
+        {
+          alt: "Launch day control room",
+          height: 600,
+          id: "media-launch",
+          path: "/media/launch.webp",
+          width: 900,
+        },
+      ],
+      modifiedAt: "2026-08-18T09:30:00Z",
+      publishedAt: "2026-08-18T09:00:00Z",
+      siteId: "site-a",
+      status: "approved",
+      summary: "Geo Foundry announces its deterministic serving plane.",
+      tags: ["launch"],
+      title: "Geo Foundry goes live",
+      urlPathname: "/news/geo-foundry-live",
+      urlStatus: "active",
+    },
   ],
   listings: {
     articles: { pathname: "/articles", pageSize: 20 },
@@ -61,24 +103,36 @@ const request = (): CompileRequest => ({
     canonicalDomain: "site-a.test",
     locale: "en-US",
     name: "Site A",
+    organization: { logoUrl: "/media/logo.svg", name: "Site A Media" },
     seoDefaults: { description: "Site A default description.", title: "Site A" },
     siteId: "site-a",
     timezone: "UTC",
   },
 })
 
+/** Uniform fixture naming: <pageType>--<pathname with slashes as dashes>.json */
+const goldenFileOf = (document: CompiledDocument): string =>
+  `${document.pageType}--${document.pathname.slice(1).replace(/\//g, "-")}.json`
+
 describe("golden fixtures per page type", () => {
   it("matches every committed golden file byte-for-byte in canonical form", async () => {
     const output = await compileSite(request())
     const goldenDirectory = new URL("./golden/", import.meta.url)
-    const files = (await readdir(goldenDirectory)).filter((name) => name.endsWith(".json"))
-    expect(files).toHaveLength(6)
-    for (const name of files) {
-      const golden = JSON.parse(await readFile(new URL(name, goldenDirectory), "utf8"))
-      const expectedCanonical = canonicalJson(golden)
-      const document = output.documents.find((entry) => entry.pathname === golden.route?.pathname)
-      expect(document, `compiled counterpart of ${name}`).toBeDefined()
-      expect(document?.canonical).toBe(expectedCanonical)
+    if (process.env.UPDATE_GOLDEN === "1") {
+      for (const document of output.documents) {
+        await writeFile(
+          new URL(goldenFileOf(document), goldenDirectory),
+          `${JSON.stringify(JSON.parse(document.canonical), null, 2)}\n`,
+        )
+      }
+    }
+    const files = (await readdir(goldenDirectory)).filter((name) => name.endsWith(".json")).sort()
+    expect(files).toEqual(output.documents.map(goldenFileOf).sort())
+    for (const document of output.documents) {
+      const golden = JSON.parse(
+        await readFile(new URL(goldenFileOf(document), goldenDirectory), "utf8"),
+      )
+      expect(canonicalJson(golden), goldenFileOf(document)).toBe(document.canonical)
     }
   })
 })

@@ -1,6 +1,6 @@
-import { ContentBlockSchema, type ContentBlock } from "@geo/schema"
+import { type ContentBlock, ContentBlockSchema } from "@geo/schema"
 
-import { CompilerError, COMPILER_ERROR } from "./errors.js"
+import { COMPILER_ERROR, CompilerError } from "./errors.js"
 import type { CompileEdition, CompileMedia } from "./snapshot.js"
 
 const mediaPathOf = (mediaId: unknown, media: readonly CompileMedia[]): CompileMedia => {

@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest"
 
 import {
-  canonicalPageFixtures,
   ContentBlockSchema,
+  canonicalPageFixtures,
   invalidBlockFixtures,
   migratePageDocument,
-  pageDocumentMigrationRegistry,
   PageDocumentSchema,
+  pageDocumentMigrationRegistry,
   validBlockFixtures,
 } from "../src/index.js"
 

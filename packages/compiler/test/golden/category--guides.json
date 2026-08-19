@@ -56,6 +56,34 @@
       "follow": true,
       "index": true
     },
-    "title": "Guides"
-  }
+    "title": "Guides",
+    "twitter": {
+      "card": "summary",
+      "description": "Site A default description.",
+      "title": "Guides"
+    }
+  },
+  "structuredData": [
+    {
+      "description": "Site A default description.",
+      "id": "#collection",
+      "name": "Guides",
+      "type": "CollectionPage",
+      "url": "https://site-a.test/guides"
+    },
+    {
+      "id": "#breadcrumbs",
+      "items": [
+        {
+          "pathname": "/",
+          "title": "Site A"
+        },
+        {
+          "pathname": "/guides",
+          "title": "Guides"
+        }
+      ],
+      "type": "BreadcrumbList"
+    }
+  ]
 }

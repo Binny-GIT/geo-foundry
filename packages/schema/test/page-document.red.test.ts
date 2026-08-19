@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  migratePageDocument,
   PageDocumentSchema,
   UnsupportedPageDocumentVersionError,
-  migratePageDocument,
 } from "../src/index.js"
 import {
   invalidExtensionNamespaceInput,

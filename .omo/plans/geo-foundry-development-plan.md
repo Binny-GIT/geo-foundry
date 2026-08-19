@@ -349,7 +349,7 @@ Your next move: 使用 `$start-work geo-foundry-development-plan` 在独立 work
   QA scenarios: happy: compile two Site Editions and list/category/tag pages; failure: draft Edition, failed assessment, missing active URL/media, unstable ordering, unsupported block, and timezone-dependent input are rejected. Evidence `<attemptDir>/task-25-geo-foundry-development-plan/`.
   Commit: Y | `feat(compiler): 实现确定性 PageDocument 编译器`
 
-- [ ] 26. Generate canonical metadata, robots, OpenGraph, and Schema.org data
+- [x] 26. Generate canonical metadata, robots, OpenGraph, and Schema.org data
   What to do / Must NOT do: Add compiler modules deriving absolute canonical URLs from Site canonical domain plus active UrlRecord; title/description, robots, OpenGraph/Twitter, published/modified dates, and valid Schema.org `Article|NewsArticle`, `Organization`, `Person`, `ImageObject`, and `BreadcrumbList`. Structured data must be deterministic, deduplicated, and consistent with visible content. Sites must not reimplement base SEO/GEO rules.
   Parallelization: Wave 4 | Blocked by: 4,5,25 | Blocks: 27-32,35-40
   References: this plan SEO/GEO output requirements; target `packages/compiler/src/seo/*`, `structured-data/*`.

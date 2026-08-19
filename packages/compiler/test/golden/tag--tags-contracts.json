@@ -56,6 +56,34 @@
       "follow": true,
       "index": true
     },
-    "title": "Contracts"
-  }
+    "title": "Contracts",
+    "twitter": {
+      "card": "summary",
+      "description": "Site A default description.",
+      "title": "Contracts"
+    }
+  },
+  "structuredData": [
+    {
+      "description": "Site A default description.",
+      "id": "#collection",
+      "name": "Contracts",
+      "type": "CollectionPage",
+      "url": "https://site-a.test/tags/contracts"
+    },
+    {
+      "id": "#breadcrumbs",
+      "items": [
+        {
+          "pathname": "/",
+          "title": "Site A"
+        },
+        {
+          "pathname": "/tags/contracts",
+          "title": "Contracts"
+        }
+      ],
+      "type": "BreadcrumbList"
+    }
+  ]
 }

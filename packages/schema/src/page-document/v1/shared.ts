@@ -157,22 +157,64 @@ const StructuredAuthorSchema = z
   .strictObject({ name: NonEmptyStringSchema, url: HttpUrlSchema.optional() })
   .readonly()
 
+/** JSON-LD node identity (`@id`); used for graph linking and deduplication. */
+const NodeIdSchema = NonEmptyStringSchema.max(200)
+
+const ArticleShape = {
+  id: NodeIdSchema.optional(),
+  headline: NonEmptyStringSchema,
+  url: HttpUrlSchema,
+  description: NonEmptyStringSchema.optional(),
+  image: AssetUrlSchema.optional(),
+  datePublished: TimestampSchema.optional(),
+  dateModified: TimestampSchema.optional(),
+  author: StructuredAuthorSchema.optional(),
+} as const
+
 const ArticleStructuredDataSchema = z
+  .strictObject({ type: z.literal("Article"), ...ArticleShape })
+  .readonly()
+
+const NewsArticleStructuredDataSchema = z
+  .strictObject({ type: z.literal("NewsArticle"), ...ArticleShape })
+  .readonly()
+
+const OrganizationStructuredDataSchema = z
   .strictObject({
-    type: z.literal("Article"),
-    headline: NonEmptyStringSchema,
+    type: z.literal("Organization"),
+    id: NodeIdSchema.optional(),
+    name: NonEmptyStringSchema,
     url: HttpUrlSchema,
+    logo: AssetUrlSchema.optional(),
     description: NonEmptyStringSchema.optional(),
-    image: AssetUrlSchema.optional(),
-    datePublished: TimestampSchema.optional(),
-    dateModified: TimestampSchema.optional(),
-    author: StructuredAuthorSchema.optional(),
+  })
+  .readonly()
+
+const PersonStructuredDataSchema = z
+  .strictObject({
+    type: z.literal("Person"),
+    id: NodeIdSchema.optional(),
+    name: NonEmptyStringSchema,
+    url: HttpUrlSchema.optional(),
+    description: NonEmptyStringSchema.optional(),
+  })
+  .readonly()
+
+const ImageObjectStructuredDataSchema = z
+  .strictObject({
+    type: z.literal("ImageObject"),
+    id: NodeIdSchema.optional(),
+    url: AssetUrlSchema,
+    caption: NonEmptyStringSchema.optional(),
+    width: z.number().int().positive().optional(),
+    height: z.number().int().positive().optional(),
   })
   .readonly()
 
 const CollectionStructuredDataSchema = z
   .strictObject({
     type: z.literal("CollectionPage"),
+    id: NodeIdSchema.optional(),
     name: NonEmptyStringSchema,
     url: HttpUrlSchema,
     description: NonEmptyStringSchema.optional(),
@@ -182,6 +224,7 @@ const CollectionStructuredDataSchema = z
 const WebPageStructuredDataSchema = z
   .strictObject({
     type: z.literal("WebPage"),
+    id: NodeIdSchema.optional(),
     name: NonEmptyStringSchema,
     url: HttpUrlSchema,
     description: NonEmptyStringSchema.optional(),
@@ -191,6 +234,7 @@ const WebPageStructuredDataSchema = z
 const BreadcrumbStructuredDataSchema = z
   .strictObject({
     type: z.literal("BreadcrumbList"),
+    id: NodeIdSchema.optional(),
     items: z.array(BreadcrumbSchema).min(1).readonly(),
   })
   .readonly()
@@ -198,6 +242,7 @@ const BreadcrumbStructuredDataSchema = z
 const FaqStructuredDataSchema = z
   .strictObject({
     type: z.literal("FAQPage"),
+    id: NodeIdSchema.optional(),
     items: z
       .array(
         z.strictObject({ question: NonEmptyStringSchema, answer: NonEmptyStringSchema }).readonly(),
@@ -209,6 +254,10 @@ const FaqStructuredDataSchema = z
 
 export const StructuredDataSchema = z.discriminatedUnion("type", [
   ArticleStructuredDataSchema,
+  NewsArticleStructuredDataSchema,
+  OrganizationStructuredDataSchema,
+  PersonStructuredDataSchema,
+  ImageObjectStructuredDataSchema,
   CollectionStructuredDataSchema,
   WebPageStructuredDataSchema,
   BreadcrumbStructuredDataSchema,

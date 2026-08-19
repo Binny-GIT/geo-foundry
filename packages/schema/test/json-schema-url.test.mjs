@@ -1,8 +1,7 @@
 import { readFileSync } from "node:fs"
-
-import { describe, expect, it } from "vitest"
 import Ajv2020 from "ajv/dist/2020.js"
 import addFormats from "ajv-formats"
+import { describe, expect, it } from "vitest"
 
 import { PageDocumentSchema } from "../src/index.js"
 import { validArticleInput } from "./red-fixtures.js"

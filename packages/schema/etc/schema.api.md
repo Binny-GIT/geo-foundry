@@ -195,9 +195,10 @@ export const articleListPageFixture: Readonly<{
         image?: string | undefined;
     }>[] | undefined;
     structuredData?: readonly (Readonly<{
-        type: "Article";
         headline: string;
         url: string;
+        type: "Article";
+        id?: string | undefined;
         description?: string | undefined;
         image?: string | undefined;
         datePublished?: string | undefined;
@@ -207,14 +208,49 @@ export const articleListPageFixture: Readonly<{
             url?: string | undefined;
         }> | undefined;
     }> | Readonly<{
+        headline: string;
+        url: string;
+        type: "NewsArticle";
+        id?: string | undefined;
+        description?: string | undefined;
+        image?: string | undefined;
+        datePublished?: string | undefined;
+        dateModified?: string | undefined;
+        author?: Readonly<{
+            name: string;
+            url?: string | undefined;
+        }> | undefined;
+    }> | Readonly<{
+        type: "Organization";
+        name: string;
+        url: string;
+        id?: string | undefined;
+        logo?: string | undefined;
+        description?: string | undefined;
+    }> | Readonly<{
+        type: "Person";
+        name: string;
+        id?: string | undefined;
+        url?: string | undefined;
+        description?: string | undefined;
+    }> | Readonly<{
+        type: "ImageObject";
+        url: string;
+        id?: string | undefined;
+        caption?: string | undefined;
+        width?: number | undefined;
+        height?: number | undefined;
+    }> | Readonly<{
         type: "CollectionPage";
         name: string;
         url: string;
+        id?: string | undefined;
         description?: string | undefined;
     }> | Readonly<{
         type: "WebPage";
         name: string;
         url: string;
+        id?: string | undefined;
         description?: string | undefined;
     }> | Readonly<{
         type: "BreadcrumbList";
@@ -222,12 +258,14 @@ export const articleListPageFixture: Readonly<{
             title: string;
             pathname: string;
         }>[];
+        id?: string | undefined;
     }> | Readonly<{
         type: "FAQPage";
         items: readonly Readonly<{
             question: string;
             answer: string;
         }>[];
+        id?: string | undefined;
     }>)[] | undefined;
     extensions?: Readonly<Record<string, JSONType>> | undefined;
 }>;
@@ -290,7 +328,7 @@ export const ArticleListPageSchema: z.ZodReadonly<z.ZodObject<{
         pathname: z.ZodString;
     }, z.core.$strict>>>>;
     structuredData: z.ZodOptional<z.ZodReadonly<z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodObject<{
-        type: z.ZodLiteral<"Article">;
+        id: z.ZodOptional<z.ZodString>;
         headline: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
@@ -301,24 +339,62 @@ export const ArticleListPageSchema: z.ZodReadonly<z.ZodObject<{
             name: z.ZodString;
             url: z.ZodOptional<z.ZodURL>;
         }, z.core.$strict>>>;
+        type: z.ZodLiteral<"Article">;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        id: z.ZodOptional<z.ZodString>;
+        headline: z.ZodString;
+        url: z.ZodURL;
+        description: z.ZodOptional<z.ZodString>;
+        image: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+        datePublished: z.ZodOptional<z.ZodISODateTime>;
+        dateModified: z.ZodOptional<z.ZodISODateTime>;
+        author: z.ZodOptional<z.ZodReadonly<z.ZodObject<{
+            name: z.ZodString;
+            url: z.ZodOptional<z.ZodURL>;
+        }, z.core.$strict>>>;
+        type: z.ZodLiteral<"NewsArticle">;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"Organization">;
+        id: z.ZodOptional<z.ZodString>;
+        name: z.ZodString;
+        url: z.ZodURL;
+        logo: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+        description: z.ZodOptional<z.ZodString>;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"Person">;
+        id: z.ZodOptional<z.ZodString>;
+        name: z.ZodString;
+        url: z.ZodOptional<z.ZodURL>;
+        description: z.ZodOptional<z.ZodString>;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"ImageObject">;
+        id: z.ZodOptional<z.ZodString>;
+        url: z.ZodUnion<readonly [z.ZodURL, z.ZodString]>;
+        caption: z.ZodOptional<z.ZodString>;
+        width: z.ZodOptional<z.ZodNumber>;
+        height: z.ZodOptional<z.ZodNumber>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"CollectionPage">;
+        id: z.ZodOptional<z.ZodString>;
         name: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"WebPage">;
+        id: z.ZodOptional<z.ZodString>;
         name: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"BreadcrumbList">;
+        id: z.ZodOptional<z.ZodString>;
         items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
             title: z.ZodString;
             pathname: z.ZodString;
         }, z.core.$strict>>>>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"FAQPage">;
+        id: z.ZodOptional<z.ZodString>;
         items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
             question: z.ZodString;
             answer: z.ZodString;
@@ -639,9 +715,10 @@ export const articlePageFixture: Readonly<{
         image?: string | undefined;
     }>[] | undefined;
     structuredData?: readonly (Readonly<{
-        type: "Article";
         headline: string;
         url: string;
+        type: "Article";
+        id?: string | undefined;
         description?: string | undefined;
         image?: string | undefined;
         datePublished?: string | undefined;
@@ -651,14 +728,49 @@ export const articlePageFixture: Readonly<{
             url?: string | undefined;
         }> | undefined;
     }> | Readonly<{
+        headline: string;
+        url: string;
+        type: "NewsArticle";
+        id?: string | undefined;
+        description?: string | undefined;
+        image?: string | undefined;
+        datePublished?: string | undefined;
+        dateModified?: string | undefined;
+        author?: Readonly<{
+            name: string;
+            url?: string | undefined;
+        }> | undefined;
+    }> | Readonly<{
+        type: "Organization";
+        name: string;
+        url: string;
+        id?: string | undefined;
+        logo?: string | undefined;
+        description?: string | undefined;
+    }> | Readonly<{
+        type: "Person";
+        name: string;
+        id?: string | undefined;
+        url?: string | undefined;
+        description?: string | undefined;
+    }> | Readonly<{
+        type: "ImageObject";
+        url: string;
+        id?: string | undefined;
+        caption?: string | undefined;
+        width?: number | undefined;
+        height?: number | undefined;
+    }> | Readonly<{
         type: "CollectionPage";
         name: string;
         url: string;
+        id?: string | undefined;
         description?: string | undefined;
     }> | Readonly<{
         type: "WebPage";
         name: string;
         url: string;
+        id?: string | undefined;
         description?: string | undefined;
     }> | Readonly<{
         type: "BreadcrumbList";
@@ -666,12 +778,14 @@ export const articlePageFixture: Readonly<{
             title: string;
             pathname: string;
         }>[];
+        id?: string | undefined;
     }> | Readonly<{
         type: "FAQPage";
         items: readonly Readonly<{
             question: string;
             answer: string;
         }>[];
+        id?: string | undefined;
     }>)[] | undefined;
     extensions?: Readonly<Record<string, JSONType>> | undefined;
 }>;
@@ -719,7 +833,7 @@ export const ArticlePageSchema: z.ZodReadonly<z.ZodObject<{
         pathname: z.ZodString;
     }, z.core.$strict>>>>;
     structuredData: z.ZodOptional<z.ZodReadonly<z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodObject<{
-        type: z.ZodLiteral<"Article">;
+        id: z.ZodOptional<z.ZodString>;
         headline: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
@@ -730,24 +844,62 @@ export const ArticlePageSchema: z.ZodReadonly<z.ZodObject<{
             name: z.ZodString;
             url: z.ZodOptional<z.ZodURL>;
         }, z.core.$strict>>>;
+        type: z.ZodLiteral<"Article">;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        id: z.ZodOptional<z.ZodString>;
+        headline: z.ZodString;
+        url: z.ZodURL;
+        description: z.ZodOptional<z.ZodString>;
+        image: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+        datePublished: z.ZodOptional<z.ZodISODateTime>;
+        dateModified: z.ZodOptional<z.ZodISODateTime>;
+        author: z.ZodOptional<z.ZodReadonly<z.ZodObject<{
+            name: z.ZodString;
+            url: z.ZodOptional<z.ZodURL>;
+        }, z.core.$strict>>>;
+        type: z.ZodLiteral<"NewsArticle">;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"Organization">;
+        id: z.ZodOptional<z.ZodString>;
+        name: z.ZodString;
+        url: z.ZodURL;
+        logo: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+        description: z.ZodOptional<z.ZodString>;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"Person">;
+        id: z.ZodOptional<z.ZodString>;
+        name: z.ZodString;
+        url: z.ZodOptional<z.ZodURL>;
+        description: z.ZodOptional<z.ZodString>;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"ImageObject">;
+        id: z.ZodOptional<z.ZodString>;
+        url: z.ZodUnion<readonly [z.ZodURL, z.ZodString]>;
+        caption: z.ZodOptional<z.ZodString>;
+        width: z.ZodOptional<z.ZodNumber>;
+        height: z.ZodOptional<z.ZodNumber>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"CollectionPage">;
+        id: z.ZodOptional<z.ZodString>;
         name: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"WebPage">;
+        id: z.ZodOptional<z.ZodString>;
         name: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"BreadcrumbList">;
+        id: z.ZodOptional<z.ZodString>;
         items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
             title: z.ZodString;
             pathname: z.ZodString;
         }, z.core.$strict>>>>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"FAQPage">;
+        id: z.ZodOptional<z.ZodString>;
         items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
             question: z.ZodString;
             answer: z.ZodString;
@@ -1162,9 +1314,10 @@ export const canonicalPageFixtures: readonly [Readonly<{
         image?: string | undefined;
     }>[] | undefined;
     structuredData?: readonly (Readonly<{
-        type: "Article";
         headline: string;
         url: string;
+        type: "Article";
+        id?: string | undefined;
         description?: string | undefined;
         image?: string | undefined;
         datePublished?: string | undefined;
@@ -1174,14 +1327,49 @@ export const canonicalPageFixtures: readonly [Readonly<{
             url?: string | undefined;
         }> | undefined;
     }> | Readonly<{
+        headline: string;
+        url: string;
+        type: "NewsArticle";
+        id?: string | undefined;
+        description?: string | undefined;
+        image?: string | undefined;
+        datePublished?: string | undefined;
+        dateModified?: string | undefined;
+        author?: Readonly<{
+            name: string;
+            url?: string | undefined;
+        }> | undefined;
+    }> | Readonly<{
+        type: "Organization";
+        name: string;
+        url: string;
+        id?: string | undefined;
+        logo?: string | undefined;
+        description?: string | undefined;
+    }> | Readonly<{
+        type: "Person";
+        name: string;
+        id?: string | undefined;
+        url?: string | undefined;
+        description?: string | undefined;
+    }> | Readonly<{
+        type: "ImageObject";
+        url: string;
+        id?: string | undefined;
+        caption?: string | undefined;
+        width?: number | undefined;
+        height?: number | undefined;
+    }> | Readonly<{
         type: "CollectionPage";
         name: string;
         url: string;
+        id?: string | undefined;
         description?: string | undefined;
     }> | Readonly<{
         type: "WebPage";
         name: string;
         url: string;
+        id?: string | undefined;
         description?: string | undefined;
     }> | Readonly<{
         type: "BreadcrumbList";
@@ -1189,12 +1377,14 @@ export const canonicalPageFixtures: readonly [Readonly<{
             title: string;
             pathname: string;
         }>[];
+        id?: string | undefined;
     }> | Readonly<{
         type: "FAQPage";
         items: readonly Readonly<{
             question: string;
             answer: string;
         }>[];
+        id?: string | undefined;
     }>)[] | undefined;
     extensions?: Readonly<Record<string, JSONType>> | undefined;
 }>, Readonly<{
@@ -1380,9 +1570,10 @@ export const canonicalPageFixtures: readonly [Readonly<{
         image?: string | undefined;
     }>[] | undefined;
     structuredData?: readonly (Readonly<{
-        type: "Article";
         headline: string;
         url: string;
+        type: "Article";
+        id?: string | undefined;
         description?: string | undefined;
         image?: string | undefined;
         datePublished?: string | undefined;
@@ -1392,14 +1583,49 @@ export const canonicalPageFixtures: readonly [Readonly<{
             url?: string | undefined;
         }> | undefined;
     }> | Readonly<{
+        headline: string;
+        url: string;
+        type: "NewsArticle";
+        id?: string | undefined;
+        description?: string | undefined;
+        image?: string | undefined;
+        datePublished?: string | undefined;
+        dateModified?: string | undefined;
+        author?: Readonly<{
+            name: string;
+            url?: string | undefined;
+        }> | undefined;
+    }> | Readonly<{
+        type: "Organization";
+        name: string;
+        url: string;
+        id?: string | undefined;
+        logo?: string | undefined;
+        description?: string | undefined;
+    }> | Readonly<{
+        type: "Person";
+        name: string;
+        id?: string | undefined;
+        url?: string | undefined;
+        description?: string | undefined;
+    }> | Readonly<{
+        type: "ImageObject";
+        url: string;
+        id?: string | undefined;
+        caption?: string | undefined;
+        width?: number | undefined;
+        height?: number | undefined;
+    }> | Readonly<{
         type: "CollectionPage";
         name: string;
         url: string;
+        id?: string | undefined;
         description?: string | undefined;
     }> | Readonly<{
         type: "WebPage";
         name: string;
         url: string;
+        id?: string | undefined;
         description?: string | undefined;
     }> | Readonly<{
         type: "BreadcrumbList";
@@ -1407,12 +1633,14 @@ export const canonicalPageFixtures: readonly [Readonly<{
             title: string;
             pathname: string;
         }>[];
+        id?: string | undefined;
     }> | Readonly<{
         type: "FAQPage";
         items: readonly Readonly<{
             question: string;
             answer: string;
         }>[];
+        id?: string | undefined;
     }>)[] | undefined;
     extensions?: Readonly<Record<string, JSONType>> | undefined;
 }>, Readonly<{
@@ -1598,9 +1826,10 @@ export const canonicalPageFixtures: readonly [Readonly<{
         image?: string | undefined;
     }>[] | undefined;
     structuredData?: readonly (Readonly<{
-        type: "Article";
         headline: string;
         url: string;
+        type: "Article";
+        id?: string | undefined;
         description?: string | undefined;
         image?: string | undefined;
         datePublished?: string | undefined;
@@ -1610,14 +1839,49 @@ export const canonicalPageFixtures: readonly [Readonly<{
             url?: string | undefined;
         }> | undefined;
     }> | Readonly<{
+        headline: string;
+        url: string;
+        type: "NewsArticle";
+        id?: string | undefined;
+        description?: string | undefined;
+        image?: string | undefined;
+        datePublished?: string | undefined;
+        dateModified?: string | undefined;
+        author?: Readonly<{
+            name: string;
+            url?: string | undefined;
+        }> | undefined;
+    }> | Readonly<{
+        type: "Organization";
+        name: string;
+        url: string;
+        id?: string | undefined;
+        logo?: string | undefined;
+        description?: string | undefined;
+    }> | Readonly<{
+        type: "Person";
+        name: string;
+        id?: string | undefined;
+        url?: string | undefined;
+        description?: string | undefined;
+    }> | Readonly<{
+        type: "ImageObject";
+        url: string;
+        id?: string | undefined;
+        caption?: string | undefined;
+        width?: number | undefined;
+        height?: number | undefined;
+    }> | Readonly<{
         type: "CollectionPage";
         name: string;
         url: string;
+        id?: string | undefined;
         description?: string | undefined;
     }> | Readonly<{
         type: "WebPage";
         name: string;
         url: string;
+        id?: string | undefined;
         description?: string | undefined;
     }> | Readonly<{
         type: "BreadcrumbList";
@@ -1625,12 +1889,14 @@ export const canonicalPageFixtures: readonly [Readonly<{
             title: string;
             pathname: string;
         }>[];
+        id?: string | undefined;
     }> | Readonly<{
         type: "FAQPage";
         items: readonly Readonly<{
             question: string;
             answer: string;
         }>[];
+        id?: string | undefined;
     }>)[] | undefined;
     extensions?: Readonly<Record<string, JSONType>> | undefined;
 }>, Readonly<{
@@ -1816,9 +2082,10 @@ export const canonicalPageFixtures: readonly [Readonly<{
         image?: string | undefined;
     }>[] | undefined;
     structuredData?: readonly (Readonly<{
-        type: "Article";
         headline: string;
         url: string;
+        type: "Article";
+        id?: string | undefined;
         description?: string | undefined;
         image?: string | undefined;
         datePublished?: string | undefined;
@@ -1828,14 +2095,49 @@ export const canonicalPageFixtures: readonly [Readonly<{
             url?: string | undefined;
         }> | undefined;
     }> | Readonly<{
+        headline: string;
+        url: string;
+        type: "NewsArticle";
+        id?: string | undefined;
+        description?: string | undefined;
+        image?: string | undefined;
+        datePublished?: string | undefined;
+        dateModified?: string | undefined;
+        author?: Readonly<{
+            name: string;
+            url?: string | undefined;
+        }> | undefined;
+    }> | Readonly<{
+        type: "Organization";
+        name: string;
+        url: string;
+        id?: string | undefined;
+        logo?: string | undefined;
+        description?: string | undefined;
+    }> | Readonly<{
+        type: "Person";
+        name: string;
+        id?: string | undefined;
+        url?: string | undefined;
+        description?: string | undefined;
+    }> | Readonly<{
+        type: "ImageObject";
+        url: string;
+        id?: string | undefined;
+        caption?: string | undefined;
+        width?: number | undefined;
+        height?: number | undefined;
+    }> | Readonly<{
         type: "CollectionPage";
         name: string;
         url: string;
+        id?: string | undefined;
         description?: string | undefined;
     }> | Readonly<{
         type: "WebPage";
         name: string;
         url: string;
+        id?: string | undefined;
         description?: string | undefined;
     }> | Readonly<{
         type: "BreadcrumbList";
@@ -1843,12 +2145,14 @@ export const canonicalPageFixtures: readonly [Readonly<{
             title: string;
             pathname: string;
         }>[];
+        id?: string | undefined;
     }> | Readonly<{
         type: "FAQPage";
         items: readonly Readonly<{
             question: string;
             answer: string;
         }>[];
+        id?: string | undefined;
     }>)[] | undefined;
     extensions?: Readonly<Record<string, JSONType>> | undefined;
 }>, Readonly<{
@@ -2065,9 +2369,10 @@ export const canonicalPageFixtures: readonly [Readonly<{
         image?: string | undefined;
     }>[] | undefined;
     structuredData?: readonly (Readonly<{
-        type: "Article";
         headline: string;
         url: string;
+        type: "Article";
+        id?: string | undefined;
         description?: string | undefined;
         image?: string | undefined;
         datePublished?: string | undefined;
@@ -2077,14 +2382,49 @@ export const canonicalPageFixtures: readonly [Readonly<{
             url?: string | undefined;
         }> | undefined;
     }> | Readonly<{
+        headline: string;
+        url: string;
+        type: "NewsArticle";
+        id?: string | undefined;
+        description?: string | undefined;
+        image?: string | undefined;
+        datePublished?: string | undefined;
+        dateModified?: string | undefined;
+        author?: Readonly<{
+            name: string;
+            url?: string | undefined;
+        }> | undefined;
+    }> | Readonly<{
+        type: "Organization";
+        name: string;
+        url: string;
+        id?: string | undefined;
+        logo?: string | undefined;
+        description?: string | undefined;
+    }> | Readonly<{
+        type: "Person";
+        name: string;
+        id?: string | undefined;
+        url?: string | undefined;
+        description?: string | undefined;
+    }> | Readonly<{
+        type: "ImageObject";
+        url: string;
+        id?: string | undefined;
+        caption?: string | undefined;
+        width?: number | undefined;
+        height?: number | undefined;
+    }> | Readonly<{
         type: "CollectionPage";
         name: string;
         url: string;
+        id?: string | undefined;
         description?: string | undefined;
     }> | Readonly<{
         type: "WebPage";
         name: string;
         url: string;
+        id?: string | undefined;
         description?: string | undefined;
     }> | Readonly<{
         type: "BreadcrumbList";
@@ -2092,12 +2432,14 @@ export const canonicalPageFixtures: readonly [Readonly<{
             title: string;
             pathname: string;
         }>[];
+        id?: string | undefined;
     }> | Readonly<{
         type: "FAQPage";
         items: readonly Readonly<{
             question: string;
             answer: string;
         }>[];
+        id?: string | undefined;
     }>)[] | undefined;
     extensions?: Readonly<Record<string, JSONType>> | undefined;
 }>];
@@ -2295,9 +2637,10 @@ export const categoryPageFixture: Readonly<{
         image?: string | undefined;
     }>[] | undefined;
     structuredData?: readonly (Readonly<{
-        type: "Article";
         headline: string;
         url: string;
+        type: "Article";
+        id?: string | undefined;
         description?: string | undefined;
         image?: string | undefined;
         datePublished?: string | undefined;
@@ -2307,14 +2650,49 @@ export const categoryPageFixture: Readonly<{
             url?: string | undefined;
         }> | undefined;
     }> | Readonly<{
+        headline: string;
+        url: string;
+        type: "NewsArticle";
+        id?: string | undefined;
+        description?: string | undefined;
+        image?: string | undefined;
+        datePublished?: string | undefined;
+        dateModified?: string | undefined;
+        author?: Readonly<{
+            name: string;
+            url?: string | undefined;
+        }> | undefined;
+    }> | Readonly<{
+        type: "Organization";
+        name: string;
+        url: string;
+        id?: string | undefined;
+        logo?: string | undefined;
+        description?: string | undefined;
+    }> | Readonly<{
+        type: "Person";
+        name: string;
+        id?: string | undefined;
+        url?: string | undefined;
+        description?: string | undefined;
+    }> | Readonly<{
+        type: "ImageObject";
+        url: string;
+        id?: string | undefined;
+        caption?: string | undefined;
+        width?: number | undefined;
+        height?: number | undefined;
+    }> | Readonly<{
         type: "CollectionPage";
         name: string;
         url: string;
+        id?: string | undefined;
         description?: string | undefined;
     }> | Readonly<{
         type: "WebPage";
         name: string;
         url: string;
+        id?: string | undefined;
         description?: string | undefined;
     }> | Readonly<{
         type: "BreadcrumbList";
@@ -2322,12 +2700,14 @@ export const categoryPageFixture: Readonly<{
             title: string;
             pathname: string;
         }>[];
+        id?: string | undefined;
     }> | Readonly<{
         type: "FAQPage";
         items: readonly Readonly<{
             question: string;
             answer: string;
         }>[];
+        id?: string | undefined;
     }>)[] | undefined;
     extensions?: Readonly<Record<string, JSONType>> | undefined;
 }>;
@@ -2390,7 +2770,7 @@ export const CategoryPageSchema: z.ZodReadonly<z.ZodObject<{
         pathname: z.ZodString;
     }, z.core.$strict>>>>;
     structuredData: z.ZodOptional<z.ZodReadonly<z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodObject<{
-        type: z.ZodLiteral<"Article">;
+        id: z.ZodOptional<z.ZodString>;
         headline: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
@@ -2401,24 +2781,62 @@ export const CategoryPageSchema: z.ZodReadonly<z.ZodObject<{
             name: z.ZodString;
             url: z.ZodOptional<z.ZodURL>;
         }, z.core.$strict>>>;
+        type: z.ZodLiteral<"Article">;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        id: z.ZodOptional<z.ZodString>;
+        headline: z.ZodString;
+        url: z.ZodURL;
+        description: z.ZodOptional<z.ZodString>;
+        image: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+        datePublished: z.ZodOptional<z.ZodISODateTime>;
+        dateModified: z.ZodOptional<z.ZodISODateTime>;
+        author: z.ZodOptional<z.ZodReadonly<z.ZodObject<{
+            name: z.ZodString;
+            url: z.ZodOptional<z.ZodURL>;
+        }, z.core.$strict>>>;
+        type: z.ZodLiteral<"NewsArticle">;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"Organization">;
+        id: z.ZodOptional<z.ZodString>;
+        name: z.ZodString;
+        url: z.ZodURL;
+        logo: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+        description: z.ZodOptional<z.ZodString>;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"Person">;
+        id: z.ZodOptional<z.ZodString>;
+        name: z.ZodString;
+        url: z.ZodOptional<z.ZodURL>;
+        description: z.ZodOptional<z.ZodString>;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"ImageObject">;
+        id: z.ZodOptional<z.ZodString>;
+        url: z.ZodUnion<readonly [z.ZodURL, z.ZodString]>;
+        caption: z.ZodOptional<z.ZodString>;
+        width: z.ZodOptional<z.ZodNumber>;
+        height: z.ZodOptional<z.ZodNumber>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"CollectionPage">;
+        id: z.ZodOptional<z.ZodString>;
         name: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"WebPage">;
+        id: z.ZodOptional<z.ZodString>;
         name: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"BreadcrumbList">;
+        id: z.ZodOptional<z.ZodString>;
         items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
             title: z.ZodString;
             pathname: z.ZodString;
         }, z.core.$strict>>>>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"FAQPage">;
+        id: z.ZodOptional<z.ZodString>;
         items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
             question: z.ZodString;
             answer: z.ZodString;
@@ -3226,9 +3644,10 @@ export const notFoundPageFixture: Readonly<{
         image?: string | undefined;
     }>[] | undefined;
     structuredData?: readonly (Readonly<{
-        type: "Article";
         headline: string;
         url: string;
+        type: "Article";
+        id?: string | undefined;
         description?: string | undefined;
         image?: string | undefined;
         datePublished?: string | undefined;
@@ -3238,14 +3657,49 @@ export const notFoundPageFixture: Readonly<{
             url?: string | undefined;
         }> | undefined;
     }> | Readonly<{
+        headline: string;
+        url: string;
+        type: "NewsArticle";
+        id?: string | undefined;
+        description?: string | undefined;
+        image?: string | undefined;
+        datePublished?: string | undefined;
+        dateModified?: string | undefined;
+        author?: Readonly<{
+            name: string;
+            url?: string | undefined;
+        }> | undefined;
+    }> | Readonly<{
+        type: "Organization";
+        name: string;
+        url: string;
+        id?: string | undefined;
+        logo?: string | undefined;
+        description?: string | undefined;
+    }> | Readonly<{
+        type: "Person";
+        name: string;
+        id?: string | undefined;
+        url?: string | undefined;
+        description?: string | undefined;
+    }> | Readonly<{
+        type: "ImageObject";
+        url: string;
+        id?: string | undefined;
+        caption?: string | undefined;
+        width?: number | undefined;
+        height?: number | undefined;
+    }> | Readonly<{
         type: "CollectionPage";
         name: string;
         url: string;
+        id?: string | undefined;
         description?: string | undefined;
     }> | Readonly<{
         type: "WebPage";
         name: string;
         url: string;
+        id?: string | undefined;
         description?: string | undefined;
     }> | Readonly<{
         type: "BreadcrumbList";
@@ -3253,12 +3707,14 @@ export const notFoundPageFixture: Readonly<{
             title: string;
             pathname: string;
         }>[];
+        id?: string | undefined;
     }> | Readonly<{
         type: "FAQPage";
         items: readonly Readonly<{
             question: string;
             answer: string;
         }>[];
+        id?: string | undefined;
     }>)[] | undefined;
     extensions?: Readonly<Record<string, JSONType>> | undefined;
 }>;
@@ -3306,7 +3762,7 @@ export const NotFoundPageSchema: z.ZodReadonly<z.ZodObject<{
         pathname: z.ZodString;
     }, z.core.$strict>>>>;
     structuredData: z.ZodOptional<z.ZodReadonly<z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodObject<{
-        type: z.ZodLiteral<"Article">;
+        id: z.ZodOptional<z.ZodString>;
         headline: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
@@ -3317,24 +3773,62 @@ export const NotFoundPageSchema: z.ZodReadonly<z.ZodObject<{
             name: z.ZodString;
             url: z.ZodOptional<z.ZodURL>;
         }, z.core.$strict>>>;
+        type: z.ZodLiteral<"Article">;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        id: z.ZodOptional<z.ZodString>;
+        headline: z.ZodString;
+        url: z.ZodURL;
+        description: z.ZodOptional<z.ZodString>;
+        image: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+        datePublished: z.ZodOptional<z.ZodISODateTime>;
+        dateModified: z.ZodOptional<z.ZodISODateTime>;
+        author: z.ZodOptional<z.ZodReadonly<z.ZodObject<{
+            name: z.ZodString;
+            url: z.ZodOptional<z.ZodURL>;
+        }, z.core.$strict>>>;
+        type: z.ZodLiteral<"NewsArticle">;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"Organization">;
+        id: z.ZodOptional<z.ZodString>;
+        name: z.ZodString;
+        url: z.ZodURL;
+        logo: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+        description: z.ZodOptional<z.ZodString>;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"Person">;
+        id: z.ZodOptional<z.ZodString>;
+        name: z.ZodString;
+        url: z.ZodOptional<z.ZodURL>;
+        description: z.ZodOptional<z.ZodString>;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"ImageObject">;
+        id: z.ZodOptional<z.ZodString>;
+        url: z.ZodUnion<readonly [z.ZodURL, z.ZodString]>;
+        caption: z.ZodOptional<z.ZodString>;
+        width: z.ZodOptional<z.ZodNumber>;
+        height: z.ZodOptional<z.ZodNumber>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"CollectionPage">;
+        id: z.ZodOptional<z.ZodString>;
         name: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"WebPage">;
+        id: z.ZodOptional<z.ZodString>;
         name: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"BreadcrumbList">;
+        id: z.ZodOptional<z.ZodString>;
         items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
             title: z.ZodString;
             pathname: z.ZodString;
         }, z.core.$strict>>>>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"FAQPage">;
+        id: z.ZodOptional<z.ZodString>;
         items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
             question: z.ZodString;
             answer: z.ZodString;
@@ -3530,7 +4024,7 @@ export const PageDocumentJsonSchema: {
             pathname: z.ZodString;
         }, z.core.$strict>>>>;
         structuredData: z.ZodOptional<z.ZodReadonly<z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodObject<{
-            type: z.ZodLiteral<"Article">;
+            id: z.ZodOptional<z.ZodString>;
             headline: z.ZodString;
             url: z.ZodURL;
             description: z.ZodOptional<z.ZodString>;
@@ -3541,24 +4035,62 @@ export const PageDocumentJsonSchema: {
                 name: z.ZodString;
                 url: z.ZodOptional<z.ZodURL>;
             }, z.core.$strict>>>;
+            type: z.ZodLiteral<"Article">;
+        }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+            id: z.ZodOptional<z.ZodString>;
+            headline: z.ZodString;
+            url: z.ZodURL;
+            description: z.ZodOptional<z.ZodString>;
+            image: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+            datePublished: z.ZodOptional<z.ZodISODateTime>;
+            dateModified: z.ZodOptional<z.ZodISODateTime>;
+            author: z.ZodOptional<z.ZodReadonly<z.ZodObject<{
+                name: z.ZodString;
+                url: z.ZodOptional<z.ZodURL>;
+            }, z.core.$strict>>>;
+            type: z.ZodLiteral<"NewsArticle">;
+        }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+            type: z.ZodLiteral<"Organization">;
+            id: z.ZodOptional<z.ZodString>;
+            name: z.ZodString;
+            url: z.ZodURL;
+            logo: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+            description: z.ZodOptional<z.ZodString>;
+        }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+            type: z.ZodLiteral<"Person">;
+            id: z.ZodOptional<z.ZodString>;
+            name: z.ZodString;
+            url: z.ZodOptional<z.ZodURL>;
+            description: z.ZodOptional<z.ZodString>;
+        }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+            type: z.ZodLiteral<"ImageObject">;
+            id: z.ZodOptional<z.ZodString>;
+            url: z.ZodUnion<readonly [z.ZodURL, z.ZodString]>;
+            caption: z.ZodOptional<z.ZodString>;
+            width: z.ZodOptional<z.ZodNumber>;
+            height: z.ZodOptional<z.ZodNumber>;
         }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
             type: z.ZodLiteral<"CollectionPage">;
+            id: z.ZodOptional<z.ZodString>;
             name: z.ZodString;
             url: z.ZodURL;
             description: z.ZodOptional<z.ZodString>;
         }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
             type: z.ZodLiteral<"WebPage">;
+            id: z.ZodOptional<z.ZodString>;
             name: z.ZodString;
             url: z.ZodURL;
             description: z.ZodOptional<z.ZodString>;
         }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
             type: z.ZodLiteral<"BreadcrumbList">;
+            id: z.ZodOptional<z.ZodString>;
             items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
                 title: z.ZodString;
                 pathname: z.ZodString;
             }, z.core.$strict>>>>;
         }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
             type: z.ZodLiteral<"FAQPage">;
+            id: z.ZodOptional<z.ZodString>;
             items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
                 question: z.ZodString;
                 answer: z.ZodString;
@@ -3762,7 +4294,7 @@ export const PageDocumentJsonSchema: {
             pathname: z.ZodString;
         }, z.core.$strict>>>>;
         structuredData: z.ZodOptional<z.ZodReadonly<z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodObject<{
-            type: z.ZodLiteral<"Article">;
+            id: z.ZodOptional<z.ZodString>;
             headline: z.ZodString;
             url: z.ZodURL;
             description: z.ZodOptional<z.ZodString>;
@@ -3773,24 +4305,62 @@ export const PageDocumentJsonSchema: {
                 name: z.ZodString;
                 url: z.ZodOptional<z.ZodURL>;
             }, z.core.$strict>>>;
+            type: z.ZodLiteral<"Article">;
+        }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+            id: z.ZodOptional<z.ZodString>;
+            headline: z.ZodString;
+            url: z.ZodURL;
+            description: z.ZodOptional<z.ZodString>;
+            image: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+            datePublished: z.ZodOptional<z.ZodISODateTime>;
+            dateModified: z.ZodOptional<z.ZodISODateTime>;
+            author: z.ZodOptional<z.ZodReadonly<z.ZodObject<{
+                name: z.ZodString;
+                url: z.ZodOptional<z.ZodURL>;
+            }, z.core.$strict>>>;
+            type: z.ZodLiteral<"NewsArticle">;
+        }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+            type: z.ZodLiteral<"Organization">;
+            id: z.ZodOptional<z.ZodString>;
+            name: z.ZodString;
+            url: z.ZodURL;
+            logo: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+            description: z.ZodOptional<z.ZodString>;
+        }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+            type: z.ZodLiteral<"Person">;
+            id: z.ZodOptional<z.ZodString>;
+            name: z.ZodString;
+            url: z.ZodOptional<z.ZodURL>;
+            description: z.ZodOptional<z.ZodString>;
+        }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+            type: z.ZodLiteral<"ImageObject">;
+            id: z.ZodOptional<z.ZodString>;
+            url: z.ZodUnion<readonly [z.ZodURL, z.ZodString]>;
+            caption: z.ZodOptional<z.ZodString>;
+            width: z.ZodOptional<z.ZodNumber>;
+            height: z.ZodOptional<z.ZodNumber>;
         }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
             type: z.ZodLiteral<"CollectionPage">;
+            id: z.ZodOptional<z.ZodString>;
             name: z.ZodString;
             url: z.ZodURL;
             description: z.ZodOptional<z.ZodString>;
         }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
             type: z.ZodLiteral<"WebPage">;
+            id: z.ZodOptional<z.ZodString>;
             name: z.ZodString;
             url: z.ZodURL;
             description: z.ZodOptional<z.ZodString>;
         }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
             type: z.ZodLiteral<"BreadcrumbList">;
+            id: z.ZodOptional<z.ZodString>;
             items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
                 title: z.ZodString;
                 pathname: z.ZodString;
             }, z.core.$strict>>>>;
         }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
             type: z.ZodLiteral<"FAQPage">;
+            id: z.ZodOptional<z.ZodString>;
             items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
                 question: z.ZodString;
                 answer: z.ZodString;
@@ -3994,7 +4564,7 @@ export const PageDocumentJsonSchema: {
             pathname: z.ZodString;
         }, z.core.$strict>>>>;
         structuredData: z.ZodOptional<z.ZodReadonly<z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodObject<{
-            type: z.ZodLiteral<"Article">;
+            id: z.ZodOptional<z.ZodString>;
             headline: z.ZodString;
             url: z.ZodURL;
             description: z.ZodOptional<z.ZodString>;
@@ -4005,24 +4575,62 @@ export const PageDocumentJsonSchema: {
                 name: z.ZodString;
                 url: z.ZodOptional<z.ZodURL>;
             }, z.core.$strict>>>;
+            type: z.ZodLiteral<"Article">;
+        }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+            id: z.ZodOptional<z.ZodString>;
+            headline: z.ZodString;
+            url: z.ZodURL;
+            description: z.ZodOptional<z.ZodString>;
+            image: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+            datePublished: z.ZodOptional<z.ZodISODateTime>;
+            dateModified: z.ZodOptional<z.ZodISODateTime>;
+            author: z.ZodOptional<z.ZodReadonly<z.ZodObject<{
+                name: z.ZodString;
+                url: z.ZodOptional<z.ZodURL>;
+            }, z.core.$strict>>>;
+            type: z.ZodLiteral<"NewsArticle">;
+        }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+            type: z.ZodLiteral<"Organization">;
+            id: z.ZodOptional<z.ZodString>;
+            name: z.ZodString;
+            url: z.ZodURL;
+            logo: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+            description: z.ZodOptional<z.ZodString>;
+        }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+            type: z.ZodLiteral<"Person">;
+            id: z.ZodOptional<z.ZodString>;
+            name: z.ZodString;
+            url: z.ZodOptional<z.ZodURL>;
+            description: z.ZodOptional<z.ZodString>;
+        }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+            type: z.ZodLiteral<"ImageObject">;
+            id: z.ZodOptional<z.ZodString>;
+            url: z.ZodUnion<readonly [z.ZodURL, z.ZodString]>;
+            caption: z.ZodOptional<z.ZodString>;
+            width: z.ZodOptional<z.ZodNumber>;
+            height: z.ZodOptional<z.ZodNumber>;
         }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
             type: z.ZodLiteral<"CollectionPage">;
+            id: z.ZodOptional<z.ZodString>;
             name: z.ZodString;
             url: z.ZodURL;
             description: z.ZodOptional<z.ZodString>;
         }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
             type: z.ZodLiteral<"WebPage">;
+            id: z.ZodOptional<z.ZodString>;
             name: z.ZodString;
             url: z.ZodURL;
             description: z.ZodOptional<z.ZodString>;
         }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
             type: z.ZodLiteral<"BreadcrumbList">;
+            id: z.ZodOptional<z.ZodString>;
             items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
                 title: z.ZodString;
                 pathname: z.ZodString;
             }, z.core.$strict>>>>;
         }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
             type: z.ZodLiteral<"FAQPage">;
+            id: z.ZodOptional<z.ZodString>;
             items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
                 question: z.ZodString;
                 answer: z.ZodString;
@@ -4226,7 +4834,7 @@ export const PageDocumentJsonSchema: {
             pathname: z.ZodString;
         }, z.core.$strict>>>>;
         structuredData: z.ZodOptional<z.ZodReadonly<z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodObject<{
-            type: z.ZodLiteral<"Article">;
+            id: z.ZodOptional<z.ZodString>;
             headline: z.ZodString;
             url: z.ZodURL;
             description: z.ZodOptional<z.ZodString>;
@@ -4237,24 +4845,62 @@ export const PageDocumentJsonSchema: {
                 name: z.ZodString;
                 url: z.ZodOptional<z.ZodURL>;
             }, z.core.$strict>>>;
+            type: z.ZodLiteral<"Article">;
+        }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+            id: z.ZodOptional<z.ZodString>;
+            headline: z.ZodString;
+            url: z.ZodURL;
+            description: z.ZodOptional<z.ZodString>;
+            image: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+            datePublished: z.ZodOptional<z.ZodISODateTime>;
+            dateModified: z.ZodOptional<z.ZodISODateTime>;
+            author: z.ZodOptional<z.ZodReadonly<z.ZodObject<{
+                name: z.ZodString;
+                url: z.ZodOptional<z.ZodURL>;
+            }, z.core.$strict>>>;
+            type: z.ZodLiteral<"NewsArticle">;
+        }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+            type: z.ZodLiteral<"Organization">;
+            id: z.ZodOptional<z.ZodString>;
+            name: z.ZodString;
+            url: z.ZodURL;
+            logo: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+            description: z.ZodOptional<z.ZodString>;
+        }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+            type: z.ZodLiteral<"Person">;
+            id: z.ZodOptional<z.ZodString>;
+            name: z.ZodString;
+            url: z.ZodOptional<z.ZodURL>;
+            description: z.ZodOptional<z.ZodString>;
+        }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+            type: z.ZodLiteral<"ImageObject">;
+            id: z.ZodOptional<z.ZodString>;
+            url: z.ZodUnion<readonly [z.ZodURL, z.ZodString]>;
+            caption: z.ZodOptional<z.ZodString>;
+            width: z.ZodOptional<z.ZodNumber>;
+            height: z.ZodOptional<z.ZodNumber>;
         }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
             type: z.ZodLiteral<"CollectionPage">;
+            id: z.ZodOptional<z.ZodString>;
             name: z.ZodString;
             url: z.ZodURL;
             description: z.ZodOptional<z.ZodString>;
         }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
             type: z.ZodLiteral<"WebPage">;
+            id: z.ZodOptional<z.ZodString>;
             name: z.ZodString;
             url: z.ZodURL;
             description: z.ZodOptional<z.ZodString>;
         }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
             type: z.ZodLiteral<"BreadcrumbList">;
+            id: z.ZodOptional<z.ZodString>;
             items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
                 title: z.ZodString;
                 pathname: z.ZodString;
             }, z.core.$strict>>>>;
         }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
             type: z.ZodLiteral<"FAQPage">;
+            id: z.ZodOptional<z.ZodString>;
             items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
                 question: z.ZodString;
                 answer: z.ZodString;
@@ -4495,7 +5141,7 @@ export const PageDocumentJsonSchema: {
             pathname: z.ZodString;
         }, z.core.$strict>>>>;
         structuredData: z.ZodOptional<z.ZodReadonly<z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodObject<{
-            type: z.ZodLiteral<"Article">;
+            id: z.ZodOptional<z.ZodString>;
             headline: z.ZodString;
             url: z.ZodURL;
             description: z.ZodOptional<z.ZodString>;
@@ -4506,24 +5152,62 @@ export const PageDocumentJsonSchema: {
                 name: z.ZodString;
                 url: z.ZodOptional<z.ZodURL>;
             }, z.core.$strict>>>;
+            type: z.ZodLiteral<"Article">;
+        }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+            id: z.ZodOptional<z.ZodString>;
+            headline: z.ZodString;
+            url: z.ZodURL;
+            description: z.ZodOptional<z.ZodString>;
+            image: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+            datePublished: z.ZodOptional<z.ZodISODateTime>;
+            dateModified: z.ZodOptional<z.ZodISODateTime>;
+            author: z.ZodOptional<z.ZodReadonly<z.ZodObject<{
+                name: z.ZodString;
+                url: z.ZodOptional<z.ZodURL>;
+            }, z.core.$strict>>>;
+            type: z.ZodLiteral<"NewsArticle">;
+        }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+            type: z.ZodLiteral<"Organization">;
+            id: z.ZodOptional<z.ZodString>;
+            name: z.ZodString;
+            url: z.ZodURL;
+            logo: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+            description: z.ZodOptional<z.ZodString>;
+        }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+            type: z.ZodLiteral<"Person">;
+            id: z.ZodOptional<z.ZodString>;
+            name: z.ZodString;
+            url: z.ZodOptional<z.ZodURL>;
+            description: z.ZodOptional<z.ZodString>;
+        }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+            type: z.ZodLiteral<"ImageObject">;
+            id: z.ZodOptional<z.ZodString>;
+            url: z.ZodUnion<readonly [z.ZodURL, z.ZodString]>;
+            caption: z.ZodOptional<z.ZodString>;
+            width: z.ZodOptional<z.ZodNumber>;
+            height: z.ZodOptional<z.ZodNumber>;
         }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
             type: z.ZodLiteral<"CollectionPage">;
+            id: z.ZodOptional<z.ZodString>;
             name: z.ZodString;
             url: z.ZodURL;
             description: z.ZodOptional<z.ZodString>;
         }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
             type: z.ZodLiteral<"WebPage">;
+            id: z.ZodOptional<z.ZodString>;
             name: z.ZodString;
             url: z.ZodURL;
             description: z.ZodOptional<z.ZodString>;
         }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
             type: z.ZodLiteral<"BreadcrumbList">;
+            id: z.ZodOptional<z.ZodString>;
             items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
                 title: z.ZodString;
                 pathname: z.ZodString;
             }, z.core.$strict>>>>;
         }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
             type: z.ZodLiteral<"FAQPage">;
+            id: z.ZodOptional<z.ZodString>;
             items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
                 question: z.ZodString;
                 answer: z.ZodString;
@@ -4904,9 +5588,10 @@ export const pageDocumentMigrationRegistry: Readonly<{
             image?: string | undefined;
         }>[] | undefined;
         structuredData?: readonly (Readonly<{
-            type: "Article";
             headline: string;
             url: string;
+            type: "Article";
+            id?: string | undefined;
             description?: string | undefined;
             image?: string | undefined;
             datePublished?: string | undefined;
@@ -4916,14 +5601,49 @@ export const pageDocumentMigrationRegistry: Readonly<{
                 url?: string | undefined;
             }> | undefined;
         }> | Readonly<{
+            headline: string;
+            url: string;
+            type: "NewsArticle";
+            id?: string | undefined;
+            description?: string | undefined;
+            image?: string | undefined;
+            datePublished?: string | undefined;
+            dateModified?: string | undefined;
+            author?: Readonly<{
+                name: string;
+                url?: string | undefined;
+            }> | undefined;
+        }> | Readonly<{
+            type: "Organization";
+            name: string;
+            url: string;
+            id?: string | undefined;
+            logo?: string | undefined;
+            description?: string | undefined;
+        }> | Readonly<{
+            type: "Person";
+            name: string;
+            id?: string | undefined;
+            url?: string | undefined;
+            description?: string | undefined;
+        }> | Readonly<{
+            type: "ImageObject";
+            url: string;
+            id?: string | undefined;
+            caption?: string | undefined;
+            width?: number | undefined;
+            height?: number | undefined;
+        }> | Readonly<{
             type: "CollectionPage";
             name: string;
             url: string;
+            id?: string | undefined;
             description?: string | undefined;
         }> | Readonly<{
             type: "WebPage";
             name: string;
             url: string;
+            id?: string | undefined;
             description?: string | undefined;
         }> | Readonly<{
             type: "BreadcrumbList";
@@ -4931,12 +5651,14 @@ export const pageDocumentMigrationRegistry: Readonly<{
                 title: string;
                 pathname: string;
             }>[];
+            id?: string | undefined;
         }> | Readonly<{
             type: "FAQPage";
             items: readonly Readonly<{
                 question: string;
                 answer: string;
             }>[];
+            id?: string | undefined;
         }>)[] | undefined;
         extensions?: Readonly<Record<string, z.core.util.JSONType>> | undefined;
     }> | Readonly<{
@@ -5122,9 +5844,10 @@ export const pageDocumentMigrationRegistry: Readonly<{
             image?: string | undefined;
         }>[] | undefined;
         structuredData?: readonly (Readonly<{
-            type: "Article";
             headline: string;
             url: string;
+            type: "Article";
+            id?: string | undefined;
             description?: string | undefined;
             image?: string | undefined;
             datePublished?: string | undefined;
@@ -5134,14 +5857,49 @@ export const pageDocumentMigrationRegistry: Readonly<{
                 url?: string | undefined;
             }> | undefined;
         }> | Readonly<{
+            headline: string;
+            url: string;
+            type: "NewsArticle";
+            id?: string | undefined;
+            description?: string | undefined;
+            image?: string | undefined;
+            datePublished?: string | undefined;
+            dateModified?: string | undefined;
+            author?: Readonly<{
+                name: string;
+                url?: string | undefined;
+            }> | undefined;
+        }> | Readonly<{
+            type: "Organization";
+            name: string;
+            url: string;
+            id?: string | undefined;
+            logo?: string | undefined;
+            description?: string | undefined;
+        }> | Readonly<{
+            type: "Person";
+            name: string;
+            id?: string | undefined;
+            url?: string | undefined;
+            description?: string | undefined;
+        }> | Readonly<{
+            type: "ImageObject";
+            url: string;
+            id?: string | undefined;
+            caption?: string | undefined;
+            width?: number | undefined;
+            height?: number | undefined;
+        }> | Readonly<{
             type: "CollectionPage";
             name: string;
             url: string;
+            id?: string | undefined;
             description?: string | undefined;
         }> | Readonly<{
             type: "WebPage";
             name: string;
             url: string;
+            id?: string | undefined;
             description?: string | undefined;
         }> | Readonly<{
             type: "BreadcrumbList";
@@ -5149,12 +5907,14 @@ export const pageDocumentMigrationRegistry: Readonly<{
                 title: string;
                 pathname: string;
             }>[];
+            id?: string | undefined;
         }> | Readonly<{
             type: "FAQPage";
             items: readonly Readonly<{
                 question: string;
                 answer: string;
             }>[];
+            id?: string | undefined;
         }>)[] | undefined;
         extensions?: Readonly<Record<string, z.core.util.JSONType>> | undefined;
     }> | Readonly<{
@@ -5340,9 +6100,10 @@ export const pageDocumentMigrationRegistry: Readonly<{
             image?: string | undefined;
         }>[] | undefined;
         structuredData?: readonly (Readonly<{
-            type: "Article";
             headline: string;
             url: string;
+            type: "Article";
+            id?: string | undefined;
             description?: string | undefined;
             image?: string | undefined;
             datePublished?: string | undefined;
@@ -5352,14 +6113,49 @@ export const pageDocumentMigrationRegistry: Readonly<{
                 url?: string | undefined;
             }> | undefined;
         }> | Readonly<{
+            headline: string;
+            url: string;
+            type: "NewsArticle";
+            id?: string | undefined;
+            description?: string | undefined;
+            image?: string | undefined;
+            datePublished?: string | undefined;
+            dateModified?: string | undefined;
+            author?: Readonly<{
+                name: string;
+                url?: string | undefined;
+            }> | undefined;
+        }> | Readonly<{
+            type: "Organization";
+            name: string;
+            url: string;
+            id?: string | undefined;
+            logo?: string | undefined;
+            description?: string | undefined;
+        }> | Readonly<{
+            type: "Person";
+            name: string;
+            id?: string | undefined;
+            url?: string | undefined;
+            description?: string | undefined;
+        }> | Readonly<{
+            type: "ImageObject";
+            url: string;
+            id?: string | undefined;
+            caption?: string | undefined;
+            width?: number | undefined;
+            height?: number | undefined;
+        }> | Readonly<{
             type: "CollectionPage";
             name: string;
             url: string;
+            id?: string | undefined;
             description?: string | undefined;
         }> | Readonly<{
             type: "WebPage";
             name: string;
             url: string;
+            id?: string | undefined;
             description?: string | undefined;
         }> | Readonly<{
             type: "BreadcrumbList";
@@ -5367,12 +6163,14 @@ export const pageDocumentMigrationRegistry: Readonly<{
                 title: string;
                 pathname: string;
             }>[];
+            id?: string | undefined;
         }> | Readonly<{
             type: "FAQPage";
             items: readonly Readonly<{
                 question: string;
                 answer: string;
             }>[];
+            id?: string | undefined;
         }>)[] | undefined;
         extensions?: Readonly<Record<string, z.core.util.JSONType>> | undefined;
     }> | Readonly<{
@@ -5558,9 +6356,10 @@ export const pageDocumentMigrationRegistry: Readonly<{
             image?: string | undefined;
         }>[] | undefined;
         structuredData?: readonly (Readonly<{
-            type: "Article";
             headline: string;
             url: string;
+            type: "Article";
+            id?: string | undefined;
             description?: string | undefined;
             image?: string | undefined;
             datePublished?: string | undefined;
@@ -5570,14 +6369,49 @@ export const pageDocumentMigrationRegistry: Readonly<{
                 url?: string | undefined;
             }> | undefined;
         }> | Readonly<{
+            headline: string;
+            url: string;
+            type: "NewsArticle";
+            id?: string | undefined;
+            description?: string | undefined;
+            image?: string | undefined;
+            datePublished?: string | undefined;
+            dateModified?: string | undefined;
+            author?: Readonly<{
+                name: string;
+                url?: string | undefined;
+            }> | undefined;
+        }> | Readonly<{
+            type: "Organization";
+            name: string;
+            url: string;
+            id?: string | undefined;
+            logo?: string | undefined;
+            description?: string | undefined;
+        }> | Readonly<{
+            type: "Person";
+            name: string;
+            id?: string | undefined;
+            url?: string | undefined;
+            description?: string | undefined;
+        }> | Readonly<{
+            type: "ImageObject";
+            url: string;
+            id?: string | undefined;
+            caption?: string | undefined;
+            width?: number | undefined;
+            height?: number | undefined;
+        }> | Readonly<{
             type: "CollectionPage";
             name: string;
             url: string;
+            id?: string | undefined;
             description?: string | undefined;
         }> | Readonly<{
             type: "WebPage";
             name: string;
             url: string;
+            id?: string | undefined;
             description?: string | undefined;
         }> | Readonly<{
             type: "BreadcrumbList";
@@ -5585,12 +6419,14 @@ export const pageDocumentMigrationRegistry: Readonly<{
                 title: string;
                 pathname: string;
             }>[];
+            id?: string | undefined;
         }> | Readonly<{
             type: "FAQPage";
             items: readonly Readonly<{
                 question: string;
                 answer: string;
             }>[];
+            id?: string | undefined;
         }>)[] | undefined;
         extensions?: Readonly<Record<string, z.core.util.JSONType>> | undefined;
     }> | Readonly<{
@@ -5807,9 +6643,10 @@ export const pageDocumentMigrationRegistry: Readonly<{
             image?: string | undefined;
         }>[] | undefined;
         structuredData?: readonly (Readonly<{
-            type: "Article";
             headline: string;
             url: string;
+            type: "Article";
+            id?: string | undefined;
             description?: string | undefined;
             image?: string | undefined;
             datePublished?: string | undefined;
@@ -5819,14 +6656,49 @@ export const pageDocumentMigrationRegistry: Readonly<{
                 url?: string | undefined;
             }> | undefined;
         }> | Readonly<{
+            headline: string;
+            url: string;
+            type: "NewsArticle";
+            id?: string | undefined;
+            description?: string | undefined;
+            image?: string | undefined;
+            datePublished?: string | undefined;
+            dateModified?: string | undefined;
+            author?: Readonly<{
+                name: string;
+                url?: string | undefined;
+            }> | undefined;
+        }> | Readonly<{
+            type: "Organization";
+            name: string;
+            url: string;
+            id?: string | undefined;
+            logo?: string | undefined;
+            description?: string | undefined;
+        }> | Readonly<{
+            type: "Person";
+            name: string;
+            id?: string | undefined;
+            url?: string | undefined;
+            description?: string | undefined;
+        }> | Readonly<{
+            type: "ImageObject";
+            url: string;
+            id?: string | undefined;
+            caption?: string | undefined;
+            width?: number | undefined;
+            height?: number | undefined;
+        }> | Readonly<{
             type: "CollectionPage";
             name: string;
             url: string;
+            id?: string | undefined;
             description?: string | undefined;
         }> | Readonly<{
             type: "WebPage";
             name: string;
             url: string;
+            id?: string | undefined;
             description?: string | undefined;
         }> | Readonly<{
             type: "BreadcrumbList";
@@ -5834,12 +6706,14 @@ export const pageDocumentMigrationRegistry: Readonly<{
                 title: string;
                 pathname: string;
             }>[];
+            id?: string | undefined;
         }> | Readonly<{
             type: "FAQPage";
             items: readonly Readonly<{
                 question: string;
                 answer: string;
             }>[];
+            id?: string | undefined;
         }>)[] | undefined;
         extensions?: Readonly<Record<string, z.core.util.JSONType>> | undefined;
     }>;
@@ -5888,7 +6762,7 @@ export const PageDocumentSchema: z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodObj
         pathname: z.ZodString;
     }, z.core.$strict>>>>;
     structuredData: z.ZodOptional<z.ZodReadonly<z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodObject<{
-        type: z.ZodLiteral<"Article">;
+        id: z.ZodOptional<z.ZodString>;
         headline: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
@@ -5899,24 +6773,62 @@ export const PageDocumentSchema: z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodObj
             name: z.ZodString;
             url: z.ZodOptional<z.ZodURL>;
         }, z.core.$strict>>>;
+        type: z.ZodLiteral<"Article">;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        id: z.ZodOptional<z.ZodString>;
+        headline: z.ZodString;
+        url: z.ZodURL;
+        description: z.ZodOptional<z.ZodString>;
+        image: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+        datePublished: z.ZodOptional<z.ZodISODateTime>;
+        dateModified: z.ZodOptional<z.ZodISODateTime>;
+        author: z.ZodOptional<z.ZodReadonly<z.ZodObject<{
+            name: z.ZodString;
+            url: z.ZodOptional<z.ZodURL>;
+        }, z.core.$strict>>>;
+        type: z.ZodLiteral<"NewsArticle">;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"Organization">;
+        id: z.ZodOptional<z.ZodString>;
+        name: z.ZodString;
+        url: z.ZodURL;
+        logo: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+        description: z.ZodOptional<z.ZodString>;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"Person">;
+        id: z.ZodOptional<z.ZodString>;
+        name: z.ZodString;
+        url: z.ZodOptional<z.ZodURL>;
+        description: z.ZodOptional<z.ZodString>;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"ImageObject">;
+        id: z.ZodOptional<z.ZodString>;
+        url: z.ZodUnion<readonly [z.ZodURL, z.ZodString]>;
+        caption: z.ZodOptional<z.ZodString>;
+        width: z.ZodOptional<z.ZodNumber>;
+        height: z.ZodOptional<z.ZodNumber>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"CollectionPage">;
+        id: z.ZodOptional<z.ZodString>;
         name: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"WebPage">;
+        id: z.ZodOptional<z.ZodString>;
         name: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"BreadcrumbList">;
+        id: z.ZodOptional<z.ZodString>;
         items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
             title: z.ZodString;
             pathname: z.ZodString;
         }, z.core.$strict>>>>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"FAQPage">;
+        id: z.ZodOptional<z.ZodString>;
         items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
             question: z.ZodString;
             answer: z.ZodString;
@@ -6120,7 +7032,7 @@ export const PageDocumentSchema: z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodObj
         pathname: z.ZodString;
     }, z.core.$strict>>>>;
     structuredData: z.ZodOptional<z.ZodReadonly<z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodObject<{
-        type: z.ZodLiteral<"Article">;
+        id: z.ZodOptional<z.ZodString>;
         headline: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
@@ -6131,24 +7043,62 @@ export const PageDocumentSchema: z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodObj
             name: z.ZodString;
             url: z.ZodOptional<z.ZodURL>;
         }, z.core.$strict>>>;
+        type: z.ZodLiteral<"Article">;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        id: z.ZodOptional<z.ZodString>;
+        headline: z.ZodString;
+        url: z.ZodURL;
+        description: z.ZodOptional<z.ZodString>;
+        image: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+        datePublished: z.ZodOptional<z.ZodISODateTime>;
+        dateModified: z.ZodOptional<z.ZodISODateTime>;
+        author: z.ZodOptional<z.ZodReadonly<z.ZodObject<{
+            name: z.ZodString;
+            url: z.ZodOptional<z.ZodURL>;
+        }, z.core.$strict>>>;
+        type: z.ZodLiteral<"NewsArticle">;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"Organization">;
+        id: z.ZodOptional<z.ZodString>;
+        name: z.ZodString;
+        url: z.ZodURL;
+        logo: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+        description: z.ZodOptional<z.ZodString>;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"Person">;
+        id: z.ZodOptional<z.ZodString>;
+        name: z.ZodString;
+        url: z.ZodOptional<z.ZodURL>;
+        description: z.ZodOptional<z.ZodString>;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"ImageObject">;
+        id: z.ZodOptional<z.ZodString>;
+        url: z.ZodUnion<readonly [z.ZodURL, z.ZodString]>;
+        caption: z.ZodOptional<z.ZodString>;
+        width: z.ZodOptional<z.ZodNumber>;
+        height: z.ZodOptional<z.ZodNumber>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"CollectionPage">;
+        id: z.ZodOptional<z.ZodString>;
         name: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"WebPage">;
+        id: z.ZodOptional<z.ZodString>;
         name: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"BreadcrumbList">;
+        id: z.ZodOptional<z.ZodString>;
         items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
             title: z.ZodString;
             pathname: z.ZodString;
         }, z.core.$strict>>>>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"FAQPage">;
+        id: z.ZodOptional<z.ZodString>;
         items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
             question: z.ZodString;
             answer: z.ZodString;
@@ -6352,7 +7302,7 @@ export const PageDocumentSchema: z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodObj
         pathname: z.ZodString;
     }, z.core.$strict>>>>;
     structuredData: z.ZodOptional<z.ZodReadonly<z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodObject<{
-        type: z.ZodLiteral<"Article">;
+        id: z.ZodOptional<z.ZodString>;
         headline: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
@@ -6363,24 +7313,62 @@ export const PageDocumentSchema: z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodObj
             name: z.ZodString;
             url: z.ZodOptional<z.ZodURL>;
         }, z.core.$strict>>>;
+        type: z.ZodLiteral<"Article">;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        id: z.ZodOptional<z.ZodString>;
+        headline: z.ZodString;
+        url: z.ZodURL;
+        description: z.ZodOptional<z.ZodString>;
+        image: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+        datePublished: z.ZodOptional<z.ZodISODateTime>;
+        dateModified: z.ZodOptional<z.ZodISODateTime>;
+        author: z.ZodOptional<z.ZodReadonly<z.ZodObject<{
+            name: z.ZodString;
+            url: z.ZodOptional<z.ZodURL>;
+        }, z.core.$strict>>>;
+        type: z.ZodLiteral<"NewsArticle">;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"Organization">;
+        id: z.ZodOptional<z.ZodString>;
+        name: z.ZodString;
+        url: z.ZodURL;
+        logo: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+        description: z.ZodOptional<z.ZodString>;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"Person">;
+        id: z.ZodOptional<z.ZodString>;
+        name: z.ZodString;
+        url: z.ZodOptional<z.ZodURL>;
+        description: z.ZodOptional<z.ZodString>;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"ImageObject">;
+        id: z.ZodOptional<z.ZodString>;
+        url: z.ZodUnion<readonly [z.ZodURL, z.ZodString]>;
+        caption: z.ZodOptional<z.ZodString>;
+        width: z.ZodOptional<z.ZodNumber>;
+        height: z.ZodOptional<z.ZodNumber>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"CollectionPage">;
+        id: z.ZodOptional<z.ZodString>;
         name: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"WebPage">;
+        id: z.ZodOptional<z.ZodString>;
         name: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"BreadcrumbList">;
+        id: z.ZodOptional<z.ZodString>;
         items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
             title: z.ZodString;
             pathname: z.ZodString;
         }, z.core.$strict>>>>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"FAQPage">;
+        id: z.ZodOptional<z.ZodString>;
         items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
             question: z.ZodString;
             answer: z.ZodString;
@@ -6584,7 +7572,7 @@ export const PageDocumentSchema: z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodObj
         pathname: z.ZodString;
     }, z.core.$strict>>>>;
     structuredData: z.ZodOptional<z.ZodReadonly<z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodObject<{
-        type: z.ZodLiteral<"Article">;
+        id: z.ZodOptional<z.ZodString>;
         headline: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
@@ -6595,24 +7583,62 @@ export const PageDocumentSchema: z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodObj
             name: z.ZodString;
             url: z.ZodOptional<z.ZodURL>;
         }, z.core.$strict>>>;
+        type: z.ZodLiteral<"Article">;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        id: z.ZodOptional<z.ZodString>;
+        headline: z.ZodString;
+        url: z.ZodURL;
+        description: z.ZodOptional<z.ZodString>;
+        image: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+        datePublished: z.ZodOptional<z.ZodISODateTime>;
+        dateModified: z.ZodOptional<z.ZodISODateTime>;
+        author: z.ZodOptional<z.ZodReadonly<z.ZodObject<{
+            name: z.ZodString;
+            url: z.ZodOptional<z.ZodURL>;
+        }, z.core.$strict>>>;
+        type: z.ZodLiteral<"NewsArticle">;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"Organization">;
+        id: z.ZodOptional<z.ZodString>;
+        name: z.ZodString;
+        url: z.ZodURL;
+        logo: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+        description: z.ZodOptional<z.ZodString>;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"Person">;
+        id: z.ZodOptional<z.ZodString>;
+        name: z.ZodString;
+        url: z.ZodOptional<z.ZodURL>;
+        description: z.ZodOptional<z.ZodString>;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"ImageObject">;
+        id: z.ZodOptional<z.ZodString>;
+        url: z.ZodUnion<readonly [z.ZodURL, z.ZodString]>;
+        caption: z.ZodOptional<z.ZodString>;
+        width: z.ZodOptional<z.ZodNumber>;
+        height: z.ZodOptional<z.ZodNumber>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"CollectionPage">;
+        id: z.ZodOptional<z.ZodString>;
         name: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"WebPage">;
+        id: z.ZodOptional<z.ZodString>;
         name: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"BreadcrumbList">;
+        id: z.ZodOptional<z.ZodString>;
         items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
             title: z.ZodString;
             pathname: z.ZodString;
         }, z.core.$strict>>>>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"FAQPage">;
+        id: z.ZodOptional<z.ZodString>;
         items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
             question: z.ZodString;
             answer: z.ZodString;
@@ -6853,7 +7879,7 @@ export const PageDocumentSchema: z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodObj
         pathname: z.ZodString;
     }, z.core.$strict>>>>;
     structuredData: z.ZodOptional<z.ZodReadonly<z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodObject<{
-        type: z.ZodLiteral<"Article">;
+        id: z.ZodOptional<z.ZodString>;
         headline: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
@@ -6864,24 +7890,62 @@ export const PageDocumentSchema: z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodObj
             name: z.ZodString;
             url: z.ZodOptional<z.ZodURL>;
         }, z.core.$strict>>>;
+        type: z.ZodLiteral<"Article">;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        id: z.ZodOptional<z.ZodString>;
+        headline: z.ZodString;
+        url: z.ZodURL;
+        description: z.ZodOptional<z.ZodString>;
+        image: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+        datePublished: z.ZodOptional<z.ZodISODateTime>;
+        dateModified: z.ZodOptional<z.ZodISODateTime>;
+        author: z.ZodOptional<z.ZodReadonly<z.ZodObject<{
+            name: z.ZodString;
+            url: z.ZodOptional<z.ZodURL>;
+        }, z.core.$strict>>>;
+        type: z.ZodLiteral<"NewsArticle">;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"Organization">;
+        id: z.ZodOptional<z.ZodString>;
+        name: z.ZodString;
+        url: z.ZodURL;
+        logo: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+        description: z.ZodOptional<z.ZodString>;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"Person">;
+        id: z.ZodOptional<z.ZodString>;
+        name: z.ZodString;
+        url: z.ZodOptional<z.ZodURL>;
+        description: z.ZodOptional<z.ZodString>;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"ImageObject">;
+        id: z.ZodOptional<z.ZodString>;
+        url: z.ZodUnion<readonly [z.ZodURL, z.ZodString]>;
+        caption: z.ZodOptional<z.ZodString>;
+        width: z.ZodOptional<z.ZodNumber>;
+        height: z.ZodOptional<z.ZodNumber>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"CollectionPage">;
+        id: z.ZodOptional<z.ZodString>;
         name: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"WebPage">;
+        id: z.ZodOptional<z.ZodString>;
         name: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"BreadcrumbList">;
+        id: z.ZodOptional<z.ZodString>;
         items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
             title: z.ZodString;
             pathname: z.ZodString;
         }, z.core.$strict>>>>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"FAQPage">;
+        id: z.ZodOptional<z.ZodString>;
         items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
             question: z.ZodString;
             answer: z.ZodString;
@@ -7556,7 +8620,7 @@ export type StructuredData = z.infer<typeof StructuredDataSchema>;
 
 // @public (undocumented)
 export const StructuredDataSchema: z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodObject<{
-    type: z.ZodLiteral<"Article">;
+    id: z.ZodOptional<z.ZodString>;
     headline: z.ZodString;
     url: z.ZodURL;
     description: z.ZodOptional<z.ZodString>;
@@ -7567,24 +8631,62 @@ export const StructuredDataSchema: z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodO
         name: z.ZodString;
         url: z.ZodOptional<z.ZodURL>;
     }, z.core.$strict>>>;
+    type: z.ZodLiteral<"Article">;
+}, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+    id: z.ZodOptional<z.ZodString>;
+    headline: z.ZodString;
+    url: z.ZodURL;
+    description: z.ZodOptional<z.ZodString>;
+    image: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+    datePublished: z.ZodOptional<z.ZodISODateTime>;
+    dateModified: z.ZodOptional<z.ZodISODateTime>;
+    author: z.ZodOptional<z.ZodReadonly<z.ZodObject<{
+        name: z.ZodString;
+        url: z.ZodOptional<z.ZodURL>;
+    }, z.core.$strict>>>;
+    type: z.ZodLiteral<"NewsArticle">;
+}, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+    type: z.ZodLiteral<"Organization">;
+    id: z.ZodOptional<z.ZodString>;
+    name: z.ZodString;
+    url: z.ZodURL;
+    logo: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+    description: z.ZodOptional<z.ZodString>;
+}, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+    type: z.ZodLiteral<"Person">;
+    id: z.ZodOptional<z.ZodString>;
+    name: z.ZodString;
+    url: z.ZodOptional<z.ZodURL>;
+    description: z.ZodOptional<z.ZodString>;
+}, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+    type: z.ZodLiteral<"ImageObject">;
+    id: z.ZodOptional<z.ZodString>;
+    url: z.ZodUnion<readonly [z.ZodURL, z.ZodString]>;
+    caption: z.ZodOptional<z.ZodString>;
+    width: z.ZodOptional<z.ZodNumber>;
+    height: z.ZodOptional<z.ZodNumber>;
 }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
     type: z.ZodLiteral<"CollectionPage">;
+    id: z.ZodOptional<z.ZodString>;
     name: z.ZodString;
     url: z.ZodURL;
     description: z.ZodOptional<z.ZodString>;
 }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
     type: z.ZodLiteral<"WebPage">;
+    id: z.ZodOptional<z.ZodString>;
     name: z.ZodString;
     url: z.ZodURL;
     description: z.ZodOptional<z.ZodString>;
 }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
     type: z.ZodLiteral<"BreadcrumbList">;
+    id: z.ZodOptional<z.ZodString>;
     items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
         title: z.ZodString;
         pathname: z.ZodString;
     }, z.core.$strict>>>>;
 }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
     type: z.ZodLiteral<"FAQPage">;
+    id: z.ZodOptional<z.ZodString>;
     items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
         question: z.ZodString;
         answer: z.ZodString;
@@ -7791,9 +8893,10 @@ export const tagPageFixture: Readonly<{
         image?: string | undefined;
     }>[] | undefined;
     structuredData?: readonly (Readonly<{
-        type: "Article";
         headline: string;
         url: string;
+        type: "Article";
+        id?: string | undefined;
         description?: string | undefined;
         image?: string | undefined;
         datePublished?: string | undefined;
@@ -7803,14 +8906,49 @@ export const tagPageFixture: Readonly<{
             url?: string | undefined;
         }> | undefined;
     }> | Readonly<{
+        headline: string;
+        url: string;
+        type: "NewsArticle";
+        id?: string | undefined;
+        description?: string | undefined;
+        image?: string | undefined;
+        datePublished?: string | undefined;
+        dateModified?: string | undefined;
+        author?: Readonly<{
+            name: string;
+            url?: string | undefined;
+        }> | undefined;
+    }> | Readonly<{
+        type: "Organization";
+        name: string;
+        url: string;
+        id?: string | undefined;
+        logo?: string | undefined;
+        description?: string | undefined;
+    }> | Readonly<{
+        type: "Person";
+        name: string;
+        id?: string | undefined;
+        url?: string | undefined;
+        description?: string | undefined;
+    }> | Readonly<{
+        type: "ImageObject";
+        url: string;
+        id?: string | undefined;
+        caption?: string | undefined;
+        width?: number | undefined;
+        height?: number | undefined;
+    }> | Readonly<{
         type: "CollectionPage";
         name: string;
         url: string;
+        id?: string | undefined;
         description?: string | undefined;
     }> | Readonly<{
         type: "WebPage";
         name: string;
         url: string;
+        id?: string | undefined;
         description?: string | undefined;
     }> | Readonly<{
         type: "BreadcrumbList";
@@ -7818,12 +8956,14 @@ export const tagPageFixture: Readonly<{
             title: string;
             pathname: string;
         }>[];
+        id?: string | undefined;
     }> | Readonly<{
         type: "FAQPage";
         items: readonly Readonly<{
             question: string;
             answer: string;
         }>[];
+        id?: string | undefined;
     }>)[] | undefined;
     extensions?: Readonly<Record<string, JSONType>> | undefined;
 }>;
@@ -7886,7 +9026,7 @@ export const TagPageSchema: z.ZodReadonly<z.ZodObject<{
         pathname: z.ZodString;
     }, z.core.$strict>>>>;
     structuredData: z.ZodOptional<z.ZodReadonly<z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodObject<{
-        type: z.ZodLiteral<"Article">;
+        id: z.ZodOptional<z.ZodString>;
         headline: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
@@ -7897,24 +9037,62 @@ export const TagPageSchema: z.ZodReadonly<z.ZodObject<{
             name: z.ZodString;
             url: z.ZodOptional<z.ZodURL>;
         }, z.core.$strict>>>;
+        type: z.ZodLiteral<"Article">;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        id: z.ZodOptional<z.ZodString>;
+        headline: z.ZodString;
+        url: z.ZodURL;
+        description: z.ZodOptional<z.ZodString>;
+        image: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+        datePublished: z.ZodOptional<z.ZodISODateTime>;
+        dateModified: z.ZodOptional<z.ZodISODateTime>;
+        author: z.ZodOptional<z.ZodReadonly<z.ZodObject<{
+            name: z.ZodString;
+            url: z.ZodOptional<z.ZodURL>;
+        }, z.core.$strict>>>;
+        type: z.ZodLiteral<"NewsArticle">;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"Organization">;
+        id: z.ZodOptional<z.ZodString>;
+        name: z.ZodString;
+        url: z.ZodURL;
+        logo: z.ZodOptional<z.ZodUnion<readonly [z.ZodURL, z.ZodString]>>;
+        description: z.ZodOptional<z.ZodString>;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"Person">;
+        id: z.ZodOptional<z.ZodString>;
+        name: z.ZodString;
+        url: z.ZodOptional<z.ZodURL>;
+        description: z.ZodOptional<z.ZodString>;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        type: z.ZodLiteral<"ImageObject">;
+        id: z.ZodOptional<z.ZodString>;
+        url: z.ZodUnion<readonly [z.ZodURL, z.ZodString]>;
+        caption: z.ZodOptional<z.ZodString>;
+        width: z.ZodOptional<z.ZodNumber>;
+        height: z.ZodOptional<z.ZodNumber>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"CollectionPage">;
+        id: z.ZodOptional<z.ZodString>;
         name: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"WebPage">;
+        id: z.ZodOptional<z.ZodString>;
         name: z.ZodString;
         url: z.ZodURL;
         description: z.ZodOptional<z.ZodString>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"BreadcrumbList">;
+        id: z.ZodOptional<z.ZodString>;
         items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
             title: z.ZodString;
             pathname: z.ZodString;
         }, z.core.$strict>>>>;
     }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
         type: z.ZodLiteral<"FAQPage">;
+        id: z.ZodOptional<z.ZodString>;
         items: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
             question: z.ZodString;
             answer: z.ZodString;

@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  COMPILER_ERROR,
+  type CompileRequest,
+  CompilerError,
   compileArticle,
   compileListingPage,
   compileSite,
-  COMPILER_ERROR,
-  CompilerError,
-  type CompileRequest,
 } from "../src/index.js"
 
 const site = {
@@ -14,6 +14,7 @@ const site = {
   locale: "en-US",
   name: "Site A",
   seoDefaults: { description: "Site A default description.", title: "Site A" },
+  organization: { logoUrl: "/media/logo.svg", name: "Site A Media" },
   siteId: "site-a",
   timezone: "UTC",
 }
@@ -21,6 +22,7 @@ const site = {
 const edition = {
   assessmentInputHash: "a".repeat(64),
   assessmentState: "passed",
+  author: { id: "author-ada", name: "Ada Chen", url: "https://site-a.test/authors/ada-chen" },
   body: [
     { blockType: "heading", level: "2", text: "Deterministic release gates" },
     { blockType: "paragraph", text: "Every edition passes three gates before it ships." },
@@ -173,6 +175,92 @@ describe("typed rejections", () => {
         title: "Guides",
       }),
       COMPILER_ERROR.PATH_DUPLICATE,
+    )
+  })
+
+  it("rejects an edition whose URL lives on another domain (wrong-domain canonical)", async () => {
+    await expectCode(
+      compileArticle({
+        clock: { now: "2026-08-19T00:00:00Z" },
+        edition: { ...edition, media: edition.media, urlDomain: "site-b.test" },
+        site,
+      }),
+      COMPILER_ERROR.SEO_CANONICAL_WRONG_DOMAIN,
+    )
+  })
+
+  it("rejects a malformed canonical domain", async () => {
+    await expectCode(
+      compileArticle({
+        clock: { now: "2026-08-19T00:00:00Z" },
+        edition: { ...edition, media: edition.media },
+        site: { ...site, canonicalDomain: "https://site-a.test" },
+      }),
+      COMPILER_ERROR.SEO_CANONICAL_WRONG_DOMAIN,
+    )
+  })
+
+  it("rejects modifiedAt preceding publishedAt", async () => {
+    await expectCode(
+      compileArticle({
+        clock: { now: "2026-08-19T00:00:00Z" },
+        edition: { ...edition, media: edition.media, modifiedAt: "2026-08-17T09:00:00Z" },
+        site,
+      }),
+      COMPILER_ERROR.SEO_DATE_ORDER_INVALID,
+    )
+  })
+
+  it("rejects an article without an author (required JSON-LD field)", async () => {
+    const { author: _author, ...withoutAuthor } = edition
+    await expectCode(
+      compileArticle({
+        clock: { now: "2026-08-19T00:00:00Z" },
+        edition: withoutAuthor,
+        site,
+      }),
+      COMPILER_ERROR.SEO_REQUIRED_FIELD_MISSING,
+    )
+  })
+
+  it("rejects an article when the site has no publisher organization", async () => {
+    const { organization: _organization, ...withoutOrg } = site
+    await expectCode(
+      compileArticle({
+        clock: { now: "2026-08-19T00:00:00Z" },
+        edition: { ...edition, media: edition.media },
+        site: withoutOrg,
+      }),
+      COMPILER_ERROR.SEO_REQUIRED_FIELD_MISSING,
+    )
+  })
+
+  it("rejects a news article without a hero image", async () => {
+    await expectCode(
+      compileArticle({
+        clock: { now: "2026-08-19T00:00:00Z" },
+        edition: {
+          ...edition,
+          media: edition.media,
+          articleKind: "news",
+          body: [
+            { blockType: "heading", level: "2", text: "Deterministic release gates" },
+            { blockType: "paragraph", text: "Every edition passes three gates before it ships." },
+          ],
+        },
+        site,
+      }),
+      COMPILER_ERROR.SEO_REQUIRED_FIELD_MISSING,
+    )
+  })
+
+  it("rejects a redirect that targets its own canonical URL", async () => {
+    await expectCode(
+      compileSite({
+        ...request(),
+        redirects: [{ fromPathname: "/old-guides", targetUrl: "/old-guides" }],
+      }),
+      COMPILER_ERROR.SEO_REDIRECT_CANONICAL_MISMATCH,
     )
   })
 

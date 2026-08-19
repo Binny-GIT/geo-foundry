@@ -48,6 +48,33 @@
       "follow": true,
       "index": false
     },
-    "title": "Page not found"
-  }
+    "title": "Page not found",
+    "twitter": {
+      "card": "summary",
+      "description": "Site A default description.",
+      "title": "Page not found"
+    }
+  },
+  "structuredData": [
+    {
+      "id": "#webpage",
+      "name": "Page not found",
+      "type": "WebPage",
+      "url": "https://site-a.test/not-found"
+    },
+    {
+      "id": "#breadcrumbs",
+      "items": [
+        {
+          "pathname": "/",
+          "title": "Site A"
+        },
+        {
+          "pathname": "/not-found",
+          "title": "Page not found"
+        }
+      ],
+      "type": "BreadcrumbList"
+    }
+  ]
 }

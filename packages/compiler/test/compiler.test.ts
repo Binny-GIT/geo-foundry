@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  type CompileRequest,
   compileArticle,
   compileListingPage,
   compileNotFoundPage,
   compileRedirectPage,
   compileSite,
-  type CompileRequest,
 } from "../src/index.js"
 
 const site = {
@@ -14,6 +14,7 @@ const site = {
   locale: "en-US",
   name: "Site A",
   seoDefaults: { description: "Site A default description.", title: "Site A" },
+  organization: { logoUrl: "/media/logo.svg", name: "Site A Media" },
   siteId: "site-a",
   timezone: "UTC",
 }
@@ -21,6 +22,7 @@ const site = {
 const edition = {
   assessmentInputHash: "a".repeat(64),
   assessmentState: "passed",
+  author: { id: "author-ada", name: "Ada Chen", url: "https://site-a.test/authors/ada-chen" },
   body: [
     { blockType: "heading", level: "2", text: "Deterministic release gates" },
     { blockType: "paragraph", text: "Every edition passes three gates before it ships." },
@@ -95,10 +97,53 @@ describe("compileSite golden output", () => {
     expect(parsed.body).toHaveLength(3)
     expect(parsed.body[2]).toMatchObject({ src: "/media/map.webp", type: "image" })
     expect(parsed.citations).toHaveLength(1)
+    expect(parsed.seo).toEqual({
+      description: edition.summary,
+      openGraph: {
+        description: edition.summary,
+        image: "https://site-a.test/media/map.webp",
+        title: edition.title,
+        type: "article",
+      },
+      robots: { follow: true, index: true },
+      title: edition.title,
+      twitter: {
+        card: "summary_large_image",
+        description: edition.summary,
+        image: "https://site-a.test/media/map.webp",
+        title: edition.title,
+      },
+    })
+    const graph = parsed.structuredData as { type: string; id?: string }[]
+    expect(graph.map((node) => `${node.type}:${node.id}`)).toEqual([
+      "Article:#article",
+      "ImageObject:#primary-image",
+      "Person:#author",
+      "Organization:#organization",
+      "BreadcrumbList:#breadcrumbs",
+    ])
+    expect(graph[0]).toMatchObject({
+      author: { name: "Ada Chen", url: "https://site-a.test/authors/ada-chen" },
+      dateModified: "2026-08-17T11:00:00Z",
+      datePublished: "2026-08-17T10:00:00Z",
+      headline: edition.title,
+      image: "https://site-a.test/media/map.webp",
+      url: "https://site-a.test/guides/release-gates",
+    })
+    expect(graph[3]).toMatchObject({
+      logo: "https://site-a.test/media/logo.svg",
+      name: "Site A Media",
+      url: "https://site-a.test/",
+    })
     const listing = output.documents.find((document) => document.pathname === "/articles")
     const listingParsed = JSON.parse(listing?.canonical ?? "{}")
     expect(listingParsed.pageType).toBe("article-list")
     expect(listingParsed.items).toHaveLength(1)
+    expect(listingParsed.structuredData.map((node: { type: string }) => node.type)).toEqual([
+      "CollectionPage",
+      "BreadcrumbList",
+    ])
+    expect(listingParsed.seo.twitter.card).toBe("summary")
     expect(listingParsed.pagination).toEqual({
       page: 1,
       pageSize: 20,
@@ -123,11 +168,17 @@ describe("compileSite golden output", () => {
       targetUrl: "https://site-a.test/guides/release-gates",
     })
     expect(redirect.seo.robots.index).toBe(false)
+    expect(redirect.route.canonicalUrl).toBe("https://site-a.test/old-guides")
+    expect(redirect.structuredData).toBeUndefined()
     const notFound = JSON.parse(
       output.documents.find((document) => document.pathname === "/not-found")?.canonical ?? "{}",
     )
     expect(notFound.pageType).toBe("not-found")
     expect(notFound.seo.robots.index).toBe(false)
+    expect(notFound.structuredData.map((node: { type: string }) => node.type)).toEqual([
+      "WebPage",
+      "BreadcrumbList",
+    ])
     expect(output.compilerVersion).toBe("geo-compiler-1")
   })
 })

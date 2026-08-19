@@ -30,6 +30,12 @@
       "pageId": "page-101",
       "pathname": "/guides/release-gates",
       "title": "Deterministic release gates"
+    },
+    {
+      "description": "Geo Foundry announces its deterministic serving plane.",
+      "pageId": "page-102",
+      "pathname": "/news/geo-foundry-live",
+      "title": "Geo Foundry goes live"
     }
   ],
   "metadata": {
@@ -42,7 +48,7 @@
   "pagination": {
     "page": 1,
     "pageSize": 20,
-    "totalItems": 1,
+    "totalItems": 2,
     "totalPages": 1
   },
   "route": {
@@ -62,6 +68,34 @@
       "follow": true,
       "index": true
     },
-    "title": "Articles"
-  }
+    "title": "Articles",
+    "twitter": {
+      "card": "summary",
+      "description": "Site A default description.",
+      "title": "Articles"
+    }
+  },
+  "structuredData": [
+    {
+      "description": "Site A default description.",
+      "id": "#collection",
+      "name": "Articles",
+      "type": "CollectionPage",
+      "url": "https://site-a.test/articles"
+    },
+    {
+      "id": "#breadcrumbs",
+      "items": [
+        {
+          "pathname": "/",
+          "title": "Site A"
+        },
+        {
+          "pathname": "/articles",
+          "title": "Articles"
+        }
+      ],
+      "type": "BreadcrumbList"
+    }
+  ]
 }

@@ -3,7 +3,7 @@ import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
 
-import { compileSite, type CompileRequest } from "../src/index.js"
+import { type CompileRequest, compileSite } from "../src/index.js"
 
 const baseRequest = (): CompileRequest => ({
   clock: { now: "2026-08-19T00:00:00Z" },
@@ -12,6 +12,7 @@ const baseRequest = (): CompileRequest => ({
     {
       assessmentInputHash: "a".repeat(64),
       assessmentState: "passed",
+      author: { id: "author-ada", name: "Ada Chen", url: "https://site-a.test/authors/ada-chen" },
       body: [
         { blockType: "heading", level: "2", text: "Deterministic release gates" },
         { blockType: "paragraph", text: "Every edition passes three gates before it ships." },
@@ -33,6 +34,7 @@ const baseRequest = (): CompileRequest => ({
     {
       assessmentInputHash: "b".repeat(64),
       assessmentState: "passed",
+      author: { id: "author-ada", name: "Ada Chen", url: "https://site-a.test/authors/ada-chen" },
       body: [{ blockType: "paragraph", text: "Operations runbook body." }],
       categories: ["runbooks"],
       contentId: 12,
@@ -69,6 +71,7 @@ const baseRequest = (): CompileRequest => ({
     locale: "en-US",
     name: "Site A",
     seoDefaults: { description: "Site A default description.", title: "Site A" },
+    organization: { logoUrl: "/media/logo.svg", name: "Site A Media" },
     siteId: "site-a",
     timezone: "UTC",
   },

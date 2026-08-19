@@ -1,0 +1,139 @@
+{
+  "author": {
+    "id": "author-lin",
+    "name": "Lin Zhao",
+    "url": "https://site-a.test/authors/lin-zhao"
+  },
+  "body": [
+    {
+      "id": "block-102-0",
+      "level": 2,
+      "text": "Geo Foundry goes live",
+      "type": "heading"
+    },
+    {
+      "id": "block-102-1",
+      "text": "The serving plane now ships immutable releases.",
+      "type": "paragraph"
+    },
+    {
+      "alt": "Launch day control room",
+      "height": 600,
+      "id": "block-102-2",
+      "src": "/media/launch.webp",
+      "type": "image",
+      "width": 900
+    }
+  ],
+  "breadcrumbs": [
+    {
+      "pathname": "/",
+      "title": "Site A"
+    },
+    {
+      "pathname": "/news",
+      "title": "News"
+    },
+    {
+      "pathname": "/news/geo-foundry-live",
+      "title": "Geo Foundry goes live"
+    }
+  ],
+  "hero": {
+    "summary": "Geo Foundry announces its deterministic serving plane.",
+    "title": "Geo Foundry goes live"
+  },
+  "identity": {
+    "contentId": "content-13",
+    "pageId": "page-102",
+    "siteId": "site-a"
+  },
+  "metadata": {
+    "description": "Geo Foundry announces its deterministic serving plane.",
+    "modifiedAt": "2026-08-18T09:30:00Z",
+    "publishedAt": "2026-08-18T09:00:00Z",
+    "title": "Geo Foundry goes live"
+  },
+  "pageType": "article",
+  "route": {
+    "canonicalUrl": "https://site-a.test/news/geo-foundry-live",
+    "locale": "en-US",
+    "pathname": "/news/geo-foundry-live"
+  },
+  "schemaVersion": 1,
+  "seo": {
+    "description": "Geo Foundry announces its deterministic serving plane.",
+    "openGraph": {
+      "description": "Geo Foundry announces its deterministic serving plane.",
+      "image": "https://site-a.test/media/launch.webp",
+      "title": "Geo Foundry goes live",
+      "type": "article"
+    },
+    "robots": {
+      "follow": true,
+      "index": true
+    },
+    "title": "Geo Foundry goes live",
+    "twitter": {
+      "card": "summary_large_image",
+      "description": "Geo Foundry announces its deterministic serving plane.",
+      "image": "https://site-a.test/media/launch.webp",
+      "title": "Geo Foundry goes live"
+    }
+  },
+  "structuredData": [
+    {
+      "author": {
+        "name": "Lin Zhao",
+        "url": "https://site-a.test/authors/lin-zhao"
+      },
+      "dateModified": "2026-08-18T09:30:00Z",
+      "datePublished": "2026-08-18T09:00:00Z",
+      "description": "Geo Foundry announces its deterministic serving plane.",
+      "headline": "Geo Foundry goes live",
+      "id": "#article",
+      "image": "https://site-a.test/media/launch.webp",
+      "type": "NewsArticle",
+      "url": "https://site-a.test/news/geo-foundry-live"
+    },
+    {
+      "caption": "Launch day control room",
+      "height": 600,
+      "id": "#primary-image",
+      "type": "ImageObject",
+      "url": "https://site-a.test/media/launch.webp",
+      "width": 900
+    },
+    {
+      "id": "#author",
+      "name": "Lin Zhao",
+      "type": "Person",
+      "url": "https://site-a.test/authors/lin-zhao"
+    },
+    {
+      "id": "#organization",
+      "logo": "https://site-a.test/media/logo.svg",
+      "name": "Site A Media",
+      "type": "Organization",
+      "url": "https://site-a.test/"
+    },
+    {
+      "id": "#breadcrumbs",
+      "items": [
+        {
+          "pathname": "/",
+          "title": "Site A"
+        },
+        {
+          "pathname": "/news",
+          "title": "News"
+        },
+        {
+          "pathname": "/news/geo-foundry-live",
+          "title": "Geo Foundry goes live"
+        }
+      ],
+      "type": "BreadcrumbList"
+    }
+  ]
+}

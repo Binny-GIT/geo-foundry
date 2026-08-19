@@ -32,6 +32,11 @@
       "follow": true,
       "index": false
     },
-    "title": "Moved: /old-guides"
+    "title": "Moved: /old-guides",
+    "twitter": {
+      "card": "summary",
+      "description": "Site A default description.",
+      "title": "Moved: /old-guides"
+    }
   }
 }
