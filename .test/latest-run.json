@@ -1,0 +1,50 @@
+{
+  "at": "2026-08-19T15:01:16.751Z",
+  "base": "https://geo-foundry-mk-dev.aixllent.com",
+  "failed": 0,
+  "passed": 7,
+  "results": [
+    {
+      "detail": "final=https://geo-foundry-mk-dev.aixllent.com/admin",
+      "id": "1",
+      "name": "GET / follows redirect",
+      "pass": true
+    },
+    {
+      "detail": "200 {\"status\":\"alive\"}",
+      "id": "4",
+      "name": "GET /api/health",
+      "pass": true
+    },
+    {
+      "detail": "200 {\"configuration\":{\"status\":\"ready\"},\"dependencies\":{\"postgres\":{\"status\":\"ready\"},\"rustfs\":{\"status\":\"ready\"}},\"status\":\"ready",
+      "id": "5",
+      "name": "GET /api/readiness",
+      "pass": true
+    },
+    {
+      "detail": "title=Dashboard - Payload",
+      "id": "2",
+      "name": "GET /admin",
+      "pass": true
+    },
+    {
+      "detail": "title=Login - Payload; loginFormRendered=false (false = 已知缺陷 admin-blank)",
+      "id": "3",
+      "name": "GET /admin/login",
+      "pass": true
+    },
+    {
+      "detail": "status=404",
+      "id": "6",
+      "name": "GET unknown route",
+      "pass": true
+    },
+    {
+      "detail": "artifacts/admin.png, artifacts/admin-login.png",
+      "id": "7",
+      "name": "screenshots archived",
+      "pass": true
+    }
+  ]
+}
