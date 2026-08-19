@@ -2,11 +2,11 @@ import { createHash } from "node:crypto"
 import { describe, expect, it, vi } from "vitest"
 
 import { ContentClientError } from "@geo/content-client"
+import type { SimilarityMatch } from "@geo/content-client"
 import {
   DEFAULT_SEMANTIC_THRESHOLDS,
   serializeSemanticThresholds,
   type SemanticThresholds,
-  type SimilarityMatch,
 } from "@geo/quality-rules"
 
 import { ProviderError } from "../../src/providers/errors.js"
@@ -44,7 +44,16 @@ const depsWith = (
   const stored: StoredEmbedding[] = []
   const client = {
     findSimilarEditions: vi.fn(
-      async (_editionId: number, request: { comparison: string; scope: string }) => {
+      async (
+        _editionId: number,
+        request: {
+          comparison: string
+          dimension?: number
+          limit?: number
+          modelId?: string
+          scope: string
+        },
+      ) => {
         if (request.comparison === "cross-domain") {
           return matches().crossDomainContent
         }

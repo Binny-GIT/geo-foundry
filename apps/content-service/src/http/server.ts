@@ -7,7 +7,7 @@ import { ContentClientError } from "@geo/content-client"
 import { createServer, type Server } from "node:http"
 import type { ZodType } from "zod"
 
-import { canonicalJson, sha256Hex } from "../canonical.js"
+import { canonicalJson, sha256Hex } from "@geo/content-pipeline"
 import {
   CONTENT_SERVICE_ERROR_CODE,
   ENDPOINT,

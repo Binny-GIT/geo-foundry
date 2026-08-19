@@ -118,6 +118,12 @@ export const Operations = {
       defaultValue: {},
     },
     {
+      name: "requestPayload",
+      type: "json",
+      defaultValue: {},
+      admin: { hidden: true },
+    },
+    {
       name: "result",
       type: "json",
       admin: { hidden: true },

@@ -12,6 +12,7 @@ const snapshot = (overrides: Record<string, unknown> = {}) => ({
   error: null,
   operationId: "11111111-2222-3333-4444-555555555555",
   operationType: "generate",
+  requestPayload: {},
   result: null,
   state: "queued",
   tenantId: 7,

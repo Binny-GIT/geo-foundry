@@ -28,6 +28,7 @@ const editionInput = (inputHash: string): EditionInput => ({
 
 const operationSnapshot = (stage: string): OperationSnapshot => ({
   attempt: 1,
+  requestPayload: {},
   currentStage: stage,
   endpoint: "/v1/generate",
   error: null,

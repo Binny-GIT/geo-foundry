@@ -97,6 +97,7 @@ export const operationSnapshotSchema = z.object({
   error: z.record(z.string(), z.unknown()).nullable(),
   operationId: z.string().min(1),
   operationType: operationTypeSchema,
+  requestPayload: z.record(z.string(), z.unknown()),
   result: z.record(z.string(), z.unknown()).nullable(),
   state: operationStateSchema,
   tenantId: z.number().int(),
@@ -217,3 +218,62 @@ export type StoreEmbeddingRequest = z.input<typeof storeEmbeddingRequestSchema>
 export type EmbeddingReceipt = z.infer<typeof embeddingReceiptSchema>
 export type SimilarityQueryRequest = z.input<typeof similarityQueryRequestSchema>
 export type SimilarityMatch = z.infer<typeof similarityMatchSchema>
+
+const siteStrategySchema = z
+  .object({
+    locale: z.string().min(2).max(35),
+    name: z.string().min(1).max(100),
+    tone: z.string().min(1).max(100).optional(),
+  })
+  .strict()
+
+const briefSourceSchema = z
+  .object({
+    id: z.string().min(1).max(100),
+    snippet: z.string().min(1).max(2000),
+    title: z.string().min(1).max(200),
+    url: z.string().url().max(2000).optional(),
+  })
+  .strict()
+
+export const generateRequestSchema = z
+  .object({
+    brief: z
+      .object({
+        constraints: z.array(z.string().min(1).max(300)).max(20).optional(),
+        intent: z.string().min(1).max(500),
+        sources: z.array(briefSourceSchema).min(1).max(20),
+        topic: z.string().min(1).max(300),
+      })
+      .strict(),
+    contentId: z.number().int().positive(),
+    targets: z
+      .array(
+        z
+          .object({
+            angle: z.string().min(1).max(200),
+            editionId: z.number().int().positive(),
+            siteStrategy: siteStrategySchema,
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(5),
+  })
+  .strict()
+
+export const evaluateRequestSchema = z
+  .object({
+    editionId: z.number().int().positive(),
+    thresholds: z
+      .object({
+        dimensionMin: z.number().min(0).max(100),
+        overallMin: z.number().min(0).max(100),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict()
+
+export type GenerateRequest = z.input<typeof generateRequestSchema>
+export type EvaluateRequest = z.input<typeof evaluateRequestSchema>

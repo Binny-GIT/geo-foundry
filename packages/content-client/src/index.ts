@@ -28,3 +28,9 @@ export type {
   WorkflowStatus,
   WriteDraftVersionRequest,
 } from "./schemas.js"
+export {
+  evaluateRequestSchema,
+  generateRequestSchema,
+  type EvaluateRequest,
+  type GenerateRequest,
+} from "./schemas.js"

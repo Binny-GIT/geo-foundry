@@ -333,7 +333,7 @@ Your next move: 使用 `$start-work geo-foundry-development-plan` 在独立 work
   QA scenarios: happy: fixed bundle generates two angle-specific drafts and evaluation operation; failure: missing sources, invalid Site strategy, unauthorized tenant, oversized prompt, duplicate key mismatch, failed gate after one revision, and cancelled operation return defined results. Evidence `<attemptDir>/task-23-geo-foundry-development-plan.json`.
   Commit: Y | `feat(content): 提供分阶段生成与评估 API`
 
-- [ ] 24. Build resilient BullMQ flows and Worker recovery
+- [x] 24. Build resilient BullMQ flows and Worker recovery
   What to do / Must NOT do: Create `apps/worker` with BullMQ 6.1.2 queues/flows for generation, embedding, evaluation, compile trigger, and publish trigger; stable job IDs, attempts/backoff, concurrency by workload, progress events, graceful SIGTERM, outbox consumption, stalled/recovery reconciliation, and structured telemetry. External side effects must be idempotent around crashes. Do not infer completion from progress or automatically switch provider after an unknown paid submission.
   Parallelization: Wave 3 | Blocked by: 17-23 | Blocks: 25-29,38-40
   References: this plan Redis/BullMQ ownership and failure injection requirements; `/home/ubuntu/project/Binny-GIT/kling-eu/package.json:9-17,28-29`; target `apps/worker/src/queues/*`, `processors/*`, `reconcile/*`.

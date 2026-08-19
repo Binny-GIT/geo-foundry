@@ -61,6 +61,7 @@ type LedgerOperationDoc = {
   readonly currentStage: unknown
   readonly lastStageAt: unknown
   readonly targetIds: unknown
+  readonly requestPayload: unknown
   readonly result: unknown
   readonly error: unknown
   readonly auditLog: unknown
@@ -251,6 +252,7 @@ export type SubmitOperationInput = {
 }
 
 export type OperationSnapshot = {
+  readonly requestPayload: Record<string, unknown>
   readonly attempt: number
   readonly currentStage: string | null
   readonly endpoint: string
@@ -270,6 +272,7 @@ const snapshotOf = (doc: LedgerOperationDoc): OperationSnapshot => ({
   error: (doc.error as Record<string, unknown> | null) ?? null,
   operationId: doc.operationId,
   operationType: parseOperationType(doc.operationType),
+  requestPayload: (doc.requestPayload as Record<string, unknown> | null) ?? {},
   result: (doc.result as Record<string, unknown> | null) ?? null,
   state: parseState(doc.state),
   tenantId: numberField(doc.tenant) ?? -1,
@@ -361,6 +364,7 @@ export async function submitOperation(
           idempotencyKeyHash: sha256Text(input.idempotencyKey),
           operationId,
           operationType: input.operationType,
+          requestPayload: input.requestPayload as Record<string, unknown>,
           revision: 0,
           result: null,
           state: "queued",
@@ -395,6 +399,7 @@ export async function submitOperation(
           error: null,
           operationId,
           operationType: input.operationType,
+          requestPayload: input.requestPayload as Record<string, unknown>,
           result: null,
           state: "queued",
           tenantId,
