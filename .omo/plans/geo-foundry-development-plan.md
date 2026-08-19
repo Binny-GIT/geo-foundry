@@ -285,7 +285,7 @@ Your next move: 使用 `$start-work geo-foundry-development-plan` 在独立 work
   QA scenarios: happy: submit/replay one generate request; failure: concurrent identical inserts, same key/different body, stale attempt completion, cancelled operation completion, and Redis reset preserve one logical operation. Evidence `<attemptDir>/task-17-geo-foundry-development-plan.json`.
   Commit: Y | `feat(content): 建立操作与幂等事实账本`
 
-- [ ] 18. Implement the single OpenAI-compatible provider and deterministic fake
+- [x] 18. Implement the single OpenAI-compatible provider and deterministic fake
   What to do / Must NOT do: Create `apps/content-service/src/providers` with one narrow `LLMProvider` interface for structured chat generation and embeddings; implement an OpenAI-compatible HTTP adapter using `AI_BASE_URL`, `AI_API_KEY`, `AI_CHAT_MODEL`, `AI_EMBEDDING_MODEL`, bounded timeout, response-size limit, retry classification, request correlation, and no secret logging. Add a deterministic fake provider with versioned fixtures for CI. Do not add provider selection UI, fallback chains, or automatic retry after an unknown billable submission result.
   Parallelization: Wave 3 | Blocked by: 4,16,17 | Blocks: 21-24,38-40
   References: this plan single-provider guardrail and deterministic CI requirement; target `apps/content-service/src/providers/types.ts`, `openai-compatible.ts`, `fake.ts`.
