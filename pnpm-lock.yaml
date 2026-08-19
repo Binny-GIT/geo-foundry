@@ -280,6 +280,9 @@ importers:
 
   packages/publisher:
     dependencies:
+      '@aws-sdk/client-s3':
+        specifier: 3.1112.0
+        version: 3.1112.0
       '@geo/compiler':
         specifier: workspace:*
         version: link:../compiler

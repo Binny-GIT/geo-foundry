@@ -6,17 +6,24 @@
 
 import { ARTIFACT_CREATE_CONDITION } from '@geo/schema/release/v1';
 import { ArtifactStoreKey } from '@geo/schema/release/v1';
+import type { AuditActor } from '@geo/schema/release/v1';
+import { ClientDefaults } from '@aws-sdk/client-s3';
 import { CompileOutput } from '@geo/compiler';
 import { ContentType } from '@geo/schema/release/v1';
 import { CurrentPointer } from '@geo/schema/release/v1';
 import { CurrentPointerKey } from '@geo/schema/release/v1';
+import { CurrentPointerSchema } from '@geo/schema/release/v1';
 import { ETag } from '@geo/schema/release/v1';
 import { ImmutableArtifact } from '@geo/schema/release/v1';
+import type { PublishReceipt } from '@geo/schema/release/v1';
 import { ReleaseManifest } from '@geo/schema/release/v1';
 import { ReleaseObjectKey } from '@geo/schema/release/v1';
 import { ReleasePrefix } from '@geo/schema/release/v1';
 import { RoutingManifest } from '@geo/compiler';
+import { S3Client } from '@aws-sdk/client-s3';
+import { S3ClientConfig } from '@aws-sdk/client-s3';
 import { Sha256 } from '@geo/schema/release/v1';
+import type { VerifiedReleaseReference } from '@geo/schema/release/v1';
 
 // @public (undocumented)
 export type ArtifactObject = ArtifactObjectHead & {
@@ -95,6 +102,12 @@ export type CreateIfAbsentRequest = {
     readonly sha256: Sha256;
 };
 
+// @public
+export const createS3ArtifactStore: (options: S3ArtifactStoreOptions) => ArtifactStore;
+
+// @public (undocumented)
+export const currentPointerObjectKeyOf: (pointer: CurrentPointer) => string;
+
 // @public (undocumented)
 export type CurrentPointerObjectWrite = {
     readonly body: Uint8Array;
@@ -161,6 +174,13 @@ export function prepareCurrentPointerCompareAndSwap(request: CompareAndSwapCurre
 export function prepareCurrentPointerInitialCreate(request: CreateCurrentPointerRequest): Promise<InitialCurrentPointerWrite>;
 
 // @public (undocumented)
+export const PUBLISH_ERROR_CODE: {
+    readonly OBJECT_EXISTS_WITH_DIFFERENT_CONTENT: "PUBLISH_OBJECT_EXISTS_WITH_DIFFERENT_CONTENT";
+    readonly POINTER_UNREADABLE: "PUBLISH_POINTER_UNREADABLE";
+    readonly REMOTE_VERIFICATION_FAILED: "PUBLISH_REMOTE_VERIFICATION_FAILED";
+};
+
+// @public (undocumented)
 export const PUBLISHER_CONTRACT_ERROR_CODE: {
     readonly POINTER_ETAG_STALE: "ARTIFACT_STORE_POINTER_ETAG_STALE";
 };
@@ -176,6 +196,33 @@ export class PublisherContractError extends Error {
 
 // @public (undocumented)
 export type PublisherContractErrorCode = (typeof PUBLISHER_CONTRACT_ERROR_CODE)[keyof typeof PUBLISHER_CONTRACT_ERROR_CODE];
+
+// @public (undocumented)
+export class PublishError extends Error {
+    constructor(code: PublishErrorCode, message: string);
+    // (undocumented)
+    readonly code: PublishErrorCode;
+    // (undocumented)
+    readonly name = "PublishError";
+}
+
+// @public (undocumented)
+export type PublishErrorCode = (typeof PUBLISH_ERROR_CODE)[keyof typeof PUBLISH_ERROR_CODE];
+
+// @public
+export const publishRelease: (input: {
+    readonly actor: AuditActor;
+    readonly planned: PlannedRelease;
+    readonly store: ArtifactStore;
+    readonly verifiedManifest: VerifiedReleaseReference;
+}) => Promise<PublishResult>;
+
+// @public (undocumented)
+export type PublishResult = {
+    readonly etag: ETag;
+    readonly pointer: StoredPointer;
+    readonly receipt: PublishReceipt;
+};
 
 // @public (undocumented)
 export type ReadArtifactRequest = {
@@ -226,6 +273,40 @@ export type ReleaseBuildInput = {
 export type ReleaseStageState = "building" | "failed";
 
 // @public (undocumented)
+export const routingManifestObjectKey: (routingId: string) => string;
+
+// @public (undocumented)
+export const routingPointerKey = "routing/channels/current.json";
+
+// @public (undocumented)
+export const S3_ARTIFACT_STORE_ERROR_CODE: {
+    readonly OBJECT_ALREADY_EXISTS: "S3_ARTIFACT_STORE_OBJECT_ALREADY_EXISTS";
+    readonly POINTER_ALREADY_EXISTS: "S3_ARTIFACT_STORE_POINTER_ALREADY_EXISTS";
+    readonly POINTER_CONDITION_FAILED: "S3_ARTIFACT_STORE_POINTER_CONDITION_FAILED";
+    readonly READ_FAILED: "S3_ARTIFACT_STORE_READ_FAILED";
+};
+
+// @public (undocumented)
+export class S3ArtifactStoreError extends Error {
+    constructor(code: S3ArtifactStoreErrorCode, message: string);
+    // (undocumented)
+    readonly code: S3ArtifactStoreErrorCode;
+    // (undocumented)
+    readonly name = "S3ArtifactStoreError";
+}
+
+// @public (undocumented)
+export type S3ArtifactStoreErrorCode = (typeof S3_ARTIFACT_STORE_ERROR_CODE)[keyof typeof S3_ARTIFACT_STORE_ERROR_CODE];
+
+// @public (undocumented)
+export type S3ArtifactStoreOptions = {
+    readonly bucket: string;
+    readonly client?: S3Client;
+    readonly clientConfig: S3ClientConfig & ClientDefaults;
+    readonly keyPrefix?: string;
+};
+
+// @public (undocumented)
 export const sha256Of: (body: Uint8Array) => string;
 
 // @public (undocumented)
@@ -262,6 +343,10 @@ export const verifyReleaseDirectory: (input: {
 
 // @public (undocumented)
 export const XML_CONTENT_TYPE = "application/xml";
+
+// Warnings were encountered during analysis:
+//
+// src/publish.ts:76:3 - (ae-forgotten-export) The symbol "StoredPointer" needs to be exported by the entry point index.d.ts
 
 // (No @packageDocumentation comment for this package)
 

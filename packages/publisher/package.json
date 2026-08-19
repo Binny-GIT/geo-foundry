@@ -27,6 +27,7 @@
     "typecheck": "tsc --noEmit --project tsconfig.json"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1112.0",
     "@geo/compiler": "workspace:*",
     "@geo/schema": "workspace:*"
   },

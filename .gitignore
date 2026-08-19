@@ -18,3 +18,4 @@ temp/
 !.env.example
 volumes/
 mydocs/
+.test/rustfs-test.env
