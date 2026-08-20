@@ -144,6 +144,31 @@ describe("content-service HTTP API contract", () => {
     expect(created).toHaveLength(2)
   })
 
+  it("accepts a publish request with 202, replays exactly, and rejects key reuse", async () => {
+    const publishBody = { editionId: 101 }
+    const created1 = await post(base, "/v1/publish", publishBody, "key-pub-0001")
+    expect(created1.status).toBe(202)
+    expect(created1.headers.location).toMatch(/^\/v1\/operations\/op-\d+$/)
+    const operation1 = (JSON.parse(created1.body ?? "{}") as { operation: OperationSnapshot })
+      .operation
+    expect(operation1.operationType).toBe("publish")
+
+    const replay = await post(base, "/v1/publish", publishBody, "key-pub-0001")
+    expect(replay.status).toBe(200)
+    expect(
+      (JSON.parse(replay.body ?? "{}") as { operation: OperationSnapshot }).operation.operationId,
+    ).toBe(operation1.operationId)
+
+    const conflict = await post(base, "/v1/publish", { editionId: 102 }, "key-pub-0001")
+    expect(conflict.status).toBe(409)
+    expect(JSON.parse(conflict.body ?? "{}").error.code).toBe("IDEMPOTENCY_KEY_REUSED")
+  })
+
+  it("rejects a publish request without a positive editionId", async () => {
+    const invalid = await post(base, "/v1/publish", { editionId: 0 }, "key-pub-0002")
+    expect(invalid.status).toBe(400)
+  })
+
   it("rejects key reuse with a different body via 409 IDEMPOTENCY_KEY_REUSED", async () => {
     const conflict = await post(
       base,
@@ -167,7 +192,7 @@ describe("content-service HTTP API contract", () => {
     const response = await post(base, "/v1/generate", generateBody, "key-0002-abcd", "wrong")
     expect(response.status).toBe(401)
     expect(JSON.parse(response.body ?? "{}").error.code).toBe("CONTENT_SERVICE_UNAUTHENTICATED")
-    expect(submissions).toBe(5)
+    expect(submissions).toBe(8)
   })
 
   it("rejects a brief without sources with structured issues", async () => {
@@ -232,6 +257,7 @@ describe("content-service HTTP API contract", () => {
       "/v1/generate",
       "/v1/openapi.json",
       "/v1/operations/{operationId}",
+      "/v1/publish",
     ])
     const health = await fetch(`${base}/healthz`)
     expect(health.status).toBe(200)

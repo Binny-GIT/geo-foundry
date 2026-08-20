@@ -14,9 +14,12 @@ export type ProcessorContext = {
     ContentServiceClient,
     | "completeOperationStage"
     | "findSimilarEditions"
+    | "getCompileSnapshot"
     | "getEditionInput"
     | "getOperation"
     | "recordAssessment"
+    | "recordCompileResult"
+    | "requestPublish"
     | "startOperationStage"
     | "storeEmbedding"
     | "submitOperation"

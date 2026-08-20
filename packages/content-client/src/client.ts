@@ -6,6 +6,7 @@ import {
   compileResultReceiptSchema,
   completeOperationStageRequestSchema,
   draftWriteReceiptSchema,
+  compileSnapshotSchema,
   editionInputSchema,
   embeddingReceiptSchema,
   internalErrorSchema,
@@ -27,6 +28,7 @@ import {
   type CompileResultReceipt,
   type CompleteOperationStageRequest,
   type DraftWriteReceipt,
+  type CompileSnapshot,
   type EditionInput,
   type EmbeddingReceipt,
   type OperationSnapshot,
@@ -80,6 +82,16 @@ export class ContentServiceClient {
       null,
       null,
       editionInputSchema,
+    )
+  }
+
+  async getCompileSnapshot(siteId: number): Promise<CompileSnapshot> {
+    return this.#call(
+      "GET",
+      `/internal/sites/${siteId}/compile-snapshot`,
+      null,
+      null,
+      compileSnapshotSchema,
     )
   }
 

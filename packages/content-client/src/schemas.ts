@@ -48,6 +48,8 @@ export const requestPublishRequestSchema = z.object({
 })
 
 export const editionInputSchema = z.object({
+  modifiedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/),
+  publishedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/),
   body: z.unknown(),
   contentId: z.number().int(),
   editionId: z.number().int(),
@@ -78,6 +80,11 @@ export const compileResultReceiptSchema = z.object({
   workflowStatus: workflowStatusSchema,
 })
 
+export const publishRequestSchema = z.object({
+  editionId: z.number().int().positive(),
+  reason: z.string().min(1).max(500).optional(),
+})
+
 export const publishRequestReceiptSchema = compileResultReceiptSchema
 
 export const operationStateSchema = z.enum([
@@ -89,6 +96,19 @@ export const operationStateSchema = z.enum([
 ])
 
 export const operationTypeSchema = z.enum(["generate", "evaluate", "publish", "rollback"])
+
+export const compileSnapshotSchema = z.object({
+  editions: z.array(z.record(z.string(), z.unknown())),
+  listings: z.record(z.string(), z.unknown()),
+  notFound: z.object({ pathname: z.string().min(1).startsWith("/") }),
+  redirects: z.array(
+    z.object({
+      fromPathname: z.string().min(1).startsWith("/"),
+      targetUrl: z.string().min(1),
+    }),
+  ),
+  site: z.record(z.string(), z.unknown()),
+})
 
 export const operationSnapshotSchema = z.object({
   attempt: z.number().int().min(1),
@@ -201,10 +221,12 @@ export type RecordAssessmentRequest = z.input<typeof recordAssessmentRequestSche
 export type RecordCompileResultRequest = z.input<typeof recordCompileResultRequestSchema>
 export type RequestPublishRequest = z.input<typeof requestPublishRequestSchema>
 export type EditionInput = z.infer<typeof editionInputSchema>
+export type CompileSnapshot = z.infer<typeof compileSnapshotSchema>
 export type DraftWriteReceipt = z.infer<typeof draftWriteReceiptSchema>
 export type AssessmentReceipt = z.infer<typeof assessmentReceiptSchema>
 export type CompileResultReceipt = z.infer<typeof compileResultReceiptSchema>
 export type PublishRequestReceipt = z.infer<typeof publishRequestReceiptSchema>
+export type PublishRequest = z.input<typeof publishRequestSchema>
 export type OperationState = z.infer<typeof operationStateSchema>
 export type OperationType = z.infer<typeof operationTypeSchema>
 export type OperationSnapshot = z.infer<typeof operationSnapshotSchema>

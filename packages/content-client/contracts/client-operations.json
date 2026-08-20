@@ -6,6 +6,11 @@
       "path": "/internal/editions/{id}/input"
     },
     {
+      "method": "get",
+      "operationId": "getCompileSnapshot",
+      "path": "/internal/sites/{id}/compile-snapshot"
+    },
+    {
       "method": "post",
       "operationId": "writeDraftVersion",
       "path": "/internal/editions/{id}/versions"

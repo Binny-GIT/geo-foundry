@@ -2,6 +2,7 @@ import { z } from "zod"
 
 export const INTERNAL_PATHS = {
   compileResults: "/internal/editions/:id/compile-results",
+  compileSnapshot: "/internal/sites/:id/compile-snapshot",
   embeddings: "/internal/editions/:id/embeddings",
   input: "/internal/editions/:id/input",
   publishRequests: "/internal/editions/:id/publish-requests",

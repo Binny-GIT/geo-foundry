@@ -14,6 +14,7 @@ const clientMethodByOperation: Readonly<Record<string, string>> = {
   cancelOperation: "cancelOperation",
   completeOperationStage: "completeOperationStage",
   findSimilarEditions: "findSimilarEditions",
+  getCompileSnapshot: "getCompileSnapshot",
   getEditionInput: "getEditionInput",
   getOperation: "getOperation",
   listNonTerminalOperations: "listNonTerminalOperations",

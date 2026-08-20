@@ -84,7 +84,10 @@ export const createS3RoutingStore = (options: S3ArtifactStoreOptions): S3Routing
         }
         const existing = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }))
         const body = await existing.Body?.transformToByteArray()
-        if (body === undefined || new TextDecoder().decode(body) !== new TextDecoder().decode(input.body)) {
+        if (
+          body === undefined ||
+          new TextDecoder().decode(body) !== new TextDecoder().decode(input.body)
+        ) {
           throw new RoutingPublishError(
             ROUTING_PUBLISH_ERROR_CODE.ROUTING_MANIFEST_EXISTS_WITH_DIFFERENT_CONTENT,
             `routing manifest ${input.routingId} exists with different content`,

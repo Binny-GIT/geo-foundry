@@ -54,6 +54,8 @@ export type WorkflowEditionDoc = {
   readonly content: unknown
   readonly site: unknown
   readonly tenant: unknown
+  readonly createdAt?: unknown
+  readonly updatedAt?: unknown
   readonly title: unknown
   readonly summary: unknown
   readonly body: unknown

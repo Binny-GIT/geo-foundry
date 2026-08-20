@@ -154,7 +154,10 @@ export const publishRelease = async (input: {
         : objectKeyOf(manifest, object.path)
     const head = await store.head({ key: key as never })
     if (head === null) {
-      throw new PublishError(PUBLISH_ERROR_CODE.REMOTE_VERIFICATION_FAILED, `${key} absent after upload`)
+      throw new PublishError(
+        PUBLISH_ERROR_CODE.REMOTE_VERIFICATION_FAILED,
+        `${key} absent after upload`,
+      )
     }
     if (head.bytes !== object.bytes || head.contentType !== (object.contentType as never)) {
       throw new PublishError(

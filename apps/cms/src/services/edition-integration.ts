@@ -24,6 +24,8 @@ export type EditionInputSnapshot = {
   readonly contentId: number
   readonly editionId: number
   readonly inputHash: string
+  readonly modifiedAt: string
+  readonly publishedAt: string
   readonly primaryTopic: unknown
   readonly secondaryTopics: unknown
   readonly siteId: number
@@ -51,6 +53,8 @@ export async function readEditionInput(
     contentId: numberFieldOf(doc.content) ?? -1,
     editionId: doc.id,
     inputHash: currentEditionInputHash(doc),
+    modifiedAt: typeof doc.updatedAt === "string" ? doc.updatedAt : String(doc.updatedAt),
+    publishedAt: typeof doc.createdAt === "string" ? doc.createdAt : String(doc.createdAt),
     primaryTopic: doc.primaryTopic,
     secondaryTopics: doc.secondaryTopics,
     siteId: numberFieldOf(doc.site) ?? -1,

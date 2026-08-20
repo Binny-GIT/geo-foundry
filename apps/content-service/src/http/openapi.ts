@@ -40,6 +40,14 @@ export const contentServiceOpenApiDocument = {
         summary: "Create a staged generation operation from an operator brief",
       },
     },
+    "/v1/publish": {
+      post: {
+        operationId: "createPublish",
+        requestBody: { required: true },
+        responses: { ...errorResponses, ...acceptedResponse },
+        summary: "Publish the release built from an approved edition",
+      },
+    },
     "/v1/openapi.json": {
       get: {
         operationId: "getOpenApiDocument",

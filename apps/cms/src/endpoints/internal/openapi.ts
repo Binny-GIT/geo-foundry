@@ -10,6 +10,7 @@ export type InternalOperationDescriptor = {
 
 export const INTERNAL_OPERATIONS: readonly InternalOperationDescriptor[] = [
   { method: "get", operationId: "getEditionInput", path: INTERNAL_PATHS.input },
+  { method: "get", operationId: "getCompileSnapshot", path: INTERNAL_PATHS.compileSnapshot },
   { method: "post", operationId: "writeDraftVersion", path: INTERNAL_PATHS.versions },
   { method: "post", operationId: "recordAssessment", path: INTERNAL_PATHS.assessments },
   { method: "post", operationId: "recordCompileResult", path: INTERNAL_PATHS.compileResults },

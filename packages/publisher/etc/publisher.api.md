@@ -106,6 +106,9 @@ export type CreateIfAbsentRequest = {
 export const createS3ArtifactStore: (options: S3ArtifactStoreOptions) => ArtifactStore;
 
 // @public (undocumented)
+export const createS3RoutingStore: (options: S3ArtifactStoreOptions) => S3RoutingStore;
+
+// @public (undocumented)
 export const currentPointerObjectKeyOf: (pointer: CurrentPointer) => string;
 
 // @public (undocumented)
@@ -224,6 +227,17 @@ export type PublishResult = {
     readonly receipt: PublishReceipt;
 };
 
+// @public
+export const publishRoutingManifest: (input: {
+    readonly body: Uint8Array;
+    readonly routingId: string;
+    readonly routingStore: S3RoutingStore;
+    readonly sha256: string;
+    readonly siteReleaseObjectKeys: readonly string[];
+    readonly sitePointerObjectKeys: readonly string[];
+    readonly updatedAt: string;
+}) => Promise<RoutingManifestPointerDocument>;
+
 // @public (undocumented)
 export type ReadArtifactRequest = {
     readonly key: ArtifactStoreKey;
@@ -273,10 +287,38 @@ export type ReleaseBuildInput = {
 export type ReleaseStageState = "building" | "failed";
 
 // @public (undocumented)
+export const ROUTING_PUBLISH_ERROR_CODE: {
+    readonly ROUTING_MANIFEST_EXISTS_WITH_DIFFERENT_CONTENT: "ROUTING_MANIFEST_EXISTS_WITH_DIFFERENT_CONTENT";
+    readonly ROUTING_POINTER_CONDITION_FAILED: "ROUTING_POINTER_CONDITION_FAILED";
+    readonly ROUTING_POINTER_UNREADABLE: "ROUTING_POINTER_UNREADABLE";
+    readonly ROUTING_SITE_RELEASE_MISSING: "ROUTING_SITE_RELEASE_MISSING";
+    readonly ROUTING_SITE_POINTER_MISSING: "ROUTING_SITE_POINTER_MISSING";
+};
+
+// @public (undocumented)
 export const routingManifestObjectKey: (routingId: string) => string;
 
 // @public (undocumented)
+export type RoutingManifestPointerDocument = {
+    readonly manifestSha256: string;
+    readonly routingId: string;
+    readonly updatedAt: string;
+};
+
+// @public (undocumented)
 export const routingPointerKey = "routing/channels/current.json";
+
+// @public (undocumented)
+export class RoutingPublishError extends Error {
+    constructor(code: RoutingPublishErrorCode, message: string);
+    // (undocumented)
+    readonly code: RoutingPublishErrorCode;
+    // (undocumented)
+    readonly name = "RoutingPublishError";
+}
+
+// @public (undocumented)
+export type RoutingPublishErrorCode = (typeof ROUTING_PUBLISH_ERROR_CODE)[keyof typeof ROUTING_PUBLISH_ERROR_CODE];
 
 // @public (undocumented)
 export const S3_ARTIFACT_STORE_ERROR_CODE: {
@@ -304,6 +346,27 @@ export type S3ArtifactStoreOptions = {
     readonly client?: S3Client;
     readonly clientConfig: S3ClientConfig & ClientDefaults;
     readonly keyPrefix?: string;
+};
+
+// @public
+export type S3RoutingStore = {
+    readonly putManifestIfAbsent: (input: {
+        readonly body: Uint8Array;
+        readonly contentType: string;
+        readonly routingId: string;
+        readonly sha256: string;
+    }) => Promise<ETag>;
+    readonly headPointer: () => Promise<ETag | null>;
+    readonly readPointer: () => Promise<Uint8Array>;
+    readonly compareAndSwapPointer: (input: {
+        readonly body: Uint8Array;
+        readonly expectedEtag: ETag;
+    }) => Promise<ETag>;
+    readonly createPointerIfAbsent: (input: {
+        readonly body: Uint8Array;
+    }) => Promise<ETag>;
+    readonly headSiteReleaseManifest: (siteReleaseObjectKey: string) => Promise<boolean>;
+    readonly headSitePointer: (sitePointerObjectKey: string) => Promise<boolean>;
 };
 
 // @public (undocumented)

@@ -1,6 +1,7 @@
 import {
   evaluateRequestSchema as clientEvaluateRequestSchema,
   generateRequestSchema as clientGenerateRequestSchema,
+  publishRequestSchema as clientPublishRequestSchema,
 } from "@geo/content-client"
 
 export const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9._-]{8,128}$/
@@ -19,8 +20,10 @@ export const CONTENT_SERVICE_ERROR_CODE = {
 
 export const generateRequestSchema = clientGenerateRequestSchema
 export const evaluateRequestSchema = clientEvaluateRequestSchema
+export const publishRequestSchema = clientPublishRequestSchema
 
 export const ENDPOINT = {
   evaluate: "/v1/evaluate",
   generate: "/v1/generate",
+  publish: "/v1/publish",
 } as const

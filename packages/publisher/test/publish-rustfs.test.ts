@@ -129,13 +129,23 @@ describe.skipIf(!hasRustfsEnv)("publish against shared RustFS", () => {
     let token: string | undefined
     do {
       const listed = await client.send(
-        new ListObjectsV2Command({ Bucket: BUCKET, ContinuationToken: token, Prefix: "objects/routing/" }),
+        new ListObjectsV2Command({
+          Bucket: BUCKET,
+          ContinuationToken: token,
+          Prefix: "objects/routing/",
+        }),
       )
-      routingObjects.push(...(listed.Contents ?? []).map((object) => ({ Key: object.Key ?? "" })).filter((o) => o.Key !== ""))
+      routingObjects.push(
+        ...(listed.Contents ?? [])
+          .map((object) => ({ Key: object.Key ?? "" }))
+          .filter((o) => o.Key !== ""),
+      )
       token = listed.IsTruncated ? listed.NextContinuationToken : undefined
     } while (token !== undefined)
     if (routingObjects.length > 0) {
-      await client.send(new DeleteObjectsCommand({ Bucket: BUCKET, Delete: { Objects: routingObjects } }))
+      await client.send(
+        new DeleteObjectsCommand({ Bucket: BUCKET, Delete: { Objects: routingObjects } }),
+      )
     }
   })
 
@@ -232,7 +242,12 @@ describe("routing manifest publish against shared RustFS", () => {
   let routing: S3RoutingStore
 
   beforeAll(() => {
-    routing = createS3RoutingStore({ bucket: BUCKET, client, clientConfig: {}, keyPrefix: "objects" })
+    routing = createS3RoutingStore({
+      bucket: BUCKET,
+      client,
+      clientConfig: {},
+      keyPrefix: "objects",
+    })
   })
 
   it("rejects routing publish when a referenced site pointer is missing", async () => {
@@ -265,11 +280,19 @@ describe("routing manifest publish against shared RustFS", () => {
       sourceVersionIds: ["edition-1-version-1"],
     })
     const verified = await verifyManifest(plan.manifest)
-    const siteStore = createS3ArtifactStore({ bucket: BUCKET, client, clientConfig: {}, keyPrefix: "objects" })
+    const siteStore = createS3ArtifactStore({
+      bucket: BUCKET,
+      client,
+      clientConfig: {},
+      keyPrefix: "objects",
+    })
     await publishRelease({ actor, planned: plan, store: siteStore, verifiedManifest: verified })
 
     const domainsBody = new TextEncoder().encode(
-      JSON.stringify({ hosts: [{ canonical: true, host: `${site}.test`, siteId: site }], schemaVersion: 1 }),
+      JSON.stringify({
+        hosts: [{ canonical: true, host: `${site}.test`, siteId: site }],
+        schemaVersion: 1,
+      }),
     )
     const sha = "e".repeat(64)
     const pointer = await publishRoutingManifest({
@@ -278,9 +301,7 @@ describe("routing manifest publish against shared RustFS", () => {
       routingStore: routing,
       sha256: sha,
       sitePointerObjectKeys: [`sites/${site}/channels/current.json`],
-      siteReleaseObjectKeys: [
-        `sites/${site}/releases/${RELEASE(releaseSuffix)}/manifest.json`,
-      ],
+      siteReleaseObjectKeys: [`sites/${site}/releases/${RELEASE(releaseSuffix)}/manifest.json`],
       updatedAt: "2026-08-20T00:00:00.000Z",
     })
     expect(pointer).toMatchObject({ manifestSha256: sha, routingId: `t29routing${RUN}` })
@@ -291,9 +312,7 @@ describe("routing manifest publish against shared RustFS", () => {
       routingStore: routing,
       sha256: sha,
       sitePointerObjectKeys: [`sites/${site}/channels/current.json`],
-      siteReleaseObjectKeys: [
-        `sites/${site}/releases/${RELEASE(releaseSuffix)}/manifest.json`,
-      ],
+      siteReleaseObjectKeys: [`sites/${site}/releases/${RELEASE(releaseSuffix)}/manifest.json`],
       updatedAt: "2026-08-20T00:00:00.000Z",
     })
     expect(replay).toEqual(pointer)

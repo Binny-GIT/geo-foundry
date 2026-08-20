@@ -373,7 +373,7 @@ Your next move: 使用 `$start-work geo-foundry-development-plan` 在独立 work
   QA scenarios: happy: build/verify Site A and B releases; failure: missing object, extra unlisted object, traversal path, wrong hash/size/content type, unsupported schema/compiler version, and interrupted build never transition beyond `building/failed`. Evidence `<attemptDir>/task-28-geo-foundry-development-plan/`.
   Commit: Y | `feat(publisher): 构建并校验不可变发布产物`
 
-- [ ] 29. Publish releases and routing manifests with conditional writes and CAS
+- [x] 29. Publish releases and routing manifests with conditional writes and CAS
   What to do / Must NOT do: Implement RustFS/S3 `ArtifactStore`, upload all immutable release objects with `If-None-Match:*`, verify remote HEAD/hash metadata, upload manifest last, then update Site `channels/current.json` using ETag/`If-Match`. Publish global routing manifest under `routing/releases/<id>/domains.json` and CAS its pointer only after all referenced Site pointers/releases exist. Persist Release metadata and publish receipt before returning success. Do not blind-overwrite, treat queue completion as publication, or switch routing before Site release.
   Parallelization: Wave 4 | Blocked by: 2,6,17,23,28 | Blocks: 30-32,38-40
   References: this plan immutable protocol and API idempotency; target `packages/publisher/src/s3-artifact-store.ts`, `publish.ts`, `routing-publish.ts`, Worker publish processor, `POST /v1/publish`.

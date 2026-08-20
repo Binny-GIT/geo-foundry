@@ -59,6 +59,9 @@ importers:
       '@aws-sdk/client-s3':
         specifier: 3.1112.0
         version: 3.1112.0
+      '@geo/compiler':
+        specifier: workspace:*
+        version: link:../../packages/compiler
       '@geo/domain':
         specifier: workspace:*
         version: link:../../packages/domain
@@ -172,6 +175,12 @@ importers:
 
   apps/worker:
     dependencies:
+      '@aws-sdk/client-s3':
+        specifier: 3.1112.0
+        version: 3.1112.0
+      '@geo/compiler':
+        specifier: workspace:*
+        version: link:../../packages/compiler
       '@geo/content-client':
         specifier: workspace:*
         version: link:../../packages/content-client
@@ -181,9 +190,15 @@ importers:
       '@geo/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@geo/publisher':
+        specifier: workspace:*
+        version: link:../../packages/publisher
       '@geo/quality-rules':
         specifier: workspace:*
         version: link:../../packages/quality-rules
+      '@geo/schema':
+        specifier: workspace:*
+        version: link:../../packages/schema
       bullmq:
         specifier: 6.1.2
         version: 6.1.2(ioredis@5.8.2(supports-color@8.1.1))(pg@8.16.3)(redis@5.8.2)

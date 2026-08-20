@@ -15,6 +15,7 @@ import {
   OPERATION_ID_PATTERN,
   evaluateRequestSchema,
   generateRequestSchema,
+  publishRequestSchema,
 } from "./contracts.js"
 import { contentServiceOpenApiDocument } from "./openapi.js"
 
@@ -203,6 +204,16 @@ export const createContentServiceServer = (
         ENDPOINT.evaluate,
         "evaluate",
         evaluateRequestSchema,
+        await incoming.readBody(),
+        headers,
+      )
+    }
+    if (method === "POST" && path === ENDPOINT.publish) {
+      return handleMutating(
+        requestId,
+        ENDPOINT.publish,
+        "publish",
+        publishRequestSchema,
         await incoming.readBody(),
         headers,
       )

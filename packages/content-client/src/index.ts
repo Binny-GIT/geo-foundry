@@ -31,6 +31,10 @@ export type {
 export {
   evaluateRequestSchema,
   generateRequestSchema,
+  publishRequestSchema,
+  compileSnapshotSchema,
+  type CompileSnapshot,
   type EvaluateRequest,
   type GenerateRequest,
+  type PublishRequest,
 } from "./schemas.js"
