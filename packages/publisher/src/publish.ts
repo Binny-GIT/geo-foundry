@@ -145,6 +145,25 @@ export const publishRelease = async (input: {
   )
   void manifestHead
 
+  // Remote verification: every uploaded object must be remotely observable
+  // with the planned byte count and content type before the pointer moves.
+  for (const object of [...planned.objects, planned.plannedManifest]) {
+    const key =
+      object === planned.plannedManifest
+        ? manifestKeyOf(manifest)
+        : objectKeyOf(manifest, object.path)
+    const head = await store.head({ key: key as never })
+    if (head === null) {
+      throw new PublishError(PUBLISH_ERROR_CODE.REMOTE_VERIFICATION_FAILED, `${key} absent after upload`)
+    }
+    if (head.bytes !== object.bytes || head.contentType !== (object.contentType as never)) {
+      throw new PublishError(
+        PUBLISH_ERROR_CODE.REMOTE_VERIFICATION_FAILED,
+        `${key} remote metadata differs: bytes ${head.bytes}/${object.bytes}`,
+      )
+    }
+  }
+
   const remoteManifest = await store.read({ key: manifestKeyOf(manifest) as never })
   if (sha256Of(remoteManifest.body) !== planned.plannedManifest.sha256) {
     throw new PublishError(

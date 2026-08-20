@@ -6,12 +6,16 @@ import { createCurrentPointer, verifyManifest, type AuditActor } from "@geo/sche
 
 import {
   createS3ArtifactStore,
+  createS3RoutingStore,
   PUBLISH_ERROR_CODE,
   planRelease,
   publishRelease,
+  publishRoutingManifest,
+  ROUTING_PUBLISH_ERROR_CODE,
   StalePointerEtagError,
   type PlannedRelease,
   type ReleaseBuildInput,
+  type S3RoutingStore,
 } from "../src/index.js"
 import type { CompileOutput } from "@geo/compiler"
 
@@ -121,6 +125,18 @@ describe.skipIf(!hasRustfsEnv)("publish against shared RustFS", () => {
 
   afterAll(async () => {
     await cleanupRunPrefix().catch(() => undefined)
+    const routingObjects: { Key: string }[] = []
+    let token: string | undefined
+    do {
+      const listed = await client.send(
+        new ListObjectsV2Command({ Bucket: BUCKET, ContinuationToken: token, Prefix: "objects/routing/" }),
+      )
+      routingObjects.push(...(listed.Contents ?? []).map((object) => ({ Key: object.Key ?? "" })).filter((o) => o.Key !== ""))
+      token = listed.IsTruncated ? listed.NextContinuationToken : undefined
+    } while (token !== undefined)
+    if (routingObjects.length > 0) {
+      await client.send(new DeleteObjectsCommand({ Bucket: BUCKET, Delete: { Objects: routingObjects } }))
+    }
   })
 
   it("conditionally creates objects, uploads the manifest last, and switches the pointer", async () => {
@@ -209,5 +225,79 @@ describe.skipIf(!hasRustfsEnv)("publish against shared RustFS", () => {
     expect(pointer.releaseId).toBe(RELEASE("-fresh"))
     const result = await publishRelease({ actor, planned: plan, store, verifiedManifest: verified })
     expect(result.pointer.siteId).toBe(SITE)
+  })
+})
+
+describe("routing manifest publish against shared RustFS", () => {
+  let routing: S3RoutingStore
+
+  beforeAll(() => {
+    routing = createS3RoutingStore({ bucket: BUCKET, client, clientConfig: {}, keyPrefix: "objects" })
+  })
+
+  it("rejects routing publish when a referenced site pointer is missing", async () => {
+    const body = new TextEncoder().encode('{"hosts":[]}')
+    await expect(
+      publishRoutingManifest({
+        body,
+        routingId: `t29routing${RUN}missing`,
+        routingStore: routing,
+        sha256: "d".repeat(64),
+        sitePointerObjectKeys: ["sites/missing-site/channels/current.json"],
+        siteReleaseObjectKeys: [],
+        updatedAt: "2026-08-20T00:00:00.000Z",
+      }),
+    ).rejects.toMatchObject({ code: ROUTING_PUBLISH_ERROR_CODE.ROUTING_SITE_POINTER_MISSING })
+  })
+
+  it("publishes the manifest, creates the pointer, and replays idempotently", async () => {
+    const site = `t29rsite${RUN}`
+    const releaseSuffix = "-routing"
+    const plan = planRelease({
+      compileOutput: compileOutput(),
+      createdAt: "2026-08-20T00:00:00.000Z",
+      releaseId: RELEASE(releaseSuffix),
+      routingManifest: {
+        hosts: [{ canonical: true, host: `${site}.test`, siteId: site }],
+        schemaVersion: 1,
+      },
+      siteId: site,
+      sourceVersionIds: ["edition-1-version-1"],
+    })
+    const verified = await verifyManifest(plan.manifest)
+    const siteStore = createS3ArtifactStore({ bucket: BUCKET, client, clientConfig: {}, keyPrefix: "objects" })
+    await publishRelease({ actor, planned: plan, store: siteStore, verifiedManifest: verified })
+
+    const domainsBody = new TextEncoder().encode(
+      JSON.stringify({ hosts: [{ canonical: true, host: `${site}.test`, siteId: site }], schemaVersion: 1 }),
+    )
+    const sha = "e".repeat(64)
+    const pointer = await publishRoutingManifest({
+      body: domainsBody,
+      routingId: `t29routing${RUN}`,
+      routingStore: routing,
+      sha256: sha,
+      sitePointerObjectKeys: [`sites/${site}/channels/current.json`],
+      siteReleaseObjectKeys: [
+        `sites/${site}/releases/${RELEASE(releaseSuffix)}/manifest.json`,
+      ],
+      updatedAt: "2026-08-20T00:00:00.000Z",
+    })
+    expect(pointer).toMatchObject({ manifestSha256: sha, routingId: `t29routing${RUN}` })
+
+    const replay = await publishRoutingManifest({
+      body: domainsBody,
+      routingId: `t29routing${RUN}`,
+      routingStore: routing,
+      sha256: sha,
+      sitePointerObjectKeys: [`sites/${site}/channels/current.json`],
+      siteReleaseObjectKeys: [
+        `sites/${site}/releases/${RELEASE(releaseSuffix)}/manifest.json`,
+      ],
+      updatedAt: "2026-08-20T00:00:00.000Z",
+    })
+    expect(replay).toEqual(pointer)
+    const stored = await routing.readPointer()
+    expect(JSON.parse(new TextDecoder().decode(stored))).toEqual(pointer)
   })
 })
