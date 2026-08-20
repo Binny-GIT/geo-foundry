@@ -1,47 +1,53 @@
 import type { z } from "zod"
 
 import {
+  type AssessmentReceipt,
   assessmentReceiptSchema,
+  type CancelOperationRequest,
+  type CompileResultReceipt,
+  type CompileSnapshot,
+  type CompleteOperationStageRequest,
+  type ConsumeRollbackIntentRequest,
   cancelOperationRequestSchema,
   compileResultReceiptSchema,
-  completeOperationStageRequestSchema,
-  draftWriteReceiptSchema,
   compileSnapshotSchema,
+  completeOperationStageRequestSchema,
+  consumeRollbackIntentReceiptSchema,
+  consumeRollbackIntentRequestSchema,
+  type DraftWriteReceipt,
+  draftWriteReceiptSchema,
+  type EditionInput,
+  type EmbeddingReceipt,
   editionInputSchema,
   embeddingReceiptSchema,
   internalErrorSchema,
   nonTerminalOperationsResponseSchema,
+  type OperationSnapshot,
   operationResponseSchema,
+  type PublishRequestReceipt,
   publishRequestReceiptSchema,
+  type RecordAssessmentRequest,
+  type RecordCompileResultRequest,
+  type RecordReleaseReceiptRequest,
+  type RequestPublishRequest,
   recordAssessmentRequestSchema,
   recordCompileResultRequestSchema,
+  recordReleaseReceiptRequestSchema,
+  recordReleaseReceiptSchema,
   requestPublishRequestSchema,
+  type SimilarityMatch,
+  type SimilarityQueryRequest,
+  type StartOperationStageRequest,
+  type StoreEmbeddingRequest,
+  type SubmitOperationRequest,
   similarityQueryRequestSchema,
   similarityResponseSchema,
   startOperationStageRequestSchema,
   storeEmbeddingRequestSchema,
   submitOperationRequestSchema,
   submitOperationResponseSchema,
-  writeDraftVersionRequestSchema,
-  type AssessmentReceipt,
-  type CancelOperationRequest,
-  type CompileResultReceipt,
-  type CompleteOperationStageRequest,
-  type DraftWriteReceipt,
-  type CompileSnapshot,
-  type EditionInput,
-  type EmbeddingReceipt,
-  type OperationSnapshot,
-  type PublishRequestReceipt,
-  type RecordAssessmentRequest,
-  type RecordCompileResultRequest,
-  type RequestPublishRequest,
-  type SimilarityMatch,
-  type SimilarityQueryRequest,
-  type StartOperationStageRequest,
-  type StoreEmbeddingRequest,
-  type SubmitOperationRequest,
   type WriteDraftVersionRequest,
+  writeDraftVersionRequestSchema,
 } from "./schemas.js"
 
 export class ContentClientError extends Error {
@@ -136,6 +142,49 @@ export class ContentServiceClient {
       recordCompileResultRequestSchema,
       request,
       compileResultReceiptSchema,
+      options,
+    )
+  }
+
+  async consumeRollbackIntent(
+    request: ConsumeRollbackIntentRequest,
+    options: CallOptions = {},
+  ): Promise<void> {
+    await this.#call(
+      "POST",
+      "/internal/rollback-intents/consume",
+      consumeRollbackIntentRequestSchema,
+      request,
+      consumeRollbackIntentReceiptSchema,
+      options,
+    )
+  }
+
+  async recordPublishedRelease(
+    siteId: number,
+    request: RecordReleaseReceiptRequest,
+    options: CallOptions = {},
+  ): Promise<void> {
+    await this.#call(
+      "POST",
+      `/internal/sites/${siteId}/releases/published`,
+      recordReleaseReceiptRequestSchema,
+      request,
+      recordReleaseReceiptSchema,
+      options,
+    )
+  }
+
+  async recordRollbackReceipt(
+    request: RecordReleaseReceiptRequest,
+    options: CallOptions = {},
+  ): Promise<void> {
+    await this.#call(
+      "POST",
+      "/internal/releases/rollback-receipt",
+      recordReleaseReceiptRequestSchema,
+      request,
+      recordReleaseReceiptSchema,
       options,
     )
   }

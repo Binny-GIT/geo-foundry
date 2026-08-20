@@ -381,7 +381,7 @@ Your next move: 使用 `$start-work geo-foundry-development-plan` 在独立 work
   QA scenarios: happy: publish Site A v1 and routing manifest; failure: upload interruption, pre-existing object with different hash, manifest upload failure, stale ETag, concurrent v2/v3, DB receipt failure, and routing CAS conflict leave old pointer serving complete release. Evidence `<attemptDir>/task-29-geo-foundry-development-plan/`.
   Commit: Y | `feat(publisher): 实现条件写与原子发布切换`
 
-- [ ] 30. Implement audited rollback to a verified prior release
+- [x] 30. Implement audited rollback to a verified prior release
   What to do / Must NOT do: Add rollback service/API/job that verifies target release manifest and objects, confirms same Site/tenant and schema compatibility, reads current pointer/ETag, CAS-switches to target, marks release states/audit receipt, and refreshes routing only if needed. Rollback does not compile, regenerate, overwrite, delete, or mutate target artifacts.
   Parallelization: Wave 4 | Blocked by: 6,28,29 | Blocks: 31,32,35-40
   References: release state machine and receipt schema; target `packages/publisher/src/rollback.ts`, Worker processor, `POST /v1/rollback`.

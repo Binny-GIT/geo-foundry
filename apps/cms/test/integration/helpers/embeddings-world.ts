@@ -1,13 +1,15 @@
 import { sql } from "@payloadcms/db-postgres"
 import { getPayload, type Payload, type PayloadRequest } from "payload"
-
-import { allInternalEndpoints as internalEndpoints } from "../../../src/endpoints/internal/index"
+import { parseCmsEnvironment } from "../../../src/config/environment"
 import { resetInternalGuardsForTests } from "../../../src/endpoints/internal/guards"
-import { EMBEDDING_DIMENSION } from "../../../src/services/embedding-store"
+import { allInternalEndpoints as internalEndpoints } from "../../../src/endpoints/internal/index"
 import config from "../../../src/payload.config"
 import type { ContentEdition, Site, Tenant, User } from "../../../src/payload-types"
+import { EMBEDDING_DIMENSION } from "../../../src/services/embedding-store"
 
 const asUser = (user: User) => ({ overrideAccess: false as const, user })
+const schema = parseCmsEnvironment(process.env).postgres.schema
+const embeddingsTable = sql.raw(`"${schema}"."embeddings"`)
 
 export const DIM = EMBEDDING_DIMENSION
 export const MODEL = "fake-embedding-v1"
@@ -79,7 +81,7 @@ export type EmbeddingWorld = {
 export const setupEmbeddingsWorld = async (): Promise<EmbeddingWorld> => {
   resetInternalGuardsForTests()
   const payload = (await getPayload({ config })) as Payload
-  await payload.db.drizzle.execute(sql`DELETE FROM geo_foundry.embeddings`)
+  await payload.db.drizzle.execute(sql`DELETE FROM ${embeddingsTable}`)
   for (const collection of [
     "outbox-events",
     "quality-assessments",
@@ -253,7 +255,7 @@ export const setupEmbeddingsWorld = async (): Promise<EmbeddingWorld> => {
     similarQuery,
     makeEdition,
     destroy: async () => {
-      await payload.db.drizzle.execute(sql`DELETE FROM geo_foundry.embeddings`)
+      await payload.db.drizzle.execute(sql`DELETE FROM ${embeddingsTable}`)
       await payload.destroy()
     },
   }

@@ -334,6 +334,159 @@
         ]
       }
     },
+    "/internal/rollback-intents/consume": {
+      "post": {
+        "operationId": "consumeRollbackIntent",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EditionId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed or schema-invalid body"
+          },
+          "401": {
+            "description": "Missing or invalid service identity"
+          },
+          "403": {
+            "description": "Non-service identity or tenant mismatch"
+          },
+          "404": {
+            "description": "Unknown edition"
+          },
+          "409": {
+            "description": "Workflow state conflict"
+          },
+          "413": {
+            "description": "Body exceeds the configured size limit"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        },
+        "security": [
+          {
+            "serviceApiKey": []
+          }
+        ],
+        "tags": [
+          "internal-editions"
+        ]
+      }
+    },
+    "/internal/sites/{id}/releases/published": {
+      "post": {
+        "operationId": "recordPublishedRelease",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EditionId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed or schema-invalid body"
+          },
+          "401": {
+            "description": "Missing or invalid service identity"
+          },
+          "403": {
+            "description": "Non-service identity or tenant mismatch"
+          },
+          "404": {
+            "description": "Unknown edition"
+          },
+          "409": {
+            "description": "Workflow state conflict"
+          },
+          "413": {
+            "description": "Body exceeds the configured size limit"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        },
+        "security": [
+          {
+            "serviceApiKey": []
+          }
+        ],
+        "tags": [
+          "internal-editions"
+        ]
+      }
+    },
+    "/internal/releases/rollback-receipt": {
+      "post": {
+        "operationId": "recordRollbackReceipt",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EditionId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed or schema-invalid body"
+          },
+          "401": {
+            "description": "Missing or invalid service identity"
+          },
+          "403": {
+            "description": "Non-service identity or tenant mismatch"
+          },
+          "404": {
+            "description": "Unknown edition"
+          },
+          "409": {
+            "description": "Workflow state conflict"
+          },
+          "413": {
+            "description": "Body exceeds the configured size limit"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        },
+        "security": [
+          {
+            "serviceApiKey": []
+          }
+        ],
+        "tags": [
+          "internal-editions"
+        ]
+      }
+    },
     "/internal/editions/{id}/embeddings": {
       "post": {
         "operationId": "storeEmbedding",

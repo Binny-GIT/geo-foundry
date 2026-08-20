@@ -21,6 +21,8 @@ const migrationSnapshotUrl = new URL(
 const readinessUrl = new URL("../src/readiness/check-readiness.ts", import.meta.url)
 const payloadConfigUrl = new URL("../src/config/database.ts", import.meta.url)
 const secureRunUrl = new URL("../scripts/secure-run.mjs", import.meta.url)
+const integrationRunnerUrl = new URL("../scripts/run-integration.mjs", import.meta.url)
+const integrationResetUrl = new URL("../scripts/reset-integration-database.mjs", import.meta.url)
 const createMigrationUrl = new URL("../scripts/create-migration.mjs", import.meta.url)
 
 const payloadPackages = [
@@ -128,6 +130,19 @@ test("Given migration policy, when inspected, then database push is disabled", a
   const adapterConfig = await readFile(payloadConfigUrl, "utf8")
 
   assert.match(adapterConfig, /push: false/)
+})
+
+test("Given CMS integration execution, when its scripts are inspected, then only the fixed isolated database is reset", async () => {
+  const [runner, reset] = await Promise.all([
+    readFile(integrationRunnerUrl, "utf8"),
+    readFile(integrationResetUrl, "utf8"),
+  ])
+
+  assert.match(runner, /GEO_FOUNDRY_CMS_CONFIG_MODE: "integration-test"/)
+  assert.match(runner, /scripts\/reset-integration-database\.mjs/)
+  assert.match(reset, /const INTEGRATION_DATABASE = "geo_foundry_cms_integration"/)
+  assert.match(reset, /CMS_INTEGRATION_MODE_REQUIRED/)
+  assert.doesNotMatch(reset, /process\.env\.GEO_FOUNDRY_PG_DATABASE/)
 })
 
 test("Given secure command runner, when db push is requested, then it is refused before credentials", () => {

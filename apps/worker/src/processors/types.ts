@@ -13,12 +13,15 @@ export type ProcessorContext = {
   readonly client: Pick<
     ContentServiceClient,
     | "completeOperationStage"
+    | "consumeRollbackIntent"
     | "findSimilarEditions"
     | "getCompileSnapshot"
     | "getEditionInput"
     | "getOperation"
     | "recordAssessment"
     | "recordCompileResult"
+    | "recordPublishedRelease"
+    | "recordRollbackReceipt"
     | "requestPublish"
     | "startOperationStage"
     | "storeEmbedding"

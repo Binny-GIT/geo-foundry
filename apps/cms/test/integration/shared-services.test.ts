@@ -1,9 +1,8 @@
 import { getPayload } from "payload"
 import pg from "pg"
 import { describe, expect, it } from "vitest"
-
+import { CMS_INTEGRATION_DATABASE, parseCmsEnvironment } from "../../src/config/environment"
 import config from "../../src/payload.config"
-import { parseCmsEnvironment } from "../../src/config/environment"
 import { checkRuntimeReadiness } from "../../src/readiness/runtime-readiness"
 
 const expectedTables = [
@@ -61,6 +60,8 @@ const expectedTables = [
   "payload_preferences",
   "payload_preferences_rels",
   "quality_assessments",
+  "releases",
+  "rollback_intents",
   "sites",
   "sites_texts",
   "tenants",
@@ -90,6 +91,10 @@ describe("CMS shared-service integration", () => {
 
   it("Given two migration passes, when the live schema is inspected, then one record per migration and schema-qualified tables exist", async () => {
     const environment = parseCmsEnvironment(process.env)
+    expect(environment.mode).toBe("integration-test")
+    expect(new URL(environment.postgres.connectionString).pathname).toBe(
+      `/${CMS_INTEGRATION_DATABASE}`,
+    )
     const client = new pg.Client({ connectionString: environment.postgres.connectionString })
     await client.connect()
     try {
@@ -98,7 +103,7 @@ describe("CMS shared-service integration", () => {
         [environment.postgres.schema],
       )
       const migrations = await client.query<{ count: string }>(
-        'SELECT count(*) AS count FROM "geo_foundry"."payload_migrations"',
+        `SELECT count(*) AS count FROM "${environment.postgres.schema}"."payload_migrations"`,
       )
       const publicTables = await client.query<{ count: string }>(
         "SELECT count(*) AS count FROM information_schema.tables WHERE table_schema = 'public'",

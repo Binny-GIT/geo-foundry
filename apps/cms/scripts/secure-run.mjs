@@ -9,6 +9,11 @@ const credentialFiles = [
   ["GEO_FOUNDRY_CMS_SECRET_FILE", "PAYLOAD_SECRET"],
 ]
 
+const optionalCredentialFiles = [
+  ["GEO_FOUNDRY_REDIS_PASSWORD_FILE", "GEO_FOUNDRY_REDIS_PASSWORD"],
+  ["GEO_FOUNDRY_REDIS_USERNAME_FILE", "GEO_FOUNDRY_REDIS_USERNAME"],
+]
+
 class SecureRunError extends Error {
   constructor(code, variables = []) {
     super(code)
@@ -37,6 +42,7 @@ const permittedCommand = (argumentsList) => {
   const [binary, action] = argumentsList
   return (
     (binary === "next" && (action === "dev" || action === "start")) ||
+    (binary === "node" && action === "scripts/reset-integration-database.mjs") ||
     (binary === "payload" && (action === "migrate" || action === "migrate:status")) ||
     (binary === "vitest" && action === "run")
   )
@@ -53,6 +59,11 @@ const run = async () => {
   credentialFiles.forEach(([, variable], index) => {
     injectedEnvironment[variable] = credentials[index]
   })
+  for (const [file, variable] of optionalCredentialFiles) {
+    if (process.env[file] !== undefined && process.env[file].trim().length > 0) {
+      injectedEnvironment[variable] = await readCredential(file)
+    }
+  }
   injectedEnvironment.GEO_FOUNDRY_PG_SECRET_REF = "pg-server-mk-dev-existing-auth"
   injectedEnvironment.GEO_FOUNDRY_S3_SECRET_REF = "rustfs-geo-foundry-svc"
 

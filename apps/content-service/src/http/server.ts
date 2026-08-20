@@ -1,21 +1,21 @@
+import { createServer, type Server } from "node:http"
 import type {
   ContentServiceClient,
   OperationSnapshot,
   SubmitOperationRequest,
 } from "@geo/content-client"
 import { ContentClientError } from "@geo/content-client"
-import { createServer, type Server } from "node:http"
-import type { ZodType } from "zod"
-
 import { canonicalJson, sha256Hex } from "@geo/content-pipeline"
+import type { ZodType } from "zod"
 import {
   CONTENT_SERVICE_ERROR_CODE,
   ENDPOINT,
-  IDEMPOTENCY_KEY_PATTERN,
-  OPERATION_ID_PATTERN,
   evaluateRequestSchema,
   generateRequestSchema,
+  IDEMPOTENCY_KEY_PATTERN,
+  OPERATION_ID_PATTERN,
   publishRequestSchema,
+  rollbackRequestSchema,
 } from "./contracts.js"
 import { contentServiceOpenApiDocument } from "./openapi.js"
 
@@ -214,6 +214,16 @@ export const createContentServiceServer = (
         ENDPOINT.publish,
         "publish",
         publishRequestSchema,
+        await incoming.readBody(),
+        headers,
+      )
+    }
+    if (method === "POST" && path === ENDPOINT.rollback) {
+      return handleMutating(
+        requestId,
+        ENDPOINT.rollback,
+        "rollback",
+        rollbackRequestSchema,
         await incoming.readBody(),
         headers,
       )

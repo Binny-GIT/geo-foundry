@@ -15,6 +15,21 @@ export const INTERNAL_OPERATIONS: readonly InternalOperationDescriptor[] = [
   { method: "post", operationId: "recordAssessment", path: INTERNAL_PATHS.assessments },
   { method: "post", operationId: "recordCompileResult", path: INTERNAL_PATHS.compileResults },
   { method: "post", operationId: "requestPublish", path: INTERNAL_PATHS.publishRequests },
+  {
+    method: "post",
+    operationId: "consumeRollbackIntent",
+    path: INTERNAL_PATHS.consumeRollbackIntent,
+  },
+  {
+    method: "post",
+    operationId: "recordPublishedRelease",
+    path: INTERNAL_PATHS.recordPublishedRelease,
+  },
+  {
+    method: "post",
+    operationId: "recordRollbackReceipt",
+    path: INTERNAL_PATHS.recordRollbackReceipt,
+  },
   { method: "post", operationId: "storeEmbedding", path: INTERNAL_PATHS.embeddings },
   { method: "post", operationId: "findSimilarEditions", path: INTERNAL_PATHS.similarity },
   { method: "post", operationId: "submitOperation", path: INTERNAL_PATHS.operationSubmit },

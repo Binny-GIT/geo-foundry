@@ -48,6 +48,14 @@ export const contentServiceOpenApiDocument = {
         summary: "Publish the release built from an approved edition",
       },
     },
+    "/v1/rollback": {
+      post: {
+        operationId: "createRollback",
+        requestBody: { required: true },
+        responses: { ...errorResponses, ...acceptedResponse },
+        summary: "Atomically restore a verified prior immutable release",
+      },
+    },
     "/v1/openapi.json": {
       get: {
         operationId: "getOpenApiDocument",

@@ -6,7 +6,7 @@
 
 import { ARTIFACT_CREATE_CONDITION } from '@geo/schema/release/v1';
 import { ArtifactStoreKey } from '@geo/schema/release/v1';
-import type { AuditActor } from '@geo/schema/release/v1';
+import { AuditActor } from '@geo/schema/release/v1';
 import { ClientDefaults } from '@aws-sdk/client-s3';
 import { CompileOutput } from '@geo/compiler';
 import { ContentType } from '@geo/schema/release/v1';
@@ -19,11 +19,12 @@ import type { PublishReceipt } from '@geo/schema/release/v1';
 import { ReleaseManifest } from '@geo/schema/release/v1';
 import { ReleaseObjectKey } from '@geo/schema/release/v1';
 import { ReleasePrefix } from '@geo/schema/release/v1';
+import { RollbackReceipt } from '@geo/schema/release/v1';
 import { RoutingManifest } from '@geo/compiler';
 import { S3Client } from '@aws-sdk/client-s3';
 import { S3ClientConfig } from '@aws-sdk/client-s3';
 import { Sha256 } from '@geo/schema/release/v1';
-import type { VerifiedReleaseReference } from '@geo/schema/release/v1';
+import { VerifiedReleaseReference } from '@geo/schema/release/v1';
 
 // @public (undocumented)
 export type ArtifactObject = ArtifactObjectHead & {
@@ -287,6 +288,55 @@ export type ReleaseBuildInput = {
 export type ReleaseStageState = "building" | "failed";
 
 // @public (undocumented)
+export const ROLLBACK_ERROR_CODE: {
+    readonly CURRENT_POINTER_UNREADABLE: "ROLLBACK_CURRENT_POINTER_UNREADABLE";
+    readonly EXPECTED_CURRENT_MISMATCH: "ROLLBACK_EXPECTED_CURRENT_MISMATCH";
+    readonly RELEASE_ALREADY_CURRENT: "ROLLBACK_RELEASE_ALREADY_CURRENT";
+    readonly RELEASE_COMPILER_UNSUPPORTED: "ROLLBACK_RELEASE_COMPILER_UNSUPPORTED";
+    readonly RELEASE_EXTRA_OBJECT: "ROLLBACK_RELEASE_EXTRA_OBJECT";
+    readonly RELEASE_ID_MISMATCH: "ROLLBACK_RELEASE_ID_MISMATCH";
+    readonly RELEASE_MANIFEST_HASH_MISMATCH: "ROLLBACK_RELEASE_MANIFEST_HASH_MISMATCH";
+    readonly RELEASE_MANIFEST_INVALID: "ROLLBACK_RELEASE_MANIFEST_INVALID";
+    readonly RELEASE_MISSING_OBJECT: "ROLLBACK_RELEASE_MISSING_OBJECT";
+    readonly RELEASE_OBJECT_BYTES_MISMATCH: "ROLLBACK_RELEASE_OBJECT_BYTES_MISMATCH";
+    readonly RELEASE_OBJECT_CONTENT_TYPE_MISMATCH: "ROLLBACK_RELEASE_OBJECT_CONTENT_TYPE_MISMATCH";
+    readonly RELEASE_OBJECT_SHA256_MISMATCH: "ROLLBACK_RELEASE_OBJECT_SHA256_MISMATCH";
+    readonly RELEASE_POINTER_MISMATCH: "ROLLBACK_RELEASE_POINTER_MISMATCH";
+    readonly RELEASE_SITE_MISMATCH: "ROLLBACK_RELEASE_SITE_MISMATCH";
+};
+
+// @public (undocumented)
+export class RollbackError extends Error {
+    constructor(code: RollbackErrorCode, message: string);
+    // (undocumented)
+    readonly code: RollbackErrorCode;
+    // (undocumented)
+    readonly name = "RollbackError";
+}
+
+// @public (undocumented)
+export type RollbackErrorCode = (typeof ROLLBACK_ERROR_CODE)[keyof typeof ROLLBACK_ERROR_CODE];
+
+// @public
+export const rollbackRelease: (input: {
+    readonly actor: AuditActor;
+    readonly expectedCurrentManifestSha256: string;
+    readonly expectedCurrentReleaseId: string;
+    readonly expectedManifestSha256: string;
+    readonly recordedAt: string;
+    readonly releaseId: string;
+    readonly siteId: string;
+    readonly store: ArtifactStore;
+}) => Promise<RollbackResult>;
+
+// @public (undocumented)
+export type RollbackResult = {
+    readonly etag: ETag;
+    readonly pointer: CurrentPointer;
+    readonly receipt: RollbackReceipt;
+};
+
+// @public (undocumented)
 export const ROUTING_PUBLISH_ERROR_CODE: {
     readonly ROUTING_MANIFEST_EXISTS_WITH_DIFFERENT_CONTENT: "ROUTING_MANIFEST_EXISTS_WITH_DIFFERENT_CONTENT";
     readonly ROUTING_POINTER_CONDITION_FAILED: "ROUTING_POINTER_CONDITION_FAILED";
@@ -399,10 +449,24 @@ export type VerifiedRelease = {
     readonly state: "validated";
 };
 
+// @public (undocumented)
+export type VerifiedRemoteRelease = {
+    readonly manifest: ReleaseManifest;
+    readonly verifiedManifest: VerifiedReleaseReference;
+};
+
 // @public
 export const verifyReleaseDirectory: (input: {
     readonly releaseRoot: string;
 }) => Promise<VerifiedRelease>;
+
+// @public
+export const verifyRemoteRelease: (input: {
+    readonly expectedManifestSha256: string;
+    readonly releaseId: string;
+    readonly siteId: string;
+    readonly store: ArtifactStore;
+}) => Promise<VerifiedRemoteRelease>;
 
 // @public (undocumented)
 export const XML_CONTENT_TYPE = "application/xml";

@@ -11,6 +11,7 @@ import * as migration_20260818_221655_task17_operations from "./20260818_221655_
 import * as migration_20260818_221848_task17b_op_keyhash from "./20260818_221848_task17b_op_keyhash"
 import * as migration_20260819_092000_task20_embeddings from "./20260819_092000_task20_embeddings"
 import * as migration_20260819_153000_task24_request_payload from "./20260819_153000_task24_request_payload"
+import * as migration_20260820_090000_task30_releases from "./20260820_090000_task30_releases"
 
 export const migrations = [
   {
@@ -77,5 +78,10 @@ export const migrations = [
     up: migration_20260819_153000_task24_request_payload.up,
     down: migration_20260819_153000_task24_request_payload.down,
     name: "20260819_153000_task24_request_payload",
+  },
+  {
+    up: migration_20260820_090000_task30_releases.up,
+    down: migration_20260820_090000_task30_releases.down,
+    name: "20260820_090000_task30_releases",
   },
 ]

@@ -1,9 +1,9 @@
+import path from "node:path"
+import { fileURLToPath } from "node:url"
 import { postgresAdapter } from "@payloadcms/db-postgres"
 import { multiTenantPlugin } from "@payloadcms/plugin-multi-tenant"
 import { BlocksFeature, lexicalEditor } from "@payloadcms/richtext-lexical"
 import { s3Storage } from "@payloadcms/storage-s3"
-import path from "node:path"
-import { fileURLToPath } from "node:url"
 import { buildConfig } from "payload"
 
 import { ContentEditions } from "./collections/ContentEditions"
@@ -14,14 +14,17 @@ import { Media } from "./collections/Media"
 import { Operations } from "./collections/Operations"
 import { OutboxEvents } from "./collections/OutboxEvents"
 import { QualityAssessments } from "./collections/QualityAssessments"
+import { Releases } from "./collections/Releases"
+import { RollbackIntents } from "./collections/RollbackIntents"
 import { Sites } from "./collections/Sites"
 import { Tenants } from "./collections/Tenants"
 import { UrlRecords } from "./collections/UrlRecords"
 import { Users } from "./collections/Users"
 import { createPostgresAdapterOptions } from "./config/database"
 import { parseCmsEnvironment } from "./config/environment"
-import { allInternalEndpoints } from "./endpoints/internal/index"
 import { PAGE_DOCUMENT_BLOCKS } from "./editor/page-document-blocks"
+import { allInternalEndpoints } from "./endpoints/internal/index"
+import { createRollbackIntentEndpoint } from "./endpoints/rollback-intents"
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 const environment = parseCmsEnvironment(process.env)
@@ -43,11 +46,13 @@ export default buildConfig({
     Media,
     UrlRecords,
     QualityAssessments,
+    Releases,
+    RollbackIntents,
     OutboxEvents,
     Operations,
     IdempotencyRecords,
   ],
-  endpoints: [...allInternalEndpoints],
+  endpoints: [createRollbackIntentEndpoint, ...allInternalEndpoints],
   db: postgresAdapter(
     createPostgresAdapterOptions(environment, path.resolve(dirname, "migrations")),
   ),

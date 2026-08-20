@@ -47,6 +47,27 @@ export const requestPublishRequestSchema = z.object({
   reason: z.string().min(1).max(500).optional(),
 })
 
+export const consumeRollbackIntentRequestSchema = z
+  .object({
+    expectedCurrentManifestSha256: sha256Schema,
+    expectedCurrentReleaseId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{5,127}$/),
+    expectedManifestSha256: sha256Schema,
+    operationId: z.string().regex(/^[A-Za-z0-9._-]{4,128}$/),
+    rollbackIntentId: z.string().uuid(),
+    runtimeSiteId: z.string().regex(/^site-\d+$/),
+    targetReleaseId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{5,127}$/),
+  })
+  .strict()
+
+export const consumeRollbackIntentReceiptSchema = z.object({ consumed: z.literal(true) })
+
+export const recordReleaseReceiptRequestSchema = z.object({
+  operationId: z.string().regex(/^[A-Za-z0-9._-]{4,128}$/),
+  receipt: z.record(z.string(), z.unknown()),
+})
+
+export const recordReleaseReceiptSchema = z.object({ recorded: z.literal(true) })
+
 export const editionInputSchema = z.object({
   modifiedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/),
   publishedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/),
@@ -84,6 +105,18 @@ export const publishRequestSchema = z.object({
   editionId: z.number().int().positive(),
   reason: z.string().min(1).max(500).optional(),
 })
+
+export const rollbackRequestSchema = z
+  .object({
+    expectedCurrentManifestSha256: sha256Schema,
+    expectedCurrentReleaseId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{5,127}$/),
+    expectedManifestSha256: sha256Schema,
+    rollbackIntentId: z.string().uuid(),
+    reason: z.string().min(1).max(500).optional(),
+    siteId: z.string().regex(/^[a-z0-9]+(?:[-_][a-z0-9]+)*$/),
+    targetReleaseId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{5,127}$/),
+  })
+  .strict()
 
 export const publishRequestReceiptSchema = compileResultReceiptSchema
 
@@ -220,6 +253,8 @@ export type WriteDraftVersionRequest = z.input<typeof writeDraftVersionRequestSc
 export type RecordAssessmentRequest = z.input<typeof recordAssessmentRequestSchema>
 export type RecordCompileResultRequest = z.input<typeof recordCompileResultRequestSchema>
 export type RequestPublishRequest = z.input<typeof requestPublishRequestSchema>
+export type ConsumeRollbackIntentRequest = z.input<typeof consumeRollbackIntentRequestSchema>
+export type RecordReleaseReceiptRequest = z.input<typeof recordReleaseReceiptRequestSchema>
 export type EditionInput = z.infer<typeof editionInputSchema>
 export type CompileSnapshot = z.infer<typeof compileSnapshotSchema>
 export type DraftWriteReceipt = z.infer<typeof draftWriteReceiptSchema>
@@ -227,6 +262,7 @@ export type AssessmentReceipt = z.infer<typeof assessmentReceiptSchema>
 export type CompileResultReceipt = z.infer<typeof compileResultReceiptSchema>
 export type PublishRequestReceipt = z.infer<typeof publishRequestReceiptSchema>
 export type PublishRequest = z.input<typeof publishRequestSchema>
+export type RollbackRequest = z.input<typeof rollbackRequestSchema>
 export type OperationState = z.infer<typeof operationStateSchema>
 export type OperationType = z.infer<typeof operationTypeSchema>
 export type OperationSnapshot = z.infer<typeof operationSnapshotSchema>

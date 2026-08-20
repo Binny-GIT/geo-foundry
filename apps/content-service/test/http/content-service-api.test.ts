@@ -1,6 +1,5 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest"
-
 import { ContentClientError, type OperationSnapshot } from "@geo/content-client"
+import { afterAll, beforeAll, describe, expect, it } from "vitest"
 
 import { createContentServiceServer } from "../../src/http/server.js"
 
@@ -169,6 +168,37 @@ describe("content-service HTTP API contract", () => {
     expect(invalid.status).toBe(400)
   })
 
+  it("accepts a rollback request, replays exactly, and rejects key reuse", async () => {
+    const rollbackBody = {
+      expectedCurrentManifestSha256: "b".repeat(64),
+      expectedCurrentReleaseId: "release-0002",
+      expectedManifestSha256: SHA,
+      rollbackIntentId: "11111111-2222-4333-8444-555555555555",
+      siteId: "site-a",
+      targetReleaseId: "release-0001",
+    }
+    const created = await post(base, "/v1/rollback", rollbackBody, "key-rb-0001")
+    expect(created.status).toBe(202)
+    const operation = (JSON.parse(created.body ?? "{}") as { operation: OperationSnapshot })
+      .operation
+    expect(operation.operationType).toBe("rollback")
+
+    const replay = await post(base, "/v1/rollback", rollbackBody, "key-rb-0001")
+    expect(replay.status).toBe(200)
+    expect(
+      (JSON.parse(replay.body ?? "{}") as { operation: OperationSnapshot }).operation.operationId,
+    ).toBe(operation.operationId)
+
+    const conflict = await post(
+      base,
+      "/v1/rollback",
+      { ...rollbackBody, targetReleaseId: "release-0002" },
+      "key-rb-0001",
+    )
+    expect(conflict.status).toBe(409)
+    expect(JSON.parse(conflict.body ?? "{}").error.code).toBe("IDEMPOTENCY_KEY_REUSED")
+  })
+
   it("rejects key reuse with a different body via 409 IDEMPOTENCY_KEY_REUSED", async () => {
     const conflict = await post(
       base,
@@ -189,10 +219,11 @@ describe("content-service HTTP API contract", () => {
   })
 
   it("rejects unauthorized callers before touching the ledger", async () => {
+    const before = submissions
     const response = await post(base, "/v1/generate", generateBody, "key-0002-abcd", "wrong")
     expect(response.status).toBe(401)
     expect(JSON.parse(response.body ?? "{}").error.code).toBe("CONTENT_SERVICE_UNAUTHENTICATED")
-    expect(submissions).toBe(8)
+    expect(submissions).toBe(before)
   })
 
   it("rejects a brief without sources with structured issues", async () => {
@@ -258,6 +289,7 @@ describe("content-service HTTP API contract", () => {
       "/v1/openapi.json",
       "/v1/operations/{operationId}",
       "/v1/publish",
+      "/v1/rollback",
     ])
     const health = await fetch(`${base}/healthz`)
     expect(health.status).toBe(200)

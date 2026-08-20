@@ -2,9 +2,11 @@ import type { PayloadHandler, PayloadRequest } from "payload"
 import type { ZodType } from "zod"
 
 import { resolveSessionClaims, type SessionClaims } from "../../access/session"
-import { EmbeddingStoreError } from "../../services/embedding-store"
 import { EditionWorkflowError } from "../../services/edition-workflow"
+import { EmbeddingStoreError } from "../../services/embedding-store"
 import { OperationsLedgerError } from "../../services/operations-ledger"
+import { ReleaseRegistryError } from "../../services/release-registry"
+import { RollbackIntentError } from "../../services/rollback-intents"
 import { OPERATION_ID_PATTERN, REQUEST_ID_PATTERN } from "./contracts"
 
 export const INTERNAL_ERROR_CODE = {
@@ -182,6 +184,42 @@ const ledgerErrorToResponse = (
     requestId,
     allowOrigin,
   )
+}
+
+const ROLLBACK_INTENT_STATUS_BY_CODE: Readonly<Record<string, number>> = {
+  ROLLBACK_INTENT_ALREADY_CONSUMED: 409,
+  ROLLBACK_INTENT_MISMATCH: 409,
+  ROLLBACK_INTENT_NOT_FOUND: 404,
+  ROLLBACK_INTENT_SERVICE_REQUIRED: 403,
+}
+
+const rollbackIntentErrorToResponse = (
+  error: RollbackIntentError,
+  requestId: string,
+  allowOrigin: string | null,
+): Response => {
+  const status = ROLLBACK_INTENT_STATUS_BY_CODE[error.code] ?? 500
+  return internalErrorResponse(status, error.code, error.message, requestId, allowOrigin)
+}
+
+const RELEASE_REGISTRY_STATUS_BY_CODE: Readonly<Record<string, number>> = {
+  RELEASE_IDENTITY_CONFLICT: 409,
+  RELEASE_RECONCILIATION_REQUIRED: 409,
+  RELEASE_REVISION_CONFLICT: 409,
+  RELEASE_RUNTIME_SITE_INVALID: 400,
+  RELEASE_SITE_MISMATCH: 409,
+  RELEASE_SITE_NOT_FOUND: 404,
+  RELEASE_SOURCE_IDENTITY_CONFLICT: 409,
+  RELEASE_TENANT_MISMATCH: 403,
+}
+
+const releaseRegistryErrorToResponse = (
+  error: ReleaseRegistryError,
+  requestId: string,
+  allowOrigin: string | null,
+): Response => {
+  const status = RELEASE_REGISTRY_STATUS_BY_CODE[error.code] ?? 500
+  return internalErrorResponse(status, error.code, error.message, requestId, allowOrigin)
 }
 
 const EMBEDDING_STATUS_BY_CODE: Readonly<Record<string, number>> = {
@@ -411,6 +449,12 @@ export const withInternalGuards =
       }
       if (error instanceof OperationsLedgerError) {
         return ledgerErrorToResponse(error, requestId, allowOrigin)
+      }
+      if (error instanceof RollbackIntentError) {
+        return rollbackIntentErrorToResponse(error, requestId, allowOrigin)
+      }
+      if (error instanceof ReleaseRegistryError) {
+        return releaseRegistryErrorToResponse(error, requestId, allowOrigin)
       }
       if (error instanceof EmbeddingStoreError) {
         return embeddingErrorToResponse(error, requestId, allowOrigin)

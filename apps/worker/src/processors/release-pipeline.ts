@@ -162,6 +162,7 @@ export const publishPlannedRelease = async (
   context: ProcessorContext,
   input: {
     readonly editionId: number
+    readonly operationId: string
     readonly planned: PlannedSiteRelease
     readonly store: ArtifactStore
   },
@@ -171,6 +172,11 @@ export const publishPlannedRelease = async (
     planned: input.planned.plan,
     store: input.store,
     verifiedManifest: input.planned.verifiedManifest,
+  })
+  const edition = await context.client.getEditionInput(input.editionId)
+  await context.client.recordPublishedRelease(edition.siteId, {
+    operationId: input.operationId,
+    receipt: result.receipt,
   })
   await context.client.requestPublish(input.editionId, { reason: input.planned.releaseId })
   return result.receipt

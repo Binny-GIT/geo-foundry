@@ -24,6 +24,7 @@ describe("工作区包边界", () => {
     expect(report.packages).toEqual([
       "@geo/compiler",
       "@geo/content-client",
+      "@geo/content-pipeline",
       "@geo/domain",
       "@geo/publisher",
       "@geo/quality-rules",

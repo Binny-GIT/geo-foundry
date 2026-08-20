@@ -73,6 +73,12 @@ export const operationFlowOf = (input: OperationFlowInput): FlowJob => {
   if (input.operationType === "evaluate") {
     return stageJob(QUEUE_NAME.evaluation, input.operationId, "evaluation", payload)
   }
+  if (input.operationType === "rollback") {
+    return stageJob(QUEUE_NAME.publish, input.operationId, "rollback-gate", {
+      operationType: input.operationType,
+      ...payload,
+    })
+  }
   if (input.operationType === "generate" || input.operationType === "publish") {
     const leaf = stageJob(
       QUEUE_NAME.generation,

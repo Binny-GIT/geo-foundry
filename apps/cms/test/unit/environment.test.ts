@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest"
 
-import { CmsEnvironmentError, parseCmsEnvironment } from "../../src/config/environment"
+import {
+  CMS_INTEGRATION_DATABASE,
+  CmsEnvironmentError,
+  parseCmsEnvironment,
+} from "../../src/config/environment"
 
 const runtimeEnvironment = (): Record<string, string> => ({
   GEO_FOUNDRY_PG_BOOTSTRAP_DATABASE: "postgres",
@@ -42,6 +46,20 @@ describe("CMS environment", () => {
     expect(parsed.rustfs.endpoint).toBe("http://127.0.0.1:9000")
     expect(parsed.rustfs.forcePathStyle).toBe(true)
     expect(parsed.postgres.schema).toBe("geo_foundry")
+  })
+
+  it("Given integration-test mode, when parsed, then it uses the fixed isolated database", () => {
+    const parsed = parseCmsEnvironment({
+      ...runtimeEnvironment(),
+      GEO_FOUNDRY_CMS_CONFIG_MODE: "integration-test",
+      GEO_FOUNDRY_PG_DATABASE: "geo_foundry",
+    })
+
+    expect(parsed.mode).toBe("integration-test")
+    expect(new URL(parsed.postgres.connectionString).pathname).toBe(`/${CMS_INTEGRATION_DATABASE}`)
+    expect(new URL(parsed.postgres.connectionString).searchParams.get("application_name")).toBe(
+      "geo-foundry-cms-integration-test",
+    )
   })
 
   it("Given runtime config, when a PostgreSQL variable is absent, then parsing fails by variable name", () => {

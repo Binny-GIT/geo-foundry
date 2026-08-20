@@ -11,7 +11,11 @@ const child = spawn(
     "test/integration",
     "--no-file-parallelism",
   ],
-  { cwd: process.cwd(), env: process.env, stdio: "inherit" },
+  {
+    cwd: process.cwd(),
+    env: { ...process.env, GEO_FOUNDRY_CMS_CONFIG_MODE: "integration-test" },
+    stdio: "inherit",
+  },
 )
 const exitCode = await new Promise((resolve, reject) => {
   child.once("error", reject)

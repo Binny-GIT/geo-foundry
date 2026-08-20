@@ -32,6 +32,21 @@
     },
     {
       "method": "post",
+      "operationId": "consumeRollbackIntent",
+      "path": "/internal/rollback-intents/consume"
+    },
+    {
+      "method": "post",
+      "operationId": "recordPublishedRelease",
+      "path": "/internal/sites/{id}/releases/published"
+    },
+    {
+      "method": "post",
+      "operationId": "recordRollbackReceipt",
+      "path": "/internal/releases/rollback-receipt"
+    },
+    {
+      "method": "post",
       "operationId": "storeEmbedding",
       "path": "/internal/editions/{id}/embeddings"
     },

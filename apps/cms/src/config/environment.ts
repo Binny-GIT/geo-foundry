@@ -1,22 +1,27 @@
 import { z } from "zod"
 
 import {
+  type CmsSharedServicesEnvironment,
   parseCmsSharedServicesEnvironment,
   SharedServicesEnvironmentError,
-  type CmsSharedServicesEnvironment,
 } from "../../../../config/shared-services.schema"
 import { assertNever } from "../shared/assert-never"
 
 export const CMS_BUCKET = "geo-foundry"
 export const CMS_MEDIA_PREFIX = "objects/media"
 export const CMS_POSTGRES_SCHEMA = "geo_foundry"
+export const CMS_INTEGRATION_DATABASE = "geo_foundry_cms_integration"
 export const RUSTFS_REGION = "us-east-1"
 
-const configModeSchema = z.union([z.literal("runtime"), z.literal("build")])
+const configModeSchema = z.union([
+  z.literal("runtime"),
+  z.literal("build"),
+  z.literal("integration-test"),
+])
 const payloadSecretSchema = z.string().min(32)
 
 export type CmsEnvironment = {
-  readonly mode: "runtime" | "build"
+  readonly mode: "runtime" | "build" | "integration-test"
   readonly payloadSecret: string
   readonly postgres: {
     readonly connectionString: string
@@ -41,19 +46,26 @@ export class CmsEnvironmentError extends Error {
   }
 }
 
-const postgresConnectionString = (environment: CmsSharedServicesEnvironment): string => {
+const postgresConnectionString = (
+  environment: CmsSharedServicesEnvironment,
+  database: string,
+  applicationName: string,
+): string => {
   const connection = new URL("postgresql://localhost")
   connection.hostname = environment.GEO_FOUNDRY_PG_HOST
   connection.port = String(environment.GEO_FOUNDRY_PG_PORT)
   connection.username = environment.GEO_FOUNDRY_PG_USER
   connection.password = environment.GEO_FOUNDRY_PG_PASSWORD
-  connection.pathname = `/${environment.GEO_FOUNDRY_PG_DATABASE}`
-  connection.searchParams.set("application_name", "geo-foundry-cms")
+  connection.pathname = `/${database}`
+  connection.searchParams.set("application_name", applicationName)
   connection.searchParams.set("options", `-c search_path=${environment.GEO_FOUNDRY_PG_SCHEMA}`)
   return connection.toString()
 }
 
-const runtimeEnvironment = (environment: Record<string, string | undefined>): CmsEnvironment => {
+const serviceEnvironment = (
+  environment: Record<string, string | undefined>,
+  mode: "runtime" | "integration-test",
+): CmsEnvironment => {
   let sharedServices: CmsSharedServicesEnvironment
   try {
     sharedServices = parseCmsSharedServicesEnvironment(environment)
@@ -69,11 +81,16 @@ const runtimeEnvironment = (environment: Record<string, string | undefined>): Cm
     throw new CmsEnvironmentError(["PAYLOAD_SECRET"])
   }
 
+  const integration = mode === "integration-test"
   return {
-    mode: "runtime",
+    mode,
     payloadSecret: payloadSecret.data,
     postgres: {
-      connectionString: postgresConnectionString(sharedServices),
+      connectionString: postgresConnectionString(
+        sharedServices,
+        integration ? CMS_INTEGRATION_DATABASE : sharedServices.GEO_FOUNDRY_PG_DATABASE,
+        integration ? "geo-foundry-cms-integration-test" : "geo-foundry-cms",
+      ),
       schema: CMS_POSTGRES_SCHEMA,
     },
     rustfs: {
@@ -87,6 +104,13 @@ const runtimeEnvironment = (environment: Record<string, string | undefined>): Cm
     },
   }
 }
+
+const runtimeEnvironment = (environment: Record<string, string | undefined>): CmsEnvironment =>
+  serviceEnvironment(environment, "runtime")
+
+const integrationTestEnvironment = (
+  environment: Record<string, string | undefined>,
+): CmsEnvironment => serviceEnvironment(environment, "integration-test")
 
 const buildEnvironment = (): CmsEnvironment => ({
   mode: "build",
@@ -119,6 +143,8 @@ export const parseCmsEnvironment = (
   switch (modeValue) {
     case "build":
       return buildEnvironment()
+    case "integration-test":
+      return integrationTestEnvironment(environment)
     case "runtime":
       return runtimeEnvironment(environment)
     default:

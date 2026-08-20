@@ -10,8 +10,13 @@ const postgresErrorSchema = z.object({
 })
 
 const postgresStateSchema = z.object({
-  database: z.literal("geo_foundry"),
-  schema: z.literal("geo_foundry"),
+  database: z.string().min(1),
+  schema: z.string().min(1),
+})
+
+const expectedPostgresState = (environment: CmsEnvironment) => ({
+  database: decodeURIComponent(new URL(environment.postgres.connectionString).pathname.slice(1)),
+  schema: environment.postgres.schema,
 })
 
 export const createPostgresProbe =
@@ -28,7 +33,11 @@ export const createPostgresProbe =
         "SELECT current_database() AS database, current_schema() AS schema",
       )
       const state = postgresStateSchema.safeParse(result.rows[0])
-      if (!state.success) {
+      if (
+        !state.success ||
+        state.data.database !== expectedPostgresState(environment).database ||
+        state.data.schema !== expectedPostgresState(environment).schema
+      ) {
         throw new DependencyProbeError("postgres", DEPENDENCY_CODES.POSTGRES_STATE_INVALID)
       }
     } catch (error) {

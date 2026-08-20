@@ -55,14 +55,16 @@ describe("operation flows", () => {
     expect(flow.children).toBeUndefined()
   })
 
-  it("rejects rollback operations until the rollback todo", () => {
-    expect(() =>
-      operationFlowOf({
-        operationId: "11111111-2222-3333-4444-555555555555",
-        operationType: "rollback",
-        payload: {},
-      }),
-    ).toThrow(/unsupported operation type/)
+  it("builds a single serial rollback gate without compiler descendants", () => {
+    const flow = operationFlowOf({
+      operationId: "11111111-2222-3333-4444-555555555555",
+      operationType: "rollback",
+      payload: {},
+    })
+    expect(flow.name).toBe("rollback-gate")
+    expect(flow.queueName).toBe("content-publish")
+    expect(flow.children).toBeUndefined()
+    expect(flow.opts?.jobId).toBe("op-11111111-2222-3333-4444-555555555555-rollback-gate")
   })
 })
 

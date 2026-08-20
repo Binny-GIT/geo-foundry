@@ -10,15 +10,14 @@ import {
 import {
   type ArtifactStoreKey,
   type ContentType,
-  type CurrentPointer,
-  type ETag,
-  type ReleasePrefix,
-  ETagSchema,
   ContentTypeSchema,
+  type CurrentPointer,
+  currentPointerKey,
+  type ETag,
+  ETagSchema,
+  type ReleasePrefix,
   Sha256Schema,
 } from "@geo/schema/release/v1"
-
-import { currentPointerKey } from "@geo/schema/release/v1"
 import {
   type ArtifactObject,
   type ArtifactObjectHead,
@@ -28,9 +27,9 @@ import {
   type CreateIfAbsentRequest,
   type HeadArtifactRequest,
   type ListArtifactsRequest,
-  type ReadArtifactRequest,
   prepareCurrentPointerCompareAndSwap,
   prepareCurrentPointerInitialCreate,
+  type ReadArtifactRequest,
 } from "./artifact-store.js"
 import { StalePointerEtagError } from "./errors.js"
 
@@ -106,6 +105,8 @@ export const createS3ArtifactStore = (options: S3ArtifactStoreOptions): Artifact
   const bucket = options.bucket
   const keyPrefix = options.keyPrefix === undefined ? "" : options.keyPrefix.replace(/\/$/, "")
   const physicalKey = (key: string): string => (keyPrefix === "" ? key : `${keyPrefix}/${key}`)
+  const logicalKey = (key: string): string =>
+    keyPrefix === "" ? key : key.startsWith(`${keyPrefix}/`) ? key.slice(keyPrefix.length + 1) : key
   const store: ArtifactStore = {
     async createIfAbsent(request: CreateIfAbsentRequest): Promise<ArtifactObjectHead> {
       const put = await client.send(
@@ -176,7 +177,7 @@ export const createS3ArtifactStore = (options: S3ArtifactStoreOptions): Artifact
           if (object.Key === undefined) {
             continue
           }
-          entries.push(headOf(object.Key as ArtifactStoreKey, object))
+          entries.push(headOf(logicalKey(object.Key) as ArtifactStoreKey, object))
         }
         token = output.IsTruncated ? output.NextContinuationToken : undefined
       } while (token !== undefined)

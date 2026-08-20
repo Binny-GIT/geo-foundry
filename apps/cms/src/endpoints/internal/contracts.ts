@@ -6,6 +6,9 @@ export const INTERNAL_PATHS = {
   embeddings: "/internal/editions/:id/embeddings",
   input: "/internal/editions/:id/input",
   publishRequests: "/internal/editions/:id/publish-requests",
+  consumeRollbackIntent: "/internal/rollback-intents/consume",
+  recordPublishedRelease: "/internal/sites/:id/releases/published",
+  recordRollbackReceipt: "/internal/releases/rollback-receipt",
   assessments: "/internal/editions/:id/assessments",
   similarity: "/internal/editions/:id/similarity",
   versions: "/internal/editions/:id/versions",
@@ -67,10 +70,31 @@ export const publishRequestBodySchema = z
   })
   .strict()
 
+export const consumeRollbackIntentBodySchema = z
+  .object({
+    expectedCurrentManifestSha256: z.string().regex(SHA256_PATTERN),
+    expectedCurrentReleaseId: z.string().regex(RELEASE_ID_PATTERN),
+    expectedManifestSha256: z.string().regex(SHA256_PATTERN),
+    operationId: z.string().regex(OPERATION_ID_PATTERN),
+    rollbackIntentId: z.string().uuid(),
+    runtimeSiteId: z.string().regex(/^site-\d+$/),
+    targetReleaseId: z.string().regex(RELEASE_ID_PATTERN),
+  })
+  .strict()
+
+export const releaseReceiptBodySchema = z
+  .object({
+    operationId: z.string().regex(OPERATION_ID_PATTERN),
+    receipt: z.record(z.string(), z.unknown()),
+  })
+  .strict()
+
+export type ConsumeRollbackIntentBody = z.infer<typeof consumeRollbackIntentBodySchema>
 export type DraftVersionBody = z.infer<typeof draftVersionBodySchema>
 export type AssessmentBody = z.infer<typeof assessmentBodySchema>
 export type CompileResultBody = z.infer<typeof compileResultBodySchema>
 export type PublishRequestBody = z.infer<typeof publishRequestBodySchema>
+export type ReleaseReceiptBody = z.infer<typeof releaseReceiptBodySchema>
 
 export const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9._-]{8,128}$/
 export const OPERATION_STAGE_NAME_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/

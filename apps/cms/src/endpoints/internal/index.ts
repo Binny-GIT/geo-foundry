@@ -1,13 +1,17 @@
 import type { Endpoint } from "payload"
 
 import { editionHandlerByOperation } from "./editions"
-import { operationHandlerByOperation } from "./operations"
-import { handleGetCompileSnapshot } from "./sites"
 import { INTERNAL_OPERATIONS } from "./openapi"
+import { operationHandlerByOperation } from "./operations"
+import { releaseHandlerByOperation } from "./releases"
+import { rollbackIntentHandlerByOperation } from "./rollback-intents"
+import { handleGetCompileSnapshot } from "./sites"
 
 const handlerByOperation: Record<string, (typeof allInternalEndpoints)[number]["handler"]> = {
   ...editionHandlerByOperation,
   ...operationHandlerByOperation,
+  ...releaseHandlerByOperation,
+  ...rollbackIntentHandlerByOperation,
   getCompileSnapshot: handleGetCompileSnapshot,
 }
 

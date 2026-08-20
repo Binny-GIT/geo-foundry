@@ -13,1272 +13,1386 @@
  * via the `definition` "supportedTimezones".
  */
 export type SupportedTimezones =
-  | "Pacific/Midway"
-  | "Pacific/Niue"
-  | "Pacific/Honolulu"
-  | "Pacific/Rarotonga"
-  | "America/Anchorage"
-  | "Pacific/Gambier"
-  | "America/Los_Angeles"
-  | "America/Tijuana"
-  | "America/Denver"
-  | "America/Phoenix"
-  | "America/Chicago"
-  | "America/Guatemala"
-  | "America/New_York"
-  | "America/Bogota"
-  | "America/Caracas"
-  | "America/Santiago"
-  | "America/Buenos_Aires"
-  | "America/Sao_Paulo"
-  | "Atlantic/South_Georgia"
-  | "Atlantic/Azores"
-  | "Atlantic/Cape_Verde"
-  | "Europe/London"
-  | "Europe/Berlin"
-  | "Africa/Lagos"
-  | "Europe/Athens"
-  | "Africa/Cairo"
-  | "Europe/Moscow"
-  | "Asia/Riyadh"
-  | "Asia/Dubai"
-  | "Asia/Baku"
-  | "Asia/Karachi"
-  | "Asia/Tashkent"
-  | "Asia/Calcutta"
-  | "Asia/Dhaka"
-  | "Asia/Almaty"
-  | "Asia/Jakarta"
-  | "Asia/Bangkok"
-  | "Asia/Shanghai"
-  | "Asia/Singapore"
-  | "Asia/Tokyo"
-  | "Asia/Seoul"
-  | "Australia/Brisbane"
-  | "Australia/Sydney"
-  | "Pacific/Guam"
-  | "Pacific/Noumea"
-  | "Pacific/Auckland"
-  | "Pacific/Fiji"
+  | 'Pacific/Midway'
+  | 'Pacific/Niue'
+  | 'Pacific/Honolulu'
+  | 'Pacific/Rarotonga'
+  | 'America/Anchorage'
+  | 'Pacific/Gambier'
+  | 'America/Los_Angeles'
+  | 'America/Tijuana'
+  | 'America/Denver'
+  | 'America/Phoenix'
+  | 'America/Chicago'
+  | 'America/Guatemala'
+  | 'America/New_York'
+  | 'America/Bogota'
+  | 'America/Caracas'
+  | 'America/Santiago'
+  | 'America/Buenos_Aires'
+  | 'America/Sao_Paulo'
+  | 'Atlantic/South_Georgia'
+  | 'Atlantic/Azores'
+  | 'Atlantic/Cape_Verde'
+  | 'Europe/London'
+  | 'Europe/Berlin'
+  | 'Africa/Lagos'
+  | 'Europe/Athens'
+  | 'Africa/Cairo'
+  | 'Europe/Moscow'
+  | 'Asia/Riyadh'
+  | 'Asia/Dubai'
+  | 'Asia/Baku'
+  | 'Asia/Karachi'
+  | 'Asia/Tashkent'
+  | 'Asia/Calcutta'
+  | 'Asia/Dhaka'
+  | 'Asia/Almaty'
+  | 'Asia/Jakarta'
+  | 'Asia/Bangkok'
+  | 'Asia/Shanghai'
+  | 'Asia/Singapore'
+  | 'Asia/Tokyo'
+  | 'Asia/Seoul'
+  | 'Australia/Brisbane'
+  | 'Australia/Sydney'
+  | 'Pacific/Guam'
+  | 'Pacific/Noumea'
+  | 'Pacific/Auckland'
+  | 'Pacific/Fiji';
 
 export interface Config {
   auth: {
-    users: UserAuthOperations
-  }
-  blocks: {}
+    users: UserAuthOperations;
+  };
+  blocks: {};
   collections: {
-    tenants: Tenant
-    users: User
-    sites: Site
-    domains: Domain
-    contents: Content
-    "content-editions": ContentEdition
-    media: Media
-    "url-records": UrlRecord
-    "quality-assessments": QualityAssessment
-    "outbox-events": OutboxEvent
-    operations: Operation
-    "idempotency-records": IdempotencyRecord
-    "payload-kv": PayloadKv
-    "payload-locked-documents": PayloadLockedDocument
-    "payload-preferences": PayloadPreference
-    "payload-migrations": PayloadMigration
-  }
-  collectionsJoins: {}
+    tenants: Tenant;
+    users: User;
+    sites: Site;
+    domains: Domain;
+    contents: Content;
+    'content-editions': ContentEdition;
+    media: Media;
+    'url-records': UrlRecord;
+    'quality-assessments': QualityAssessment;
+    releases: Release;
+    'rollback-intents': RollbackIntent;
+    'outbox-events': OutboxEvent;
+    operations: Operation;
+    'idempotency-records': IdempotencyRecord;
+    'payload-kv': PayloadKv;
+    'payload-locked-documents': PayloadLockedDocument;
+    'payload-preferences': PayloadPreference;
+    'payload-migrations': PayloadMigration;
+  };
+  collectionsJoins: {};
   collectionsSelect: {
-    tenants: TenantsSelect<false> | TenantsSelect<true>
-    users: UsersSelect<false> | UsersSelect<true>
-    sites: SitesSelect<false> | SitesSelect<true>
-    domains: DomainsSelect<false> | DomainsSelect<true>
-    contents: ContentsSelect<false> | ContentsSelect<true>
-    "content-editions": ContentEditionsSelect<false> | ContentEditionsSelect<true>
-    media: MediaSelect<false> | MediaSelect<true>
-    "url-records": UrlRecordsSelect<false> | UrlRecordsSelect<true>
-    "quality-assessments": QualityAssessmentsSelect<false> | QualityAssessmentsSelect<true>
-    "outbox-events": OutboxEventsSelect<false> | OutboxEventsSelect<true>
-    operations: OperationsSelect<false> | OperationsSelect<true>
-    "idempotency-records": IdempotencyRecordsSelect<false> | IdempotencyRecordsSelect<true>
-    "payload-kv": PayloadKvSelect<false> | PayloadKvSelect<true>
-    "payload-locked-documents":
-      | PayloadLockedDocumentsSelect<false>
-      | PayloadLockedDocumentsSelect<true>
-    "payload-preferences": PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>
-    "payload-migrations": PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>
-  }
+    tenants: TenantsSelect<false> | TenantsSelect<true>;
+    users: UsersSelect<false> | UsersSelect<true>;
+    sites: SitesSelect<false> | SitesSelect<true>;
+    domains: DomainsSelect<false> | DomainsSelect<true>;
+    contents: ContentsSelect<false> | ContentsSelect<true>;
+    'content-editions': ContentEditionsSelect<false> | ContentEditionsSelect<true>;
+    media: MediaSelect<false> | MediaSelect<true>;
+    'url-records': UrlRecordsSelect<false> | UrlRecordsSelect<true>;
+    'quality-assessments': QualityAssessmentsSelect<false> | QualityAssessmentsSelect<true>;
+    releases: ReleasesSelect<false> | ReleasesSelect<true>;
+    'rollback-intents': RollbackIntentsSelect<false> | RollbackIntentsSelect<true>;
+    'outbox-events': OutboxEventsSelect<false> | OutboxEventsSelect<true>;
+    operations: OperationsSelect<false> | OperationsSelect<true>;
+    'idempotency-records': IdempotencyRecordsSelect<false> | IdempotencyRecordsSelect<true>;
+    'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
+    'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
+    'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
+    'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
+  };
   db: {
-    defaultIDType: number
-  }
-  fallbackLocale: null
-  globals: {}
-  globalsSelect: {}
-  locale: null
+    defaultIDType: number;
+  };
+  fallbackLocale: null;
+  globals: {};
+  globalsSelect: {};
+  locale: null;
   widgets: {
-    collections: CollectionsWidget
-  }
-  user: User
+    collections: CollectionsWidget;
+  };
+  user: User;
   jobs: {
-    tasks: unknown
-    workflows: unknown
-  }
+    tasks: unknown;
+    workflows: unknown;
+  };
 }
 export interface UserAuthOperations {
   forgotPassword: {
-    email: string
-    password: string
-  }
+    email: string;
+    password: string;
+  };
   login: {
-    email: string
-    password: string
-  }
+    email: string;
+    password: string;
+  };
   registerFirstUser: {
-    email: string
-    password: string
-  }
+    email: string;
+    password: string;
+  };
   unlock: {
-    email: string
-    password: string
-  }
+    email: string;
+    password: string;
+  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "tenants".
  */
 export interface Tenant {
-  id: number
-  name: string
-  updatedAt: string
-  createdAt: string
+  id: number;
+  name: string;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
 export interface User {
-  id: number
-  role: "content-service" | "editor" | "publisher" | "reviewer" | "super-admin" | "tenant-admin"
-  tenant?: (number | null) | Tenant
-  updatedAt: string
-  createdAt: string
-  enableAPIKey?: boolean | null
-  apiKey?: string | null
-  apiKeyIndex?: string | null
-  email: string
-  resetPasswordToken?: string | null
-  resetPasswordExpiration?: string | null
-  salt?: string | null
-  hash?: string | null
-  loginAttempts?: number | null
-  lockUntil?: string | null
+  id: number;
+  role: 'content-service' | 'editor' | 'publisher' | 'reviewer' | 'super-admin' | 'tenant-admin';
+  tenant?: (number | null) | Tenant;
+  updatedAt: string;
+  createdAt: string;
+  enableAPIKey?: boolean | null;
+  apiKey?: string | null;
+  apiKeyIndex?: string | null;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
   sessions?:
     | {
-        id: string
-        createdAt?: string | null
-        expiresAt: string
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
       }[]
-    | null
-  password?: string | null
-  collection: "users"
+    | null;
+  password?: string | null;
+  collection: 'users';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "sites".
  */
 export interface Site {
-  id: number
-  name: string
-  tenant: number | Tenant
-  locale: string
-  timezone: string
-  status: "active" | "disabled"
+  id: number;
+  name: string;
+  tenant: number | Tenant;
+  locale: string;
+  timezone: string;
+  status: 'active' | 'disabled';
   contentStrategy?: {
-    positioning?: string | null
-    tone?: string | null
-    language?: string | null
-    targetAudience?: string[] | null
-    expertise?: string[] | null
-    preferredTopics?: string[] | null
-    prohibitedTopics?: string[] | null
-    contentAngles?: string[] | null
-  }
+    positioning?: string | null;
+    tone?: string | null;
+    language?: string | null;
+    targetAudience?: string[] | null;
+    expertise?: string[] | null;
+    preferredTopics?: string[] | null;
+    prohibitedTopics?: string[] | null;
+    contentAngles?: string[] | null;
+  };
   qualityThresholds?: {
-    crossDomainBlock?: number | null
-    crossDomainReview?: number | null
-    sameSiteTitleBlock?: number | null
-    overallMinimum?: number | null
-    dimensionMinimum?: number | null
-  }
+    crossDomainBlock?: number | null;
+    crossDomainReview?: number | null;
+    sameSiteTitleBlock?: number | null;
+    overallMinimum?: number | null;
+    dimensionMinimum?: number | null;
+  };
   seoDefaults?: {
-    titleSuffix?: string | null
-    defaultDescription?: string | null
-  }
-  updatedAt: string
-  createdAt: string
+    titleSuffix?: string | null;
+    defaultDescription?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "domains".
  */
 export interface Domain {
-  id: number
-  hostname: string
-  site: number | Site
-  tenant: number | Tenant
-  role: "canonical" | "alias"
-  status: "active" | "disabled"
-  updatedAt: string
-  createdAt: string
+  id: number;
+  hostname: string;
+  site: number | Site;
+  tenant: number | Tenant;
+  role: 'canonical' | 'alias';
+  status: 'active' | 'disabled';
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "contents".
  */
 export interface Content {
-  id: number
-  topic: string
-  intent: string
-  tenant: number | Tenant
-  createdBy: "ai" | "human" | "hybrid"
-  updatedAt: string
-  createdAt: string
+  id: number;
+  topic: string;
+  intent: string;
+  tenant: number | Tenant;
+  createdBy: 'ai' | 'human' | 'hybrid';
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "content-editions".
  */
 export interface ContentEdition {
-  id: number
-  content: number | Content
-  site: number | Site
-  tenant: number | Tenant
-  angle: string
-  title: string
-  summary: string
+  id: number;
+  content: number | Content;
+  site: number | Site;
+  tenant: number | Tenant;
+  angle: string;
+  title: string;
+  summary: string;
   body: (
     | {
-        text: string
+        text: string;
         extensions?:
           | {
-              [k: string]: unknown
+              [k: string]: unknown;
             }
           | unknown[]
           | string
           | number
           | boolean
-          | null
-        id?: string | null
-        blockName?: string | null
-        blockType: "paragraph"
+          | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'paragraph';
       }
     | {
-        level: "2" | "3" | "4" | "5" | "6"
-        text: string
+        level: '2' | '3' | '4' | '5' | '6';
+        text: string;
         extensions?:
           | {
-              [k: string]: unknown
+              [k: string]: unknown;
             }
           | unknown[]
           | string
           | number
           | boolean
-          | null
-        id?: string | null
-        blockName?: string | null
-        blockType: "heading"
+          | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'heading';
       }
     | {
-        src: string
-        alt: string
-        caption?: string | null
-        width?: number | null
-        height?: number | null
+        src: string;
+        alt: string;
+        caption?: string | null;
+        width?: number | null;
+        height?: number | null;
         extensions?:
           | {
-              [k: string]: unknown
+              [k: string]: unknown;
             }
           | unknown[]
           | string
           | number
           | boolean
-          | null
-        id?: string | null
-        blockName?: string | null
-        blockType: "image"
+          | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'image';
       }
     | {
-        text: string
-        attribution?: string | null
-        citeUrl?: string | null
+        text: string;
+        attribution?: string | null;
+        citeUrl?: string | null;
         extensions?:
           | {
-              [k: string]: unknown
+              [k: string]: unknown;
             }
           | unknown[]
           | string
           | number
           | boolean
-          | null
-        id?: string | null
-        blockName?: string | null
-        blockType: "quote"
+          | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'quote';
       }
     | {
-        style: "ordered" | "unordered"
+        style: 'ordered' | 'unordered';
         items: {
-          text: string
-          id?: string | null
-        }[]
+          text: string;
+          id?: string | null;
+        }[];
         extensions?:
           | {
-              [k: string]: unknown
+              [k: string]: unknown;
             }
           | unknown[]
           | string
           | number
           | boolean
-          | null
-        id?: string | null
-        blockName?: string | null
-        blockType: "list"
+          | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'list';
       }
     | {
         columns: {
-          text: string
-          id?: string | null
-        }[]
+          text: string;
+          id?: string | null;
+        }[];
         rows: {
           cells: {
-            text: string
-            id?: string | null
-          }[]
-          id?: string | null
-        }[]
-        caption?: string | null
+            text: string;
+            id?: string | null;
+          }[];
+          id?: string | null;
+        }[];
+        caption?: string | null;
         extensions?:
           | {
-              [k: string]: unknown
+              [k: string]: unknown;
             }
           | unknown[]
           | string
           | number
           | boolean
-          | null
-        id?: string | null
-        blockName?: string | null
-        blockType: "table"
+          | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'table';
       }
     | {
         items: {
-          question: string
-          answer: string
-          id?: string | null
-        }[]
+          question: string;
+          answer: string;
+          id?: string | null;
+        }[];
         extensions?:
           | {
-              [k: string]: unknown
+              [k: string]: unknown;
             }
           | unknown[]
           | string
           | number
           | boolean
-          | null
-        id?: string | null
-        blockName?: string | null
-        blockType: "faq"
+          | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'faq';
       }
     | {
-        tone: "info" | "success" | "warning" | "danger"
-        title?: string | null
-        text: string
+        tone: 'info' | 'success' | 'warning' | 'danger';
+        title?: string | null;
+        text: string;
         extensions?:
           | {
-              [k: string]: unknown
+              [k: string]: unknown;
             }
           | unknown[]
           | string
           | number
           | boolean
-          | null
-        id?: string | null
-        blockName?: string | null
-        blockType: "callout"
+          | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'callout';
       }
     | {
-        language: string
-        code: string
-        caption?: string | null
+        language: string;
+        code: string;
+        caption?: string | null;
         extensions?:
           | {
-              [k: string]: unknown
+              [k: string]: unknown;
             }
           | unknown[]
           | string
           | number
           | boolean
-          | null
-        id?: string | null
-        blockName?: string | null
-        blockType: "code"
+          | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'code';
       }
     | {
-        src: string
-        title: string
-        poster?: string | null
-        transcript?: string | null
+        src: string;
+        title: string;
+        poster?: string | null;
+        transcript?: string | null;
         extensions?:
           | {
-              [k: string]: unknown
+              [k: string]: unknown;
             }
           | unknown[]
           | string
           | number
           | boolean
-          | null
-        id?: string | null
-        blockName?: string | null
-        blockType: "video"
+          | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'video';
       }
     | {
-        provider: string
-        url: string
-        title: string
+        provider: string;
+        url: string;
+        title: string;
         extensions?:
           | {
-              [k: string]: unknown
+              [k: string]: unknown;
             }
           | unknown[]
           | string
           | number
           | boolean
-          | null
-        id?: string | null
-        blockName?: string | null
-        blockType: "embed"
+          | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'embed';
       }
     | {
         items: {
-          citationId: string
-          label: string
-          id?: string | null
-        }[]
+          citationId: string;
+          label: string;
+          id?: string | null;
+        }[];
         extensions?:
           | {
-              [k: string]: unknown
+              [k: string]: unknown;
             }
           | unknown[]
           | string
           | number
           | boolean
-          | null
-        id?: string | null
-        blockName?: string | null
-        blockType: "references"
+          | null;
+        id?: string | null;
+        blockName?: string | null;
+        blockType: 'references';
       }
-  )[]
-  primaryTopic: string
-  secondaryTopics?: string[] | null
+  )[];
+  primaryTopic: string;
+  secondaryTopics?: string[] | null;
   citations?:
     | {
-        [k: string]: unknown
+        [k: string]: unknown;
       }
     | unknown[]
     | string
     | number
     | boolean
-    | null
+    | null;
   entities?:
     | {
-        [k: string]: unknown
+        [k: string]: unknown;
       }
     | unknown[]
     | string
     | number
     | boolean
-    | null
-  creationOrigin: "ai" | "human" | "hybrid"
+    | null;
+  creationOrigin: 'ai' | 'human' | 'hybrid';
   /**
    * Owned by the edition workflow service
    */
-  workflowStatus?:
-    | ("draft" | "generating" | "review" | "approved" | "compiled" | "published" | "archived")
-    | null
-  workflowRevision?: number | null
-  compiledRelease?: string | null
+  workflowStatus?: ('draft' | 'generating' | 'review' | 'approved' | 'compiled' | 'published' | 'archived') | null;
+  workflowRevision?: number | null;
+  compiledRelease?: string | null;
   auditLog?:
     | {
-        [k: string]: unknown
+        [k: string]: unknown;
       }
     | unknown[]
     | string
     | number
     | boolean
-    | null
-  updatedAt: string
-  createdAt: string
-  _status?: ("draft" | "published") | null
+    | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media".
  */
 export interface Media {
-  id: number
-  tenant: number | Tenant
-  mediaPath?: string | null
-  alt: string
-  caption?: string | null
-  prefix?: string | null
-  updatedAt: string
-  createdAt: string
-  url?: string | null
-  thumbnailURL?: string | null
-  filename?: string | null
-  mimeType?: string | null
-  filesize?: number | null
-  width?: number | null
-  height?: number | null
-  focalX?: number | null
-  focalY?: number | null
+  id: number;
+  tenant: number | Tenant;
+  mediaPath?: string | null;
+  alt: string;
+  caption?: string | null;
+  prefix?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "url-records".
  */
 export interface UrlRecord {
-  id: number
-  site: number | Site
-  tenant: number | Tenant
-  content: number | Content
-  locale: string
-  pathname: string
-  uniqueKey: string
-  state: "reserved" | "active" | "redirected" | "gone"
-  canonicalUrl?: string | null
-  statusCode?: number | null
-  targetUrl?: (number | null) | UrlRecord
-  revision: number
+  id: number;
+  site: number | Site;
+  tenant: number | Tenant;
+  content: number | Content;
+  locale: string;
+  pathname: string;
+  uniqueKey: string;
+  state: 'reserved' | 'active' | 'redirected' | 'gone';
+  canonicalUrl?: string | null;
+  statusCode?: number | null;
+  targetUrl?: (number | null) | UrlRecord;
+  revision: number;
   audit?:
     | {
-        [k: string]: unknown
+        [k: string]: unknown;
       }
     | unknown[]
     | string
     | number
     | boolean
-    | null
-  updatedAt: string
-  createdAt: string
+    | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "quality-assessments".
  */
 export interface QualityAssessment {
-  id: number
-  edition: number | ContentEdition
-  site: number | Site
-  tenant: number | Tenant
-  state: "pending" | "running" | "passed" | "failed" | "error"
-  inputHash: string
+  id: number;
+  edition: number | ContentEdition;
+  site: number | Site;
+  tenant: number | Tenant;
+  state: 'pending' | 'running' | 'passed' | 'failed' | 'error';
+  inputHash: string;
   issues:
     | {
-        [k: string]: unknown
+        [k: string]: unknown;
       }
     | unknown[]
     | string
     | number
     | boolean
-    | null
-  overall?: number | null
+    | null;
+  overall?: number | null;
   dimensions?:
     | {
-        [k: string]: unknown
+        [k: string]: unknown;
       }
     | unknown[]
     | string
     | number
     | boolean
-    | null
-  modelId: string
-  promptVersion: string
-  provider: string
-  thresholdsHash: string
-  updatedAt: string
-  createdAt: string
+    | null;
+  modelId: string;
+  promptVersion: string;
+  provider: string;
+  thresholdsHash: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "releases".
+ */
+export interface Release {
+  id: number;
+  releaseId: string;
+  manifestSha256: string;
+  runtimeSiteId: string;
+  tenant: number | Tenant;
+  site: number | Site;
+  state: 'building' | 'validated' | 'uploaded' | 'current' | 'superseded' | 'rolled_back' | 'failed';
+  revision: number;
+  operationId?: string | null;
+  receipt?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  auditLog?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "rollback-intents".
+ */
+export interface RollbackIntent {
+  id: number;
+  intentId: string;
+  tenant: number | Tenant;
+  site: number | Site;
+  runtimeSiteId: string;
+  targetReleaseId: string;
+  expectedManifestSha256: string;
+  expectedCurrentReleaseId: string;
+  expectedCurrentManifestSha256: string;
+  fromReleaseId: string;
+  fromManifestSha256: string;
+  reason?: string | null;
+  approvedBy:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  operationId?: string | null;
+  consumedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "outbox-events".
  */
 export interface OutboxEvent {
-  id: number
-  eventId: string
+  id: number;
+  eventId: string;
   type:
-    | "edition.transitioned"
-    | "edition.draft-written"
-    | "assessment.recorded"
-    | "edition.compile-recorded"
-    | "publish.requested"
-  aggregateType: "edition"
-  aggregateId: number
-  tenant: number | Tenant
+    | 'edition.transitioned'
+    | 'edition.draft-written'
+    | 'assessment.recorded'
+    | 'edition.compile-recorded'
+    | 'publish.requested';
+  aggregateType: 'edition';
+  aggregateId: number;
+  tenant: number | Tenant;
   eventPayload:
     | {
-        [k: string]: unknown
+        [k: string]: unknown;
       }
     | unknown[]
     | string
     | number
     | boolean
-    | null
-  operationId?: string | null
-  requestId?: string | null
-  status: "pending" | "dispatched"
-  attempts?: number | null
-  lastError?: string | null
-  dispatchedAt?: string | null
-  updatedAt: string
-  createdAt: string
+    | null;
+  operationId?: string | null;
+  requestId?: string | null;
+  status: 'pending' | 'dispatched';
+  attempts?: number | null;
+  lastError?: string | null;
+  dispatchedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "operations".
  */
 export interface Operation {
-  id: number
-  operationId: string
-  tenant: number | Tenant
-  site?: (number | null) | Site
-  operationType: "generate" | "evaluate" | "publish" | "rollback"
-  endpoint: string
-  idempotencyKeyHash?: string | null
+  id: number;
+  operationId: string;
+  tenant: number | Tenant;
+  site?: (number | null) | Site;
+  operationType: 'generate' | 'evaluate' | 'publish' | 'rollback';
+  endpoint: string;
+  idempotencyKeyHash?: string | null;
   /**
    * Owned by the operations-ledger service
    */
-  state: "queued" | "running" | "succeeded" | "failed" | "cancelled"
-  attempt?: number | null
-  revision?: number | null
-  currentStage?: string | null
-  lastStageAt?: string | null
+  state: 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled';
+  attempt?: number | null;
+  revision?: number | null;
+  currentStage?: string | null;
+  lastStageAt?: string | null;
   targetIds?:
     | {
-        [k: string]: unknown
+        [k: string]: unknown;
       }
     | unknown[]
     | string
     | number
     | boolean
-    | null
+    | null;
   requestPayload?:
     | {
-        [k: string]: unknown
+        [k: string]: unknown;
       }
     | unknown[]
     | string
     | number
     | boolean
-    | null
+    | null;
   result?:
     | {
-        [k: string]: unknown
+        [k: string]: unknown;
       }
     | unknown[]
     | string
     | number
     | boolean
-    | null
+    | null;
   error?:
     | {
-        [k: string]: unknown
+        [k: string]: unknown;
       }
     | unknown[]
     | string
     | number
     | boolean
-    | null
-  providerVersion?: string | null
-  promptVersion?: string | null
-  modelId?: string | null
+    | null;
+  providerVersion?: string | null;
+  promptVersion?: string | null;
+  modelId?: string | null;
   auditLog?:
     | {
-        [k: string]: unknown
+        [k: string]: unknown;
       }
     | unknown[]
     | string
     | number
     | boolean
-    | null
-  updatedAt: string
-  createdAt: string
+    | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "idempotency-records".
  */
 export interface IdempotencyRecord {
-  id: number
-  uniqueKey: string
-  tenant: number | Tenant
-  endpoint: string
-  idempotencyKey: string
-  requestHash: string
-  operationId: string
-  replayCount?: number | null
-  updatedAt: string
-  createdAt: string
+  id: number;
+  uniqueKey: string;
+  tenant: number | Tenant;
+  endpoint: string;
+  idempotencyKey: string;
+  requestHash: string;
+  operationId: string;
+  replayCount?: number | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
-  id: number
-  key: string
+  id: number;
+  key: string;
   data:
     | {
-        [k: string]: unknown
+        [k: string]: unknown;
       }
     | unknown[]
     | string
     | number
     | boolean
-    | null
+    | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents".
  */
 export interface PayloadLockedDocument {
-  id: number
+  id: number;
   document?:
     | ({
-        relationTo: "tenants"
-        value: number | Tenant
+        relationTo: 'tenants';
+        value: number | Tenant;
       } | null)
     | ({
-        relationTo: "users"
-        value: number | User
+        relationTo: 'users';
+        value: number | User;
       } | null)
     | ({
-        relationTo: "sites"
-        value: number | Site
+        relationTo: 'sites';
+        value: number | Site;
       } | null)
     | ({
-        relationTo: "domains"
-        value: number | Domain
+        relationTo: 'domains';
+        value: number | Domain;
       } | null)
     | ({
-        relationTo: "contents"
-        value: number | Content
+        relationTo: 'contents';
+        value: number | Content;
       } | null)
     | ({
-        relationTo: "content-editions"
-        value: number | ContentEdition
+        relationTo: 'content-editions';
+        value: number | ContentEdition;
       } | null)
     | ({
-        relationTo: "media"
-        value: number | Media
+        relationTo: 'media';
+        value: number | Media;
       } | null)
     | ({
-        relationTo: "url-records"
-        value: number | UrlRecord
+        relationTo: 'url-records';
+        value: number | UrlRecord;
       } | null)
     | ({
-        relationTo: "quality-assessments"
-        value: number | QualityAssessment
+        relationTo: 'quality-assessments';
+        value: number | QualityAssessment;
       } | null)
     | ({
-        relationTo: "outbox-events"
-        value: number | OutboxEvent
+        relationTo: 'releases';
+        value: number | Release;
       } | null)
     | ({
-        relationTo: "operations"
-        value: number | Operation
+        relationTo: 'rollback-intents';
+        value: number | RollbackIntent;
       } | null)
     | ({
-        relationTo: "idempotency-records"
-        value: number | IdempotencyRecord
+        relationTo: 'outbox-events';
+        value: number | OutboxEvent;
       } | null)
-  globalSlug?: string | null
+    | ({
+        relationTo: 'operations';
+        value: number | Operation;
+      } | null)
+    | ({
+        relationTo: 'idempotency-records';
+        value: number | IdempotencyRecord;
+      } | null);
+  globalSlug?: string | null;
   user: {
-    relationTo: "users"
-    value: number | User
-  }
-  updatedAt: string
-  createdAt: string
+    relationTo: 'users';
+    value: number | User;
+  };
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-preferences".
  */
 export interface PayloadPreference {
-  id: number
+  id: number;
   user: {
-    relationTo: "users"
-    value: number | User
-  }
-  key?: string | null
+    relationTo: 'users';
+    value: number | User;
+  };
+  key?: string | null;
   value?:
     | {
-        [k: string]: unknown
+        [k: string]: unknown;
       }
     | unknown[]
     | string
     | number
     | boolean
-    | null
-  updatedAt: string
-  createdAt: string
+    | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-migrations".
  */
 export interface PayloadMigration {
-  id: number
-  name?: string | null
-  batch?: number | null
-  updatedAt: string
-  createdAt: string
+  id: number;
+  name?: string | null;
+  batch?: number | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "tenants_select".
  */
 export interface TenantsSelect<T extends boolean = true> {
-  name?: T
-  updatedAt?: T
-  createdAt?: T
+  name?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
-  role?: T
-  tenant?: T
-  updatedAt?: T
-  createdAt?: T
-  enableAPIKey?: T
-  apiKey?: T
-  apiKeyIndex?: T
-  email?: T
-  resetPasswordToken?: T
-  resetPasswordExpiration?: T
-  salt?: T
-  hash?: T
-  loginAttempts?: T
-  lockUntil?: T
+  role?: T;
+  tenant?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  enableAPIKey?: T;
+  apiKey?: T;
+  apiKeyIndex?: T;
+  email?: T;
+  resetPasswordToken?: T;
+  resetPasswordExpiration?: T;
+  salt?: T;
+  hash?: T;
+  loginAttempts?: T;
+  lockUntil?: T;
   sessions?:
     | T
     | {
-        id?: T
-        createdAt?: T
-        expiresAt?: T
-      }
+        id?: T;
+        createdAt?: T;
+        expiresAt?: T;
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "sites_select".
  */
 export interface SitesSelect<T extends boolean = true> {
-  name?: T
-  tenant?: T
-  locale?: T
-  timezone?: T
-  status?: T
+  name?: T;
+  tenant?: T;
+  locale?: T;
+  timezone?: T;
+  status?: T;
   contentStrategy?:
     | T
     | {
-        positioning?: T
-        tone?: T
-        language?: T
-        targetAudience?: T
-        expertise?: T
-        preferredTopics?: T
-        prohibitedTopics?: T
-        contentAngles?: T
-      }
+        positioning?: T;
+        tone?: T;
+        language?: T;
+        targetAudience?: T;
+        expertise?: T;
+        preferredTopics?: T;
+        prohibitedTopics?: T;
+        contentAngles?: T;
+      };
   qualityThresholds?:
     | T
     | {
-        crossDomainBlock?: T
-        crossDomainReview?: T
-        sameSiteTitleBlock?: T
-        overallMinimum?: T
-        dimensionMinimum?: T
-      }
+        crossDomainBlock?: T;
+        crossDomainReview?: T;
+        sameSiteTitleBlock?: T;
+        overallMinimum?: T;
+        dimensionMinimum?: T;
+      };
   seoDefaults?:
     | T
     | {
-        titleSuffix?: T
-        defaultDescription?: T
-      }
-  updatedAt?: T
-  createdAt?: T
+        titleSuffix?: T;
+        defaultDescription?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "domains_select".
  */
 export interface DomainsSelect<T extends boolean = true> {
-  hostname?: T
-  site?: T
-  tenant?: T
-  role?: T
-  status?: T
-  updatedAt?: T
-  createdAt?: T
+  hostname?: T;
+  site?: T;
+  tenant?: T;
+  role?: T;
+  status?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "contents_select".
  */
 export interface ContentsSelect<T extends boolean = true> {
-  topic?: T
-  intent?: T
-  tenant?: T
-  createdBy?: T
-  updatedAt?: T
-  createdAt?: T
+  topic?: T;
+  intent?: T;
+  tenant?: T;
+  createdBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "content-editions_select".
  */
 export interface ContentEditionsSelect<T extends boolean = true> {
-  content?: T
-  site?: T
-  tenant?: T
-  angle?: T
-  title?: T
-  summary?: T
+  content?: T;
+  site?: T;
+  tenant?: T;
+  angle?: T;
+  title?: T;
+  summary?: T;
   body?:
     | T
     | {
         paragraph?:
           | T
           | {
-              text?: T
-              extensions?: T
-              id?: T
-              blockName?: T
-            }
+              text?: T;
+              extensions?: T;
+              id?: T;
+              blockName?: T;
+            };
         heading?:
           | T
           | {
-              level?: T
-              text?: T
-              extensions?: T
-              id?: T
-              blockName?: T
-            }
+              level?: T;
+              text?: T;
+              extensions?: T;
+              id?: T;
+              blockName?: T;
+            };
         image?:
           | T
           | {
-              src?: T
-              alt?: T
-              caption?: T
-              width?: T
-              height?: T
-              extensions?: T
-              id?: T
-              blockName?: T
-            }
+              src?: T;
+              alt?: T;
+              caption?: T;
+              width?: T;
+              height?: T;
+              extensions?: T;
+              id?: T;
+              blockName?: T;
+            };
         quote?:
           | T
           | {
-              text?: T
-              attribution?: T
-              citeUrl?: T
-              extensions?: T
-              id?: T
-              blockName?: T
-            }
+              text?: T;
+              attribution?: T;
+              citeUrl?: T;
+              extensions?: T;
+              id?: T;
+              blockName?: T;
+            };
         list?:
           | T
           | {
-              style?: T
+              style?: T;
               items?:
                 | T
                 | {
-                    text?: T
-                    id?: T
-                  }
-              extensions?: T
-              id?: T
-              blockName?: T
-            }
+                    text?: T;
+                    id?: T;
+                  };
+              extensions?: T;
+              id?: T;
+              blockName?: T;
+            };
         table?:
           | T
           | {
               columns?:
                 | T
                 | {
-                    text?: T
-                    id?: T
-                  }
+                    text?: T;
+                    id?: T;
+                  };
               rows?:
                 | T
                 | {
                     cells?:
                       | T
                       | {
-                          text?: T
-                          id?: T
-                        }
-                    id?: T
-                  }
-              caption?: T
-              extensions?: T
-              id?: T
-              blockName?: T
-            }
+                          text?: T;
+                          id?: T;
+                        };
+                    id?: T;
+                  };
+              caption?: T;
+              extensions?: T;
+              id?: T;
+              blockName?: T;
+            };
         faq?:
           | T
           | {
               items?:
                 | T
                 | {
-                    question?: T
-                    answer?: T
-                    id?: T
-                  }
-              extensions?: T
-              id?: T
-              blockName?: T
-            }
+                    question?: T;
+                    answer?: T;
+                    id?: T;
+                  };
+              extensions?: T;
+              id?: T;
+              blockName?: T;
+            };
         callout?:
           | T
           | {
-              tone?: T
-              title?: T
-              text?: T
-              extensions?: T
-              id?: T
-              blockName?: T
-            }
+              tone?: T;
+              title?: T;
+              text?: T;
+              extensions?: T;
+              id?: T;
+              blockName?: T;
+            };
         code?:
           | T
           | {
-              language?: T
-              code?: T
-              caption?: T
-              extensions?: T
-              id?: T
-              blockName?: T
-            }
+              language?: T;
+              code?: T;
+              caption?: T;
+              extensions?: T;
+              id?: T;
+              blockName?: T;
+            };
         video?:
           | T
           | {
-              src?: T
-              title?: T
-              poster?: T
-              transcript?: T
-              extensions?: T
-              id?: T
-              blockName?: T
-            }
+              src?: T;
+              title?: T;
+              poster?: T;
+              transcript?: T;
+              extensions?: T;
+              id?: T;
+              blockName?: T;
+            };
         embed?:
           | T
           | {
-              provider?: T
-              url?: T
-              title?: T
-              extensions?: T
-              id?: T
-              blockName?: T
-            }
+              provider?: T;
+              url?: T;
+              title?: T;
+              extensions?: T;
+              id?: T;
+              blockName?: T;
+            };
         references?:
           | T
           | {
               items?:
                 | T
                 | {
-                    citationId?: T
-                    label?: T
-                    id?: T
-                  }
-              extensions?: T
-              id?: T
-              blockName?: T
-            }
-      }
-  primaryTopic?: T
-  secondaryTopics?: T
-  citations?: T
-  entities?: T
-  creationOrigin?: T
-  workflowStatus?: T
-  workflowRevision?: T
-  compiledRelease?: T
-  auditLog?: T
-  updatedAt?: T
-  createdAt?: T
-  _status?: T
+                    citationId?: T;
+                    label?: T;
+                    id?: T;
+                  };
+              extensions?: T;
+              id?: T;
+              blockName?: T;
+            };
+      };
+  primaryTopic?: T;
+  secondaryTopics?: T;
+  citations?: T;
+  entities?: T;
+  creationOrigin?: T;
+  workflowStatus?: T;
+  workflowRevision?: T;
+  compiledRelease?: T;
+  auditLog?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media_select".
  */
 export interface MediaSelect<T extends boolean = true> {
-  tenant?: T
-  mediaPath?: T
-  alt?: T
-  caption?: T
-  prefix?: T
-  updatedAt?: T
-  createdAt?: T
-  url?: T
-  thumbnailURL?: T
-  filename?: T
-  mimeType?: T
-  filesize?: T
-  width?: T
-  height?: T
-  focalX?: T
-  focalY?: T
+  tenant?: T;
+  mediaPath?: T;
+  alt?: T;
+  caption?: T;
+  prefix?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "url-records_select".
  */
 export interface UrlRecordsSelect<T extends boolean = true> {
-  site?: T
-  tenant?: T
-  content?: T
-  locale?: T
-  pathname?: T
-  uniqueKey?: T
-  state?: T
-  canonicalUrl?: T
-  statusCode?: T
-  targetUrl?: T
-  revision?: T
-  audit?: T
-  updatedAt?: T
-  createdAt?: T
+  site?: T;
+  tenant?: T;
+  content?: T;
+  locale?: T;
+  pathname?: T;
+  uniqueKey?: T;
+  state?: T;
+  canonicalUrl?: T;
+  statusCode?: T;
+  targetUrl?: T;
+  revision?: T;
+  audit?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "quality-assessments_select".
  */
 export interface QualityAssessmentsSelect<T extends boolean = true> {
-  edition?: T
-  site?: T
-  tenant?: T
-  state?: T
-  inputHash?: T
-  issues?: T
-  overall?: T
-  dimensions?: T
-  modelId?: T
-  promptVersion?: T
-  provider?: T
-  thresholdsHash?: T
-  updatedAt?: T
-  createdAt?: T
+  edition?: T;
+  site?: T;
+  tenant?: T;
+  state?: T;
+  inputHash?: T;
+  issues?: T;
+  overall?: T;
+  dimensions?: T;
+  modelId?: T;
+  promptVersion?: T;
+  provider?: T;
+  thresholdsHash?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "releases_select".
+ */
+export interface ReleasesSelect<T extends boolean = true> {
+  releaseId?: T;
+  manifestSha256?: T;
+  runtimeSiteId?: T;
+  tenant?: T;
+  site?: T;
+  state?: T;
+  revision?: T;
+  operationId?: T;
+  receipt?: T;
+  auditLog?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "rollback-intents_select".
+ */
+export interface RollbackIntentsSelect<T extends boolean = true> {
+  intentId?: T;
+  tenant?: T;
+  site?: T;
+  runtimeSiteId?: T;
+  targetReleaseId?: T;
+  expectedManifestSha256?: T;
+  expectedCurrentReleaseId?: T;
+  expectedCurrentManifestSha256?: T;
+  fromReleaseId?: T;
+  fromManifestSha256?: T;
+  reason?: T;
+  approvedBy?: T;
+  operationId?: T;
+  consumedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "outbox-events_select".
  */
 export interface OutboxEventsSelect<T extends boolean = true> {
-  eventId?: T
-  type?: T
-  aggregateType?: T
-  aggregateId?: T
-  tenant?: T
-  eventPayload?: T
-  operationId?: T
-  requestId?: T
-  status?: T
-  attempts?: T
-  lastError?: T
-  dispatchedAt?: T
-  updatedAt?: T
-  createdAt?: T
+  eventId?: T;
+  type?: T;
+  aggregateType?: T;
+  aggregateId?: T;
+  tenant?: T;
+  eventPayload?: T;
+  operationId?: T;
+  requestId?: T;
+  status?: T;
+  attempts?: T;
+  lastError?: T;
+  dispatchedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "operations_select".
  */
 export interface OperationsSelect<T extends boolean = true> {
-  operationId?: T
-  tenant?: T
-  site?: T
-  operationType?: T
-  endpoint?: T
-  idempotencyKeyHash?: T
-  state?: T
-  attempt?: T
-  revision?: T
-  currentStage?: T
-  lastStageAt?: T
-  targetIds?: T
-  requestPayload?: T
-  result?: T
-  error?: T
-  providerVersion?: T
-  promptVersion?: T
-  modelId?: T
-  auditLog?: T
-  updatedAt?: T
-  createdAt?: T
+  operationId?: T;
+  tenant?: T;
+  site?: T;
+  operationType?: T;
+  endpoint?: T;
+  idempotencyKeyHash?: T;
+  state?: T;
+  attempt?: T;
+  revision?: T;
+  currentStage?: T;
+  lastStageAt?: T;
+  targetIds?: T;
+  requestPayload?: T;
+  result?: T;
+  error?: T;
+  providerVersion?: T;
+  promptVersion?: T;
+  modelId?: T;
+  auditLog?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "idempotency-records_select".
  */
 export interface IdempotencyRecordsSelect<T extends boolean = true> {
-  uniqueKey?: T
-  tenant?: T
-  endpoint?: T
-  idempotencyKey?: T
-  requestHash?: T
-  operationId?: T
-  replayCount?: T
-  updatedAt?: T
-  createdAt?: T
+  uniqueKey?: T;
+  tenant?: T;
+  endpoint?: T;
+  idempotencyKey?: T;
+  requestHash?: T;
+  operationId?: T;
+  replayCount?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv_select".
  */
 export interface PayloadKvSelect<T extends boolean = true> {
-  key?: T
-  data?: T
+  key?: T;
+  data?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents_select".
  */
 export interface PayloadLockedDocumentsSelect<T extends boolean = true> {
-  document?: T
-  globalSlug?: T
-  user?: T
-  updatedAt?: T
-  createdAt?: T
+  document?: T;
+  globalSlug?: T;
+  user?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-preferences_select".
  */
 export interface PayloadPreferencesSelect<T extends boolean = true> {
-  user?: T
-  key?: T
-  value?: T
-  updatedAt?: T
-  createdAt?: T
+  user?: T;
+  key?: T;
+  value?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-migrations_select".
  */
 export interface PayloadMigrationsSelect<T extends boolean = true> {
-  name?: T
-  batch?: T
-  updatedAt?: T
-  createdAt?: T
+  name?: T;
+  batch?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1286,18 +1400,19 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
  */
 export interface CollectionsWidget {
   data?: {
-    [k: string]: unknown
-  }
-  width: "full"
+    [k: string]: unknown;
+  };
+  width: 'full';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "auth".
  */
 export interface Auth {
-  [k: string]: unknown
+  [k: string]: unknown;
 }
 
-declare module "payload" {
+
+declare module 'payload' {
   export interface GeneratedTypes extends Config {}
 }

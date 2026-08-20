@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs"
-
-import { sha256Hex, type LLMProvider } from "@geo/content-pipeline"
+import { rollbackRequestSchema } from "@geo/content-client"
+import { type LLMProvider, sha256Hex } from "@geo/content-pipeline"
+import { RollbackError, rollbackRelease, StalePointerEtagError } from "@geo/publisher"
+import { AuditActorSchema, CanonicalTimestampSchema } from "@geo/schema/release/v1"
 
 import { operationProcessor } from "./operation-processor.js"
 import {
@@ -9,7 +11,7 @@ import {
   parseWorkerS3Options,
   publishPlannedRelease,
 } from "./release-pipeline.js"
-import { TerminalJobError, type ProcessorContext } from "./types.js"
+import { type ProcessorContext, TerminalJobError } from "./types.js"
 
 const editionIdOfJob = (payload: Record<string, unknown> | undefined): number => {
   const raw = payload?.["editionId"]
@@ -56,6 +58,57 @@ export const createCompileTriggerProcessor = (context: ProcessorContext) =>
     },
   )
 
+export const createRollbackGateProcessor = (context: ProcessorContext) =>
+  operationProcessor(
+    { context },
+    {
+      stage: "rollback-gate",
+      work: async (_ctx, job) => {
+        const parsed = rollbackRequestSchema.safeParse(job.data.payload?.["body"])
+        if (!parsed.success) {
+          throw new TerminalJobError("ROLLBACK_PAYLOAD_INVALID", "rollback request body is invalid")
+        }
+        await context.client.consumeRollbackIntent({
+          expectedCurrentManifestSha256: parsed.data.expectedCurrentManifestSha256,
+          expectedCurrentReleaseId: parsed.data.expectedCurrentReleaseId,
+          expectedManifestSha256: parsed.data.expectedManifestSha256,
+          operationId: job.data.operationId,
+          rollbackIntentId: parsed.data.rollbackIntentId,
+          runtimeSiteId: parsed.data.siteId,
+          targetReleaseId: parsed.data.targetReleaseId,
+        })
+        const store = createWorkerArtifactStore(
+          parseWorkerS3Options(process.env, (path) => readFileSync(path, "utf8").trim()),
+        )
+        try {
+          const receipt = await rollbackRelease({
+            actor: AuditActorSchema.parse({
+              actorId: "worker-publisher",
+              kind: "service",
+            }),
+            expectedCurrentManifestSha256: parsed.data.expectedCurrentManifestSha256,
+            expectedCurrentReleaseId: parsed.data.expectedCurrentReleaseId,
+            expectedManifestSha256: parsed.data.expectedManifestSha256,
+            recordedAt: CanonicalTimestampSchema.parse(new Date().toISOString()),
+            releaseId: parsed.data.targetReleaseId,
+            siteId: parsed.data.siteId,
+            store,
+          })
+          await context.client.recordRollbackReceipt({
+            operationId: job.data.operationId,
+            receipt: receipt.receipt,
+          })
+          return { kind: "succeeded" as const, result: { receipt: receipt.receipt } }
+        } catch (error) {
+          if (error instanceof RollbackError || error instanceof StalePointerEtagError) {
+            throw new TerminalJobError(error.code, error.message)
+          }
+          throw error
+        }
+      },
+    },
+  )
+
 export const createPublishGateProcessor = (context: ProcessorContext) =>
   operationProcessor(
     { context },
@@ -70,7 +123,12 @@ export const createPublishGateProcessor = (context: ProcessorContext) =>
         const store = createWorkerArtifactStore(
           parseWorkerS3Options(process.env, (path) => readFileSync(path, "utf8").trim()),
         )
-        const receipt = await publishPlannedRelease(context, { editionId, planned, store })
+        const receipt = await publishPlannedRelease(context, {
+          editionId,
+          operationId: job.data.operationId,
+          planned,
+          store,
+        })
         return {
           kind: "succeeded" as const,
           result: {

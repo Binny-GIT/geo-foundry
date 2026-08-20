@@ -12,10 +12,11 @@ import {
   createCompileTriggerProcessor,
   createEmbeddingProcessor,
   createPublishGateProcessor,
+  createRollbackGateProcessor,
 } from "./processors/triggers.js"
 import type { WorkerLogEvent } from "./processors/types.js"
-import { reconcileNonTerminalOperations } from "./reconcile/reconcile.js"
 import { QUEUE_NAME, QUEUE_PREFIX } from "./queues/flows.js"
+import { reconcileNonTerminalOperations } from "./reconcile/reconcile.js"
 import { createWorkerRuntime } from "./runtime/worker-runtime.js"
 
 /**
@@ -33,12 +34,15 @@ export const main = async (): Promise<void> => {
   })
   const provider = createFakeProvider()
   const context = { client, logger }
+  const publish = createPublishGateProcessor(context)
+  const rollback = createRollbackGateProcessor(context)
   const processors = {
     compile: createCompileTriggerProcessor(context),
     embedding: createEmbeddingProcessor(context, provider),
     evaluation: createEvaluationProcessor(context, provider),
     generation: createGenerationProcessor(context, provider),
-    publish: createPublishGateProcessor(context),
+    publish: async (job: Parameters<typeof publish>[0]) =>
+      job.name === "rollback-gate" ? rollback(job) : publish(job),
   }
   const connection = parseWorkerRedisOptions(process.env)
   const runtime = createWorkerRuntime({ connection, context, logger, processors })
