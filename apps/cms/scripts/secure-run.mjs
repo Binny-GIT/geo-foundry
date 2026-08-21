@@ -42,7 +42,7 @@ const permittedCommand = (argumentsList) => {
   const [binary, action] = argumentsList
   return (
     (binary === "next" && (action === "dev" || action === "start")) ||
-    (binary === "node" && action === "scripts/reset-integration-database.mjs") ||
+    (binary === "node" && (action === "scripts/reset-integration-database.mjs" || action === "scripts/mvp-seed.mjs")) ||
     (binary === "payload" && (action === "migrate" || action === "migrate:status")) ||
     (binary === "vitest" && action === "run")
   )

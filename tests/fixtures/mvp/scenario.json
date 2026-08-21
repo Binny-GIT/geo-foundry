@@ -1,0 +1,60 @@
+{
+  "tenant": { "name": "geo-foundry-mvp" },
+  "sites": [
+    {
+      "key": "site-a",
+      "name": "Site A Engineering",
+      "canonicalDomain": "site-a.test",
+      "aliasDomain": "www.site-a.test",
+      "strategy": "technical-editorial",
+      "positioning": "Engineering deep-dive coverage for platform builders",
+      "tone": "precise-technical",
+      "theme": "technical"
+    },
+    {
+      "key": "site-b",
+      "name": "Site B Operations",
+      "canonicalDomain": "site-b.test",
+      "aliasDomain": "www.site-b.test",
+      "strategy": "operations-business",
+      "positioning": "Operational readiness reporting for service owners",
+      "tone": "business-report",
+      "theme": "operations"
+    }
+  ],
+  "users": {
+    "superAdmin": { "email": "mvp-boot@geo-foundry.test", "password": "mvp-bootstrap-260821", "role": "editor" },
+    "roles": [
+      { "key": "editor", "email": "mvp-editor@geo-foundry.test", "password": "mvp-editor-260821", "role": "editor" },
+      { "key": "reviewer", "email": "mvp-reviewer@geo-foundry.test", "password": "mvp-reviewer-260821", "role": "reviewer" },
+      { "key": "publisher", "email": "mvp-publisher@geo-foundry.test", "password": "mvp-publisher-260821", "role": "publisher" }
+    ]
+  },
+  "content": {
+    "topic": "Geo Foundry dual-site release workflow",
+    "intent": "Explain how two sites share one content source and publish immutable releases independently",
+    "researchBundle": [
+      { "id": "src-prd", "title": "Product requirements", "snippet": "Two sites share one content source and publish immutable releases.", "url": "https://site-a.test/sources/prd" },
+      { "id": "src-arch", "title": "Serving plane architecture", "snippet": "Runtime resolves published artifacts from object storage without the control plane.", "url": "https://site-a.test/sources/arch" }
+    ]
+  },
+  "editions": [
+    { "key": "edition-a", "siteKey": "site-a", "angle": "Engineering deep-dive", "pathname": "/articles/mvp-dual-site", "strategy": "technical-editorial" },
+    { "key": "edition-b", "siteKey": "site-b", "angle": "Operational readiness report", "pathname": "/articles/mvp-operations", "strategy": "operations-business" }
+  ],
+  "quality": {
+    "failingThresholds": { "overallMin": 99, "dimensionMin": 99 },
+    "passingThresholds": { "overallMin": 60, "dimensionMin": 60 }
+  },
+  "idempotencyKeys": {
+    "generate": "mvp.generate.v1",
+    "evaluateFailA": "mvp.evaluate.a.fail.v1",
+    "evaluateB": "mvp.evaluate.b.v1",
+    "evaluatePassA": "mvp.evaluate.a.pass.v1",
+    "publishV1A": "mvp.publish.a.v1.v1",
+    "publishV1B": "mvp.publish.b.v1.v1",
+    "publishV2A": "mvp.publish.a.v2.v1",
+    "rollbackA": "mvp.rollback.a.v1"
+  },
+  "releases": { "v1": "release-mvp-v1", "v2": "release-mvp-v2" }
+}
