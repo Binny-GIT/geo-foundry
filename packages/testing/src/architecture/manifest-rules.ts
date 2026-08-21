@@ -135,6 +135,13 @@ export function validateDependencyGraph(
       packageName: context.name,
     })
   }
+  if (context.name === "@geo/render-core" && JSON.stringify(allDependencies) !== '["@geo/schema"]') {
+    violations.push({
+      code: PACKAGE_BOUNDARY_VIOLATION_CODE.RENDER_CORE_DEPENDENCY_INVALID,
+      message: "@geo/render-core production dependency graph must contain only @geo/schema",
+      packageName: context.name,
+    })
+  }
   const renderReactPeers = readStringRecord(context.manifest["peerDependencies"])
   if (
     context.name === "@geo/render-react" &&
@@ -150,7 +157,11 @@ export function validateDependencyGraph(
       packageName: context.name,
     })
   }
-  if (context.name === "@geo/schema" || context.name === "@geo/runtime") {
+  if (
+    context.name === "@geo/schema" ||
+    context.name === "@geo/runtime" ||
+    context.name === "@geo/render-core"
+  ) {
     const forbiddenDependencies = allDependencies.filter(
       (dependency) => dependency === "react" || dependency === "react-dom",
     )
@@ -160,7 +171,7 @@ export function validateDependencyGraph(
     ) {
       violations.push({
         code: PACKAGE_BOUNDARY_VIOLATION_CODE.PLATFORM_DEPENDENCY_FORBIDDEN,
-        message: "Schema and runtime packages must not depend on React, ReactDOM, or DOM libraries",
+        message: "Schema, runtime, and render-core packages must not depend on React, ReactDOM, or DOM libraries",
         packageName: context.name,
       })
     }

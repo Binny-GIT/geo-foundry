@@ -1,9 +1,11 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "lib": ["ES2024", "WebWorker"],
     "noEmit": true,
-    "rootDir": "src",
-    "types": []
+    "rootDir": ".",
+    "skipLibCheck": true,
+    "types": ["vitest/globals"]
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "test/**/*.ts", "vitest.config.ts"]
 }

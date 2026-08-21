@@ -32,10 +32,16 @@ function documentFields(pageId: string, pathname: string, title: string) {
   }
 }
 
-const breadcrumbs = [
-  { title: "Home", pathname: "/" },
-  { title: "Guides", pathname: "/guides" },
-]
+const breadcrumbsFor = (pathname: string) => {
+  const segments = pathname.split("/").filter(Boolean)
+  return [
+    { title: "Home", pathname: "/" },
+    ...segments.slice(0, -1).map((segment, index) => ({
+      pathname: `/${segments.slice(0, index + 1).join("/")}`,
+      title: segment,
+    })),
+  ]
+}
 
 const relatedPage = {
   pageId: "page-related",
@@ -63,7 +69,6 @@ const contentFields = {
     },
   ],
   relatedPages: [relatedPage],
-  breadcrumbs,
   extensions: { "geo.example/editorial-score": 0.91 },
 }
 
@@ -71,6 +76,7 @@ export const articlePageFixture = ArticlePageSchema.parse({
   pageType: "article",
   ...documentFields("page-article", "/guides/article", "Article"),
   ...contentFields,
+  breadcrumbs: breadcrumbsFor("/guides/article"),
   structuredData: [
     {
       type: "Article",
@@ -86,6 +92,7 @@ export const articleListPageFixture = ArticleListPageSchema.parse({
   pageType: "article-list",
   ...documentFields("page-article-list", "/articles", "Article list"),
   ...contentFields,
+  breadcrumbs: breadcrumbsFor("/articles"),
   structuredData: [
     { type: "CollectionPage", name: "Article list", url: "https://site-a.test/articles" },
   ],
@@ -98,6 +105,7 @@ export const categoryPageFixture = CategoryPageSchema.parse({
   pageType: "category",
   ...documentFields("page-category", "/guides", "Guides"),
   ...contentFields,
+  breadcrumbs: breadcrumbsFor("/guides"),
   structuredData: [{ type: "CollectionPage", name: "Guides", url: "https://site-a.test/guides" }],
   body: [{ type: "paragraph", text: "Browse the guides category." }],
   items: [relatedPage],
@@ -107,6 +115,7 @@ export const tagPageFixture = TagPageSchema.parse({
   pageType: "tag",
   ...documentFields("page-tag", "/tags/contracts", "Contracts"),
   ...contentFields,
+  breadcrumbs: breadcrumbsFor("/tags/contracts"),
   structuredData: [
     { type: "CollectionPage", name: "Contracts", url: "https://site-a.test/tags/contracts" },
   ],
@@ -129,6 +138,7 @@ export const notFoundPageFixture = NotFoundPageSchema.parse({
   pageType: "not-found",
   ...documentFields("page-not-found", "/404", "Page not found"),
   ...contentFields,
+  breadcrumbs: breadcrumbsFor("/404"),
   seo: {
     title: "Page not found",
     description: "Page not found canonical fixture.",
