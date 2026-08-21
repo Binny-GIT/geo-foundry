@@ -154,6 +154,95 @@ describe("ReleaseManifest v1 规范契约", () => {
   })
 })
 
+describe("Routing 与 route index v1 严格契约", () => {
+  const routingManifest = {
+    hosts: [
+      { canonical: false, host: "www.site-a.test", siteId: "site-a" },
+      { canonical: true, host: "site-b.test", siteId: "site-b" },
+      { canonical: true, host: "site-a.test", siteId: "site-a" },
+    ],
+    schemaVersion: 1,
+  } as const
+
+  it("对无序路由清单生成稳定字节、哈希与站点映射", async () => {
+    const reordered = { ...routingManifest, hosts: [...routingManifest.hosts].reverse() }
+    const firstBytes = ReleaseV1.serializeRoutingManifest(routingManifest)
+    const secondBytes = ReleaseV1.serializeRoutingManifest(reordered)
+    const firstHash = await ReleaseV1.hashRoutingManifest(routingManifest)
+    const secondHash = await ReleaseV1.hashRoutingManifest(reordered)
+    const parsed = ReleaseV1.routingManifestOf(routingManifest)
+
+    expect(firstBytes).toEqual(secondBytes)
+    expect(firstHash).toBe(secondHash)
+    expect(parsed.hosts.map(({ host }) => host)).toEqual([
+      "site-a.test",
+      "site-b.test",
+      "www.site-a.test",
+    ])
+    expect(ReleaseV1.routingManifestSiteIdOfHost(parsed, "www.site-a.test" as never)?.siteId).toBe(
+      "site-a",
+    )
+  })
+
+  it("要求每个 routing 站点恰有一个 canonical 主机", () => {
+    const result = ReleaseV1.RoutingManifestSchema.safeParse({
+      hosts: [
+        { canonical: false, host: "site-a.test", siteId: "site-a" },
+        { canonical: false, host: "www.site-a.test", siteId: "site-a" },
+      ],
+      schemaVersion: 1,
+    })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues.some(({ message }) => message === "ROUTING_SITE_CANONICAL_MISSING")).toBe(
+        true,
+      )
+    }
+  })
+
+  it("规范化 route index 并拒绝重复路径或缺失 not-found", () => {
+    const index = ReleaseV1.routeIndexOf({
+      canonicalDomain: "site-a.test",
+      routes: [
+        { pathname: "/removed", status: "gone" },
+        {
+          objectKey: "pages/not-found.json",
+          pageType: "not-found",
+          pathname: "/not-found",
+          status: "not-found",
+        },
+        {
+          objectKey: "pages/article.json",
+          pageType: "article",
+          pathname: "/article",
+          status: "active",
+        },
+      ],
+      schemaVersion: 1,
+      siteId: "site-a",
+    })
+
+    expect(index.routes.map((route) => route.pathname)).toEqual(["/article", "/not-found", "/removed"])
+    expect(index.routes.find((route) => route.status === "gone")).toEqual({
+      pathname: "/removed",
+      status: "gone",
+    })
+    expect(
+      ReleaseV1.RouteIndexSchema.safeParse({
+        ...index,
+        routes: index.routes.filter((route) => route.status !== "not-found"),
+      }).success,
+    ).toBe(false)
+    expect(
+      ReleaseV1.RouteIndexSchema.safeParse({
+        ...index,
+        routes: [...index.routes, { pathname: "/article", status: "gone" }],
+      }).success,
+    ).toBe(false)
+  })
+})
+
 describe("CurrentPointer 与回执 v1 严格契约", () => {
   it("拒绝指向未验证发布的当前指针", () => {
     // Given：发布引用明确处于未验证状态。

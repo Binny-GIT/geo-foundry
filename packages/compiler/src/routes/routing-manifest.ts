@@ -1,16 +1,14 @@
+import {
+  routingManifestOf,
+  routingManifestSiteIdOfHost,
+  type RoutingManifest,
+  type RoutingManifestHost,
+} from "@geo/schema/release/v1"
+
 import { CompilerError, COMPILER_ERROR } from "../compile/errors.js"
 import { canonicalDomainOf } from "../seo/urls.js"
 
-export type RoutingManifestHost = {
-  readonly canonical: boolean
-  readonly host: string
-  readonly siteId: string
-}
-
-export type RoutingManifest = {
-  readonly hosts: readonly RoutingManifestHost[]
-  readonly schemaVersion: 1
-}
+export type { RoutingManifest, RoutingManifestHost }
 
 export type RoutingManifestSiteInput = {
   readonly canonicalDomain: string
@@ -22,8 +20,7 @@ export type RoutingManifestSiteInput = {
  * Global host table across every site of the release: each normalized host
  * (canonical domains plus aliases) resolves to exactly one site and carries
  * whether it is that site's canonical host. The manifest is content for CAS
- * publication - it is derived purely from validated inputs and sorted by
- * host, so identical site sets always produce an identical manifest.
+ * publication and is parsed through the serving schema before publication.
  */
 export const buildRoutingManifest = (
   sites: readonly RoutingManifestSiteInput[],
@@ -46,7 +43,7 @@ export const buildRoutingManifest = (
         `host ${host} is claimed by site ${existing.siteId} and site ${siteId}`,
       )
     }
-    byHost.set(host, { canonical, host, siteId })
+    byHost.set(host, { canonical, host: host as RoutingManifestHost["host"], siteId })
   }
   for (const site of [...sites].sort((left, right) => left.siteId.localeCompare(right.siteId))) {
     claim(site.canonicalDomain, site.siteId, true)
@@ -54,11 +51,8 @@ export const buildRoutingManifest = (
       claim(alias, site.siteId, false)
     }
   }
-  return {
-    hosts: [...byHost.values()].sort((left, right) => left.host.localeCompare(right.host)),
-    schemaVersion: 1,
-  }
+  return routingManifestOf({ hosts: [...byHost.values()], schemaVersion: 1 })
 }
 
 export const siteIdOfHost = (manifest: RoutingManifest, host: string): RoutingManifestHost | null =>
-  manifest.hosts.find((entry) => entry.host === host) ?? null
+  routingManifestSiteIdOfHost(manifest, host as RoutingManifestHost["host"])

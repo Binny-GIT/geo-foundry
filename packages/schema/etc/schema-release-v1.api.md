@@ -59,6 +59,9 @@ export const AuditActorSchema: z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodObjec
 export function canonicalizeReleaseManifest(input: unknown): ReleaseManifest;
 
 // @public (undocumented)
+export const canonicalizeRoutingManifest: (input: unknown) => RoutingManifest;
+
+// @public (undocumented)
 export type CanonicalTimestamp = z.infer<typeof CanonicalTimestampSchema>;
 
 // @public (undocumented)
@@ -87,9 +90,12 @@ export type CreateCurrentPointerInput = {
 };
 
 // @public (undocumented)
-export type CurrentPointer = z.infer<typeof CurrentPointerSchema> & {
+export type CurrentPointer = CurrentPointerDocument & {
     readonly [CURRENT_POINTER_BRAND]: typeof CURRENT_POINTER_BRAND;
 };
+
+// @public (undocumented)
+export type CurrentPointerDocument = z.infer<typeof CurrentPointerSchema>;
 
 // @public (undocumented)
 export type CurrentPointerKey = z.infer<typeof CurrentPointerKeySchema>;
@@ -127,6 +133,12 @@ export function hashCurrentPointer(pointer: CurrentPointer): Promise<Sha256>;
 
 // @public (undocumented)
 export function hashReleaseManifest(input: unknown): Promise<z.infer<typeof Sha256Schema>>;
+
+// @public (undocumented)
+export const hashRoutingManifest: (input: unknown) => Promise<z.infer<typeof Sha256Schema>>;
+
+// @public (undocumented)
+export const hashRoutingManifestBytes: (body: Uint8Array) => Promise<z.infer<typeof Sha256Schema>>;
 
 // @public (undocumented)
 export type ImmutableArtifact = z.infer<typeof ImmutableArtifactSchema>;
@@ -351,10 +363,220 @@ export const RollbackReceiptSchema: z.ZodReadonly<z.ZodObject<{
 }, z.core.$strict>>;
 
 // @public (undocumented)
+export type RouteIndex = z.infer<typeof RouteIndexSchema>;
+
+// @public (undocumented)
+export type RouteIndexEntry = z.infer<typeof RouteIndexEntrySchema>;
+
+// @public (undocumented)
+export const RouteIndexEntrySchema: z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodObject<{
+    objectKey: z.core.$ZodBranded<z.ZodString, "ReleaseArtifactPath", "out">;
+    pageType: z.ZodEnum<{
+        article: "article";
+        "article-list": "article-list";
+        category: "category";
+        tag: "tag";
+    }>;
+    status: z.ZodLiteral<"active">;
+    pathname: z.ZodString;
+}, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+    objectKey: z.core.$ZodBranded<z.ZodString, "ReleaseArtifactPath", "out">;
+    pageType: z.ZodLiteral<"redirect">;
+    status: z.ZodLiteral<"redirect">;
+    pathname: z.ZodString;
+}, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+    status: z.ZodLiteral<"gone">;
+    pathname: z.ZodString;
+}, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+    objectKey: z.core.$ZodBranded<z.ZodString, "ReleaseArtifactPath", "out">;
+    pageType: z.ZodLiteral<"not-found">;
+    status: z.ZodLiteral<"not-found">;
+    pathname: z.ZodString;
+}, z.core.$strict>>], "status">;
+
+// @public (undocumented)
+export const routeIndexOf: (input: unknown) => RouteIndex;
+
+// @public (undocumented)
+export const RouteIndexSchema: z.ZodPipe<z.ZodObject<{
+    canonicalDomain: z.core.$ZodBranded<z.ZodString, "RoutingHost", "out">;
+    routes: z.ZodReadonly<z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodReadonly<z.ZodObject<{
+        objectKey: z.core.$ZodBranded<z.ZodString, "ReleaseArtifactPath", "out">;
+        pageType: z.ZodEnum<{
+            article: "article";
+            "article-list": "article-list";
+            category: "category";
+            tag: "tag";
+        }>;
+        status: z.ZodLiteral<"active">;
+        pathname: z.ZodString;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        objectKey: z.core.$ZodBranded<z.ZodString, "ReleaseArtifactPath", "out">;
+        pageType: z.ZodLiteral<"redirect">;
+        status: z.ZodLiteral<"redirect">;
+        pathname: z.ZodString;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        status: z.ZodLiteral<"gone">;
+        pathname: z.ZodString;
+    }, z.core.$strict>>, z.ZodReadonly<z.ZodObject<{
+        objectKey: z.core.$ZodBranded<z.ZodString, "ReleaseArtifactPath", "out">;
+        pageType: z.ZodLiteral<"not-found">;
+        status: z.ZodLiteral<"not-found">;
+        pathname: z.ZodString;
+    }, z.core.$strict>>], "status">>>;
+    schemaVersion: z.ZodLiteral<1>;
+    siteId: z.ZodString;
+}, z.core.$strict>, z.ZodTransform<Readonly<{
+    canonicalDomain: string & z.core.$brand<"RoutingHost">;
+    routes: readonly (Readonly<{
+        objectKey: string & z.core.$brand<"ReleaseArtifactPath">;
+        pageType: "article" | "article-list" | "category" | "tag";
+        status: "active";
+        pathname: string;
+    }> | Readonly<{
+        objectKey: string & z.core.$brand<"ReleaseArtifactPath">;
+        pageType: "redirect";
+        status: "redirect";
+        pathname: string;
+    }> | Readonly<{
+        status: "gone";
+        pathname: string;
+    }> | Readonly<{
+        objectKey: string & z.core.$brand<"ReleaseArtifactPath">;
+        pageType: "not-found";
+        status: "not-found";
+        pathname: string;
+    }>)[];
+    schemaVersion: 1;
+    siteId: string;
+}>, {
+    canonicalDomain: string & z.core.$brand<"RoutingHost">;
+    routes: readonly (Readonly<{
+        objectKey: string & z.core.$brand<"ReleaseArtifactPath">;
+        pageType: "article" | "article-list" | "category" | "tag";
+        status: "active";
+        pathname: string;
+    }> | Readonly<{
+        objectKey: string & z.core.$brand<"ReleaseArtifactPath">;
+        pageType: "redirect";
+        status: "redirect";
+        pathname: string;
+    }> | Readonly<{
+        status: "gone";
+        pathname: string;
+    }> | Readonly<{
+        objectKey: string & z.core.$brand<"ReleaseArtifactPath">;
+        pageType: "not-found";
+        status: "not-found";
+        pathname: string;
+    }>)[];
+    schemaVersion: 1;
+    siteId: string;
+}>>;
+
+// @public (undocumented)
+export const routeObjectKey: (route: RouteIndexEntry) => string | null;
+
+// @public (undocumented)
+export type RouteStatus = z.infer<typeof RouteStatusSchema>;
+
+// @public (undocumented)
+export const RouteStatusSchema: z.ZodEnum<{
+    redirect: "redirect";
+    "not-found": "not-found";
+    active: "active";
+    gone: "gone";
+}>;
+
+// @public (undocumented)
+export const ROUTING_POINTER_KEY: "routing/channels/current.json";
+
+// @public (undocumented)
+export type RoutingHost = z.infer<typeof RoutingHostSchema>;
+
+// @public (undocumented)
+export const RoutingHostSchema: z.core.$ZodBranded<z.ZodString, "RoutingHost", "out">;
+
+// @public (undocumented)
+export type RoutingId = z.infer<typeof RoutingIdSchema>;
+
+// @public (undocumented)
+export const RoutingIdSchema: z.core.$ZodBranded<z.ZodString, "RoutingId", "out">;
+
+// @public (undocumented)
+export type RoutingManifest = z.infer<typeof RoutingManifestSchema>;
+
+// @public (undocumented)
+export type RoutingManifestHost = z.infer<typeof RoutingManifestHostSchema>;
+
+// @public (undocumented)
+export const RoutingManifestHostSchema: z.ZodReadonly<z.ZodObject<{
+    canonical: z.ZodBoolean;
+    host: z.core.$ZodBranded<z.ZodString, "RoutingHost", "out">;
+    siteId: z.ZodString;
+}, z.core.$strict>>;
+
+// @public (undocumented)
+export type RoutingManifestInput = z.input<typeof RoutingManifestSchema>;
+
+// @public (undocumented)
+export const routingManifestKey: (routingId: RoutingId) => string;
+
+// @public (undocumented)
+export const routingManifestOf: (input: unknown) => RoutingManifest;
+
+// @public (undocumented)
+export type RoutingManifestPointer = z.infer<typeof RoutingManifestPointerSchema>;
+
+// @public (undocumented)
+export const RoutingManifestPointerSchema: z.ZodReadonly<z.ZodObject<{
+    manifestSha256: z.core.$ZodBranded<z.ZodString, "Sha256", "out">;
+    routingId: z.core.$ZodBranded<z.ZodString, "RoutingId", "out">;
+    updatedAt: z.core.$ZodBranded<z.ZodString, "CanonicalTimestamp", "out">;
+}, z.core.$strict>>;
+
+// @public (undocumented)
+export const RoutingManifestSchema: z.ZodPipe<z.ZodObject<{
+    hosts: z.ZodReadonly<z.ZodArray<z.ZodReadonly<z.ZodObject<{
+        canonical: z.ZodBoolean;
+        host: z.core.$ZodBranded<z.ZodString, "RoutingHost", "out">;
+        siteId: z.ZodString;
+    }, z.core.$strict>>>>;
+    schemaVersion: z.ZodLiteral<1>;
+}, z.core.$strict>, z.ZodTransform<Readonly<{
+    hosts: readonly Readonly<{
+        canonical: boolean;
+        host: string & z.core.$brand<"RoutingHost">;
+        siteId: string;
+    }>[];
+    schemaVersion: 1;
+}>, {
+    hosts: readonly Readonly<{
+        canonical: boolean;
+        host: string & z.core.$brand<"RoutingHost">;
+        siteId: string;
+    }>[];
+    schemaVersion: 1;
+}>>;
+
+// @public (undocumented)
+export const routingManifestSiteIdOfHost: (manifest: RoutingManifest, host: RoutingHost) => RoutingManifestHost | null;
+
+// @public (undocumented)
+export const routingPointerOf: (input: {
+    readonly manifestSha256: z.infer<typeof Sha256Schema>;
+    readonly routingId: RoutingId;
+    readonly updatedAt: z.infer<typeof CanonicalTimestampSchema>;
+}) => RoutingManifestPointer;
+
+// @public (undocumented)
 export function serializeCurrentPointer(pointer: CurrentPointer): Uint8Array;
 
 // @public (undocumented)
 export function serializeReleaseManifest(input: unknown): Uint8Array;
+
+// @public (undocumented)
+export const serializeRoutingManifest: (input: unknown) => Uint8Array;
 
 // @public (undocumented)
 export type Sha256 = z.infer<typeof Sha256Schema>;

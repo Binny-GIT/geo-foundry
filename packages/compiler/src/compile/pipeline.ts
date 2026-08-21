@@ -37,6 +37,7 @@ export type CompileRequest = {
       }[]
     >
   >
+  readonly gonePathnames?: readonly string[]
   readonly notFound: { readonly pathname: string }
   readonly redirects: readonly { fromPathname: string; targetUrl: string }[]
   readonly site: CompileSite
@@ -112,6 +113,12 @@ export const compileSite = async (request: CompileRequest): Promise<CompileOutpu
     })
   }
 
+  const listingTitles = new Map<string, string>([
+    [request.listings.articles.pathname, "Articles"],
+    ...request.listings.categories.map((category) => [category.pathname, category.title] as const),
+    ...request.listings.tags.map((tag) => [tag.pathname, tag.title] as const),
+  ])
+
   for (const edition of editions) {
     const related = request.relatedLinksByEdition?.[String(edition.editionId)]
     await push(
@@ -121,6 +128,7 @@ export const compileSite = async (request: CompileRequest): Promise<CompileOutpu
       await compileArticle({
         clock,
         edition,
+        listingTitles,
         ...(related === undefined ? {} : { relatedPages: related }),
         site,
       }),
@@ -226,6 +234,7 @@ export const compileSite = async (request: CompileRequest): Promise<CompileOutpu
       pageType: document.pageType,
       pathname: document.pathname,
     })),
+    ...(request.gonePathnames === undefined ? {} : { gonePathnames: request.gonePathnames }),
     ...(request.otherSiteDomains === undefined ? {} : { knownDomains: request.otherSiteDomains }),
     redirects: request.redirects,
     siteId: site.siteId,

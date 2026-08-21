@@ -20,7 +20,8 @@ import { ReleaseManifest } from '@geo/schema/release/v1';
 import { ReleaseObjectKey } from '@geo/schema/release/v1';
 import { ReleasePrefix } from '@geo/schema/release/v1';
 import { RollbackReceipt } from '@geo/schema/release/v1';
-import { RoutingManifest } from '@geo/compiler';
+import { RoutingManifestInput } from '@geo/schema/release/v1';
+import { RoutingManifestPointer } from '@geo/schema/release/v1';
 import { S3Client } from '@aws-sdk/client-s3';
 import { S3ClientConfig } from '@aws-sdk/client-s3';
 import { Sha256 } from '@geo/schema/release/v1';
@@ -230,10 +231,9 @@ export type PublishResult = {
 
 // @public
 export const publishRoutingManifest: (input: {
-    readonly body: Uint8Array;
+    readonly manifest: RoutingManifestInput;
     readonly routingId: string;
     readonly routingStore: S3RoutingStore;
-    readonly sha256: string;
     readonly siteReleaseObjectKeys: readonly string[];
     readonly sitePointerObjectKeys: readonly string[];
     readonly updatedAt: string;
@@ -279,7 +279,7 @@ export type ReleaseBuildInput = {
     readonly createdAt: string;
     readonly mediaObjects?: readonly MediaObject[];
     readonly releaseId: string;
-    readonly routingManifest: RoutingManifest;
+    readonly routingManifest: RoutingManifestInput;
     readonly siteId: string;
     readonly sourceVersionIds: readonly string[];
 };
@@ -349,11 +349,7 @@ export const ROUTING_PUBLISH_ERROR_CODE: {
 export const routingManifestObjectKey: (routingId: string) => string;
 
 // @public (undocumented)
-export type RoutingManifestPointerDocument = {
-    readonly manifestSha256: string;
-    readonly routingId: string;
-    readonly updatedAt: string;
-};
+export type RoutingManifestPointerDocument = RoutingManifestPointer;
 
 // @public (undocumented)
 export const routingPointerKey = "routing/channels/current.json";

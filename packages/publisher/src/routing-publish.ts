@@ -1,5 +1,13 @@
 import { GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3"
-import type { ETag } from "@geo/schema/release/v1"
+import {
+  hashRoutingManifest,
+  RoutingIdSchema,
+  RoutingManifestPointerSchema,
+  serializeRoutingManifest,
+  type ETag,
+  type RoutingManifestInput,
+  type RoutingManifestPointer,
+} from "@geo/schema/release/v1"
 
 import { S3ArtifactStoreError, type S3ArtifactStoreOptions } from "./s3-artifact-store.js"
 
@@ -195,11 +203,7 @@ export const createS3RoutingStore = (options: S3ArtifactStoreOptions): S3Routing
   }
 }
 
-export type RoutingManifestPointerDocument = {
-  readonly manifestSha256: string
-  readonly routingId: string
-  readonly updatedAt: string
-}
+export type RoutingManifestPointerDocument = RoutingManifestPointer
 
 /**
  * Publish the global routing manifest: manifest object first (conditional),
@@ -208,19 +212,21 @@ export type RoutingManifestPointerDocument = {
  * reference leaves the previous pointer serving a complete routing state.
  */
 export const publishRoutingManifest = async (input: {
-  readonly body: Uint8Array
+  readonly manifest: RoutingManifestInput
   readonly routingId: string
   readonly routingStore: S3RoutingStore
-  readonly sha256: string
   readonly siteReleaseObjectKeys: readonly string[]
   readonly sitePointerObjectKeys: readonly string[]
   readonly updatedAt: string
 }): Promise<RoutingManifestPointerDocument> => {
+  const routingId = RoutingIdSchema.parse(input.routingId)
+  const body = serializeRoutingManifest(input.manifest)
+  const sha256 = await hashRoutingManifest(input.manifest)
   await input.routingStore.putManifestIfAbsent({
-    body: input.body,
+    body,
     contentType: "application/json",
-    routingId: input.routingId,
-    sha256: input.sha256,
+    routingId,
+    sha256,
   })
 
   for (const key of input.sitePointerObjectKeys) {
@@ -240,9 +246,9 @@ export const publishRoutingManifest = async (input: {
     }
   }
 
-  const pointer: RoutingManifestPointerDocument = Object.freeze({
-    manifestSha256: input.sha256,
-    routingId: input.routingId,
+  const pointer: RoutingManifestPointerDocument = RoutingManifestPointerSchema.parse({
+    manifestSha256: sha256,
+    routingId,
     updatedAt: input.updatedAt,
   })
   const pointerBody = new TextEncoder().encode(JSON.stringify(pointer))

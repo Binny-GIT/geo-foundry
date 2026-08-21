@@ -2,7 +2,7 @@ import { createHash } from "node:crypto"
 import { mkdir, writeFile } from "node:fs/promises"
 import { dirname, join, resolve } from "node:path"
 
-import { canonicalJson, type CompileOutput, type RoutingManifest } from "@geo/compiler"
+import { canonicalJson, type CompileOutput } from "@geo/compiler"
 import {
   CanonicalTimestampSchema,
   CompilerVersionSchema,
@@ -10,6 +10,8 @@ import {
   ReleaseArtifactPathSchema,
   ReleaseIdSchema,
   ReleaseManifestSchema,
+  type RoutingManifestInput,
+  serializeRoutingManifest,
   Sha256Schema,
   SiteIdSchema,
   SourceVersionIdSchema,
@@ -50,7 +52,7 @@ export type ReleaseBuildInput = {
   readonly createdAt: string
   readonly mediaObjects?: readonly MediaObject[]
   readonly releaseId: string
-  readonly routingManifest: RoutingManifest
+  readonly routingManifest: RoutingManifestInput
   readonly siteId: string
   readonly sourceVersionIds: readonly string[]
 }
@@ -130,10 +132,17 @@ export const planRelease = (input: ReleaseBuildInput): PlannedRelease => {
   }
 
   for (const document of input.compileOutput.documents) {
-    const path = safeArtifactPath(
-      `${input.compileOutput.routeIndex.routes.find((route) => route.pathname === document.pathname)?.objectKey ?? `pages${document.pathname}.json`}`,
-      "page document",
+    const route = input.compileOutput.routeIndex.routes.find(
+      (candidate) => candidate.pathname === document.pathname,
     )
+    if (route === undefined || !("objectKey" in route)) {
+      throw new ReleaseBuildError(
+        RELEASE_BUILD_ERROR_CODE.RELEASE_MANIFEST_INVALID,
+        `compiled document ${document.pathname} has no page object route`,
+        "failed",
+      )
+    }
+    const path = safeArtifactPath(route.objectKey, "page document")
     add(objectOf(path, encoder.encode(document.canonical), JSON_CONTENT_TYPE))
   }
   add(
@@ -144,13 +153,7 @@ export const planRelease = (input: ReleaseBuildInput): PlannedRelease => {
     ),
   )
   add(objectOf("sitemap.xml", encoder.encode(input.compileOutput.sitemap), XML_CONTENT_TYPE))
-  add(
-    objectOf(
-      "routing-candidate.json",
-      encoder.encode(canonicalJson(input.routingManifest)),
-      JSON_CONTENT_TYPE,
-    ),
-  )
+  add(objectOf("routing-candidate.json", serializeRoutingManifest(input.routingManifest), JSON_CONTENT_TYPE))
   for (const media of input.mediaObjects ?? []) {
     add(objectOf(safeArtifactPath(media.path, "media object"), media.body, media.contentType))
   }

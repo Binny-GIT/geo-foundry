@@ -95,9 +95,10 @@ const artifactsDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "../
 
 describe("compiler determinism", () => {
   it("yields byte-identical canonical JSON and hashes for shuffled inputs", async () => {
-    const first = await compileSite(baseRequest())
+    const first = await compileSite({ ...baseRequest(), gonePathnames: ["/removed-z", "/removed-a"] })
     const second = await compileSite({
       ...baseRequest(),
+      gonePathnames: ["/removed-a", "/removed-z"],
       editions: shuffle(baseRequest().editions).reverse(),
       listings: {
         ...baseRequest().listings,

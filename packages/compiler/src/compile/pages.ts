@@ -22,10 +22,37 @@ import {
 
 export type { PageClock }
 
+/**
+ * Breadcrumb trail derived from the article's own URL ancestry so every crumb
+ * is the root, a strict path ancestor, or the current route.
+ */
+const articleBreadcrumbs = (input: {
+  readonly listingTitles?: ReadonlyMap<string, string>
+  readonly pathname: string
+  readonly siteName: string
+  readonly title: string
+}) => {
+  const segments = input.pathname.split("/").filter(Boolean)
+  return [
+    { pathname: "/", title: input.siteName },
+    ...segments.slice(0, -1).map((segment, index) => {
+      const pathname = `/${segments.slice(0, index + 1).join("/")}`
+      return {
+        pathname,
+        title:
+          input.listingTitles?.get(pathname) ??
+          segment.charAt(0).toUpperCase() + segment.slice(1),
+      }
+    }),
+    { pathname: input.pathname, title: input.title },
+  ]
+}
+
 /** Article page from one immutable edition snapshot. */
 export const compileArticle = async (input: {
   readonly clock: PageClock
   readonly edition: CompileEdition
+  readonly listingTitles?: ReadonlyMap<string, string>
   readonly relatedPages?: readonly {
     description: string
     pageId: string
@@ -52,14 +79,12 @@ export const compileArticle = async (input: {
       pageType: "article",
     },
   )
-  const parent = edition.categories[0]
-  const breadcrumbs = [
-    { pathname: "/", title: site.name },
-    ...(parent === undefined
-      ? []
-      : [{ pathname: `/${parent}`, title: parent.charAt(0).toUpperCase() + parent.slice(1) }]),
-    { pathname: edition.urlPathname, title: edition.title },
-  ]
+  const breadcrumbs = articleBreadcrumbs({
+    ...(input.listingTitles === undefined ? {} : { listingTitles: input.listingTitles }),
+    pathname: edition.urlPathname,
+    siteName: site.name,
+    title: edition.title,
+  })
   const document = ArticlePageSchema.parse({
     ...base,
     author: edition.author,

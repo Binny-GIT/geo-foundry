@@ -19,8 +19,8 @@
     "build": "tsc --project tsconfig.build.json",
     "dev": "tsc --project tsconfig.build.json --watch",
     "lint": "biome lint --config-path ../../biome.json .",
-    "test": "node --input-type=module --eval \"\"",
-    "test:integration": "node --input-type=module --eval \"\"",
+    "test": "vitest run --configLoader runner",
+    "test:integration": "node scripts/run-serving-isolation.mjs",
     "test:e2e": "node --input-type=module --eval \"\"",
     "typecheck": "tsc --noEmit --project tsconfig.json"
   },
@@ -28,6 +28,10 @@
     "@geo/schema": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "5.9.3"
+    "@aws-sdk/client-s3": "3.1112.0",
+    "@geo/compiler": "workspace:*",
+    "@geo/publisher": "workspace:*",
+    "typescript": "5.9.3",
+    "vitest": "4.1.10"
   }
 }

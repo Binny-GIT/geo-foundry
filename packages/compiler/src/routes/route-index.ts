@@ -1,23 +1,36 @@
 import type { PageDocument } from "@geo/schema"
+import {
+  routeIndexOf,
+  type RouteIndex,
+  type RouteIndexEntry,
+  type RouteStatus,
+} from "@geo/schema/release/v1"
 
 import { CompilerError, COMPILER_ERROR } from "../compile/errors.js"
 import { canonicalDomainOf } from "../seo/urls.js"
 
-export type RouteStatus = "active" | "redirect" | "not-found"
+export type { RouteIndex, RouteIndexEntry, RouteStatus }
 
-export type RouteIndexEntry = {
-  readonly objectKey: string
-  readonly pageType: PageDocument["pageType"]
-  readonly pathname: string
-  readonly status: RouteStatus
-}
-
-export type RouteIndex = {
-  readonly canonicalDomain: string
-  readonly routes: readonly RouteIndexEntry[]
-  readonly schemaVersion: 1
-  readonly siteId: string
-}
+type RawRouteIndexEntry =
+  | {
+      readonly objectKey: string
+      readonly pageType: "article" | "article-list" | "category" | "tag"
+      readonly pathname: string
+      readonly status: "active"
+    }
+  | {
+      readonly objectKey: string
+      readonly pageType: "redirect"
+      readonly pathname: string
+      readonly status: "redirect"
+    }
+  | { readonly pathname: string; readonly status: "gone" }
+  | {
+      readonly objectKey: string
+      readonly pageType: "not-found"
+      readonly pathname: string
+      readonly status: "not-found"
+    }
 
 const ACTIVE_TYPES: readonly PageDocument["pageType"][] = [
   "article",
@@ -66,6 +79,7 @@ export type RouteIndexInput = {
     readonly pageType: PageDocument["pageType"]
     readonly pathname: string
   }[]
+  readonly gonePathnames?: readonly string[]
   /** Other sites' canonical domains, to catch cross-site references. */
   readonly knownDomains?: readonly string[]
   readonly redirects: readonly { readonly fromPathname: string; readonly targetUrl: string }[]
@@ -73,11 +87,9 @@ export type RouteIndexInput = {
 }
 
 /**
- * Per-site route index: every emitted document keyed by normalized pathname,
- * with single-hop redirects validated against the active routes of the same
- * site. Drafts and gone URLs never appear because only compiled documents
- * reach this builder; redirect targets are never duplicated as active
- * entries - the target keeps its own single route.
+ * Per-site route index: emitted documents plus deterministic terminal 410
+ * entries for gone URLs. The gone entries intentionally carry no object key:
+ * Runtime returns 410 without reading a PageDocument.
  */
 export const buildRouteIndex = (input: RouteIndexInput): RouteIndex => {
   const canonicalDomain = canonicalDomainOf({ canonicalDomain: input.canonicalDomain })
@@ -90,13 +102,13 @@ export const buildRouteIndex = (input: RouteIndexInput): RouteIndex => {
     }
   }
 
-  const routes = new Map<string, RouteIndexEntry>()
-  const claim = (pathname: string, entry: RouteIndexEntry): void => {
+  const routes = new Map<string, RawRouteIndexEntry>()
+  const claim = (pathname: string, entry: RawRouteIndexEntry): void => {
     const existing = routes.get(pathname)
     if (existing !== undefined) {
       throw new CompilerError(
         COMPILER_ERROR.ROUTE_PATH_COLLISION,
-        `pathname ${pathname} claimed by ${existing.pageType}/${existing.status} and ${entry.pageType}/${entry.status}`,
+        `pathname ${pathname} claimed by ${existing.status} and ${entry.status}`,
       )
     }
     routes.set(pathname, entry)
@@ -104,27 +116,57 @@ export const buildRouteIndex = (input: RouteIndexInput): RouteIndex => {
 
   const activePathnames = new Set<string>()
   for (const document of input.documents) {
-    const status: RouteStatus =
+    const status =
       document.pageType === "not-found"
         ? "not-found"
         : ACTIVE_TYPES.includes(document.pageType)
           ? "active"
           : "redirect"
     if (status === "active") {
+      const pageType = document.pageType
+      if (
+        pageType !== "article" &&
+        pageType !== "article-list" &&
+        pageType !== "category" &&
+        pageType !== "tag"
+      ) {
+        throw new CompilerError(
+          COMPILER_ERROR.ROUTE_PATH_COLLISION,
+          `page type ${pageType} cannot produce an active route`,
+        )
+      }
       activePathnames.add(document.pathname)
+      claim(document.pathname, {
+        objectKey: objectKeyOf(document.pathname),
+        pageType,
+        pathname: document.pathname,
+        status,
+      })
+      continue
+    }
+    if (status === "not-found") {
+      claim(document.pathname, {
+        objectKey: objectKeyOf(document.pathname),
+        pageType: "not-found",
+        pathname: document.pathname,
+        status,
+      })
+      continue
     }
     claim(document.pathname, {
       objectKey: objectKeyOf(document.pathname),
-      pageType: document.pageType,
+      pageType: "redirect",
       pathname: document.pathname,
       status,
     })
   }
 
+  for (const pathname of [...(input.gonePathnames ?? [])].sort()) {
+    claim(pathname, { pathname, status: "gone" })
+  }
+
   const redirectTargets = new Map<string, string>()
   for (const redirect of input.redirects) {
-    // The pipeline already emits redirect documents; re-registering the same
-    // from-pathname is idempotent, anything else claiming it is a collision.
     const existing = routes.get(redirect.fromPathname)
     if (existing === undefined) {
       routes.set(redirect.fromPathname, {
@@ -133,10 +175,10 @@ export const buildRouteIndex = (input: RouteIndexInput): RouteIndex => {
         pathname: redirect.fromPathname,
         status: "redirect",
       })
-    } else if (existing.pageType !== "redirect") {
+    } else if (existing.status !== "redirect") {
       throw new CompilerError(
         COMPILER_ERROR.ROUTE_PATH_COLLISION,
-        `pathname ${redirect.fromPathname} claimed by ${existing.pageType}/${existing.status} and redirect/redirect`,
+        `pathname ${redirect.fromPathname} claimed by ${existing.status} and redirect`,
       )
     }
     redirectTargets.set(redirect.fromPathname, redirect.targetUrl)
@@ -154,28 +196,27 @@ export const buildRouteIndex = (input: RouteIndexInput): RouteIndex => {
       }
       continue
     }
-    const targetPathname = target.pathname
-    if (targetPathname === null) {
+    if (target.pathname === null) {
       continue
     }
-    if (redirectTargets.has(targetPathname)) {
+    if (redirectTargets.has(target.pathname)) {
       throw new CompilerError(
         COMPILER_ERROR.ROUTE_REDIRECT_LOOP,
-        `redirect ${fromPathname} targets ${targetPathname}, which is itself a redirect (single hop only)`,
+        `redirect ${fromPathname} targets ${target.pathname}, which is itself a redirect (single hop only)`,
       )
     }
-    if (!activePathnames.has(targetPathname)) {
+    if (!activePathnames.has(target.pathname)) {
       throw new CompilerError(
         COMPILER_ERROR.ROUTE_TARGET_UNRESOLVED,
-        `redirect ${fromPathname} targets ${targetPathname}, which has no active route on ${canonicalDomain}`,
+        `redirect ${fromPathname} targets ${target.pathname}, which has no active route on ${canonicalDomain}`,
       )
     }
   }
 
-  return {
+  return routeIndexOf({
     canonicalDomain,
-    routes: [...routes.values()].sort((left, right) => left.pathname.localeCompare(right.pathname)),
+    routes: [...routes.values()],
     schemaVersion: 1,
     siteId: input.siteId,
-  }
+  })
 }

@@ -44,7 +44,9 @@ export type VerifiedReleaseReference = {
   readonly siteId: z.infer<typeof SiteIdSchema>
 }
 
-export type CurrentPointer = z.infer<typeof CurrentPointerSchema> & {
+export type CurrentPointerDocument = z.infer<typeof CurrentPointerSchema>
+
+export type CurrentPointer = CurrentPointerDocument & {
   readonly [CURRENT_POINTER_BRAND]: typeof CURRENT_POINTER_BRAND
 }
 

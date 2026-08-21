@@ -2,7 +2,13 @@ import { readFileSync } from "node:fs"
 import { DeleteObjectsCommand, ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3"
 import type { CompileOutput } from "@geo/compiler"
 
-import { type AuditActor, createCurrentPointer, verifyManifest } from "@geo/schema/release/v1"
+import {
+  type AuditActor,
+  createCurrentPointer,
+  hashRoutingManifest,
+  routeIndexOf,
+  verifyManifest,
+} from "@geo/schema/release/v1"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import {
   createS3ArtifactStore,
@@ -71,12 +77,20 @@ const compileOutput = (): CompileOutput => ({
     },
   ],
   manifestSha256: "b".repeat(64),
-  routeIndex: {
+  routeIndex: routeIndexOf({
     canonicalDomain: "site-a.test",
-    routes: [{ objectKey: "pages/a.json", pageType: "article", pathname: "/a", status: "active" }],
+    routes: [
+      { objectKey: "pages/a.json", pageType: "article", pathname: "/a", status: "active" },
+      {
+        objectKey: "pages/not-found.json",
+        pageType: "not-found",
+        pathname: "/not-found",
+        status: "not-found",
+      },
+    ],
     schemaVersion: 1,
     siteId: SITE,
-  },
+  }),
   sitemap: '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>',
 })
 
@@ -268,13 +282,14 @@ describe.skipIf(!hasRustfsEnv || !hasRoutingIntegrationEnv)(
     })
 
     it("rejects routing publish when a referenced site pointer is missing", async () => {
-      const body = new TextEncoder().encode('{"hosts":[]}')
       await expect(
         publishRoutingManifest({
-          body,
+          manifest: {
+            hosts: [{ canonical: true, host: "missing-site.test", siteId: "missing-site" }],
+            schemaVersion: 1,
+          },
           routingId: `t29routing${RUN}missing`,
           routingStore: routing,
-          sha256: "d".repeat(64),
           sitePointerObjectKeys: ["sites/missing-site/channels/current.json"],
           siteReleaseObjectKeys: [],
           updatedAt: "2026-08-20T00:00:00.000Z",
@@ -305,18 +320,15 @@ describe.skipIf(!hasRustfsEnv || !hasRoutingIntegrationEnv)(
       })
       await publishRelease({ actor, planned: plan, store: siteStore, verifiedManifest: verified })
 
-      const domainsBody = new TextEncoder().encode(
-        JSON.stringify({
-          hosts: [{ canonical: true, host: `${site}.test`, siteId: site }],
-          schemaVersion: 1,
-        }),
-      )
-      const sha = "e".repeat(64)
+      const manifest = {
+        hosts: [{ canonical: true, host: `${site}.test`, siteId: site }],
+        schemaVersion: 1 as const,
+      }
+      const sha = await hashRoutingManifest(manifest)
       const pointer = await publishRoutingManifest({
-        body: domainsBody,
+        manifest,
         routingId: `t29routing${RUN}`,
         routingStore: routing,
-        sha256: sha,
         sitePointerObjectKeys: [`sites/${site}/channels/current.json`],
         siteReleaseObjectKeys: [`sites/${site}/releases/${RELEASE(releaseSuffix)}/manifest.json`],
         updatedAt: "2026-08-20T00:00:00.000Z",
@@ -324,10 +336,9 @@ describe.skipIf(!hasRustfsEnv || !hasRoutingIntegrationEnv)(
       expect(pointer).toMatchObject({ manifestSha256: sha, routingId: `t29routing${RUN}` })
 
       const replay = await publishRoutingManifest({
-        body: domainsBody,
+        manifest,
         routingId: `t29routing${RUN}`,
         routingStore: routing,
-        sha256: sha,
         sitePointerObjectKeys: [`sites/${site}/channels/current.json`],
         siteReleaseObjectKeys: [`sites/${site}/releases/${RELEASE(releaseSuffix)}/manifest.json`],
         updatedAt: "2026-08-20T00:00:00.000Z",

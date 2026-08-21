@@ -52,6 +52,25 @@ describe("route index", () => {
     )
   })
 
+  it("emits deterministic terminal gone routes without page objects", () => {
+    const index = buildRouteIndex({
+      ...baseInput(),
+      gonePathnames: ["/removed-z", "/removed-a"],
+    })
+
+    expect(index.routes.filter((route) => route.status === "gone")).toEqual([
+      { pathname: "/removed-a", status: "gone" },
+      { pathname: "/removed-z", status: "gone" },
+    ])
+  })
+
+  it("rejects gone routes colliding with an emitted route", () => {
+    expectCode(
+      () => buildRouteIndex({ ...baseInput(), gonePathnames: ["/guides"] }),
+      COMPILER_ERROR.ROUTE_PATH_COLLISION,
+    )
+  })
+
   it("rejects a redirect colliding with a document pathname", () => {
     expectCode(
       () =>
@@ -93,6 +112,7 @@ describe("route index", () => {
       () =>
         buildRouteIndex({
           ...baseInput(),
+          gonePathnames: ["/gone-page"],
           redirects: [{ fromPathname: "/old-guides", targetUrl: "/gone-page" }],
         }),
       COMPILER_ERROR.ROUTE_TARGET_UNRESOLVED,
