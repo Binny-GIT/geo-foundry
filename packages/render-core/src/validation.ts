@@ -25,14 +25,21 @@ const isRouteAncestor = (pathname: string, routePathname: string): boolean =>
 const validateBreadcrumbs = (document: ContentPageDocument): void => {
   const { breadcrumbs } = document
   if (breadcrumbs.length === 0 || breadcrumbs[0]?.pathname !== "/") {
-    throw new RenderError(RENDER_ERROR.BREADCRUMB_INVALID, "breadcrumbs must begin at the root route", {
-      field: "breadcrumbs",
-    })
+    throw new RenderError(
+      RENDER_ERROR.BREADCRUMB_INVALID,
+      "breadcrumbs must begin at the root route",
+      {
+        field: "breadcrumbs",
+      },
+    )
   }
 
   const pathnames = new Set<string>()
   for (const breadcrumb of breadcrumbs) {
-    if (pathnames.has(breadcrumb.pathname) || !isRouteAncestor(breadcrumb.pathname, document.route.pathname)) {
+    if (
+      pathnames.has(breadcrumb.pathname) ||
+      !isRouteAncestor(breadcrumb.pathname, document.route.pathname)
+    ) {
       throw new RenderError(
         RENDER_ERROR.BREADCRUMB_INVALID,
         "breadcrumbs must be unique ancestors of the current route",
@@ -46,9 +53,13 @@ const validateBreadcrumbs = (document: ContentPageDocument): void => {
 const validateHero = (document: ContentPageDocument): void => {
   const image = document.hero?.image
   if (image !== undefined && (typeof image.alt !== "string" || image.alt.trim().length === 0)) {
-    throw new RenderError(RENDER_ERROR.IMAGE_ALT_MISSING, "hero images require non-empty alternative text", {
-      field: "hero.image.alt",
-    })
+    throw new RenderError(
+      RENDER_ERROR.IMAGE_ALT_MISSING,
+      "hero images require non-empty alternative text",
+      {
+        field: "hero.image.alt",
+      },
+    )
   }
 }
 
@@ -80,22 +91,41 @@ const validatePagination = (document: ContentPageDocument): void => {
   if (!("pagination" in document) || document.pagination === undefined) {
     return
   }
-  const { nextPathname, page, pageSize, previousPathname, totalItems, totalPages } = document.pagination
+  const { nextPathname, page, pageSize, previousPathname, totalItems, totalPages } =
+    document.pagination
   const expectedTotalPages = Math.max(1, Math.ceil(totalItems / pageSize))
   if (totalPages !== expectedTotalPages || page > totalPages) {
-    throw new RenderError(RENDER_ERROR.PAGINATION_INVALID, "pagination totals and page number are inconsistent", {
-      field: "pagination",
-    })
+    throw new RenderError(
+      RENDER_ERROR.PAGINATION_INVALID,
+      "pagination totals and page number are inconsistent",
+      {
+        field: "pagination",
+      },
+    )
   }
-  if ((page === 1 && previousPathname !== undefined) || (page > 1 && previousPathname === undefined)) {
-    throw new RenderError(RENDER_ERROR.PAGINATION_INVALID, "previous pagination route is inconsistent", {
-      field: "pagination.previousPathname",
-    })
+  if (
+    (page === 1 && previousPathname !== undefined) ||
+    (page > 1 && previousPathname === undefined)
+  ) {
+    throw new RenderError(
+      RENDER_ERROR.PAGINATION_INVALID,
+      "previous pagination route is inconsistent",
+      {
+        field: "pagination.previousPathname",
+      },
+    )
   }
-  if ((page === totalPages && nextPathname !== undefined) || (page < totalPages && nextPathname === undefined)) {
-    throw new RenderError(RENDER_ERROR.PAGINATION_INVALID, "next pagination route is inconsistent", {
-      field: "pagination.nextPathname",
-    })
+  if (
+    (page === totalPages && nextPathname !== undefined) ||
+    (page < totalPages && nextPathname === undefined)
+  ) {
+    throw new RenderError(
+      RENDER_ERROR.PAGINATION_INVALID,
+      "next pagination route is inconsistent",
+      {
+        field: "pagination.nextPathname",
+      },
+    )
   }
 }
 

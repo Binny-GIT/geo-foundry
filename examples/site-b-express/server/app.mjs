@@ -25,7 +25,11 @@ const statusShell = (title, detail) =>
     "html",
     { lang: "en" },
     element("head", null, element("title", null, title)),
-    element("body", null, element("main", null, element("h1", null, title), element("p", null, detail))),
+    element(
+      "body",
+      null,
+      element("main", null, element("h1", null, title), element("p", null, detail)),
+    ),
   )
 
 const streamElement = (response, status, headers, target) => {
@@ -43,13 +47,22 @@ const respond = (response, result) => {
   switch (result.kind) {
     case "page":
     case "not-found":
-      streamElement(response, result.status, { "Cache-Control": REVALIDATE, "X-Geo-Release-Id": result.releaseId }, pageShell(result.document))
+      streamElement(
+        response,
+        result.status,
+        { "Cache-Control": REVALIDATE, "X-Geo-Release-Id": result.releaseId },
+        pageShell(result.document),
+      )
       return
     case "redirect":
       streamElement(
         response,
         result.status,
-        { "Cache-Control": REVALIDATE, Location: result.targetUrl, "X-Geo-Release-Id": result.releaseId },
+        {
+          "Cache-Control": REVALIDATE,
+          Location: result.targetUrl,
+          "X-Geo-Release-Id": result.releaseId,
+        },
         statusShell("Moved", "This page has moved."),
       )
       return
@@ -62,10 +75,20 @@ const respond = (response, result) => {
       )
       return
     case "unknown-host":
-      streamElement(response, result.status, { "Cache-Control": "no-store" }, statusShell("Not found", "The requested host is not published."))
+      streamElement(
+        response,
+        result.status,
+        { "Cache-Control": "no-store" },
+        statusShell("Not found", "The requested host is not published."),
+      )
       return
     case "unavailable":
-      streamElement(response, result.status, { "Cache-Control": "no-store" }, statusShell("Temporarily unavailable", "The published site is temporarily unavailable."))
+      streamElement(
+        response,
+        result.status,
+        { "Cache-Control": "no-store" },
+        statusShell("Temporarily unavailable", "The published site is temporarily unavailable."),
+      )
       return
     default:
       throw new TypeError(`SITE_B_UNHANDLED_RESULT:${String(result)}`)
@@ -91,9 +114,17 @@ export const createSiteBApp = ({ runtime }) => {
   app.use(async (request, response) => {
     try {
       const url = new URL(request.url, "http://site-b.local")
-      respond(response, await runtime.resolve({ hostname: request.headers.host ?? "", pathname: url.pathname }))
+      respond(
+        response,
+        await runtime.resolve({ hostname: request.headers.host ?? "", pathname: url.pathname }),
+      )
     } catch {
-      streamElement(response, 503, { "Cache-Control": "no-store" }, statusShell("Temporarily unavailable", "The published site is temporarily unavailable."))
+      streamElement(
+        response,
+        503,
+        { "Cache-Control": "no-store" },
+        statusShell("Temporarily unavailable", "The published site is temporarily unavailable."),
+      )
     }
   })
   return app

@@ -1,6 +1,4 @@
-import type {
-  ReactNode,
-} from "react"
+import type { ReactNode } from "react"
 
 import type {
   RenderBlock,
@@ -34,10 +32,12 @@ export type GeoHeroProps = GeoThemeComponentContext & Readonly<{ readonly hero: 
 export type GeoBreadcrumbsProps = GeoThemeComponentContext &
   Readonly<{ readonly content: RenderContent }>
 export type GeoBlockProps = GeoThemeComponentContext & Readonly<{ readonly block: RenderBlock }>
-export type GeoListingProps = GeoThemeComponentContext & Readonly<{ readonly listing: RenderListing }>
+export type GeoListingProps = GeoThemeComponentContext &
+  Readonly<{ readonly listing: RenderListing }>
 export type GeoRelatedPagesProps = GeoThemeComponentContext &
   Readonly<{ readonly content: RenderContent }>
-export type GeoAuthorProps = GeoThemeComponentContext & Readonly<{ readonly content: RenderContent }>
+export type GeoAuthorProps = GeoThemeComponentContext &
+  Readonly<{ readonly content: RenderContent }>
 
 export type GeoThemeComponents = Readonly<{
   readonly Author: (props: GeoAuthorProps) => ReactNode

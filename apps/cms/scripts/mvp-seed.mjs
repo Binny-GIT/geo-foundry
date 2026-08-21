@@ -20,7 +20,14 @@ const findOne = async (collection, where) => {
   return result.docs[0] ?? null
 }
 
-const report = { created: [], editionIds: {}, existing: [], siteIds: {}, tenantId: null, userIds: {} }
+const report = {
+  created: [],
+  editionIds: {},
+  existing: [],
+  siteIds: {},
+  tenantId: null,
+  userIds: {},
+}
 
 const tenant = await (async () => {
   const existing = await findOne("tenants", { name: { equals: scenario.tenant.name } })
@@ -70,7 +77,12 @@ for (const roleUser of scenario.users.roles) {
   const user = await findOrCreateAs(
     "users",
     { email: { equals: roleUser.email } },
-    { email: roleUser.email, password: roleUser.password, role: roleUser.role, tenant: report.tenantId },
+    {
+      email: roleUser.email,
+      password: roleUser.password,
+      role: roleUser.role,
+      tenant: report.tenantId,
+    },
     `users:${roleUser.email}`,
   )
   report.userIds[roleUser.key] = user.id
@@ -98,13 +110,25 @@ for (const site of scenario.sites) {
   await findOrCreateAs(
     "domains",
     { hostname: { equals: site.canonicalDomain } },
-    { enabled: true, hostname: site.canonicalDomain, role: "canonical", site: created.id, tenant: report.tenantId },
+    {
+      enabled: true,
+      hostname: site.canonicalDomain,
+      role: "canonical",
+      site: created.id,
+      tenant: report.tenantId,
+    },
     `domains:${site.canonicalDomain}`,
   )
   await findOrCreateAs(
     "domains",
     { hostname: { equals: site.aliasDomain } },
-    { enabled: true, hostname: site.aliasDomain, role: "alias", site: created.id, tenant: report.tenantId },
+    {
+      enabled: true,
+      hostname: site.aliasDomain,
+      role: "alias",
+      site: created.id,
+      tenant: report.tenantId,
+    },
     `domains:${site.aliasDomain}`,
   )
 }

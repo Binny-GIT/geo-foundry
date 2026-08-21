@@ -3,9 +3,17 @@ import { createElement } from "react"
 export const siteATheme = Object.freeze({
   slots: {
     "after-hero": ({ payload }) =>
-      createElement("p", { "data-site-a-context": payload.pageType }, "Verified technical editorial coverage."),
+      createElement(
+        "p",
+        { "data-site-a-context": payload.pageType },
+        "Verified technical editorial coverage.",
+      ),
     footer: ({ payload }) =>
-      createElement("footer", { "data-site-a-footer": payload.pathname }, "Site A · immutable release rendering"),
+      createElement(
+        "footer",
+        { "data-site-a-footer": payload.pathname },
+        "Site A · immutable release rendering",
+      ),
     "page-header": ({ payload }) =>
       createElement("header", { "data-site-a-header": payload.pageId }, "Site A Engineering Notes"),
   },

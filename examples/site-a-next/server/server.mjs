@@ -31,16 +31,35 @@ const respondPage = (response, result) => {
       send(response, result.status, pageHtml(result.document), releaseHeader)
       return
     case "redirect":
-      send(response, result.status, redirectHtml(result.targetUrl), { ...releaseHeader, Location: result.targetUrl })
+      send(response, result.status, redirectHtml(result.targetUrl), {
+        ...releaseHeader,
+        Location: result.targetUrl,
+      })
       return
     case "gone":
-      send(response, result.status, statusHtml({ detail: "This resource is no longer available.", title: "Gone" }), releaseHeader)
+      send(
+        response,
+        result.status,
+        statusHtml({ detail: "This resource is no longer available.", title: "Gone" }),
+        releaseHeader,
+      )
       return
     case "unknown-host":
-      send(response, result.status, statusHtml({ detail: "The requested host is not published.", title: "Not found" }))
+      send(
+        response,
+        result.status,
+        statusHtml({ detail: "The requested host is not published.", title: "Not found" }),
+      )
       return
     case "unavailable":
-      send(response, result.status, statusHtml({ detail: "The published site is temporarily unavailable.", title: "Temporarily unavailable" }))
+      send(
+        response,
+        result.status,
+        statusHtml({
+          detail: "The published site is temporarily unavailable.",
+          title: "Temporarily unavailable",
+        }),
+      )
       return
     default:
       throw new TypeError(`SITE_A_UNHANDLED_RESULT:${String(result)}`)
@@ -54,7 +73,10 @@ const server = createServer(async (request, response) => {
     if (url.pathname === "/sitemap.xml") {
       const result = await runtime.resolveSitemap({ hostname: host })
       if (result.kind === "sitemap") {
-        response.writeHead(result.status, { "Content-Type": result.contentType, "X-Geo-Release-Id": result.releaseId })
+        response.writeHead(result.status, {
+          "Content-Type": result.contentType,
+          "X-Geo-Release-Id": result.releaseId,
+        })
         response.end(result.body)
         return
       }
@@ -63,15 +85,23 @@ const server = createServer(async (request, response) => {
     }
     respondPage(response, await runtime.resolve({ hostname: host, pathname: url.pathname }))
   } catch {
-    send(response, 503, statusHtml({ detail: "The published site is temporarily unavailable.", title: "Temporarily unavailable" }))
+    send(
+      response,
+      503,
+      statusHtml({
+        detail: "The published site is temporarily unavailable.",
+        title: "Temporarily unavailable",
+      }),
+    )
   }
 })
 
 server.listen(port, hostname)
 
-const shutdown = () => server.close(() => {
-  reader.destroy()
-  process.exit(0)
-})
+const shutdown = () =>
+  server.close(() => {
+    reader.destroy()
+    process.exit(0)
+  })
 process.on("SIGINT", shutdown)
 process.on("SIGTERM", shutdown)

@@ -13,9 +13,10 @@ const port = Number(process.env.PORT ?? "3102")
 const hostname = process.env.HOSTNAME ?? "127.0.0.1"
 const server = app.listen(port, hostname)
 
-const shutdown = () => server.close(() => {
-  reader.destroy()
-  process.exit(0)
-})
+const shutdown = () =>
+  server.close(() => {
+    reader.destroy()
+    process.exit(0)
+  })
 process.on("SIGINT", shutdown)
 process.on("SIGTERM", shutdown)

@@ -8,7 +8,10 @@ type CitationLookup = ReadonlyMap<string, Citation>
 
 const unsupportedBlock = (block: never): never => {
   const type = (block as { readonly type?: unknown }).type
-  throw new RenderError(RENDER_ERROR.BLOCK_UNSUPPORTED, `unsupported block discriminator: ${String(type)}`)
+  throw new RenderError(
+    RENDER_ERROR.BLOCK_UNSUPPORTED,
+    `unsupported block discriminator: ${String(type)}`,
+  )
 }
 
 const withIdentity = (block: ContentBlock): Readonly<{ readonly id?: string }> =>

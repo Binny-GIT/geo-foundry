@@ -15,15 +15,12 @@ const assertNever = (value: never): never => {
   throw new TypeError(`Unsupported render discriminator: ${String(value)}`)
 }
 
-const ImageFigure = ({ image, id }: Readonly<{ readonly id?: string; readonly image: RenderFigureImage }>): ReactNode => (
+const ImageFigure = ({
+  image,
+  id,
+}: Readonly<{ readonly id?: string; readonly image: RenderFigureImage }>): ReactNode => (
   <figure id={id}>
-    <img
-      alt={image.alt}
-      height={image.height}
-      loading="lazy"
-      src={image.src}
-      width={image.width}
-    />
+    <img alt={image.alt} height={image.height} loading="lazy" src={image.src} width={image.width} />
     {image.caption === undefined ? null : <figcaption>{image.caption}</figcaption>}
   </figure>
 )
@@ -45,7 +42,9 @@ export const DefaultHero = ({
   )
 }
 
-export const DefaultBreadcrumbs = ({ content }: Readonly<{ readonly content: RenderContent }>): ReactNode => (
+export const DefaultBreadcrumbs = ({
+  content,
+}: Readonly<{ readonly content: RenderContent }>): ReactNode => (
   <nav aria-label="Breadcrumb">
     <ol>
       {content.breadcrumbs.map((breadcrumb) => (
@@ -81,13 +80,17 @@ const DefaultBlock = ({ block }: Readonly<{ readonly block: RenderBlock }>): Rea
     case "ordered-list":
       return (
         <ol id={block.id}>
-          {block.items.map((item, index) => <li key={`${block.id ?? "ordered"}-${index}`}>{item}</li>)}
+          {block.items.map((item, index) => (
+            <li key={`${block.id ?? "ordered"}-${index}`}>{item}</li>
+          ))}
         </ol>
       )
     case "unordered-list":
       return (
         <ul id={block.id}>
-          {block.items.map((item, index) => <li key={`${block.id ?? "unordered"}-${index}`}>{item}</li>)}
+          {block.items.map((item, index) => (
+            <li key={`${block.id ?? "unordered"}-${index}`}>{item}</li>
+          ))}
         </ul>
       )
     case "table":
@@ -95,12 +98,20 @@ const DefaultBlock = ({ block }: Readonly<{ readonly block: RenderBlock }>): Rea
         <table id={block.id}>
           {block.caption === undefined ? null : <caption>{block.caption}</caption>}
           <thead>
-            <tr>{block.columns.map((column) => <th key={column} scope="col">{column}</th>)}</tr>
+            <tr>
+              {block.columns.map((column) => (
+                <th key={column} scope="col">
+                  {column}
+                </th>
+              ))}
+            </tr>
           </thead>
           <tbody>
             {block.rows.map((row, rowIndex) => (
               <tr key={`${block.id ?? "table"}-${rowIndex}`}>
-                {row.map((cell, cellIndex) => <td key={`${block.id ?? "table"}-${rowIndex}-${cellIndex}`}>{cell}</td>)}
+                {row.map((cell, cellIndex) => (
+                  <td key={`${block.id ?? "table"}-${rowIndex}-${cellIndex}`}>{cell}</td>
+                ))}
               </tr>
             ))}
           </tbody>
@@ -128,7 +139,9 @@ const DefaultBlock = ({ block }: Readonly<{ readonly block: RenderBlock }>): Rea
       return (
         <figure id={block.id}>
           {block.caption === undefined ? null : <figcaption>{block.caption}</figcaption>}
-          <pre><code data-language={block.language}>{block.code}</code></pre>
+          <pre>
+            <code data-language={block.language}>{block.code}</code>
+          </pre>
         </figure>
       )
     case "video":
@@ -142,7 +155,13 @@ const DefaultBlock = ({ block }: Readonly<{ readonly block: RenderBlock }>): Rea
         </figure>
       )
     case "embed":
-      return <p id={block.id}><a href={block.url}>{block.title} ({block.provider})</a></p>
+      return (
+        <p id={block.id}>
+          <a href={block.url}>
+            {block.title} ({block.provider})
+          </a>
+        </p>
+      )
     case "references":
       return (
         <section id={block.id}>
@@ -161,14 +180,27 @@ const DefaultBlock = ({ block }: Readonly<{ readonly block: RenderBlock }>): Rea
   }
 }
 
-export const DefaultAuthor = ({ content }: Readonly<{ readonly content: RenderContent }>): ReactNode => {
+export const DefaultAuthor = ({
+  content,
+}: Readonly<{ readonly content: RenderContent }>): ReactNode => {
   if (content.author === undefined) {
     return null
   }
-  return <p>By {content.author.url === undefined ? content.author.name : <a href={content.author.url}>{content.author.name}</a>}</p>
+  return (
+    <p>
+      By{" "}
+      {content.author.url === undefined ? (
+        content.author.name
+      ) : (
+        <a href={content.author.url}>{content.author.name}</a>
+      )}
+    </p>
+  )
 }
 
-export const DefaultRelatedPages = ({ content }: Readonly<{ readonly content: RenderContent }>): ReactNode => {
+export const DefaultRelatedPages = ({
+  content,
+}: Readonly<{ readonly content: RenderContent }>): ReactNode => {
   if (content.relatedPages.length === 0) {
     return null
   }
@@ -176,28 +208,48 @@ export const DefaultRelatedPages = ({ content }: Readonly<{ readonly content: Re
     <section>
       <h2>Related pages</h2>
       <ul>
-        {content.relatedPages.map((page) => <li key={page.pageId}><a href={page.pathname}>{page.title}</a></li>)}
+        {content.relatedPages.map((page) => (
+          <li key={page.pageId}>
+            <a href={page.pathname}>{page.title}</a>
+          </li>
+        ))}
       </ul>
     </section>
   )
 }
 
-export const DefaultListing = ({ listing }: Readonly<{ readonly listing: RenderListing }>): ReactNode => (
+export const DefaultListing = ({
+  listing,
+}: Readonly<{ readonly listing: RenderListing }>): ReactNode => (
   <>
     <section aria-label="Page listing">
-      <ul>{listing.items.map((item) => <li key={item.pageId}><a href={item.pathname}>{item.title}</a></li>)}</ul>
+      <ul>
+        {listing.items.map((item) => (
+          <li key={item.pageId}>
+            <a href={item.pathname}>{item.title}</a>
+          </li>
+        ))}
+      </ul>
     </section>
     {listing.pagination === undefined ? null : (
       <nav aria-label="Pagination">
-        {listing.pagination.previousPathname === undefined ? null : <a href={listing.pagination.previousPathname}>Previous</a>}
-        <span>Page {listing.pagination.page} of {listing.pagination.totalPages}</span>
-        {listing.pagination.nextPathname === undefined ? null : <a href={listing.pagination.nextPathname}>Next</a>}
+        {listing.pagination.previousPathname === undefined ? null : (
+          <a href={listing.pagination.previousPathname}>Previous</a>
+        )}
+        <span>
+          Page {listing.pagination.page} of {listing.pagination.totalPages}
+        </span>
+        {listing.pagination.nextPathname === undefined ? null : (
+          <a href={listing.pagination.nextPathname}>Next</a>
+        )}
       </nav>
     )}
   </>
 )
 
-export const ContentBody = ({ page }: Readonly<{ readonly page: Exclude<RenderPage, { readonly kind: "redirect" }> }>): ReactNode => {
+export const ContentBody = ({
+  page,
+}: Readonly<{ readonly page: Exclude<RenderPage, { readonly kind: "redirect" }> }>): ReactNode => {
   const { components, slots, tokens } = useGeoPage()
   const Slot = ({ name }: Readonly<{ readonly name: RenderSlotName }>): ReactNode => {
     const payload = page.content.slots.find((candidate) => candidate.name === name)
@@ -205,21 +257,46 @@ export const ContentBody = ({ page }: Readonly<{ readonly page: Exclude<RenderPa
     return payload === undefined || slot === undefined ? null : slot({ page, payload, tokens })
   }
   const content = page.content
-  const Breadcrumbs = components.Breadcrumbs ?? ((props) => <DefaultBreadcrumbs content={props.content} />)
-  const Hero = components.Hero ?? ((props) => <DefaultHero hero={props.hero} title={props.page.head.metadata.title} />)
+  const Breadcrumbs =
+    components.Breadcrumbs ?? ((props) => <DefaultBreadcrumbs content={props.content} />)
+  const Hero =
+    components.Hero ??
+    ((props) => <DefaultHero hero={props.hero} title={props.page.head.metadata.title} />)
   const Author = components.Author ?? ((props) => <DefaultAuthor content={props.content} />)
   const Block = components.Block ?? ((props) => <DefaultBlock block={props.block} />)
-  const RelatedPages = components.RelatedPages ?? ((props) => <DefaultRelatedPages content={props.content} />)
+  const RelatedPages =
+    components.RelatedPages ?? ((props) => <DefaultRelatedPages content={props.content} />)
   const Listing = components.Listing ?? ((props) => <DefaultListing listing={props.listing} />)
   return (
-    <article style={{ color: tokens.foregroundColor, fontFamily: tokens.fontFamily, maxWidth: tokens.contentWidth }}>
+    <article
+      style={{
+        color: tokens.foregroundColor,
+        fontFamily: tokens.fontFamily,
+        maxWidth: tokens.contentWidth,
+      }}
+    >
       <Breadcrumbs content={content} page={page} tokens={tokens} />
-      {content.hero === undefined ? <h1>{page.head.metadata.title}</h1> : <Hero hero={content.hero} page={page} tokens={tokens} />}
+      {content.hero === undefined ? (
+        <h1>{page.head.metadata.title}</h1>
+      ) : (
+        <Hero hero={content.hero} page={page} tokens={tokens} />
+      )}
       <Slot name="after-hero" />
       <Author content={content} page={page} tokens={tokens} />
-      {page.pageType === "article-list" || page.pageType === "category" || page.pageType === "tag" ? <Listing listing={page.listing} page={page} tokens={tokens} /> : null}
+      {page.pageType === "article-list" ||
+      page.pageType === "category" ||
+      page.pageType === "tag" ? (
+        <Listing listing={page.listing} page={page} tokens={tokens} />
+      ) : null}
       <Slot name="before-body" />
-      {content.blocks.map((block, index) => <Block block={block} key={block.id ?? `${block.kind}-${index}`} page={page} tokens={tokens} />)}
+      {content.blocks.map((block, index) => (
+        <Block
+          block={block}
+          key={block.id ?? `${block.kind}-${index}`}
+          page={page}
+          tokens={tokens}
+        />
+      ))}
       <Slot name="after-body" />
       <RelatedPages content={content} page={page} tokens={tokens} />
     </article>

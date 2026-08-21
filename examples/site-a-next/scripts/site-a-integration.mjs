@@ -27,7 +27,8 @@ const requestTimeoutMs = 12_000
 
 const required = (environment, name) => {
   const value = environment[name]
-  if (value === undefined || value.length === 0) throw new Error(`SITE_A_INTEGRATION_ENV_REQUIRED:${name}`)
+  if (value === undefined || value.length === 0)
+    throw new Error(`SITE_A_INTEGRATION_ENV_REQUIRED:${name}`)
   return value
 }
 
@@ -49,7 +50,11 @@ const requestOf = (input) => ({
     {
       assessmentInputHash: "a".repeat(64),
       assessmentState: "passed",
-      author: { id: "author-site-a", name: "Site A Author", url: `https://${input.host}/authors/site-a` },
+      author: {
+        id: "author-site-a",
+        name: "Site A Author",
+        url: `https://${input.host}/authors/site-a`,
+      },
       body: [{ blockType: "paragraph", text: "Site A verified server-rendered article body." }],
       categories: ["guides"],
       contentId: 3501,
@@ -95,7 +100,7 @@ const reservePort = async () =>
         rejectPort(new Error("SITE_A_PORT_RESERVATION_FAILED"))
         return
       }
-      server.close((error) => error === undefined ? resolvePort(address.port) : rejectPort(error))
+      server.close((error) => (error === undefined ? resolvePort(address.port) : rejectPort(error)))
     })
   })
 
@@ -114,12 +119,14 @@ const requestHost = (input) =>
       (response) => {
         const chunks = []
         response.on("data", (chunk) => chunks.push(chunk))
-        response.on("end", () => resolveRequest({
-          body: Buffer.concat(chunks),
-          durationMs: Date.now() - startedAt,
-          headers: response.headers,
-          status: response.statusCode ?? 0,
-        }))
+        response.on("end", () =>
+          resolveRequest({
+            body: Buffer.concat(chunks),
+            durationMs: Date.now() - startedAt,
+            headers: response.headers,
+            status: response.statusCode ?? 0,
+          }),
+        )
       },
     )
     client.on("timeout", () => client.destroy(new Error("SITE_A_REQUEST_TIMEOUT")))
@@ -150,7 +157,10 @@ const startHost = async (input) => {
   child.stdout.on("data", (chunk) => stdout.push(chunk))
   child.stderr.on("data", (chunk) => stderr.push(chunk))
   await new Promise((resolveReady, rejectReady) => {
-    const timer = setTimeout(() => rejectReady(new Error("SITE_A_HOST_READY_TIMEOUT")), requestTimeoutMs)
+    const timer = setTimeout(
+      () => rejectReady(new Error("SITE_A_HOST_READY_TIMEOUT")),
+      requestTimeoutMs,
+    )
     child.once("error", rejectReady)
     child.once("exit", (code) => {
       clearTimeout(timer)
@@ -207,7 +217,9 @@ export const runSiteAIntegration = async () => {
     region: "rustfs",
   })
   const logicalKeys = new Set()
-  const temporaryRoot = await mkdir(join(tmpdir(), runId), { recursive: true }).then(() => join(tmpdir(), runId))
+  const temporaryRoot = await mkdir(join(tmpdir(), runId), { recursive: true }).then(() =>
+    join(tmpdir(), runId),
+  )
   const accessKeyPath = join(temporaryRoot, "access-key")
   const secretKeyPath = join(temporaryRoot, "secret-key")
   await writeFile(accessKeyPath, accessKey, { encoding: "utf8", mode: 0o600 })
@@ -234,7 +246,8 @@ export const runSiteAIntegration = async () => {
       siteId,
       sourceVersionIds: [`source-${siteId}`],
     })
-    for (const object of plan.objects) logicalKeys.add(`sites/${siteId}/releases/${releaseId}/${object.path}`)
+    for (const object of plan.objects)
+      logicalKeys.add(`sites/${siteId}/releases/${releaseId}/${object.path}`)
     logicalKeys.add(`sites/${siteId}/releases/${releaseId}/manifest.json`)
     logicalKeys.add(`sites/${siteId}/channels/current.json`)
     await publishRelease({
@@ -260,7 +273,13 @@ export const runSiteAIntegration = async () => {
       updatedAt: "2026-08-20T00:00:00.000Z",
     })
 
-    normalHost = await startHost({ accessKeyPath, endpoint, keyPrefix, secretKeyPath, timeoutMs: "3000" })
+    normalHost = await startHost({
+      accessKeyPath,
+      endpoint,
+      keyPrefix,
+      secretKeyPath,
+      timeoutMs: "3000",
+    })
     const checked = []
     for (const item of [
       { host, path: "/articles/site-a", status: 200 },
@@ -275,7 +294,8 @@ export const runSiteAIntegration = async () => {
     ]) {
       const response = await requestHost({ ...item, port: normalHost.port })
       assert.equal(response.status, item.status)
-      if (item.host !== "unknown.test") assert.equal(response.headers["x-geo-release-id"], releaseId)
+      if (item.host !== "unknown.test")
+        assert.equal(response.headers["x-geo-release-id"], releaseId)
       checked.push({ host: item.host, path: item.path, status: response.status })
       if (item.path === "/articles/site-a" && item.host === host) {
         const html = responseText(response)
@@ -300,14 +320,26 @@ export const runSiteAIntegration = async () => {
     await stopHost(normalHost)
     normalHost = undefined
 
-    deniedHost = await startHost({ accessKeyPath, endpoint: "http://127.0.0.1:1", keyPrefix, secretKeyPath, timeoutMs: "300" })
+    deniedHost = await startHost({
+      accessKeyPath,
+      endpoint: "http://127.0.0.1:1",
+      keyPrefix,
+      secretKeyPath,
+      timeoutMs: "300",
+    })
     const denied = await requestHost({ host, path: "/articles/site-a", port: deniedHost.port })
     assert.equal(denied.status, 503)
     assert.ok(denied.durationMs <= requestTimeoutMs)
     await stopHost(deniedHost)
     deniedHost = undefined
 
-    const recoveryHost = await startHost({ accessKeyPath, endpoint, keyPrefix, secretKeyPath, timeoutMs: "3000" })
+    const recoveryHost = await startHost({
+      accessKeyPath,
+      endpoint,
+      keyPrefix,
+      secretKeyPath,
+      timeoutMs: "3000",
+    })
     const recovery = await requestHost({ host, path: "/articles/site-a", port: recoveryHost.port })
     assert.equal(recovery.status, 200)
     assert.equal(recovery.headers["x-geo-release-id"], releaseId)
@@ -322,11 +354,19 @@ export const runSiteAIntegration = async () => {
       releaseId,
       runId,
       sitemap: { contentType: sitemap.headers["content-type"], status: sitemap.status },
-      sharedInfrastructure: "PostgreSQL, Redis, RustFS, and mk-dev containers were not stopped or reconfigured.",
+      sharedInfrastructure:
+        "PostgreSQL, Redis, RustFS, and mk-dev containers were not stopped or reconfigured.",
     }
-    const evidenceDirectory = resolve(workspaceRoot, ".omo/evidence/task-35-geo-foundry-development-plan")
+    const evidenceDirectory = resolve(
+      workspaceRoot,
+      ".omo/evidence/task-35-geo-foundry-development-plan",
+    )
     await mkdir(evidenceDirectory, { recursive: true, mode: 0o700 })
-    await writeFile(join(evidenceDirectory, `${runId}.json`), `${JSON.stringify(evidence, null, 2)}\n`, { encoding: "utf8", mode: 0o600 })
+    await writeFile(
+      join(evidenceDirectory, `${runId}.json`),
+      `${JSON.stringify(evidence, null, 2)}\n`,
+      { encoding: "utf8", mode: 0o600 },
+    )
     process.stdout.write(`${JSON.stringify(evidence)}\n`)
     return evidence
   } finally {

@@ -39,10 +39,20 @@ test("Site A serving host only consumes public serving dependencies", async () =
   ])
   for (const sourceFile of sourceFiles) {
     const source = await readFile(resolve(packageRoot, sourceFile), "utf8")
-    const specifiers = [...source.matchAll(/(?:from|import)\\s*["']([^"']+)["']/g)].map((match) => match[1])
+    const specifiers = [...source.matchAll(/(?:from|import)\\s*["']([^"']+)["']/g)].map(
+      (match) => match[1],
+    )
     for (const specifier of forbidden) {
-      assert.equal(specifiers.includes(specifier), false, `${sourceFile} imported forbidden ${specifier}`)
+      assert.equal(
+        specifiers.includes(specifier),
+        false,
+        `${sourceFile} imported forbidden ${specifier}`,
+      )
     }
-    assert.equal(specifiers.some((specifier) => specifier.includes("/src/")), false, `${sourceFile} imported package source`)
+    assert.equal(
+      specifiers.some((specifier) => specifier.includes("/src/")),
+      false,
+      `${sourceFile} imported package source`,
+    )
   }
 })

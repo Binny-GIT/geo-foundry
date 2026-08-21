@@ -24,7 +24,10 @@ export const createSiteBObjectReader = (environment) => {
     async head(key) {
       try {
         const output = await client.send(
-          new HeadObjectCommand({ Bucket: environment.bucket, Key: physicalKey(environment.keyPrefix, key) }),
+          new HeadObjectCommand({
+            Bucket: environment.bucket,
+            Key: physicalKey(environment.keyPrefix, key),
+          }),
           { abortSignal: AbortSignal.timeout(environment.timeoutMs) },
         )
         return {
@@ -40,7 +43,10 @@ export const createSiteBObjectReader = (environment) => {
     async read(key) {
       try {
         const output = await client.send(
-          new GetObjectCommand({ Bucket: environment.bucket, Key: physicalKey(environment.keyPrefix, key) }),
+          new GetObjectCommand({
+            Bucket: environment.bucket,
+            Key: physicalKey(environment.keyPrefix, key),
+          }),
           { abortSignal: AbortSignal.timeout(environment.timeoutMs) },
         )
         const body = await output.Body?.transformToByteArray()

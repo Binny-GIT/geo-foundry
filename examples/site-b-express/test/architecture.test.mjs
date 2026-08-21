@@ -41,9 +41,15 @@ test("Site B serving host only consumes public serving dependencies", async () =
   assert.equal(manifest.dependencies.express, "5.2.1")
   for (const sourceFile of sourceFiles) {
     const source = await readFile(resolve(packageRoot, sourceFile), "utf8")
-    const specifiers = [...source.matchAll(/(?:from|import)\s*["']([^"']+)["']/g)].map((match) => match[1])
+    const specifiers = [...source.matchAll(/(?:from|import)\s*["']([^"']+)["']/g)].map(
+      (match) => match[1],
+    )
     for (const specifier of forbidden) {
-      assert.equal(specifiers.includes(specifier), false, `${sourceFile} imported forbidden ${specifier}`)
+      assert.equal(
+        specifiers.includes(specifier),
+        false,
+        `${sourceFile} imported forbidden ${specifier}`,
+      )
     }
     assert.equal(
       specifiers.some((specifier) => specifier.includes("/src/")),
@@ -55,7 +61,9 @@ test("Site B serving host only consumes public serving dependencies", async () =
 
 test("Site A and Site B consume identical shared renderer/runtime versions", async () => {
   const siteB = JSON.parse(await readFile(resolve(packageRoot, "package.json"), "utf8"))
-  const siteA = JSON.parse(await readFile(resolve(packageRoot, "../site-a-next/package.json"), "utf8"))
+  const siteA = JSON.parse(
+    await readFile(resolve(packageRoot, "../site-a-next/package.json"), "utf8"),
+  )
   for (const packageName of sharedRendererPackages) {
     assert.equal(
       siteB.dependencies[packageName],

@@ -1,7 +1,7 @@
 import { GetObjectCommand, HeadObjectCommand, S3Client } from "@aws-sdk/client-s3"
 
 const physicalKey = (prefix, key) => `${prefix}/${key}`
-const etagOf = (value) => value === undefined ? '"-"' : `"${value.replaceAll('"', "")}"`
+const etagOf = (value) => (value === undefined ? '"-"' : `"${value.replaceAll('"', "")}"`)
 
 const notFound = (error) =>
   typeof error === "object" &&
@@ -24,7 +24,10 @@ export const createSiteAObjectReader = (environment) => {
     async head(key) {
       try {
         const output = await client.send(
-          new HeadObjectCommand({ Bucket: environment.bucket, Key: physicalKey(environment.keyPrefix, key) }),
+          new HeadObjectCommand({
+            Bucket: environment.bucket,
+            Key: physicalKey(environment.keyPrefix, key),
+          }),
           { abortSignal: AbortSignal.timeout(environment.timeoutMs) },
         )
         return {
@@ -40,7 +43,10 @@ export const createSiteAObjectReader = (environment) => {
     async read(key) {
       try {
         const output = await client.send(
-          new GetObjectCommand({ Bucket: environment.bucket, Key: physicalKey(environment.keyPrefix, key) }),
+          new GetObjectCommand({
+            Bucket: environment.bucket,
+            Key: physicalKey(environment.keyPrefix, key),
+          }),
           { abortSignal: AbortSignal.timeout(environment.timeoutMs) },
         )
         const body = await output.Body?.transformToByteArray()

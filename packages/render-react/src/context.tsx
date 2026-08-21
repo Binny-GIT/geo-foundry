@@ -15,14 +15,27 @@ export type GeoRenderContextValue = Readonly<{
 
 const GeoRenderContext = createContext<GeoRenderContextValue | undefined>(undefined)
 
-const componentNames = ["Author", "Block", "Breadcrumbs", "Hero", "Listing", "RelatedPages"] as const
+const componentNames = [
+  "Author",
+  "Block",
+  "Breadcrumbs",
+  "Hero",
+  "Listing",
+  "RelatedPages",
+] as const
 const slotNames = ["page-header", "after-hero", "before-body", "after-body", "footer"] as const
 
 const validateTheme = (theme: GeoTheme | undefined): void => {
   if (theme?.components !== undefined) {
     for (const [name, component] of Object.entries(theme.components)) {
-      if (!componentNames.includes(name as (typeof componentNames)[number]) || typeof component !== "function") {
-        throw new GeoRenderError(GEO_RENDER_ERROR.THEME_COMPONENT_INVALID, `invalid theme component: ${name}`)
+      if (
+        !componentNames.includes(name as (typeof componentNames)[number]) ||
+        typeof component !== "function"
+      ) {
+        throw new GeoRenderError(
+          GEO_RENDER_ERROR.THEME_COMPONENT_INVALID,
+          `invalid theme component: ${name}`,
+        )
       }
     }
   }

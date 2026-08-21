@@ -26,7 +26,11 @@ export const statusHtml = ({ detail, title }) =>
   })
 
 const escapeHtml = (value) =>
-  value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;")
+  value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
 
 export const redirectHtml = (targetUrl) =>
   `<!doctype html><html lang="en"><head><meta name="robots" content="noindex,follow"></head><body><main><h1>Moved</h1><p><a href="${escapeHtml(targetUrl)}">Continue to the current page</a></p></main></body></html>`

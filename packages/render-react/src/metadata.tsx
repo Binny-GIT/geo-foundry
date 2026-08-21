@@ -43,11 +43,17 @@ export const GeoHead = ({ head }: GeoHeadProps): ReactNode => {
       <meta content={seo.openGraph?.title ?? seo.title} property="og:title" />
       <meta content={seo.openGraph?.description ?? seo.description} property="og:description" />
       <meta content={route.canonicalUrl} property="og:url" />
-      {seo.openGraph?.image === undefined ? null : <meta content={seo.openGraph.image} property="og:image" />}
+      {seo.openGraph?.image === undefined ? null : (
+        <meta content={seo.openGraph.image} property="og:image" />
+      )}
       {seo.twitter === undefined ? null : <meta content={seo.twitter.card} name="twitter:card" />}
       {seo.twitter === undefined ? null : <meta content={seo.twitter.title} name="twitter:title" />}
-      {seo.twitter === undefined ? null : <meta content={seo.twitter.description} name="twitter:description" />}
-      {seo.twitter?.image === undefined ? null : <meta content={seo.twitter.image} name="twitter:image" />}
+      {seo.twitter === undefined ? null : (
+        <meta content={seo.twitter.description} name="twitter:description" />
+      )}
+      {seo.twitter?.image === undefined ? null : (
+        <meta content={seo.twitter.image} name="twitter:image" />
+      )}
       {metadata.publishedAt === undefined ? null : (
         <meta content={metadata.publishedAt} property="article:published_time" />
       )}
