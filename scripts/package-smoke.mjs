@@ -168,14 +168,19 @@ import "@geo/content-client"
 import "@geo/domain"
 import { assertPointerEtagMatches } from "@geo/publisher/artifact-store"
 import "@geo/quality-rules"
-import "@geo/render-core"
-import "@geo/render-react"
-import "@geo/runtime"
-import { articlePageFixture, PageDocumentSchema, ReleaseV1 } from "@geo/schema"
+	import { renderPage } from "@geo/render-core"
+	import { GeoPage } from "@geo/render-react"
+	import { renderToString } from "react-dom/server"
+	import "@geo/runtime"
+	import { articlePageFixture, PageDocumentSchema, ReleaseV1 } from "@geo/schema"
 import "@geo/testing"
 
-const page = PageDocumentSchema.parse(articlePageFixture)
-const etag = ReleaseV1.ETagSchema.parse('"consumer-etag"')
+	const page = PageDocumentSchema.parse(articlePageFixture)
+	const html = renderToString(GeoPage({ page: renderPage(page) }))
+	if (!html.includes("Portable structured content.")) {
+	  throw new Error("Packed render-react consumer did not produce semantic SSR output")
+	}
+	const etag = ReleaseV1.ETagSchema.parse('"consumer-etag"')
 if (assertPointerEtagMatches({ actualEtag: etag, expectedEtag: etag }) !== etag) {
   throw new Error("Publisher contract returned an unexpected ETag")
 }
