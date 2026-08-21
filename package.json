@@ -21,10 +21,11 @@
     "test:workspace:fresh": "vitest run --config vitest.workspace.ts --configLoader runner --no-file-parallelism",
     "test:integration": "turbo run test:integration",
     "test:integration:fresh": "turbo run test:integration --force --output-logs=full",
+    "test:serving-isolation": "pnpm build && pnpm --filter @geo/runtime test:integration",
     "test:e2e": "turbo run test:e2e",
     "build": "turbo run build",
     "build:fresh": "turbo run build --force --output-logs=full",
-    "api:check": "pnpm build && api-extractor run --config packages/schema/api-extractor.json && api-extractor run --config packages/schema/api-extractor.release-v1.json && api-extractor run --config packages/publisher/api-extractor.json && api-extractor run --config packages/publisher/api-extractor.artifact-store.json",
+    "api:check": "pnpm build && api-extractor run --config packages/schema/api-extractor.json && api-extractor run --config packages/schema/api-extractor.release-v1.json && api-extractor run --config packages/publisher/api-extractor.json && api-extractor run --config packages/publisher/api-extractor.artifact-store.json && api-extractor run --config packages/render-core/api-extractor.json && api-extractor run --config packages/render-react/api-extractor.json",
     "check": "biome format . && pnpm lint && pnpm typecheck && pnpm test && pnpm api:check",
     "dev": "turbo run dev --parallel",
     "packages:pack-smoke:task6:npm": "node tooling/task-6-packed-consumer.mjs npm",
@@ -35,7 +36,8 @@
     "verify:toolchain": "node --test tooling/toolchain.test.mjs",
     "shared:check": "node scripts/shared-services/secure-run.mjs check",
     "shared:cleanup": "node scripts/shared-services/secure-run.mjs cleanup",
-    "evidence:verify": "node scripts/evidence/verify.mjs"
+    "evidence:verify": "node scripts/evidence/verify.mjs",
+    "mvp:seed": "cd apps/cms && node scripts/secure-run.mjs node scripts/mvp-seed.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.8",

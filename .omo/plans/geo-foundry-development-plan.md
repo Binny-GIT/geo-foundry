@@ -389,7 +389,7 @@ Your next move: 使用 `$start-work geo-foundry-development-plan` 在独立 work
   QA scenarios: happy: rollback Site A while Site B remains on current; failure: missing/tampered target, stale ETag, concurrent publish/rollback, cross-site target, already-current target, and DB failure after CAS invoke deterministic reconciliation without recompilation. Evidence `<attemptDir>/task-30-geo-foundry-development-plan/`.
   Commit: Y | `feat(publisher): 支持可审计原子回滚`
 
-- [ ] 31. Implement the lightweight host/path Runtime and L1 cache
+- [x] 31. Implement the lightweight host/path Runtime and L1 cache
   What to do / Must NOT do: Create `@geo/runtime` that loads the global routing pointer/manifest, resolves hostname to Site, loads Site current pointer, route index, and PageDocument from S3-compatible storage, validates schema/hash, handles active/redirect/gone/not-found, and maintains bounded TTL L1 caches keyed by routing release, Site release, and path. Expose `geo.resolve({hostname, pathname})`; include cache invalidation on pointer ETag change. Do not import or connect to CMS/PostgreSQL/Redis/BullMQ/AI/compiler/quality.
   Parallelization: Wave 4 | Blocked by: 4-6,27-30 | Blocks: 32,35-40
   References: package boundary Todo 8, release/routing contracts Todos 6/27/29; target `packages/runtime/src/*`.
@@ -397,7 +397,7 @@ Your next move: 使用 `$start-work geo-foundry-development-plan` 在独立 work
   QA scenarios: happy: resolve both sites across pointer update; failure: missing pointer/manifest/object, hash mismatch, unsupported schema, stale cached 404, unknown host, alias mismatch, and object-store timeout produce defined safe response/error without tenant fallback. Evidence `<attemptDir>/task-31-geo-foundry-development-plan.json`.
   Commit: Y | `feat(runtime): 实现独立站点路由与产物解析`
 
-- [ ] 32. Prove Serving Plane independence under Control Plane failure
+- [x] 32. Prove Serving Plane independence under Control Plane failure
   What to do / Must NOT do: Add an integration fault harness that publishes both Site releases, warms/clears Runtime caches, then stops CMS, PostgreSQL, Redis, Worker, and fake LLM while keeping RustFS/runtime hosts up. Enforce egress/dependency allowlist and connection-attempt logging. Runtime may contact only object storage and local cache; do not mask forbidden calls with mocks or preloaded in-memory page objects.
   Parallelization: Wave 4 | Blocked by: 2,31 | Blocks: 38-40
   References: this plan Serving Plane isolation and failure injection; target `tests/integration/serving-plane-isolation.test.ts`, process/network policy scripts.
@@ -405,7 +405,7 @@ Your next move: 使用 `$start-work geo-foundry-development-plan` 在独立 work
   QA scenarios: happy: cold Runtime reads only shared RustFS and serves both sites; failure: deny the Runtime's RustFS credentials/network path in its isolated test process and assert bounded 503/cache behavior, then restore access and recover without restarting Control Plane. Evidence `<attemptDir>/task-32-geo-foundry-development-plan/`.
   Commit: Y | `test(runtime): 验证控制面故障下持续服务`
 
-- [ ] 33. Implement semantic framework-neutral render-core
+- [x] 33. Implement semantic framework-neutral render-core
   What to do / Must NOT do: Create `@geo/render-core` with typed render model helpers, block/slot registry contracts, heading hierarchy, breadcrumbs, author/date, figure/caption, references, FAQ, related list, pagination, category/tag lists, redirect/not-found models, metadata and JSON-LD pass-through. Keep it platform/React/DOM independent and require exhaustive handling of every PageDocument page/block discriminator. Themes cannot add schema node types.
   Parallelization: Wave 5 | Blocked by: 4,8,25,26 | Blocks: 34-40
   References: PageDocument Todo 4, compiler outputs Todos 25/26, package boundaries Todo 8; target `packages/render-core/src/*`.
@@ -413,7 +413,7 @@ Your next move: 使用 `$start-work geo-foundry-development-plan` 在独立 work
   QA scenarios: happy: transform each PageDocument fixture to stable render model; failure: unknown block/page type, malformed breadcrumb, missing image alt, and invalid pagination are rejected rather than silently omitted. Evidence `<attemptDir>/task-33-geo-foundry-development-plan.json`.
   Commit: Y | `feat(renderer): 建立共享语义渲染核心`
 
-- [ ] 34. Implement React SSR renderer, slots, and Theme Adapter contract
+- [x] 34. Implement React SSR renderer, slots, and Theme Adapter contract
   What to do / Must NOT do: Create `@geo/render-react` using React 19.2.8 peer dependencies and Node streaming/string SSR support. Implement `GeoProvider`, `GeoPage`, article/list/category/tag/redirect/not-found components, declared slots, default components, metadata/JSON-LD helpers, and theme tokens. First render must not read window/time/random/client locale; effects may enhance only after hydration. Do not couple to Next/Express internals or permit arbitrary schema mutation.
   Parallelization: Wave 5 | Blocked by: 8,33 | Blocks: 35-40
   References: render-core Todo 33, Theme/Slot constraints in Scope; target `packages/render-react/src/*`.
@@ -421,7 +421,7 @@ Your next move: 使用 `$start-work geo-foundry-development-plan` 在独立 work
   QA scenarios: happy: render/hydrate every page type with default theme; failure: slot throws, missing required slot context, unstable ID fixture, and client-only global access are caught by tests/error boundary policy. Evidence `<attemptDir>/task-34-geo-foundry-development-plan/`.
   Commit: Y | `feat(renderer): 实现 React SSR 与主题插槽契约`
 
-- [ ] 35. Build Site A Next.js SSR host and technical theme
+- [x] 35. Build Site A Next.js SSR host and technical theme
   What to do / Must NOT do: Using the `visual-engineering` category with `frontend` skill during execution, create `examples/site-a-next` on Next.js 16.3.1. It must call `@geo/runtime` on the server, render via packed `@geo/render-react`, provide Site A technical/editorial visual tokens and only approved slot overrides, expose host-aware article/list/category/tag/redirect/not-found routes, and emit full HTML without client JS. Do not duplicate compiler, SEO, JSON-LD, URL, or article-body logic in the host.
   Parallelization: Wave 5 | Blocked by: 26,30,31,34 | Blocks: 37-40
   References: package boundaries Todo 8, Runtime Todo 31, Renderer Todo 34; target `examples/site-a-next/*`.
@@ -429,7 +429,7 @@ Your next move: 使用 `$start-work geo-foundry-development-plan` 在独立 work
   QA scenarios: happy: desktop/mobile article and list with Site A theme; failure: unknown path, redirect, gone, object-store temporary failure, and JS disabled return defined semantic/status behavior. Evidence `<attemptDir>/task-35-geo-foundry-development-plan/`.
   Commit: Y | `feat(example): 添加 Site A Next SSR 主题站点`
 
-- [ ] 36. Build Site B Express SSR host and distinct operational theme
+- [x] 36. Build Site B Express SSR host and distinct operational theme
   What to do / Must NOT do: Using `visual-engineering` + `frontend`, create `examples/site-b-express` with Express 5.2.1 and React streaming SSR, consuming the same packed Runtime/Renderer packages. Provide a visibly distinct operations/business theme through tokens and approved slots only, preserve response status/redirect/cache headers, and render all P0 page types. Do not fork renderer code, deep-import workspace source, or add a second content model.
   Parallelization: Wave 5 | Blocked by: 26,30,31,34 | Blocks: 37-40
   References: same as Todo 35; target `examples/site-b-express/*`.
