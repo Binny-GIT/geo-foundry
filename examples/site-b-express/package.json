@@ -1,0 +1,30 @@
+{
+  "name": "@geo/site-b-express",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node server/verify-build.mjs",
+    "dev": "node server/server.mjs",
+    "lint": "biome lint --config-path ../../biome.json .",
+    "start": "node server/server.mjs",
+    "test": "node --test test/*.test.mjs",
+    "test:integration": "node scripts/run-integration.mjs",
+    "test:e2e": "node --input-type=module --eval \"\"",
+    "typecheck": "node --input-type=module --eval \"\""
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.1112.0",
+    "@geo/render-core": "workspace:*",
+    "@geo/render-react": "workspace:*",
+    "@geo/runtime": "workspace:*",
+    "@geo/schema": "workspace:*",
+    "express": "5.2.1",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@geo/compiler": "workspace:*",
+    "@geo/publisher": "workspace:*"
+  }
+}
