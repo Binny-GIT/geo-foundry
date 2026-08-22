@@ -1,28 +1,28 @@
 import {
-  createUserAuditActor,
-  parseContentId,
-  parseEditionId,
-  parseSiteId,
-  parseTenantId,
-  parseUserId,
-  parseInstant,
-  transitionContentEdition,
-  createDraftEditionFromPublished,
   type AuditActor,
   type Clock,
   type ContentEdition,
   type ContentEditionState,
+  createDraftEditionFromPublished,
+  createUserAuditActor,
+  parseContentId,
+  parseEditionId,
+  parseInstant,
+  parseSiteId,
+  parseTenantId,
+  parseUserId,
+  transitionContentEdition,
 } from "@geo/domain"
 import type { Payload } from "payload"
 
 import { resolveSessionClaims, type SessionClaims } from "../access/session"
 import {
-  OUTBOX_EVENT,
   appendOutboxEvent,
+  OUTBOX_EVENT,
   runOutboxScopedTransaction,
   type TransactionScope,
 } from "../outbox/outbox"
-import { hashEditionContent, type EditionContentSnapshot } from "./edition-input-hash"
+import { type EditionContentSnapshot, hashEditionContent } from "./edition-input-hash"
 
 export class EditionWorkflowError extends Error {
   override readonly name = "EditionWorkflowError"
@@ -210,10 +210,12 @@ export const loadWorkflowEdition = async (
   payload: Payload,
   editionId: number,
   req: TransactionScope = {},
+  draft = false,
 ): Promise<WorkflowEditionDoc> => {
   try {
     return (await payload.findByID({
       collection: "content-editions",
+      draft,
       id: editionId,
       depth: 0,
       overrideAccess: true,
@@ -279,7 +281,7 @@ export async function transitionEdition(
     throw fail("EDITION_WORKFLOW_ACTOR_INVALID", "session has no valid user actor")
   }
   return runOutboxScopedTransaction(payload, async (req) => {
-    const doc = await loadWorkflowEdition(payload, options.editionId, req)
+    const doc = await loadWorkflowEdition(payload, options.editionId, req, true)
     assertEditionTenantScope(options.user, doc)
     const aggregate = aggregateOf(doc)
 
@@ -319,26 +321,41 @@ export async function transitionEdition(
       to: options.target,
     }
     const existingAudit = Array.isArray(doc.auditLog) ? doc.auditLog : []
-    const updated = await payload.update({
-      collection: "content-editions",
-      where: {
-        and: [
-          { id: { equals: options.editionId } },
-          { workflowRevision: { equals: aggregate.revision } },
-        ],
-      },
-      data: {
-        auditLog: [...existingAudit, entry],
-        ...(options.target === "compiled" ? { compiledRelease: options.compiledReleaseId } : {}),
-        workflowRevision: aggregate.revision + 1,
-        workflowStatus: options.target,
-      },
-      overrideAccess: true,
-      depth: 0,
-      req,
-    })
-    if (updated.docs.length === 0) {
-      throw fail("EDITION_WORKFLOW_REVISION_CONFLICT", `edition ${options.editionId}`)
+    const data = {
+      auditLog: [...existingAudit, entry],
+      ...(options.target === "compiled" ? { compiledRelease: options.compiledReleaseId } : {}),
+      workflowRevision: aggregate.revision + 1,
+      workflowStatus: options.target,
+    }
+    if (options.target === "published") {
+      const updated = (await payload.update({
+        collection: "content-editions",
+        data,
+        depth: 0,
+        draft: false,
+        id: options.editionId,
+        overrideAccess: true,
+        req,
+      })) as unknown as WorkflowEditionDoc
+      if (
+        parseWorkflowStatus(updated.workflowStatus) !== options.target ||
+        numberFieldOf(updated.workflowRevision) !== aggregate.revision + 1
+      ) {
+        throw fail("EDITION_WORKFLOW_REVISION_CONFLICT", `edition ${options.editionId}`)
+      }
+    } else {
+      const updated = (await payload.update({
+        collection: "content-editions",
+        data,
+        depth: 0,
+        draft: true,
+        id: options.editionId,
+        overrideAccess: true,
+        req,
+      })) as unknown as WorkflowEditionDoc
+      if (numberFieldOf(updated.workflowRevision) !== aggregate.revision + 1) {
+        throw fail("EDITION_WORKFLOW_REVISION_CONFLICT", `edition ${options.editionId}`)
+      }
     }
     await appendOutboxEvent(
       payload,
@@ -460,7 +477,7 @@ export async function recordAssessment(
     requireServiceIdentity(input.user)
   }
   return runOutboxScopedTransaction(payload, async (req) => {
-    const doc = await loadWorkflowEdition(payload, input.editionId, req)
+    const doc = await loadWorkflowEdition(payload, input.editionId, req, true)
     if (input.user !== undefined) {
       assertEditionTenantScope(input.user, doc)
     }

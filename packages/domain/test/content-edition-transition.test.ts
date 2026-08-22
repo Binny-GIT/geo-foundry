@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest"
 import {
   CONTENT_EDITION_STATE,
-  createDraftEditionFromPublished,
-  parseEditionId,
-  transitionContentEdition,
   type ContentEdition,
   type ContentEditionState,
   type ContentEditionTransitionContext,
+  createDraftEditionFromPublished,
+  parseEditionId,
+  transitionContentEdition,
 } from "../src/index.js"
 import {
   clock,
@@ -27,7 +27,7 @@ function context(
   to: ContentEditionState,
 ): ContentEditionTransitionContext {
   const actor =
-    from === "review" && to === "approved"
+    from === "review" && (to === "approved" || to === "draft")
       ? userActor("reviewer")
       : to === "published" || to === "archived"
         ? userActor("publisher")
@@ -46,6 +46,7 @@ describe("transitionContentEdition", () => {
     "draft:generating",
     "generating:draft",
     "generating:review",
+    "review:draft",
     "review:approved",
     "approved:compiled",
     "compiled:published",
@@ -75,6 +76,12 @@ describe("transitionContentEdition", () => {
       code: "CONTENT_EDITION_REVIEWER_REQUIRED",
       from: "review",
       to: "approved",
+    },
+    {
+      actor: userActor("editor"),
+      code: "CONTENT_EDITION_REVIEWER_REQUIRED",
+      from: "review",
+      to: "draft",
     },
     {
       actor: userActor("reviewer"),

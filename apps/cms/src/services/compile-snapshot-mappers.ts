@@ -15,6 +15,9 @@ export const utcInstantOf = (value: unknown, label: string): string => {
 export const textOf = (value: unknown): string => (typeof value === "string" ? value : "")
 
 export const idOf = (value: unknown): number | null => {
+  if (typeof value === "object" && value !== null) {
+    return idOf((value as Doc)["id"])
+  }
   const parsed = typeof value === "number" ? value : Number(value)
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null
 }
@@ -65,9 +68,9 @@ export const deriveRoutes = (
 
 export type EditionMappingInput = {
   readonly assessment: { state: string; inputHash: string } | undefined
+  readonly authorId: string
   readonly authorName: string
   readonly canonicalDomain: string
-  readonly createdBy: number | null
   readonly edition: Doc
   readonly siteKey: string
   readonly urlPathname: string
@@ -97,7 +100,7 @@ export const mapEdition = (input: EditionMappingInput): CompileEdition | null =>
       ? {}
       : {
           author: {
-            id: `author-user-${String(input.createdBy ?? editionId)}`,
+            id: input.authorId,
             name: input.authorName,
             url: `https://${input.canonicalDomain}/authors/${slugify(input.authorName)}`,
           },

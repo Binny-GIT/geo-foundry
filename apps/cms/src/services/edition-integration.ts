@@ -1,18 +1,18 @@
 import type { ContentEditionState } from "@geo/domain"
 import type { Payload } from "payload"
 
-import { OUTBOX_EVENT, appendOutboxEvent, runOutboxScopedTransaction } from "../outbox/outbox"
+import { appendOutboxEvent, OUTBOX_EVENT, runOutboxScopedTransaction } from "../outbox/outbox"
 import {
-  EditionWorkflowError,
+  type AuditEntry,
   assertEditionTenantScope,
   currentEditionInputHash,
+  EditionWorkflowError,
   loadWorkflowEdition,
   numberFieldOf,
   parseWorkflowStatus,
   requireServiceIdentity,
   serializedActorOf,
   systemClockOf,
-  type AuditEntry,
   type WorkflowEditionDoc,
 } from "./edition-workflow"
 
@@ -46,7 +46,7 @@ export async function readEditionInput(
   payload: Payload,
   options: ReadEditionInputOptions,
 ): Promise<EditionInputSnapshot> {
-  const doc = await loadWorkflowEdition(payload, options.editionId)
+  const doc = await loadWorkflowEdition(payload, options.editionId, {}, true)
   assertEditionTenantScope(options.user, doc)
   return {
     body: doc.body,
@@ -121,7 +121,7 @@ export async function writeGeneratedDraft(
 ): Promise<DraftWriteReceipt> {
   requireServiceIdentity(options.user)
   return runOutboxScopedTransaction(payload, async (req) => {
-    const doc = await loadWorkflowEdition(payload, options.editionId, req)
+    const doc = await loadWorkflowEdition(payload, options.editionId, req, true)
     assertEditionTenantScope(options.user, doc)
     const status = parseWorkflowStatus(doc.workflowStatus)
     if (status !== "draft" && status !== "generating") {
@@ -134,6 +134,7 @@ export async function writeGeneratedDraft(
     }
     const updated = (await payload.update({
       collection: "content-editions",
+      draft: true,
       id: options.editionId,
       data,
       overrideAccess: true,
@@ -190,7 +191,7 @@ export async function recordCompileResult(
 ): Promise<CompileResultReceipt> {
   requireServiceIdentity(input.user)
   return runOutboxScopedTransaction(payload, async (req) => {
-    const doc = await loadWorkflowEdition(payload, input.editionId, req)
+    const doc = await loadWorkflowEdition(payload, input.editionId, req, true)
     assertEditionTenantScope(input.user, doc)
     const status = parseWorkflowStatus(doc.workflowStatus)
     if (status !== "approved" && status !== "compiled") {
@@ -217,6 +218,7 @@ export async function recordCompileResult(
     const existingAudit = Array.isArray(doc.auditLog) ? doc.auditLog : []
     await payload.update({
       collection: "content-editions",
+      draft: true,
       id: input.editionId,
       data: { auditLog: [...existingAudit, entry] },
       overrideAccess: true,
@@ -269,7 +271,7 @@ export async function requestPublish(
 ): Promise<PublishRequestReceipt> {
   requireServiceIdentity(input.user)
   return runOutboxScopedTransaction(payload, async (req) => {
-    const doc = await loadWorkflowEdition(payload, input.editionId, req)
+    const doc = await loadWorkflowEdition(payload, input.editionId, req, true)
     assertEditionTenantScope(input.user, doc)
     const status = parseWorkflowStatus(doc.workflowStatus)
     if (status !== "compiled") {
@@ -298,6 +300,7 @@ export async function requestPublish(
     const existingAudit = Array.isArray(doc.auditLog) ? doc.auditLog : []
     await payload.update({
       collection: "content-editions",
+      draft: true,
       id: input.editionId,
       data: { auditLog: [...existingAudit, entry] },
       overrideAccess: true,

@@ -23,8 +23,13 @@ import { Users } from "./collections/Users"
 import { createPostgresAdapterOptions } from "./config/database"
 import { parseCmsEnvironment } from "./config/environment"
 import { PAGE_DOCUMENT_BLOCKS } from "./editor/page-document-blocks"
+import {
+  createDraftFromPublishedEndpoint,
+  transitionEditionEndpoint,
+} from "./endpoints/edition-workflow"
 import { allInternalEndpoints } from "./endpoints/internal/index"
 import { createRollbackIntentEndpoint } from "./endpoints/rollback-intents"
+import { renameUrlRecordEndpoint } from "./endpoints/url-records"
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 const environment = parseCmsEnvironment(process.env)
@@ -52,7 +57,13 @@ export default buildConfig({
     Operations,
     IdempotencyRecords,
   ],
-  endpoints: [createRollbackIntentEndpoint, ...allInternalEndpoints],
+  endpoints: [
+    createRollbackIntentEndpoint,
+    createDraftFromPublishedEndpoint,
+    transitionEditionEndpoint,
+    renameUrlRecordEndpoint,
+    ...allInternalEndpoints,
+  ],
   db: postgresAdapter(
     createPostgresAdapterOptions(environment, path.resolve(dirname, "migrations")),
   ),

@@ -1,5 +1,5 @@
-import { sql } from "@payloadcms/db-postgres"
 import { createHash } from "node:crypto"
+import { sql } from "@payloadcms/db-postgres"
 import type { Payload } from "payload"
 
 import {
@@ -49,7 +49,7 @@ export const anchorOf = async (
   user: unknown,
 ): Promise<EmbeddingEditionAnchor> => {
   requireServiceIdentity(user)
-  const doc = await loadWorkflowEdition(payload, editionId)
+  const doc = await loadWorkflowEdition(payload, editionId, {}, true)
   assertEditionTenantScope(user, doc)
   return {
     editionId: doc.id,

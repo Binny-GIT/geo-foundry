@@ -2,12 +2,12 @@ import type { CompileRequest, CompileSiteSnapshot } from "@geo/compiler"
 import type { Payload } from "payload"
 
 import {
+  type Doc,
   deriveListings,
   deriveRoutes,
   idOf,
   mapEdition,
   textOf,
-  type Doc,
 } from "./compile-snapshot-mappers"
 import { EditionWorkflowError } from "./edition-workflow"
 
@@ -80,6 +80,7 @@ export async function buildCompileSnapshot(
 
   const editionResult = await payload.find({
     collection: "content-editions",
+    draft: true,
     where: {
       and: [{ site: { equals: options.siteId } }, { workflowStatus: { in: COMPILABLE_STATUSES } }],
     },
@@ -88,47 +89,6 @@ export async function buildCompileSnapshot(
     overrideAccess: true,
   })
   const editions = editionResult.docs as unknown as Doc[]
-
-  const contentIds = [
-    ...new Set(
-      editions.map((edition) => idOf(edition["content"])).filter((id): id is number => id !== null),
-    ),
-  ]
-  const contentCreatedBy = new Map<number, number>()
-  if (contentIds.length > 0) {
-    const contents = await payload.find({
-      collection: "contents",
-      where: { id: { in: contentIds } },
-      limit: contentIds.length,
-      depth: 0,
-      overrideAccess: true,
-    })
-    for (const doc of contents.docs as unknown as Doc[]) {
-      const id = idOf(doc["id"])
-      const createdBy = idOf(doc["createdBy"])
-      if (id !== null) {
-        contentCreatedBy.set(id, createdBy ?? -1)
-      }
-    }
-  }
-
-  const userIds = [...new Set([...contentCreatedBy.values()].filter((id) => id > 0))]
-  const userNames = new Map<number, string>()
-  if (userIds.length > 0) {
-    const users = await payload.find({
-      collection: "users",
-      where: { id: { in: userIds } },
-      limit: userIds.length,
-      depth: 0,
-      overrideAccess: true,
-    })
-    for (const doc of users.docs as unknown as Doc[]) {
-      const id = idOf(doc["id"])
-      if (id !== null) {
-        userNames.set(id, textOf(doc["name"]) || textOf(doc["email"]))
-      }
-    }
-  }
 
   const editionIds = editions
     .map((edition) => idOf(edition["id"]))
@@ -175,12 +135,11 @@ export async function buildCompileSnapshot(
     if (urlPathname === undefined) {
       continue
     }
-    const createdBy = contentCreatedBy.get(contentId) ?? -1
     const mapped = mapEdition({
       assessment: latestAssessment.get(editionId),
-      authorName: createdBy > 0 ? (userNames.get(createdBy) ?? "") : "",
+      authorId: `author-site-${options.siteId}`,
+      authorName: `${siteName} Editorial Team`,
       canonicalDomain,
-      createdBy: createdBy > 0 ? createdBy : null,
       edition,
       siteKey,
       urlPathname,

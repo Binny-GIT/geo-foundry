@@ -61,7 +61,7 @@ describe("content service client", () => {
     expect(captured).toHaveLength(1)
     expect(captured[0]?.url).toBe("http://cms.test/api/internal/editions/12/versions")
     expect(captured[0]?.method).toBe("POST")
-    expect(captured[0]?.headers.authorization).toBe("service-api-key")
+    expect(captured[0]?.headers.authorization).toBe("Bearer service-api-key")
     expect(captured[0]?.headers["x-request-id"]).toBe("req-0001-abcd")
     expect(captured[0]?.headers["x-operation-id"]).toBe("op-0001")
     expect(JSON.parse(captured[0]?.body ?? "{}")).toEqual({ title: "Generated" })

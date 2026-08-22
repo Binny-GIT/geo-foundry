@@ -34,7 +34,11 @@ export const compileBlocks = (
     const candidate = raw as Record<string, unknown>
     const type = candidate["blockType"]
     const mapped: Record<string, unknown> = { ...candidate }
+    delete mapped["blockName"]
     delete mapped["blockType"]
+    if (mapped["extensions"] === null) {
+      delete mapped["extensions"]
+    }
     if (type !== undefined) {
       mapped["type"] = type
     }

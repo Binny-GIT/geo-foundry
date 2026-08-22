@@ -62,6 +62,11 @@
     },
     {
       "method": "get",
+      "operationId": "listNonTerminalOperations",
+      "path": "/internal/operations/non-terminal"
+    },
+    {
+      "method": "get",
       "operationId": "getOperation",
       "path": "/internal/operations/:operationId"
     },
@@ -79,11 +84,6 @@
       "method": "post",
       "operationId": "cancelOperation",
       "path": "/internal/operations/:operationId/cancel"
-    },
-    {
-      "method": "get",
-      "operationId": "listNonTerminalOperations",
-      "path": "/internal/operations/non-terminal"
     }
   ]
 }

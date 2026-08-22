@@ -332,7 +332,7 @@ export class ContentServiceClient {
     responseSchema: z.ZodType<TResponse>,
     options: CallOptions = {},
   ): Promise<TResponse> {
-    const headers = new Headers({ authorization: this.#config.apiKey })
+    const headers = new Headers({ authorization: `Bearer ${this.#config.apiKey}` })
     let body: string | null = null
     if (requestSchema !== null) {
       const validatedRequest = requestSchema.safeParse(request)

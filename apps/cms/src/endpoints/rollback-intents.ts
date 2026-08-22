@@ -52,5 +52,5 @@ export const createRollbackIntentEndpoint: Endpoint = {
     }
   },
   method: "post",
-  path: "/rollback-intents",
+  path: "/rollback-operations/intents",
 }

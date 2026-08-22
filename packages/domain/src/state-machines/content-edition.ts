@@ -1,8 +1,8 @@
 import {
+  type AuditRecord,
   actorHasRole,
   auditRecord,
   freezeAuditTrail,
-  type AuditRecord,
   type TransitionContext,
 } from "../audit.js"
 import {
@@ -14,7 +14,7 @@ import {
 import { assertNever } from "../exhaustive.js"
 import type { ContentId, EditionId } from "../ids.js"
 import { freezeOwnership, type SiteOwnership } from "../ownership.js"
-import { err, ok, type DomainResult } from "../result.js"
+import { type DomainResult, err, ok } from "../result.js"
 import type { QualityAssessmentState } from "./quality-assessment.js"
 
 export const CONTENT_EDITION_STATE = {
@@ -65,7 +65,7 @@ function isAllowedTransition(from: ContentEditionState, to: ContentEditionState)
     case "compiled":
       return from === "approved"
     case "draft":
-      return from === "generating"
+      return from === "generating" || from === "review"
     case "generating":
       return from === "draft"
     case "published":
@@ -78,6 +78,7 @@ function isAllowedTransition(from: ContentEditionState, to: ContentEditionState)
 }
 
 function guardTransition(
+  from: ContentEditionState,
   target: ContentEditionState,
   context: ContentEditionTransitionContext,
 ): DomainResult<null> {
@@ -111,6 +112,14 @@ function guardTransition(
             ),
           )
     case "draft":
+      return from === "review" && !actorHasRole(context.actor, "reviewer")
+        ? err(
+            new TransitionGuardError(
+              DOMAIN_ERROR_CODE.CONTENT_EDITION_REVIEWER_REQUIRED,
+              "Reviewer role is required to request an edition revision",
+            ),
+          )
+        : ok(null)
     case "generating":
     case "review":
       return ok(null)
@@ -134,7 +143,7 @@ export function transitionContentEdition(
       ),
     )
   }
-  const guard = guardTransition(target, context)
+  const guard = guardTransition(edition.state, target, context)
   if (!guard.ok) {
     return guard
   }

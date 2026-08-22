@@ -97,6 +97,46 @@ describe("compileSite golden output", () => {
     expect(parsed.body).toHaveLength(3)
     expect(parsed.body[2]).toMatchObject({ src: "/media/map.webp", type: "image" })
     expect(parsed.citations).toHaveLength(1)
+  })
+
+  it("normalizes Payload storage-only block fields before release validation", async () => {
+    const output = await compileSite({
+      ...request(),
+      editions: [
+        {
+          ...edition,
+          body: [
+            {
+              blockName: "stored-heading",
+              blockType: "heading",
+              extensions: null,
+              id: "payload-storage-id",
+              level: "2",
+              text: "Stored heading",
+            },
+          ],
+          media: [],
+        },
+      ],
+    })
+
+    const article = output.documents.find(
+      (document) => document.pathname === "/guides/release-gates",
+    )
+    const parsed = JSON.parse(article?.canonical ?? "{}")
+    expect(parsed.body).toEqual([
+      { id: "payload-storage-id", level: 2, text: "Stored heading", type: "heading" },
+    ])
+    expect(parsed.body[0]).not.toHaveProperty("blockName")
+    expect(parsed.body[0]).not.toHaveProperty("extensions")
+  })
+
+  it("continues compiling standard documents", async () => {
+    const output = await compileSite(request())
+    const article = output.documents.find(
+      (document) => document.pathname === "/guides/release-gates",
+    )
+    const parsed = JSON.parse(article?.canonical ?? "{}")
     expect(parsed.seo).toEqual({
       description: edition.summary,
       openGraph: {
