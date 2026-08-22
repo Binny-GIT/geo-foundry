@@ -61,16 +61,30 @@ const messageFor = (code: unknown): string => {
   }
 }
 
+const WORKFLOW_BADGE: Record<WorkflowStatus, { bg: string; fg: string }> = {
+  approved: { bg: "#f3e8ff", fg: "#7c3aed" },
+  archived: { bg: "#e2e8f0", fg: "#475569" },
+  compiled: { bg: "#cffafe", fg: "#0e7490" },
+  draft: { bg: "#e2e8f0", fg: "#475569" },
+  generating: { bg: "#dbeafe", fg: "#1d4ed8" },
+  published: { bg: "#dcfce7", fg: "#15803d" },
+  review: { bg: "#fef3c7", fg: "#b45309" },
+}
+
 const buttonStyle = (tone: WorkflowAction["tone"], pending: boolean) => ({
-  background: tone === "primary" ? "#2563eb" : "var(--theme-elevation-100)",
-  border: tone === "primary" ? "1px solid #2563eb" : "1px solid var(--theme-elevation-250)",
-  borderRadius: "0.35rem",
+  background:
+    tone === "primary"
+      ? "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)"
+      : "var(--theme-elevation-100)",
+  border: tone === "primary" ? "1px solid #1d4ed8" : "1px solid var(--theme-elevation-250)",
+  borderRadius: "0.45rem",
+  boxShadow: tone === "primary" ? "0 4px 12px rgb(37 99 235 / 30%)" : "none",
   color: tone === "primary" ? "white" : "var(--theme-text)",
   cursor: pending ? "wait" : "pointer",
   fontSize: "0.85rem",
   fontWeight: 700,
   opacity: pending ? 0.7 : 1,
-  padding: "0.55rem 0.8rem",
+  padding: "0.6rem 1rem",
 })
 
 /**
@@ -161,8 +175,32 @@ export const WorkflowActions = (_: UIFieldClientProps) => {
           >
             WORKFLOW
           </p>
-          <strong style={{ display: "block", marginTop: "0.25rem" }}>
-            Current state: {statusValue}
+          <strong
+            style={{
+              alignItems: "center",
+              display: "inline-flex",
+              gap: "0.5rem",
+              marginTop: "0.35rem",
+              fontWeight: 400,
+            }}
+          >
+            <span style={{ color: "var(--theme-elevation-600)", fontSize: "0.82rem" }}>
+              Current state:
+            </span>
+            <span
+              style={{
+                background: WORKFLOW_BADGE[statusValue].bg,
+                borderRadius: "999px",
+                color: WORKFLOW_BADGE[statusValue].fg,
+                fontSize: "0.78rem",
+                fontWeight: 700,
+                letterSpacing: "0.02em",
+                padding: "0.25rem 0.7rem",
+                textTransform: "capitalize",
+              }}
+            >
+              {statusValue}
+            </span>
           </strong>
         </div>
         <div

@@ -61,22 +61,56 @@ const formatDate = (value: unknown): string => {
       }).format(date)
 }
 
-const cardStyle = {
-  background: "var(--theme-elevation-50)",
-  border: "1px solid var(--theme-elevation-150)",
-  borderRadius: "0.5rem",
-  minWidth: 0,
-  padding: "1rem",
+const ACCENTS = {
+  approved: "#7c3aed",
+  compiled: "#0891b2",
+  failed: "#dc2626",
+  review: "#d97706",
 } as const
 
-const statusStyle = (failed: boolean) => ({
-  background: failed ? "var(--theme-error-100)" : "var(--theme-success-100)",
-  borderRadius: "999px",
-  color: failed ? "var(--theme-error-700)" : "var(--theme-success-700)",
-  fontSize: "0.72rem",
-  fontWeight: 700,
-  padding: "0.18rem 0.5rem",
+const cardShell = (accent: string) => ({
+  background: "var(--theme-elevation-50)",
+  border: "1px solid var(--theme-elevation-150)",
+  borderTop: `3px solid ${accent}`,
+  borderRadius: "0.6rem",
+  boxShadow: "0 1px 2px rgb(15 23 42 / 6%)",
+  minWidth: 0,
+  padding: "1rem 1.1rem",
 })
+
+const panelStyle = {
+  background: "var(--theme-elevation-50)",
+  border: "1px solid var(--theme-elevation-150)",
+  borderRadius: "0.6rem",
+  minWidth: 0,
+  padding: "1.1rem 1.2rem",
+} as const
+
+const OPERATION_STATE_PILL: Record<string, { bg: string; fg: string }> = {
+  cancelled: { bg: "var(--theme-elevation-150)", fg: "var(--theme-elevation-600)" },
+  failed: { bg: "var(--theme-error-100)", fg: "var(--theme-error-700)" },
+  queued: { bg: "var(--theme-elevation-150)", fg: "var(--theme-elevation-600)" },
+  running: { bg: "var(--theme-warning-100)", fg: "var(--theme-warning-700)" },
+  succeeded: { bg: "var(--theme-success-100)", fg: "var(--theme-success-700)" },
+}
+
+const pillStyle = (background: string, color: string) => ({
+  background,
+  borderRadius: "999px",
+  color,
+  fontSize: "0.7rem",
+  fontWeight: 700,
+  letterSpacing: "0.02em",
+  padding: "0.22rem 0.6rem",
+  textTransform: "capitalize" as const,
+  whiteSpace: "nowrap",
+})
+
+const operationPill = (state: string) =>
+  pillStyle(
+    OPERATION_STATE_PILL[state]?.bg ?? "var(--theme-elevation-150)",
+    OPERATION_STATE_PILL[state]?.fg ?? "var(--theme-elevation-600)",
+  )
 
 const count = async (
   payload: Payload,
@@ -90,6 +124,32 @@ const count = async (
     ...(user === undefined ? {} : { user }),
     ...(where === undefined ? {} : { where }),
   })
+
+const emptyStyle = {
+  color: "var(--theme-elevation-600)",
+  fontSize: "0.88rem",
+  margin: 0,
+  padding: "0.9rem 0 0.4rem",
+}
+
+const rowStyle = {
+  alignItems: "center",
+  borderTop: "1px solid var(--theme-elevation-100)",
+  display: "flex",
+  gap: "0.75rem",
+  justifyContent: "space-between",
+  padding: "0.65rem 0",
+}
+
+const siteChipStyle = {
+  background: "var(--theme-elevation-100)",
+  borderRadius: "999px",
+  color: "var(--theme-elevation-600)",
+  fontSize: "0.72rem",
+  fontWeight: 600,
+  padding: "0.2rem 0.55rem",
+  whiteSpace: "nowrap",
+} as const
 
 /**
  * The operations workspace deliberately uses the Payload local API with
@@ -137,36 +197,44 @@ export const OperationsWorkspace = async ({ payload, user }: DashboardProps) => 
 
   const cards = [
     {
-      description: "Editions awaiting reviewer decision",
+      accent: ACCENTS.review,
+      description: "Awaiting reviewer decision",
+      emoji: "🔍",
       label: "Needs review",
       value: review.totalDocs,
     },
     {
-      description: "Passed review and awaiting compilation",
+      accent: ACCENTS.approved,
+      description: "Passed review, awaiting compile",
+      emoji: "✅",
       label: "Approved",
       value: approved.totalDocs,
     },
     {
+      accent: ACCENTS.compiled,
       description: "Ready for a publisher to release",
+      emoji: "🚀",
       label: "Ready to publish",
       value: compiled.totalDocs,
     },
     {
+      accent: ACCENTS.failed,
       description: "Operations requiring attention",
+      emoji: "⚠️",
       label: "Failed operations",
       value: failedOperations.totalDocs,
     },
   ]
 
   return (
-    <section aria-label="Operations workspace" style={{ marginBottom: "2rem" }}>
+    <section aria-label="Operations workspace" style={{ marginBottom: "2.25rem" }}>
       <div
         style={{
           alignItems: "end",
           display: "flex",
           gap: "1rem",
           justifyContent: "space-between",
-          marginBottom: "1rem",
+          marginBottom: "1.1rem",
         }}
       >
         <div>
@@ -175,17 +243,27 @@ export const OperationsWorkspace = async ({ payload, user }: DashboardProps) => 
               color: "#2563eb",
               fontSize: "0.72rem",
               fontWeight: 800,
-              letterSpacing: "0.1em",
-              margin: "0 0 0.3rem",
+              letterSpacing: "0.12em",
+              margin: "0 0 0.35rem",
             }}
           >
             GEO FOUNDRY
           </p>
-          <h2 style={{ fontSize: "1.5rem", letterSpacing: "-0.025em", margin: 0 }}>
+          <h2 style={{ fontSize: "1.55rem", letterSpacing: "-0.03em", margin: 0 }}>
             Operations workspace
           </h2>
         </div>
-        <span style={{ color: "var(--theme-elevation-600)", fontSize: "0.85rem" }}>
+        <span
+          style={{
+            background: "var(--theme-elevation-100)",
+            borderRadius: "999px",
+            color: "var(--theme-elevation-600)",
+            fontSize: "0.75rem",
+            fontWeight: 600,
+            padding: "0.3rem 0.75rem",
+            whiteSpace: "nowrap",
+          }}
+        >
           Live view of your permitted scope
         </span>
       </div>
@@ -193,22 +271,35 @@ export const OperationsWorkspace = async ({ payload, user }: DashboardProps) => 
       <div
         style={{
           display: "grid",
-          gap: "0.8rem",
+          gap: "0.9rem",
           gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
-          marginBottom: "0.8rem",
+          marginBottom: "0.9rem",
         }}
       >
         {cards.map((card) => (
-          <article key={card.label} style={cardStyle}>
-            <p style={{ color: "var(--theme-elevation-600)", fontSize: "0.8rem", margin: 0 }}>
+          <article key={card.label} style={cardShell(card.accent)}>
+            <p
+              style={{
+                alignItems: "center",
+                color: "var(--theme-elevation-600)",
+                display: "flex",
+                fontSize: "0.8rem",
+                fontWeight: 600,
+                gap: "0.4rem",
+                margin: 0,
+              }}
+            >
+              <span aria-hidden="true">{card.emoji}</span>
               {card.label}
             </p>
             <strong
               style={{
                 display: "block",
-                fontSize: "2rem",
+                fontSize: "2.1rem",
+                fontVariantNumeric: "tabular-nums",
                 letterSpacing: "-0.05em",
-                marginTop: "0.35rem",
+                lineHeight: 1.2,
+                marginTop: "0.3rem",
               }}
             >
               {card.value}
@@ -218,7 +309,7 @@ export const OperationsWorkspace = async ({ payload, user }: DashboardProps) => 
                 color: "var(--theme-elevation-600)",
                 fontSize: "0.75rem",
                 lineHeight: 1.35,
-                margin: "0.35rem 0 0",
+                margin: "0.3rem 0 0",
               }}
             >
               {card.description}
@@ -230,71 +321,70 @@ export const OperationsWorkspace = async ({ payload, user }: DashboardProps) => 
       <div
         style={{
           display: "grid",
-          gap: "0.8rem",
+          gap: "0.9rem",
           gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
         }}
       >
-        <article style={cardStyle}>
-          <h3 style={{ fontSize: "1rem", margin: "0 0 0.75rem" }}>Current releases</h3>
+        <article style={panelStyle}>
+          <h3 style={{ fontSize: "1rem", letterSpacing: "-0.01em", margin: 0 }}>
+            Current releases
+          </h3>
           {currentReleases.docs.length === 0 ? (
-            <p style={{ color: "var(--theme-elevation-600)", margin: 0 }}>
-              No current releases in your permitted scope.
-            </p>
+            <p style={emptyStyle}>No current releases in your permitted scope yet.</p>
           ) : (
             <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
               {currentReleases.docs.map((release) => (
-                <li
-                  key={String(release.id)}
-                  style={{
-                    alignItems: "center",
-                    borderTop: "1px solid var(--theme-elevation-100)",
-                    display: "flex",
-                    gap: "0.75rem",
-                    justifyContent: "space-between",
-                    padding: "0.6rem 0",
-                  }}
-                >
-                  <span>{textOf(release.releaseId)}</span>
-                  <span style={{ color: "var(--theme-elevation-600)", fontSize: "0.8rem" }}>
-                    {relationshipLabel(release.site)}
+                <li key={String(release.id)} style={rowStyle}>
+                  <span
+                    style={{
+                      fontFamily: "ui-monospace, monospace",
+                      fontSize: "0.82rem",
+                      overflowWrap: "anywhere",
+                    }}
+                  >
+                    {textOf(release.releaseId)}
                   </span>
+                  <span style={siteChipStyle}>{relationshipLabel(release.site)}</span>
                 </li>
               ))}
             </ul>
           )}
         </article>
 
-        <article style={cardStyle}>
-          <h3 style={{ fontSize: "1rem", margin: "0 0 0.75rem" }}>Recent operations</h3>
+        <article style={panelStyle}>
+          <h3 style={{ fontSize: "1rem", letterSpacing: "-0.01em", margin: 0 }}>
+            Recent operations
+          </h3>
           {recentOperations.docs.length === 0 ? (
-            <p style={{ color: "var(--theme-elevation-600)", margin: 0 }}>
-              No operations recorded in your permitted scope.
-            </p>
+            <p style={emptyStyle}>No operations recorded in your permitted scope yet.</p>
           ) : (
             <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
               {recentOperations.docs.map((operation) => {
                 const state = textOf(operation.state, "queued")
                 return (
-                  <li
-                    key={String(operation.id)}
-                    style={{
-                      alignItems: "center",
-                      borderTop: "1px solid var(--theme-elevation-100)",
-                      display: "flex",
-                      gap: "0.65rem",
-                      justifyContent: "space-between",
-                      padding: "0.6rem 0",
-                    }}
-                  >
-                    <div>
-                      <strong style={{ display: "block", fontSize: "0.86rem" }}>
+                  <li key={String(operation.id)} style={rowStyle}>
+                    <div style={{ minWidth: 0 }}>
+                      <strong
+                        style={{
+                          display: "block",
+                          fontSize: "0.86rem",
+                          textTransform: "capitalize",
+                        }}
+                      >
                         {textOf(operation.operationType)}
                       </strong>
-                      <span style={{ color: "var(--theme-elevation-600)", fontSize: "0.75rem" }}>
+                      <span
+                        style={{
+                          color: "var(--theme-elevation-600)",
+                          fontSize: "0.74rem",
+                          fontFamily: "ui-monospace, monospace",
+                          overflowWrap: "anywhere",
+                        }}
+                      >
                         {textOf(operation.operationId)} · {formatDate(operation.updatedAt)}
                       </span>
                     </div>
-                    <span style={statusStyle(state === "failed")}>{state}</span>
+                    <span style={operationPill(state)}>{state}</span>
                   </li>
                 )
               })}
