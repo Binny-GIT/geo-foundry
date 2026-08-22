@@ -28,6 +28,8 @@ publish worker：
 5. 以 ETag CAS 更新 site current pointer；
 6. 记录 release receipt 与 terminal operation result。
 
+如果 worker 在第 5 步成功后、第 6 步前崩溃，reconciliation 必须重放同一 operation。重放必须使用 compile snapshot 中稳定的 `contentModifiedAt`，不能使用因 audit/outbox 写入更新的 Payload `updatedAt`；否则同一 release ID 会得到不同 bytes，immutable storage 必须拒绝覆盖。
+
 CAS stale error 是可审计并发终态。不要重复提交不同 release 以“覆盖”当前 pointer；读取最新 pointer 后由业务流程重新决定。
 
 ## 验证

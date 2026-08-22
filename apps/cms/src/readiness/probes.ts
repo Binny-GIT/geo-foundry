@@ -73,7 +73,7 @@ export const createRustfsProbe =
         new ListObjectsV2Command({
           Bucket: environment.rustfs.bucket,
           MaxKeys: 1,
-          Prefix: "objects/",
+          Prefix: environment.rustfs.mediaPrefix,
         }),
         { abortSignal: AbortSignal.timeout(5_000) },
       )

@@ -9,7 +9,7 @@ import {
   mapEdition,
   textOf,
 } from "./compile-snapshot-mappers"
-import { EditionWorkflowError } from "./edition-workflow"
+import { EditionWorkflowError, requireServiceIdentity } from "./edition-workflow"
 
 const fail = (code: string, detail: string): EditionWorkflowError =>
   new EditionWorkflowError(code, detail)
@@ -42,6 +42,15 @@ export async function buildCompileSnapshot(
   const site = siteResult.docs[0] as unknown as Doc | undefined
   if (site === undefined) {
     throw fail("COMPILE_SNAPSHOT_SITE_MISSING", `site ${options.siteId}`)
+  }
+  const claims = requireServiceIdentity(options.user)
+  const siteTenant = idOf(site["tenant"])
+  if (
+    claims.tenantId === null ||
+    siteTenant === null ||
+    String(claims.tenantId) !== String(siteTenant)
+  ) {
+    throw fail("COMPILE_SNAPSHOT_TENANT_MISMATCH", `site ${options.siteId}`)
   }
 
   const domainResult = await payload.find({

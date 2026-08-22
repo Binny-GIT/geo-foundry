@@ -20,6 +20,7 @@ import {
 import { verifyManifest } from "@geo/schema/release/v1"
 import { acquireProjectLock } from "../../scripts/shared-services/lock.mjs"
 import { requestHost, setupTwoSiteE2e } from "../e2e/support.mjs"
+import { runControlPlaneFaultRecovery } from "./control-plane-supervisor.mjs"
 import {
   assertFaultRunId,
   assertLoopbackEndpoint,
@@ -636,6 +637,13 @@ const run = async () => {
     } finally {
       await unlockWorker()
     }
+    cases.push(
+      await runControlPlaneFaultRecovery({
+        directory: attemptDirectory,
+        runId,
+        s3Port: endpointPort,
+      }),
+    )
     const matrix = {
       cases,
       cleanup,

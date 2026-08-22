@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises"
+import { readFile, stat } from "node:fs/promises"
 
 import { ContentServiceClient } from "@geo/content-client"
 
@@ -20,6 +20,11 @@ const credential = async (name: string): Promise<string> => {
   const file = process.env[`${name}_FILE`]
   if (file === undefined || file.trim().length === 0) {
     throw new Error(`CONTENT_SERVICE_ENV_REQUIRED:${name}_FILE`)
+  }
+  const ownerId = process.getuid?.()
+  const metadata = await stat(file)
+  if (ownerId === undefined || (metadata.mode & 0o077) !== 0 || metadata.uid !== ownerId) {
+    throw new Error(`CONTENT_SERVICE_CREDENTIAL_FILE_INSECURE:${name}_FILE`)
   }
   const value = (await readFile(file, "utf8")).trim()
   if (value.length === 0) {

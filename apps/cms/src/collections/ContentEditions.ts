@@ -5,6 +5,7 @@ import { CMS_RESOURCE } from "../access/policy"
 import { forceTenantFromSession } from "../access/tenant-field"
 import { PAGE_DOCUMENT_BLOCKS } from "../editor/page-document-blocks"
 import { validateEditionBody } from "../editor/validate-body"
+import { canonicalize } from "../services/edition-input-hash"
 
 const idOf = (reference: unknown): number | string | null =>
   typeof reference === "number" || typeof reference === "string" ? reference : null
@@ -13,6 +14,38 @@ const isRow = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
 const MEDIA_SRC_PATTERN = /\/media\/tenants\/(\d+)\/([^/?#]+)(?:[?#]|$)/
+
+const CONTENT_VERSION_FIELDS = [
+  "body",
+  "citations",
+  "entities",
+  "primaryTopic",
+  "secondaryTopics",
+  "summary",
+  "title",
+] as const
+
+const contentModifiedAt = (): string => new Date().toISOString()
+
+const contentFieldChanged = (
+  data: Record<string, unknown>,
+  originalDoc: Record<string, unknown> | undefined,
+  field: (typeof CONTENT_VERSION_FIELDS)[number],
+): boolean =>
+  Object.hasOwn(data, field) &&
+  JSON.stringify(canonicalize(data[field])) !== JSON.stringify(canonicalize(originalDoc?.[field]))
+
+const trackContentVersion: CollectionBeforeChangeHook = ({ data, operation, originalDoc }) => {
+  if (
+    operation === "create" ||
+    CONTENT_VERSION_FIELDS.some((field) =>
+      contentFieldChanged(data, originalDoc as Record<string, unknown> | undefined, field),
+    )
+  ) {
+    return { ...data, contentModifiedAt: contentModifiedAt() }
+  }
+  return data
+}
 
 /**
  * Media reference guard: every image block whose src points into the
@@ -128,7 +161,7 @@ export const ContentEditions = {
     drafts: true,
   },
   hooks: {
-    beforeChange: [ensureTenantConsistency, ensureMediaReferences],
+    beforeChange: [trackContentVersion, ensureTenantConsistency, ensureMediaReferences],
   },
   fields: [
     {
@@ -198,6 +231,15 @@ export const ContentEditions = {
       options: ["ai", "human", "hybrid"],
       required: true,
       defaultValue: "human",
+    },
+    {
+      name: "contentModifiedAt",
+      type: "date",
+      admin: { hidden: true },
+      access: {
+        create: () => false,
+        update: () => false,
+      },
     },
     {
       name: "workflowStatus",

@@ -44,6 +44,15 @@ const permittedCommand = (argumentsList) => {
     (binary === "next" && (action === "dev" || action === "start")) ||
     (binary === "node" && action === "scripts/reset-integration-database.mjs") ||
     (binary === "node" &&
+      action === "scripts/fault-database.mjs" &&
+      (argumentsList[2] === "create" || argumentsList[2] === "cleanup") &&
+      argumentsList.length === 3) ||
+    (binary === "node" &&
+      action === "--import" &&
+      argumentsList[2] === "tsx" &&
+      argumentsList[3] === "scripts/fault-seed.mjs" &&
+      argumentsList.length === 4) ||
+    (binary === "node" &&
       action === "--import" &&
       argumentsList[2] === "tsx" &&
       argumentsList[3] === "scripts/mvp-seed.mjs") ||

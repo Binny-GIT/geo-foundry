@@ -9,6 +9,7 @@ import { runOutboxScopedTransaction } from "../outbox/outbox"
 import { requireServiceIdentity } from "./edition-workflow"
 import {
   assertReleaseIdentity,
+  assertTenant,
   auditOf,
   numberOf,
   ReleaseRegistryError,
@@ -82,6 +83,7 @@ const markCurrent = async (
       })
       return
     }
+    assertTenant(claims, existing.tenant)
     assertReleaseIdentity(existing, receipt)
     if (existing.state !== "current") {
       await updateRelease(
@@ -124,6 +126,8 @@ export const recordRollbackReceipt = async (
     if (target === null || source === null) {
       throw new ReleaseRegistryError("RELEASE_RECONCILIATION_REQUIRED", receipt.releaseId)
     }
+    assertTenant(claims, target.tenant)
+    assertTenant(claims, source.tenant)
     assertReleaseIdentity(target, receipt)
     if (
       source.releaseId !== receipt.fromReleaseId ||

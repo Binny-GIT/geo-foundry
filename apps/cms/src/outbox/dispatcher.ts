@@ -1,9 +1,10 @@
 import { readFileSync } from "node:fs"
+import { parseQueuePrefix, DEFAULT_QUEUE_PREFIX } from "@geo/domain"
 import { Queue } from "bullmq"
 import type { Payload } from "payload"
 
 export const OUTBOX_QUEUE_NAME = "outbox"
-export const OUTBOX_REDIS_PREFIX = "geo-foundry"
+export const OUTBOX_REDIS_PREFIX = DEFAULT_QUEUE_PREFIX
 
 export const outboxJobIdOf = (eventId: string): string => `outbox-${eventId}`
 
@@ -48,10 +49,13 @@ export const parseOutboxRedisOptions = (
   }
 }
 
-export const createOutboxQueue = (connection: OutboxRedisOptions): Queue =>
+export const createOutboxQueue = (
+  connection: OutboxRedisOptions,
+  queuePrefix = parseQueuePrefix(process.env["GEO_FOUNDRY_WORKER_QUEUE_PREFIX"]),
+): Queue =>
   new Queue(OUTBOX_QUEUE_NAME, {
     connection,
-    prefix: OUTBOX_REDIS_PREFIX,
+    prefix: queuePrefix,
   })
 
 export type OutboxDispatchResult = {

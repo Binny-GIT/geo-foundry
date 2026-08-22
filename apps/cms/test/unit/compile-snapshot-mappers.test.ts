@@ -23,6 +23,57 @@ describe("compile snapshot route mapping", () => {
     ])
   })
 
+  it("uses the content version timestamp instead of audit update time", () => {
+    const edition = mapEdition({
+      assessment: { inputHash: "a".repeat(64), state: "passed" },
+      authorId: "author-site-12",
+      authorName: "Site A Editorial Team",
+      canonicalDomain: "site-a.test",
+      edition: {
+        body: [{ blockType: "paragraph", text: "Stable release content" }],
+        content: 24,
+        contentModifiedAt: "2026-08-21T00:00:00.000Z",
+        createdAt: "2026-08-21T00:00:00.000Z",
+        id: 42,
+        primaryTopic: "Release control",
+        summary: "Stable output across audit writes",
+        title: "Stable release plan",
+        updatedAt: "2026-08-22T00:00:00.000Z",
+        workflowStatus: "approved",
+      },
+      siteKey: "site-12",
+      urlPathname: "/articles/stable-release-plan",
+    })
+
+    expect(edition?.modifiedAt).toBe("2026-08-21T00:00:00.000Z")
+  })
+
+  it("clamps a creation hook timestamp to the persisted publish timestamp", () => {
+    const edition = mapEdition({
+      assessment: { inputHash: "a".repeat(64), state: "passed" },
+      authorId: "author-site-12",
+      authorName: "Site A Editorial Team",
+      canonicalDomain: "site-a.test",
+      edition: {
+        body: [{ blockType: "paragraph", text: "Created at database time" }],
+        content: 24,
+        contentModifiedAt: "2026-08-21T00:00:00.000Z",
+        createdAt: "2026-08-21T00:00:00.001Z",
+        id: 42,
+        primaryTopic: "Release control",
+        summary: "Creation clock follows the hook clock",
+        title: "Creation timestamp ordering",
+        updatedAt: "2026-08-22T00:00:00.000Z",
+        workflowStatus: "approved",
+      },
+      siteKey: "site-12",
+      urlPathname: "/articles/creation-timestamp-ordering",
+    })
+
+    expect(edition?.modifiedAt).toBe("2026-08-21T00:00:00.001Z")
+    expect(edition?.publishedAt).toBe("2026-08-21T00:00:00.001Z")
+  })
+
   it("maps a stable public author independently of the content origin enum", () => {
     const edition = mapEdition({
       assessment: { inputHash: "a".repeat(64), state: "passed" },

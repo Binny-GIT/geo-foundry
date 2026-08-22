@@ -88,6 +88,13 @@ export const mapEdition = (input: EditionMappingInput): CompileEdition | null =>
   const secondaryTopics = Array.isArray(edition["secondaryTopics"])
     ? (edition["secondaryTopics"] as unknown[]).map(textOf).filter((tag) => tag.length > 0)
     : []
+  const publishedAt = utcInstantOf(edition["createdAt"], `edition ${editionId} createdAt`)
+  const contentModifiedAt = utcInstantOf(
+    edition["contentModifiedAt"] ?? edition["updatedAt"],
+    `edition ${editionId} contentModifiedAt`,
+  )
+  const modifiedAt =
+    Date.parse(contentModifiedAt) < Date.parse(publishedAt) ? publishedAt : contentModifiedAt
   return {
     assessmentInputHash: input.assessment?.inputHash ?? "",
     assessmentState:
@@ -114,8 +121,8 @@ export const mapEdition = (input: EditionMappingInput): CompileEdition | null =>
     editionId,
     entities: Array.isArray(edition["entities"]) ? (edition["entities"] as unknown[]) : [],
     media: [],
-    modifiedAt: utcInstantOf(edition["updatedAt"], `edition ${editionId} updatedAt`),
-    publishedAt: utcInstantOf(edition["createdAt"], `edition ${editionId} createdAt`),
+    modifiedAt,
+    publishedAt,
     siteId: input.siteKey,
     status: textOf(edition["workflowStatus"]) as CompileEdition["status"],
     summary: textOf(edition["summary"]) || textOf(edition["title"]),

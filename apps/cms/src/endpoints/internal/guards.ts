@@ -147,6 +147,21 @@ const workflowErrorToResponse = (
   requestId: string,
   allowOrigin: string | null,
 ): Response => {
+  if (
+    error.code === "EDITION_WORKFLOW_NOT_FOUND" ||
+    error.code === "EDITION_WORKFLOW_TENANT_MISMATCH" ||
+    error.code === "COMPILE_SNAPSHOT_SITE_MISSING" ||
+    error.code === "COMPILE_SNAPSHOT_TENANT_MISMATCH"
+  ) {
+    const edition = error.code.startsWith("EDITION_")
+    return internalErrorResponse(
+      404,
+      edition ? "EDITION_WORKFLOW_NOT_FOUND" : "COMPILE_SNAPSHOT_SITE_MISSING",
+      edition ? "edition not found" : "site not found",
+      requestId,
+      allowOrigin,
+    )
+  }
   const status = WORKFLOW_STATUS_BY_CODE[error.code] ?? 500
   return internalErrorResponse(
     status,
@@ -176,6 +191,15 @@ const ledgerErrorToResponse = (
   requestId: string,
   allowOrigin: string | null,
 ): Response => {
+  if (error.code === "OPERATION_NOT_FOUND" || error.code === "OPERATION_TENANT_MISMATCH") {
+    return internalErrorResponse(
+      404,
+      "OPERATION_NOT_FOUND",
+      "operation not found",
+      requestId,
+      allowOrigin,
+    )
+  }
   const status = LEDGER_STATUS_BY_CODE[error.code] ?? 500
   return internalErrorResponse(
     status,
@@ -218,8 +242,22 @@ const releaseRegistryErrorToResponse = (
   requestId: string,
   allowOrigin: string | null,
 ): Response => {
-  const status = RELEASE_REGISTRY_STATUS_BY_CODE[error.code] ?? 500
-  return internalErrorResponse(status, error.code, error.message, requestId, allowOrigin)
+  if (error.code === "RELEASE_SITE_NOT_FOUND" || error.code === "RELEASE_TENANT_MISMATCH") {
+    return internalErrorResponse(
+      404,
+      "RELEASE_SITE_NOT_FOUND",
+      "site not found",
+      requestId,
+      allowOrigin,
+    )
+  }
+  return internalErrorResponse(
+    RELEASE_REGISTRY_STATUS_BY_CODE[error.code] ?? 500,
+    error.code,
+    error.message,
+    requestId,
+    allowOrigin,
+  )
 }
 
 const EMBEDDING_STATUS_BY_CODE: Readonly<Record<string, number>> = {

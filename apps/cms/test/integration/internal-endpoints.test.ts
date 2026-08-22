@@ -315,14 +315,16 @@ describe("internal integration endpoints", () => {
     expect(await errorCodeOf(response)).toBe("INTERNAL_FORBIDDEN")
   })
 
-  it("rejects foreign-tenant service identities with 403 and no existence leakage", async () => {
+  it("returns the same not-found response for foreign editions and preserves state", async () => {
     const response = await call("/internal/editions/:id/versions", "post", {
       body: { title: "Hostile write" },
       id: edition.id,
       user: foreignServiceUser,
     })
-    expect(response.status).toBe(403)
-    expect(await errorCodeOf(response)).toBe("EDITION_WORKFLOW_TENANT_MISMATCH")
+    expect(response.status).toBe(404)
+    expect(await responseJson(response)).toMatchObject({
+      error: { code: "EDITION_WORKFLOW_NOT_FOUND", message: "edition not found" },
+    })
     const doc = await loadWorkflowEdition(payload, edition.id)
     expect(doc.title).toBe("Generated title")
     expect(await outboxRows("edition.draft-written", edition.id)).toHaveLength(1)
@@ -354,13 +356,38 @@ describe("internal integration endpoints", () => {
     expect(await outboxRows("edition.draft-written", edition.id)).toHaveLength(eventsBefore)
   })
 
-  it("answers 404 for unknown editions with a stable code", async () => {
-    const response = await call("/internal/editions/:id/input", "get", {
+  it("returns identical not-found envelopes for foreign and unknown editions", async () => {
+    const headers = { "x-request-id": "req-edition-no-leak" }
+    const foreign = await call("/internal/editions/:id/input", "get", {
+      headers,
+      id: edition.id,
+      user: foreignServiceUser,
+    })
+    const unknown = await call("/internal/editions/:id/input", "get", {
+      headers,
       id: 999_999,
       user: serviceUser,
     })
-    expect(response.status).toBe(404)
-    expect(await errorCodeOf(response)).toBe("EDITION_WORKFLOW_NOT_FOUND")
+
+    expect(foreign.status).toBe(404)
+    expect(await responseJson(foreign)).toEqual(await responseJson(unknown))
+  })
+
+  it("returns identical not-found envelopes for foreign and unknown compile snapshots", async () => {
+    const headers = { "x-request-id": "req-snapshot-no-leak" }
+    const foreign = await call("/internal/sites/:id/compile-snapshot", "get", {
+      headers,
+      id: site.id,
+      user: foreignServiceUser,
+    })
+    const unknown = await call("/internal/sites/:id/compile-snapshot", "get", {
+      headers,
+      id: 999_999,
+      user: serviceUser,
+    })
+
+    expect(foreign.status).toBe(404)
+    expect(await responseJson(foreign)).toEqual(await responseJson(unknown))
   })
 
   it("records assessments with service identity and commits the outbox event", async () => {

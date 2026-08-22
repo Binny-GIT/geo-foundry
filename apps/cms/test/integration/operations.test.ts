@@ -497,31 +497,40 @@ describe("operations and idempotency ledger integration", () => {
     }
   })
 
-  it("scopes reads and writes to the service identity tenant", async () => {
+  it("returns identical not-found envelopes for foreign operation reads and writes", async () => {
     const key = nextKey()
     const created = await submit(submitBody({ idempotencyKey: key }))
     const operationId = (await operationOf(created))["operationId"] as string
+    const headers = { "x-request-id": "req-operation-no-leak" }
 
     const foreignRead = await callEndpoint("/internal/operations/:operationId", "get", {
+      headers,
       operationId,
       payload,
       user: foreignServiceUser,
     })
-    expect(foreignRead.status).toBe(403)
-    expect(await errorCodeOf(foreignRead)).toBe("OPERATION_TENANT_MISMATCH")
+    const unknownRead = await callEndpoint("/internal/operations/:operationId", "get", {
+      headers,
+      operationId: "11111111-2222-3333-4444-555555555555",
+      payload,
+      user: serviceUser,
+    })
+    expect(foreignRead.status).toBe(404)
+    expect(await jsonOf(foreignRead)).toEqual(await jsonOf(unknownRead))
 
     const foreignStart = await callEndpoint(
       "/internal/operations/:operationId/stages/start",
       "post",
       {
         body: { attempt: 1, stage: "generate-draft" },
+        headers,
         operationId,
         payload,
         user: foreignServiceUser,
       },
     )
-    expect(foreignStart.status).toBe(403)
-    expect(await errorCodeOf(foreignStart)).toBe("OPERATION_TENANT_MISMATCH")
+    expect(foreignStart.status).toBe(404)
+    expect(await errorCodeOf(foreignStart)).toBe("OPERATION_NOT_FOUND")
   })
 
   it("answers 404 for unknown operations and 401 for unsigned calls", async () => {

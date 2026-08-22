@@ -12,6 +12,7 @@ import * as migration_20260818_221848_task17b_op_keyhash from "./20260818_221848
 import * as migration_20260819_092000_task20_embeddings from "./20260819_092000_task20_embeddings"
 import * as migration_20260819_153000_task24_request_payload from "./20260819_153000_task24_request_payload"
 import * as migration_20260820_090000_task30_releases from "./20260820_090000_task30_releases"
+import * as migration_20260822_093000_content_modified_at from "./20260822_093000_content_modified_at"
 
 export const migrations = [
   {
@@ -83,5 +84,10 @@ export const migrations = [
     up: migration_20260820_090000_task30_releases.up,
     down: migration_20260820_090000_task30_releases.down,
     name: "20260820_090000_task30_releases",
+  },
+  {
+    up: migration_20260822_093000_content_modified_at.up,
+    down: migration_20260822_093000_content_modified_at.down,
+    name: "20260822_093000_content_modified_at",
   },
 ]

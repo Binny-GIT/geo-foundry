@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest"
 import {
   CMS_INTEGRATION_DATABASE,
   CmsEnvironmentError,
+  faultDatabaseOf,
+  faultMediaPrefixOf,
   parseCmsEnvironment,
 } from "../../src/config/environment"
 
@@ -60,6 +62,32 @@ describe("CMS environment", () => {
     expect(new URL(parsed.postgres.connectionString).searchParams.get("application_name")).toBe(
       "geo-foundry-cms-integration-test",
     )
+  })
+
+  it("Given a valid fault run, when parsed, then it uses only run-derived database and media names", () => {
+    const runId = "todo39-abc123def456ghi789j0"
+    const parsed = parseCmsEnvironment({
+      ...runtimeEnvironment(),
+      GEO_FOUNDRY_CMS_CONFIG_MODE: "fault-test",
+      GEO_FOUNDRY_FAULT_RUN_ID: runId,
+    })
+
+    expect(parsed.mode).toBe("fault-test")
+    expect(new URL(parsed.postgres.connectionString).pathname).toBe(`/${faultDatabaseOf(runId)}`)
+    expect(new URL(parsed.postgres.connectionString).searchParams.get("application_name")).toBe(
+      `geo-foundry-cms-fault-${runId}`,
+    )
+    expect(parsed.rustfs.mediaPrefix).toBe(faultMediaPrefixOf(runId))
+  })
+
+  it("Given a fault mode without a valid run id, when parsed, then it fails closed", () => {
+    const error = captureCmsEnvironmentError({
+      ...runtimeEnvironment(),
+      GEO_FOUNDRY_CMS_CONFIG_MODE: "fault-test",
+      GEO_FOUNDRY_FAULT_RUN_ID: "shared",
+    })
+
+    expect(error.variables).toEqual(["GEO_FOUNDRY_FAULT_RUN_ID"])
   })
 
   it("Given runtime config, when a PostgreSQL variable is absent, then parsing fails by variable name", () => {

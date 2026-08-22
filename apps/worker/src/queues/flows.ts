@@ -1,8 +1,8 @@
-import { operationJobIdOf, parseOperationId } from "@geo/domain"
+import { DEFAULT_QUEUE_PREFIX, operationJobIdOf, parseOperationId } from "@geo/domain"
 import type { FlowJob, FlowProducer, JobsOptions } from "bullmq"
 
 /** Queue namespace shared with the CMS outbox dispatcher. */
-export const QUEUE_PREFIX = "geo-foundry"
+export const QUEUE_PREFIX = DEFAULT_QUEUE_PREFIX
 
 export type WorkQueueName = "compile" | "embedding" | "evaluation" | "generation" | "publish"
 

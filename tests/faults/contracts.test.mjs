@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { chmod, mkdtemp, rm, writeFile } from "node:fs/promises"
+import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import test from "node:test"
@@ -88,6 +88,47 @@ test("Todo 39 only accepts owner-only credential file references", async () => {
   } finally {
     await rm(directory, { force: true, recursive: true })
   }
+})
+
+test("Todo 39 control-plane recovery only uses run-owned databases, queues, and storage", async () => {
+  const supervisor = await readFile(
+    new URL("./control-plane-supervisor.mjs", import.meta.url),
+    "utf8",
+  )
+  const cmsEnvironment = await readFile(
+    new URL("../../apps/cms/src/config/environment.ts", import.meta.url),
+    "utf8",
+  )
+  const databaseLifecycle = await readFile(
+    new URL("../../apps/cms/scripts/fault-database.mjs", import.meta.url),
+    "utf8",
+  )
+  const editionMapper = await readFile(
+    new URL("../../apps/cms/src/services/compile-snapshot-mappers.ts", import.meta.url),
+    "utf8",
+  )
+  const editionCollection = await readFile(
+    new URL("../../apps/cms/src/collections/ContentEditions.ts", import.meta.url),
+    "utf8",
+  )
+
+  assert.match(supervisor, /geo-foundry:\$\{runId\}/)
+  assert.match(supervisor, /objects\/todo39\/\$\{runId\}/)
+  assert.match(supervisor, /GEO_FOUNDRY_CMS_CONFIG_MODE: "fault-test"/)
+  assert.match(supervisor, /GEO_FOUNDRY_WORKER_QUEUE_PREFIX: queuePrefix/)
+  assert.match(supervisor, /CONTENT_SERVICE_API_KEY_FILE/)
+  assert.match(supervisor, /scanIterator\(\{\s+MATCH: `\$\{input\.queuePrefix\}:\*`/s)
+  assert.match(supervisor, /ContinuationToken: token/)
+  assert.match(supervisor, /fault-database\.mjs",\s+"cleanup"/s)
+  assert.doesNotMatch(supervisor, /FLUSHDB|payload\.delete\(/)
+  assert.match(cmsEnvironment, /faultDatabaseOf/)
+  assert.match(cmsEnvironment, /faultMediaPrefixOf/)
+  assert.match(databaseLifecycle, /CMS_FAULT_DATABASE_OWNERSHIP_INVALID/)
+  assert.match(databaseLifecycle, /COMMENT ON DATABASE/)
+  assert.match(editionMapper, /contentModifiedAt = utcInstantOf/)
+  assert.match(editionMapper, /Date\.parse\(contentModifiedAt\) < Date\.parse\(publishedAt\)/)
+  assert.match(editionCollection, /const trackContentVersion/)
+  assert.match(editionCollection, /name: "contentModifiedAt"/)
 })
 
 test("Todo 39 fault evidence records require a terminal recovered status", () => {

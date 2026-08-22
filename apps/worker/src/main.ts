@@ -1,5 +1,8 @@
+import { readFileSync, statSync } from "node:fs"
+
 import { ContentServiceClient } from "@geo/content-client"
 import { createFakeProvider } from "@geo/content-pipeline"
+import { parseQueuePrefix } from "@geo/domain"
 import { FlowProducer } from "bullmq"
 
 import { parseWorkerRedisOptions } from "./config/redis.js"
@@ -15,7 +18,7 @@ import {
   createRollbackGateProcessor,
 } from "./processors/triggers.js"
 import type { WorkerLogEvent } from "./processors/types.js"
-import { QUEUE_NAME, QUEUE_PREFIX } from "./queues/flows.js"
+import { QUEUE_NAME } from "./queues/flows.js"
 import { reconcileNonTerminalOperations } from "./reconcile/reconcile.js"
 import { createWorkerRuntime } from "./runtime/worker-runtime.js"
 
@@ -25,11 +28,32 @@ import { createWorkerRuntime } from "./runtime/worker-runtime.js"
  * provider is an env decision in a later deployment todo; nothing here
  * auto-selects providers after a failed paid submission.
  */
+const credentialOf = (name: string): string => {
+  const direct = process.env[name]
+  if (direct !== undefined && direct.trim().length > 0) {
+    return direct.trim()
+  }
+  const path = process.env[`${name}_FILE`]
+  if (path === undefined || path.trim().length === 0) {
+    return "unset"
+  }
+  const ownerId = process.getuid?.()
+  const metadata = statSync(path)
+  if (ownerId === undefined || (metadata.mode & 0o077) !== 0 || metadata.uid !== ownerId) {
+    throw new Error(`WORKER_CREDENTIAL_FILE_INSECURE:${name}_FILE`)
+  }
+  const credential = readFileSync(path, "utf8").trim()
+  if (credential.length === 0) {
+    throw new Error(`WORKER_CREDENTIAL_FILE_EMPTY:${name}_FILE`)
+  }
+  return credential
+}
+
 export const main = async (): Promise<void> => {
   const logger = (event: WorkerLogEvent) =>
     console.log(JSON.stringify({ at: new Date().toISOString(), ...event }))
   const client = new ContentServiceClient({
-    apiKey: process.env["CONTENT_SERVICE_API_KEY"] ?? "unset",
+    apiKey: credentialOf("CONTENT_SERVICE_API_KEY"),
     baseUrl: process.env["CMS_BASE_URL"] ?? "http://127.0.0.1:3090",
   })
   const provider = createFakeProvider()
@@ -45,12 +69,19 @@ export const main = async (): Promise<void> => {
       job.name === "rollback-gate" ? rollback(job) : publish(job),
   }
   const connection = parseWorkerRedisOptions(process.env)
-  const runtime = createWorkerRuntime({ connection, context, logger, processors })
+  const queuePrefix = parseQueuePrefix(process.env["GEO_FOUNDRY_WORKER_QUEUE_PREFIX"])
+  const runtime = createWorkerRuntime({
+    connection,
+    context,
+    logger,
+    processors,
+    prefix: queuePrefix,
+  })
 
   const outboxQueue = runtime.queues.embedding
   const outboxWorkerProcessor = createOutboxProcessor({ embeddingQueue: outboxQueue, logger })
   void outboxWorkerProcessor
-  const producer = new FlowProducer({ connection, prefix: QUEUE_PREFIX })
+  const producer = new FlowProducer({ connection, prefix: queuePrefix })
   let reconciling = false
   const reconcile = async () => {
     if (reconciling) {

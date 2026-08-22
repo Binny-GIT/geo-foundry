@@ -70,7 +70,12 @@ export const consumeRollbackIntent = async (
       limit: 1,
       overrideAccess: true,
       req,
-      where: { intentId: { equals: input.rollbackIntentId } },
+      where: {
+        and: [
+          { intentId: { equals: input.rollbackIntentId } },
+          { tenant: { equals: claims.tenantId } },
+        ],
+      },
     })
     const intent = (found.docs[0] as IntentDoc | undefined) ?? null
     if (intent === null) {

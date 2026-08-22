@@ -45,7 +45,7 @@ export const numberOf = (value: unknown): number | null =>
 const auditsOf = (doc: ReleaseDoc): readonly Record<string, unknown>[] =>
   Array.isArray(doc.auditLog) ? (doc.auditLog as readonly Record<string, unknown>[]) : []
 
-const assertTenant = (
+export const assertTenant = (
   claims: ReturnType<typeof requireServiceIdentity>,
   tenant: unknown,
 ): number => {

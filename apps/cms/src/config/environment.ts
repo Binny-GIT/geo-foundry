@@ -17,11 +17,29 @@ const configModeSchema = z.union([
   z.literal("runtime"),
   z.literal("build"),
   z.literal("integration-test"),
+  z.literal("fault-test"),
 ])
+const faultRunIdSchema = z.string().regex(/^todo39-[a-z0-9]{20}$/)
 const payloadSecretSchema = z.string().min(32)
 
+export const faultDatabaseOf = (runId: string): string => {
+  const parsed = faultRunIdSchema.safeParse(runId)
+  if (!parsed.success) {
+    throw new CmsEnvironmentError(["GEO_FOUNDRY_FAULT_RUN_ID"])
+  }
+  return `geo_foundry_fault_${parsed.data.slice("todo39-".length)}`
+}
+
+export const faultMediaPrefixOf = (runId: string): string => {
+  const parsed = faultRunIdSchema.safeParse(runId)
+  if (!parsed.success) {
+    throw new CmsEnvironmentError(["GEO_FOUNDRY_FAULT_RUN_ID"])
+  }
+  return `objects/todo39/${parsed.data}/media`
+}
+
 export type CmsEnvironment = {
-  readonly mode: "runtime" | "build" | "integration-test"
+  readonly mode: "runtime" | "build" | "integration-test" | "fault-test"
   readonly payloadSecret: string
   readonly postgres: {
     readonly connectionString: string
@@ -32,7 +50,7 @@ export type CmsEnvironment = {
     readonly bucket: typeof CMS_BUCKET
     readonly endpoint: string
     readonly forcePathStyle: true
-    readonly mediaPrefix: typeof CMS_MEDIA_PREFIX
+    readonly mediaPrefix: string
     readonly region: typeof RUSTFS_REGION
     readonly secretAccessKey: string
   }
@@ -64,7 +82,7 @@ const postgresConnectionString = (
 
 const serviceEnvironment = (
   environment: Record<string, string | undefined>,
-  mode: "runtime" | "integration-test",
+  mode: "runtime" | "integration-test" | "fault-test",
 ): CmsEnvironment => {
   let sharedServices: CmsSharedServicesEnvironment
   try {
@@ -81,6 +99,9 @@ const serviceEnvironment = (
     throw new CmsEnvironmentError(["PAYLOAD_SECRET"])
   }
 
+  const runId = mode === "fault-test" ? environment["GEO_FOUNDRY_FAULT_RUN_ID"] : undefined
+  const faultDatabase = runId === undefined ? undefined : faultDatabaseOf(runId)
+  const faultMediaPrefix = runId === undefined ? undefined : faultMediaPrefixOf(runId)
   const integration = mode === "integration-test"
   return {
     mode,
@@ -88,8 +109,13 @@ const serviceEnvironment = (
     postgres: {
       connectionString: postgresConnectionString(
         sharedServices,
-        integration ? CMS_INTEGRATION_DATABASE : sharedServices.GEO_FOUNDRY_PG_DATABASE,
-        integration ? "geo-foundry-cms-integration-test" : "geo-foundry-cms",
+        faultDatabase ??
+          (integration ? CMS_INTEGRATION_DATABASE : sharedServices.GEO_FOUNDRY_PG_DATABASE),
+        faultDatabase === undefined
+          ? integration
+            ? "geo-foundry-cms-integration-test"
+            : "geo-foundry-cms"
+          : `geo-foundry-cms-fault-${runId}`,
       ),
       schema: CMS_POSTGRES_SCHEMA,
     },
@@ -98,7 +124,7 @@ const serviceEnvironment = (
       bucket: CMS_BUCKET,
       endpoint: `${sharedServices.GEO_FOUNDRY_S3_USE_SSL ? "https" : "http"}://${sharedServices.GEO_FOUNDRY_S3_ENDPOINT}:${sharedServices.GEO_FOUNDRY_S3_PORT}`,
       forcePathStyle: true,
-      mediaPrefix: CMS_MEDIA_PREFIX,
+      mediaPrefix: faultMediaPrefix ?? CMS_MEDIA_PREFIX,
       region: RUSTFS_REGION,
       secretAccessKey: sharedServices.GEO_FOUNDRY_S3_SECRET_KEY,
     },
@@ -111,6 +137,9 @@ const runtimeEnvironment = (environment: Record<string, string | undefined>): Cm
 const integrationTestEnvironment = (
   environment: Record<string, string | undefined>,
 ): CmsEnvironment => serviceEnvironment(environment, "integration-test")
+
+const faultTestEnvironment = (environment: Record<string, string | undefined>): CmsEnvironment =>
+  serviceEnvironment(environment, "fault-test")
 
 const buildEnvironment = (): CmsEnvironment => ({
   mode: "build",
@@ -145,6 +174,8 @@ export const parseCmsEnvironment = (
       return buildEnvironment()
     case "integration-test":
       return integrationTestEnvironment(environment)
+    case "fault-test":
+      return faultTestEnvironment(environment)
     case "runtime":
       return runtimeEnvironment(environment)
     default:

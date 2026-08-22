@@ -53,7 +53,12 @@ export async function readEditionInput(
     contentId: numberFieldOf(doc.content) ?? -1,
     editionId: doc.id,
     inputHash: currentEditionInputHash(doc),
-    modifiedAt: typeof doc.updatedAt === "string" ? doc.updatedAt : String(doc.updatedAt),
+    modifiedAt:
+      typeof doc.contentModifiedAt === "string"
+        ? doc.contentModifiedAt
+        : typeof doc.updatedAt === "string"
+          ? doc.updatedAt
+          : String(doc.updatedAt),
     publishedAt: typeof doc.createdAt === "string" ? doc.createdAt : String(doc.createdAt),
     primaryTopic: doc.primaryTopic,
     secondaryTopics: doc.secondaryTopics,

@@ -33,6 +33,7 @@ test("Given protected CI When its workflow is inspected Then it requires an expl
   assert.match(protectedJob, /umask 077/)
   assert.match(protectedJob, /GEO_FOUNDRY_PG_USER_FILE/)
   assert.match(protectedJob, /GEO_FOUNDRY_REDIS_PASSWORD_FILE/)
+  assert.match(protectedJob, /GEO_FOUNDRY_CMS_SECRET_FILE/)
   assert.match(protectedJob, /GEO_FOUNDRY_S3_SECRET_KEY_FILE/)
   assert.match(protectedJob, /if: always\(\)\n {8}run: pnpm shared:cleanup/)
   assert.match(protectedJob, /if: always\(\)\n {8}run: rm -rf/)
@@ -60,10 +61,17 @@ test("Given CI verification When its local entrypoint is inspected Then it force
   assert.match(script, /test:harness/)
   assert.match(script, /evidence:verify/)
   assert.doesNotMatch(script, /test:e2e|test:faults"\]/)
+  assert.match(manifest.scripts["test:faults"], /turbo run build --force/)
+  assert.match(manifest.scripts["test:faults"], /--filter=@geo\/cms/)
+  assert.match(manifest.scripts["test:faults"], /--filter=@geo\/worker/)
 })
 
 test("Given protected shared-service execution When the secure runner is inspected Then it only injects credentials from owner-only files", async () => {
-  const runner = await readText("scripts/shared-services/secure-run.mjs")
+  const [runner, contentService, worker] = await Promise.all([
+    readText("scripts/shared-services/secure-run.mjs"),
+    readText("apps/content-service/src/main.ts"),
+    readText("apps/worker/src/main.ts"),
+  ])
 
   assert.match(runner, /GEO_FOUNDRY_PG_USER_FILE/)
   assert.match(runner, /GEO_FOUNDRY_PG_PASSWORD_FILE/)
@@ -72,4 +80,8 @@ test("Given protected shared-service execution When the secure runner is inspect
   assert.match(runner, /metadata\.mode & 0o077/)
   assert.match(runner, /metadata\.uid !== process\.getuid\(\)/)
   assert.match(runner, /delete childEnvironment\[variable\]/)
+  assert.match(contentService, /CONTENT_SERVICE_CREDENTIAL_FILE_INSECURE/)
+  assert.match(contentService, /metadata\.mode & 0o077/)
+  assert.match(worker, /WORKER_CREDENTIAL_FILE_INSECURE/)
+  assert.match(worker, /metadata\.mode & 0o077/)
 })
