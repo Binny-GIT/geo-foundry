@@ -18,6 +18,8 @@
     "test": "pnpm verify:toolchain && turbo run test",
     "test:fresh": "pnpm verify:toolchain && turbo run test --force --output-logs=full",
     "test:harness": "node scripts/evidence/run.mjs --fresh",
+    "ci:verify": "node scripts/ci/verify.mjs",
+    "test:ci-contracts": "node --test tooling/ci-contract.test.mjs",
     "test:workspace:fresh": "vitest run --config vitest.workspace.ts --configLoader runner --no-file-parallelism",
     "test:integration": "turbo run test:integration",
     "test:integration:fresh": "turbo run test:integration --force --output-logs=full",

@@ -16,6 +16,7 @@ test("Given the governed repository When its toolchain configuration is inspecte
   const tsconfig = await readJson("tsconfig.base.json")
   const biomeConfig = await readJson("biome.json")
   const workspaceConfig = await readText("pnpm-workspace.yaml")
+  const pnpmConfig = await readText(".npmrc")
   const turboConfig = await readJson("turbo.json")
 
   assert.equal(process.versions.node.split(".")[0], "24")
@@ -33,6 +34,10 @@ test("Given the governed repository When its toolchain configuration is inspecte
     "test",
     "test:integration",
     "test:e2e",
+    "test:faults",
+    "test:faults:contracts",
+    "ci:verify",
+    "test:ci-contracts",
     "build",
     "api:check",
     "check",
@@ -47,6 +52,9 @@ test("Given the governed repository When its toolchain configuration is inspecte
   assert.match(workspaceConfig, /apps\/\*/)
   assert.match(workspaceConfig, /packages\/\*/)
   assert.match(workspaceConfig, /examples\/\*/)
+  assert.match(workspaceConfig, /msgpackr-extract: true/)
+  assert.match(pnpmConfig, /engine-strict=true/)
+  assert.match(pnpmConfig, /prefer-frozen-lockfile=true/)
   assert.equal(tsconfig.compilerOptions.strict, true)
   assert.equal(tsconfig.compilerOptions.noUncheckedIndexedAccess, true)
   assert.equal(tsconfig.compilerOptions.exactOptionalPropertyTypes, true)
@@ -63,6 +71,7 @@ test("Given the governed repository When its toolchain configuration is inspecte
     "lint",
     "test",
     "test:e2e",
+    "test:faults",
     "test:integration",
     "typecheck",
   ])

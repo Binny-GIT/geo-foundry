@@ -4,7 +4,17 @@ import { readFile, stat } from "node:fs/promises"
 import { writeSafeFailure } from "./cli.mjs"
 import { SharedServicesError } from "./resources.mjs"
 
-const credentialFileVariables = ["GEO_FOUNDRY_S3_ACCESS_KEY_FILE", "GEO_FOUNDRY_S3_SECRET_KEY_FILE"]
+const requiredCredentialFileVariables = [
+  ["GEO_FOUNDRY_S3_ACCESS_KEY_FILE", "GEO_FOUNDRY_S3_ACCESS_KEY"],
+  ["GEO_FOUNDRY_S3_SECRET_KEY_FILE", "GEO_FOUNDRY_S3_SECRET_KEY"],
+]
+
+const optionalCredentialFileVariables = [
+  ["GEO_FOUNDRY_PG_USER_FILE", "GEO_FOUNDRY_PG_USER"],
+  ["GEO_FOUNDRY_PG_PASSWORD_FILE", "GEO_FOUNDRY_PG_PASSWORD"],
+  ["GEO_FOUNDRY_REDIS_USERNAME_FILE", "GEO_FOUNDRY_REDIS_USERNAME"],
+  ["GEO_FOUNDRY_REDIS_PASSWORD_FILE", "GEO_FOUNDRY_REDIS_PASSWORD"],
+]
 
 const requireCredentialFilePath = (variable) => {
   const path = process.env[variable]
@@ -34,11 +44,13 @@ const run = async () => {
     )
   }
 
-  const [accessKeyFile, secretKeyFile] = credentialFileVariables.map(requireCredentialFilePath)
-  const missing = credentialFileVariables.filter((_, index) =>
-    index === 0 ? accessKeyFile === undefined : secretKeyFile === undefined,
+  const requiredFiles = requiredCredentialFileVariables.map(([file]) =>
+    requireCredentialFilePath(file),
   )
-  if (missing.length > 0 || accessKeyFile === undefined || secretKeyFile === undefined) {
+  const missing = requiredCredentialFileVariables
+    .filter((_, index) => requiredFiles[index] === undefined)
+    .map(([file]) => file)
+  if (missing.length > 0) {
     process.stderr.write(
       `${JSON.stringify({
         code: "SHARED_SERVICE_ENV_MISSING",
@@ -50,16 +62,36 @@ const run = async () => {
     return
   }
 
-  const [accessKey, secretKey] = await Promise.all([
-    readCredential(accessKeyFile),
-    readCredential(secretKeyFile),
-  ])
+  const injectedCredentials = Object.fromEntries(
+    await Promise.all(
+      requiredCredentialFileVariables.map(async ([_file, variable], index) => [
+        variable,
+        await readCredential(requiredFiles[index]),
+      ]),
+    ),
+  )
+  for (const [file, variable] of optionalCredentialFileVariables) {
+    const path = requireCredentialFilePath(file)
+    if (path !== undefined) {
+      injectedCredentials[variable] = await readCredential(path)
+    }
+  }
+  const childEnvironment = { ...process.env }
+  for (const variable of [
+    "GEO_FOUNDRY_PG_USER",
+    "GEO_FOUNDRY_PG_PASSWORD",
+    "GEO_FOUNDRY_REDIS_USERNAME",
+    "GEO_FOUNDRY_REDIS_PASSWORD",
+    "GEO_FOUNDRY_S3_ACCESS_KEY",
+    "GEO_FOUNDRY_S3_SECRET_KEY",
+  ]) {
+    delete childEnvironment[variable]
+  }
   const script = new URL(`${action}.mjs`, import.meta.url)
   const child = spawn(process.execPath, [script.pathname, ...argumentsList], {
     env: {
-      ...process.env,
-      GEO_FOUNDRY_S3_ACCESS_KEY: accessKey,
-      GEO_FOUNDRY_S3_SECRET_KEY: secretKey,
+      ...childEnvironment,
+      ...injectedCredentials,
       GEO_FOUNDRY_S3_SECRET_REF: "rustfs-geo-foundry-svc",
     },
     stdio: "inherit",
