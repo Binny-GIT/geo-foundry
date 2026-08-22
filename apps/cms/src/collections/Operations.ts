@@ -2,7 +2,7 @@ import type { CollectionConfig } from "payload"
 
 import { collectionAccess } from "../access/functions"
 import { CMS_RESOURCE } from "../access/policy"
-import { forceTenantFromSession } from "../access/tenant-field"
+import { tenantField } from "./shared/tenant-field"
 
 /**
  * Asynchronous Operation ledger. PostgreSQL is the authoritative store;
@@ -26,16 +26,7 @@ export const Operations = {
       required: true,
       unique: true,
     },
-    {
-      name: "tenant",
-      type: "relationship",
-      relationTo: "tenants",
-      required: true,
-      index: true,
-      hooks: {
-        beforeValidate: [forceTenantFromSession],
-      },
-    },
+    tenantField({ index: true }),
     {
       name: "site",
       type: "relationship",

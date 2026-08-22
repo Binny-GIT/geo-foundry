@@ -2,7 +2,7 @@ import type { CollectionConfig } from "payload"
 
 import { collectionAccess } from "../access/functions"
 import { CMS_RESOURCE } from "../access/policy"
-import { forceTenantFromSession } from "../access/tenant-field"
+import { tenantField } from "./shared/tenant-field"
 
 export const Contents = {
   slug: "contents",
@@ -21,15 +21,7 @@ export const Contents = {
       type: "text",
       required: true,
     },
-    {
-      name: "tenant",
-      type: "relationship",
-      relationTo: "tenants",
-      required: true,
-      hooks: {
-        beforeValidate: [forceTenantFromSession],
-      },
-    },
+    tenantField(),
     {
       name: "createdBy",
       type: "select",

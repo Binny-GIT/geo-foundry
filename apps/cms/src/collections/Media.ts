@@ -3,7 +3,7 @@ import { APIError, type CollectionConfig, type FieldHook } from "payload"
 import { collectionAccess } from "../access/functions"
 import { CMS_RESOURCE } from "../access/policy"
 import { resolveSessionClaims } from "../access/session"
-import { forceTenantFromSession } from "../access/tenant-field"
+import { tenantField } from "./shared/tenant-field"
 
 export const MAX_MEDIA_BYTES = 5 * 1024 * 1024
 export const ALLOWED_MEDIA_MIME_TYPES = [
@@ -124,15 +124,7 @@ export const Media = {
     ],
   },
   fields: [
-    {
-      name: "tenant",
-      type: "relationship",
-      relationTo: "tenants",
-      required: true,
-      hooks: {
-        beforeValidate: [forceTenantFromSession],
-      },
-    },
+    tenantField(),
     {
       name: "prefix",
       type: "text",

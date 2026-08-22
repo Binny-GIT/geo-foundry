@@ -7,7 +7,7 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "cross-env GEO_FOUNDRY_CMS_CONFIG_MODE=build next build --webpack",
+    "build": "cross-env GEO_FOUNDRY_CMS_CONFIG_MODE=build payload generate:importmap && cross-env GEO_FOUNDRY_CMS_CONFIG_MODE=build next build --webpack",
     "db:migrate": "node scripts/run-migrations.mjs",
     "db:migrate:create": "node scripts/create-migration.mjs",
     "db:migrate:status": "node scripts/secure-run.mjs payload migrate:status",
@@ -32,6 +32,7 @@
     "@payloadcms/plugin-multi-tenant": "3.88.0",
     "@payloadcms/richtext-lexical": "3.88.0",
     "@payloadcms/storage-s3": "3.88.0",
+    "@payloadcms/translations": "3.88.0",
     "@payloadcms/ui": "3.88.0",
     "bullmq": "6.1.2",
     "cross-env": "7.0.3",

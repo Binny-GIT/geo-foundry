@@ -2,7 +2,7 @@ import type { CollectionConfig } from "payload"
 
 import { collectionAccess } from "../access/functions"
 import { CMS_RESOURCE } from "../access/policy"
-import { forceTenantFromSession } from "../access/tenant-field"
+import { tenantField } from "./shared/tenant-field"
 
 /**
  * Immutable release registry. Object storage owns artifact bytes; this ledger
@@ -20,14 +20,7 @@ export const Releases = {
     { name: "releaseId", type: "text", required: true, unique: true },
     { name: "manifestSha256", type: "text", required: true },
     { name: "runtimeSiteId", type: "text", required: true, index: true },
-    {
-      name: "tenant",
-      type: "relationship",
-      relationTo: "tenants",
-      required: true,
-      index: true,
-      hooks: { beforeValidate: [forceTenantFromSession] },
-    },
+    tenantField({ index: true }),
     { name: "site", type: "relationship", relationTo: "sites", required: true, index: true },
     {
       name: "state",

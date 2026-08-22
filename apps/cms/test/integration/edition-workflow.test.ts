@@ -291,6 +291,29 @@ describe("edition workflow gating integration", () => {
     expect(Number.isFinite(Date.parse(String(published?.at)))).toBe(true)
   })
 
+  it("Given a published edition, when a publisher archives it, then the live document is archived", async () => {
+    const edition = await makeEdition()
+    await advanceToCompiled(edition.id, "release-2026-08-18-archive")
+    await transitionEdition(payload, {
+      editionId: edition.id,
+      target: "published",
+      user: publisher,
+    })
+
+    expect(
+      await transitionEdition(payload, {
+        editionId: edition.id,
+        target: "archived",
+        user: publisher,
+      }),
+    ).toBe("archived")
+
+    const live = await loadWorkflowEdition(payload, edition.id)
+    expect(live.workflowStatus).toBe("archived")
+    expect(Number(live.workflowRevision)).toBe(6)
+    expect((await auditOf(edition.id)).at(-1)?.action).toBe("content-edition.published.archived")
+  })
+
   it("Given no recorded assessment, when approval is attempted, then it fails closed", async () => {
     const edition = await makeEdition()
     await advanceToReview(edition.id)

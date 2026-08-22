@@ -328,7 +328,10 @@ export async function transitionEdition(
       workflowRevision: aggregate.revision + 1,
       workflowStatus: options.target,
     }
-    if (options.target === "published") {
+    // Published and archived are externally visible terminal states. Persist them
+    // to the live document rather than only the Payload draft version, otherwise
+    // a later archive action appears in the editor but API readers still see published.
+    if (options.target === "published" || options.target === "archived") {
       const updated = (await payload.update({
         collection: "content-editions",
         data,

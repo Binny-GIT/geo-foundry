@@ -1,0 +1,24 @@
+type GeoIconProps = {
+  readonly size?: number
+}
+
+export const GeoIcon = ({ size = 28 }: GeoIconProps) => (
+  <svg
+    aria-label="Geo Foundry"
+    fill="none"
+    height={size}
+    role="img"
+    viewBox="0 0 32 32"
+    width={size}
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      d="M16 3 27 9.3v13.4L16 29 5 22.7V9.3L16 3Z"
+      fill="#2563eb"
+      stroke="#1d4ed8"
+      strokeWidth="1.5"
+    />
+    <path d="M10.5 12.1 16 8.9l5.5 3.2v6.4L16 21.7l-5.5-3.2v-6.4Z" fill="white" />
+    <path d="M16 15.3 21.5 12v6.5L16 21.7v-6.4Z" fill="#bfdbfe" />
+  </svg>
+)

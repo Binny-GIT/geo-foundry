@@ -2,6 +2,7 @@ import type { CollectionConfig } from "payload"
 
 import { collectionAccess } from "../access/functions"
 import { CMS_RESOURCE } from "../access/policy"
+import { tenantField } from "./shared/tenant-field"
 
 /**
  * URL Registry persistence. All writes flow through the transaction-bound
@@ -24,12 +25,7 @@ export const UrlRecords = {
       relationTo: "sites",
       required: true,
     },
-    {
-      name: "tenant",
-      type: "relationship",
-      relationTo: "tenants",
-      required: true,
-    },
+    tenantField({ managed: false }),
     {
       name: "content",
       type: "relationship",

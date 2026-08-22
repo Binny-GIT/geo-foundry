@@ -118,4 +118,23 @@ describe("read scope", () => {
       id: { equals: 9 },
     })
   })
+
+  it("Given a role denied users list reads, when scope is computed, then only its own profile row is readable (admin /api/users/me)", () => {
+    expect(readScope(claimsFor(CMS_ROLE.EDITOR, 5, "77"), CMS_RESOURCE.USERS)).toEqual({
+      id: { equals: "77" },
+    })
+    expect(readScope(claimsFor(CMS_ROLE.REVIEWER, 5, "88"), CMS_RESOURCE.USERS)).toEqual({
+      id: { equals: "88" },
+    })
+  })
+
+  it("Given anonymous, when users scope is computed, then reads are denied", () => {
+    expect(readScope(null, CMS_RESOURCE.USERS)).toBe(false)
+  })
+
+  it("Given tenant-admin, when users scope is computed, then the tenant scope (not self-only) applies", () => {
+    expect(readScope(claimsFor(CMS_ROLE.TENANT_ADMIN, 9), CMS_RESOURCE.USERS)).toEqual({
+      tenant: { equals: 9 },
+    })
+  })
 })

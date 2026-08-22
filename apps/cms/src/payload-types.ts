@@ -497,6 +497,7 @@ export interface ContentEdition {
     | boolean
     | null;
   creationOrigin: 'ai' | 'human' | 'hybrid';
+  contentModifiedAt?: string | null;
   /**
    * Owned by the edition workflow service
    */
@@ -1182,6 +1183,7 @@ export interface ContentEditionsSelect<T extends boolean = true> {
   citations?: T;
   entities?: T;
   creationOrigin?: T;
+  contentModifiedAt?: T;
   workflowStatus?: T;
   workflowRevision?: T;
   compiledRelease?: T;

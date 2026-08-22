@@ -8,7 +8,7 @@ import {
 
 import { collectionAccess } from "../access/functions"
 import { CMS_RESOURCE } from "../access/policy"
-import { forceTenantFromSession } from "../access/tenant-field"
+import { tenantField } from "./shared/tenant-field"
 
 const normalizeHostnameHook: FieldHook = ({ value }) => {
   const hostname = normalizeSiteHost(value)
@@ -72,15 +72,7 @@ export const Domains = {
       relationTo: "sites",
       required: true,
     },
-    {
-      name: "tenant",
-      type: "relationship",
-      relationTo: "tenants",
-      required: true,
-      hooks: {
-        beforeValidate: [forceTenantFromSession],
-      },
-    },
+    tenantField(),
     {
       name: "role",
       type: "select",

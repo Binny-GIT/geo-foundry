@@ -3,7 +3,7 @@ import type { CollectionConfig } from "payload"
 
 import { collectionAccess } from "../access/functions"
 import { CMS_RESOURCE } from "../access/policy"
-import { forceTenantFromSession } from "../access/tenant-field"
+import { tenantField } from "./shared/tenant-field"
 
 const validateLocaleField = (value: unknown): true | string => {
   const locale = normalizeLocale(value)
@@ -27,15 +27,7 @@ export const Sites = {
       type: "text",
       required: true,
     },
-    {
-      name: "tenant",
-      type: "relationship",
-      relationTo: "tenants",
-      required: true,
-      hooks: {
-        beforeValidate: [forceTenantFromSession],
-      },
-    },
+    tenantField(),
     {
       name: "locale",
       type: "text",

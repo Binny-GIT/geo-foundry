@@ -1,10 +1,10 @@
 import type { CollectionConfig } from "payload"
 
-import { collectionAccess, claimsFromRequest } from "../access/functions"
+import { claimsFromRequest, collectionAccess } from "../access/functions"
 import { CMS_ACTION, CMS_RESOURCE, decideAccess } from "../access/policy"
-import { CMS_ROLES } from "../access/roles"
 import { forceRoleFromSession } from "../access/role-field"
-import { forceTenantFromSession } from "../access/tenant-field"
+import { CMS_ROLES } from "../access/roles"
+import { tenantField } from "./shared/tenant-field"
 
 export const Users = {
   slug: "users",
@@ -43,13 +43,6 @@ export const Users = {
         beforeValidate: [forceRoleFromSession],
       },
     },
-    {
-      name: "tenant",
-      type: "relationship",
-      relationTo: "tenants",
-      hooks: {
-        beforeValidate: [forceTenantFromSession],
-      },
-    },
+    tenantField({ required: false }),
   ],
 } satisfies CollectionConfig

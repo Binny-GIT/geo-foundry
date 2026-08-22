@@ -4,6 +4,7 @@ import { postgresAdapter } from "@payloadcms/db-postgres"
 import { multiTenantPlugin } from "@payloadcms/plugin-multi-tenant"
 import { BlocksFeature, lexicalEditor } from "@payloadcms/richtext-lexical"
 import { s3Storage } from "@payloadcms/storage-s3"
+import { enTranslations } from "@payloadcms/translations/languages/en"
 import { buildConfig } from "payload"
 
 import { ContentEditions } from "./collections/ContentEditions"
@@ -38,8 +39,24 @@ export default buildConfig({
   admin: {
     importMap: {
       baseDir: dirname,
+      importMapFile: path.resolve(dirname, "app/(payload)/admin/importMap.ts"),
     },
     user: Users.slug,
+    meta: {
+      description: "Geo Foundry content operations workspace",
+      icons: [{ rel: "icon", type: "image/svg+xml", url: "/favicon.svg" }],
+      titleSuffix: " | Geo Foundry",
+    },
+    components: {
+      beforeDashboard: ["/components/dashboard/OperationsWorkspace#OperationsWorkspace"],
+      beforeLogin: ["/components/branding/LoginIntro#LoginIntro"],
+      graphics: {
+        Icon: "/components/branding/GeoIcon#GeoIcon",
+        Logo: "/components/branding/GeoLogo#GeoLogo",
+      },
+    },
+    // 不依赖外部 Gravatar 服务（测试/生产网络不可达，导致管理端页面 console error 与请求超时）
+    avatar: "default",
   },
   collections: [
     Tenants,
@@ -57,6 +74,18 @@ export default buildConfig({
     Operations,
     IdempotencyRecords,
   ],
+  i18n: {
+    translations: {
+      en: {
+        ...enTranslations,
+        error: {
+          ...enTranslations.error,
+          notAllowedToAccessPage: "Your account does not have permission to access this page.",
+          unauthorized: "You do not have permission to perform this action.",
+        },
+      },
+    },
+  },
   endpoints: [
     createRollbackIntentEndpoint,
     createDraftFromPublishedEndpoint,

@@ -2,7 +2,7 @@ import type { CollectionConfig } from "payload"
 
 import { collectionAccess } from "../access/functions"
 import { CMS_RESOURCE } from "../access/policy"
-import { forceTenantFromSession } from "../access/tenant-field"
+import { tenantField } from "./shared/tenant-field"
 
 /**
  * Immutable quality evidence. Written by the content-service identity only
@@ -30,15 +30,7 @@ export const QualityAssessments = {
       relationTo: "sites",
       required: true,
     },
-    {
-      name: "tenant",
-      type: "relationship",
-      relationTo: "tenants",
-      required: true,
-      hooks: {
-        beforeValidate: [forceTenantFromSession],
-      },
-    },
+    tenantField(),
     {
       name: "state",
       type: "select",

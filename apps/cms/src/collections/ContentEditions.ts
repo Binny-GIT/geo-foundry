@@ -2,10 +2,10 @@ import { APIError, type CollectionBeforeChangeHook, type CollectionConfig } from
 
 import { collectionAccess } from "../access/functions"
 import { CMS_RESOURCE } from "../access/policy"
-import { forceTenantFromSession } from "../access/tenant-field"
 import { PAGE_DOCUMENT_BLOCKS } from "../editor/page-document-blocks"
 import { validateEditionBody } from "../editor/validate-body"
 import { canonicalize } from "../services/edition-input-hash"
+import { tenantField } from "./shared/tenant-field"
 
 const idOf = (reference: unknown): number | string | null =>
   typeof reference === "number" || typeof reference === "string" ? reference : null
@@ -165,6 +165,15 @@ export const ContentEditions = {
   },
   fields: [
     {
+      name: "workflowActions",
+      type: "ui",
+      admin: {
+        components: {
+          Field: "/components/workflow/WorkflowActions#WorkflowActions",
+        },
+      },
+    },
+    {
       name: "content",
       type: "relationship",
       relationTo: "contents",
@@ -176,15 +185,7 @@ export const ContentEditions = {
       relationTo: "sites",
       required: true,
     },
-    {
-      name: "tenant",
-      type: "relationship",
-      relationTo: "tenants",
-      required: true,
-      hooks: {
-        beforeValidate: [forceTenantFromSession],
-      },
-    },
+    tenantField(),
     {
       name: "angle",
       type: "text",

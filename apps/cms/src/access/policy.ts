@@ -148,6 +148,11 @@ export function readScope(
   resource: CmsResource,
 ): boolean | TenantScope | SelfScope {
   if (!decideAccess(claims, resource, CMS_ACTION.READ)) {
+    // 角色矩阵拒绝列表读取时，仍允许读取自己的 profile——
+    // 管理端 UI 依赖 GET /api/users/me，拒绝会令 editor 等角色的后台页产生 403。
+    if (claims !== null && resource === CMS_RESOURCE.USERS) {
+      return { id: { equals: claims.userId } }
+    }
     return false
   }
   if (claims === null) {

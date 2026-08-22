@@ -2,7 +2,7 @@ import type { CollectionConfig } from "payload"
 
 import { collectionAccess } from "../access/functions"
 import { CMS_RESOURCE } from "../access/policy"
-import { forceTenantFromSession } from "../access/tenant-field"
+import { tenantField } from "./shared/tenant-field"
 
 /** Publisher-approved rollback commands consumed only by the worker. */
 export const RollbackIntents = {
@@ -12,14 +12,7 @@ export const RollbackIntents = {
   access: collectionAccess(CMS_RESOURCE.RELEASES),
   fields: [
     { name: "intentId", type: "text", required: true, unique: true },
-    {
-      name: "tenant",
-      type: "relationship",
-      relationTo: "tenants",
-      required: true,
-      index: true,
-      hooks: { beforeValidate: [forceTenantFromSession] },
-    },
+    tenantField({ index: true }),
     { name: "site", type: "relationship", relationTo: "sites", required: true, index: true },
     { name: "runtimeSiteId", type: "text", required: true },
     { name: "targetReleaseId", type: "text", required: true },
