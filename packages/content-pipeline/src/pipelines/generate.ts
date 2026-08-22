@@ -1,17 +1,14 @@
 import { z } from "zod"
 
-import type { ContentServiceClient, OperationSnapshot } from "@geo/content-client"
+import type { ContentServiceClient } from "@geo/content-client"
 
 import { canonicalJson, sha256Hex } from "../canonical.js"
 import {
   ADAPTATION_PROMPT_VERSION,
   DRAFT_PROMPT_VERSION,
   OUTLINE_PROMPT_VERSION,
-  REVISION_PROMPT_VERSION,
 } from "../providers/fixtures.js"
 import type { LLMProvider } from "../providers/types.js"
-import { draftDocumentOf } from "./draft-document.js"
-import { evaluateEdition, type EditionEvaluation, type EvaluationDeps } from "./evaluate.js"
 
 export const outlineOutputSchema = z
   .object({
@@ -60,22 +57,30 @@ export type GenerateOperationInput = {
   readonly operationId: string
   readonly requestId: string
   readonly targets: readonly GenerationTarget[]
-  readonly thresholds?: { dimensionMin: number; overallMin: number }
 }
 
 export type TargetOutcome = {
-  readonly decision: EditionEvaluation["aggregate"]["decision"]
   readonly editionId: number
-  readonly evaluation: EditionEvaluation
-  readonly revised: boolean
 }
 
-type StageClient = Pick<
-  ContentServiceClient,
-  "completeOperationStage" | "startOperationStage" | "writeDraftVersion"
->
+type StageClient = Pick<ContentServiceClient, "writeDraftVersion">
 
 const hashOf = (payload: unknown): string => sha256Hex(canonicalJson(payload))
+
+const payloadBlocksOf = (
+  blocks: readonly { readonly text: string; readonly type: string }[],
+  target: GenerationTarget,
+) => [
+  ...blocks.map((block) => ({
+    blockType: block.type,
+    ...(block.type === "heading" ? { level: "2" } : {}),
+    text: block.text,
+  })),
+  {
+    blockType: "paragraph",
+    text: `This edition is scoped to ${target.siteStrategy.name} and its ${target.angle} editorial angle.`,
+  },
+]
 
 /**
  * Staged generation for one operation: outline -> draft -> site adaptation ->
@@ -85,15 +90,15 @@ const hashOf = (payload: unknown): string => sha256Hex(canonicalJson(payload))
  * generation refuses to start without it.
  */
 export const runGenerationOperation = async (
-  deps: EvaluationDeps & { client: EvaluationDeps["client"] & StageClient; provider: LLMProvider },
+  deps: { readonly client: StageClient; readonly provider: LLMProvider },
   input: GenerateOperationInput,
-): Promise<{ operation: OperationSnapshot; outcomes: readonly TargetOutcome[] }> => {
+): Promise<{ outcomes: readonly TargetOutcome[] }> => {
   if (input.brief.sources.length === 0) {
     throw new Error("GENERATION_BRIEF_SOURCES_REQUIRED")
   }
   const outcomes: TargetOutcome[] = []
   for (const target of input.targets) {
-    const outline = await runStage(deps.client, input, target, "outline", async () => {
+    const outline = await runStage(async () => {
       const generated = await deps.provider.generate({
         maxOutputTokens: 2048,
         promptVersion: OUTLINE_PROMPT_VERSION,
@@ -105,7 +110,7 @@ export const runGenerationOperation = async (
       })
       return { outputHash: hashOf(generated.content), value: generated.content }
     })
-    const draft = await runStage(deps.client, input, target, "draft", async () => {
+    const draft = await runStage(async () => {
       const generated = await deps.provider.generate({
         maxOutputTokens: 4096,
         promptVersion: DRAFT_PROMPT_VERSION,
@@ -117,7 +122,7 @@ export const runGenerationOperation = async (
       })
       return { outputHash: hashOf(generated.content), value: generated.content }
     })
-    const adaptation = await runStage(deps.client, input, target, "adaptation", async () => {
+    const adaptation = await runStage(async () => {
       const generated = await deps.provider.generate({
         maxOutputTokens: 4096,
         promptVersion: ADAPTATION_PROMPT_VERSION,
@@ -131,98 +136,18 @@ export const runGenerationOperation = async (
     })
     const summary = `${input.brief.topic} - ${target.angle}`
     await deps.client.writeDraftVersion(target.editionId, {
-      body: adaptation.value.blocks as unknown as Record<string, unknown>[],
+      body: payloadBlocksOf(adaptation.value.blocks, target),
       summary,
       title: adaptation.value.title,
     })
-    let evaluation = await evaluateTarget(deps, input, target, adaptation.value, summary)
-    let revised = false
-    if (evaluation.aggregate.decision !== "passed") {
-      revised = true
-      const revision = await runStage(deps.client, input, target, "revision", async () => {
-        const generated = await deps.provider.generate({
-          maxOutputTokens: 4096,
-          promptVersion: REVISION_PROMPT_VERSION,
-          requestId: input.requestId,
-          schema: draftOutputSchema,
-          system: "You revise once to clear the quality gate.",
-          temperature: 0,
-          user: canonicalJson({
-            aggregate: evaluation.aggregate.gate.reasons,
-            brief: input.brief,
-            draft: adaptation.value,
-          }),
-        })
-        return { outputHash: hashOf(generated.content), value: generated.content }
-      })
-      await deps.client.writeDraftVersion(target.editionId, {
-        body: revision.value.blocks as unknown as Record<string, unknown>[],
-        summary,
-        title: revision.value.title,
-      })
-      evaluation = await evaluateTarget(deps, input, target, revision.value, summary)
-    }
-    outcomes.push({
-      decision: evaluation.aggregate.decision,
-      editionId: target.editionId,
-      evaluation,
-      revised,
-    })
+    outcomes.push({ editionId: target.editionId })
   }
-  const operation = await deps.client.completeOperationStage(input.operationId, {
-    attempt: input.attempt,
-    outcome: "succeeded",
-    result: {
-      outcomes: outcomes.map((outcome) => ({
-        decision: outcome.decision,
-        editionId: outcome.editionId,
-        revised: outcome.revised,
-      })),
-    },
-    stage: "generation",
-  })
-  return { operation, outcomes }
+  return { outcomes }
 }
 
-const evaluateTarget = async (
-  deps: EvaluationDeps,
-  input: GenerateOperationInput,
-  target: GenerationTarget,
-  draft: z.infer<typeof draftOutputSchema>,
-  summary: string,
-): Promise<EditionEvaluation> =>
-  evaluateEdition(deps, {
-    document: draftDocumentOf({
-      body: draft.blocks as unknown[],
-      contentId: input.contentId,
-      pathname: `/drafts/${target.editionId}`,
-      siteId: target.siteStrategy.name,
-      summary,
-      title: draft.title,
-    }),
-    editionId: target.editionId,
-    siteAngle: target.angle,
-    siteName: target.siteStrategy.name,
-    ...(input.thresholds === undefined ? {} : { thresholds: input.thresholds }),
-  })
-
 const runStage = async <T>(
-  client: StageClient,
-  input: GenerateOperationInput,
-  target: GenerationTarget,
-  stage: string,
   work: () => Promise<{ outputHash: string; value: T }>,
 ): Promise<{ value: T }> => {
-  await client.startOperationStage(input.operationId, {
-    attempt: input.attempt,
-    stage: `${stage}-${target.editionId}`,
-  })
   const result = await work()
-  await client.completeOperationStage(input.operationId, {
-    attempt: input.attempt,
-    outcome: "succeeded",
-    result: { outputHash: result.outputHash },
-    stage: `${stage}-${target.editionId}`,
-  })
   return { value: result.value }
 }

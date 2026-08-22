@@ -63,7 +63,7 @@ const respond = (response, result) => {
           Location: result.targetUrl,
           "X-Geo-Release-Id": result.releaseId,
         },
-        statusShell("Moved", "This page has moved."),
+        pageShell(result.document),
       )
       return
     case "gone":

@@ -48,4 +48,11 @@ describe("fake provider specifics", () => {
     })
     expect(result.rawResponseHash).toMatch(/^[0-9a-f]{64}$/)
   })
+
+  it("derives distinct deterministic embeddings from distinct inputs", async () => {
+    const provider = createFakeProvider()
+    const first = await provider.embed({ input: "site-a engineering edition", requestId: "req-a" })
+    const second = await provider.embed({ input: "site-b operations edition", requestId: "req-b" })
+    expect([...first.vector]).not.toEqual([...second.vector])
+  })
 })

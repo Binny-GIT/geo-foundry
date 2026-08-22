@@ -15,7 +15,7 @@ export const siteBTheme = Object.freeze({
       createElement("header", { "data-site-b-header": payload.pageId }, "Site B Operations Review"),
   },
   tokens: {
-    accentColor: "#f59e0b",
+    accentColor: "#a16207",
     backgroundColor: "#f8fafc",
     borderColor: "#cbd5e1",
     contentWidth: "68rem",

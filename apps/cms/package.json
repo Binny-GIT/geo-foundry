@@ -7,7 +7,7 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "cross-env GEO_FOUNDRY_CMS_CONFIG_MODE=build next build",
+    "build": "cross-env GEO_FOUNDRY_CMS_CONFIG_MODE=build next build --webpack",
     "db:migrate": "node scripts/run-migrations.mjs",
     "db:migrate:create": "node scripts/create-migration.mjs",
     "db:migrate:status": "node scripts/secure-run.mjs payload migrate:status",
@@ -50,6 +50,7 @@
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "esbuild": "0.28.2",
+    "tsx": "4.22.4",
     "typescript": "5.9.3",
     "vitest": "4.1.10"
   }

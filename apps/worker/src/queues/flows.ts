@@ -1,5 +1,5 @@
 import { operationJobIdOf, parseOperationId } from "@geo/domain"
-import type { FlowJob, FlowJobNode, FlowProducer, JobsOptions } from "bullmq"
+import type { FlowJob, FlowProducer, JobsOptions } from "bullmq"
 
 /** Queue namespace shared with the CMS outbox dispatcher. */
 export const QUEUE_PREFIX = "geo-foundry"
@@ -60,45 +60,24 @@ const stageJob = (
 })
 
 /**
- * Staged flow per operation type. Children run before parents in BullMQ, so
- * the root publish gate runs last and any failed child (generation or
- * evaluation) marks the publish gate failed - publication can never observe
- * an incomplete pipeline.
- *
- * generate: publish-gate <- compile-trigger <- generation
- * evaluate: evaluation only (its aggregate gates approval downstream)
+ * Each ledger operation has exactly one terminal worker stage. Editorial
+ * approval is an explicit reviewer action between evaluation and publication;
+ * publication alone performs compile plus publish under its publisher actor.
  */
 export const operationFlowOf = (input: OperationFlowInput): FlowJob => {
   const payload = { payload: input.payload }
-  if (input.operationType === "evaluate") {
-    return stageJob(QUEUE_NAME.evaluation, input.operationId, "evaluation", payload)
+  switch (input.operationType) {
+    case "evaluate":
+      return stageJob(QUEUE_NAME.evaluation, input.operationId, "evaluation", payload)
+    case "generate":
+      return stageJob(QUEUE_NAME.generation, input.operationId, "generation", payload)
+    case "publish":
+      return stageJob(QUEUE_NAME.publish, input.operationId, "publish-gate", payload)
+    case "rollback":
+      return stageJob(QUEUE_NAME.publish, input.operationId, "rollback-gate", payload)
+    default:
+      throw new OperationFlowError(`unsupported operation type ${input.operationType}`)
   }
-  if (input.operationType === "rollback") {
-    return stageJob(QUEUE_NAME.publish, input.operationId, "rollback-gate", {
-      operationType: input.operationType,
-      ...payload,
-    })
-  }
-  if (input.operationType === "generate" || input.operationType === "publish") {
-    const leaf = stageJob(
-      QUEUE_NAME.generation,
-      input.operationId,
-      input.operationType === "generate" ? "generation" : "publish-replay",
-      payload,
-    )
-    const compile: FlowJob = {
-      ...stageJob(QUEUE_NAME.compile, input.operationId, "compile-trigger", payload),
-      children: [leaf] as FlowJobNode[],
-    }
-    return {
-      ...stageJob(QUEUE_NAME.publish, input.operationId, "publish-gate", {
-        operationType: input.operationType,
-        ...payload,
-      }),
-      children: [compile] as FlowJobNode[],
-    }
-  }
-  throw new OperationFlowError(`unsupported operation type ${input.operationType}`)
 }
 
 export const enqueueOperationFlow = async (

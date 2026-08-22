@@ -51,15 +51,31 @@ export const main = async (): Promise<void> => {
   const outboxWorkerProcessor = createOutboxProcessor({ embeddingQueue: outboxQueue, logger })
   void outboxWorkerProcessor
   const producer = new FlowProducer({ connection, prefix: QUEUE_PREFIX })
-  const report = await reconcileNonTerminalOperations(client, producer)
-  logger({
-    code: "worker.reconciled",
-    detail: { enqueued: report.enqueued.length, failures: report.failures.length },
-    jobId: null,
-    queue: QUEUE_NAME.generation,
-  })
+  let reconciling = false
+  const reconcile = async () => {
+    if (reconciling) {
+      return
+    }
+    reconciling = true
+    try {
+      const report = await reconcileNonTerminalOperations(client, producer)
+      logger({
+        code: "worker.reconciled",
+        detail: { enqueued: report.enqueued.length, failures: report.failures.length },
+        jobId: null,
+        queue: QUEUE_NAME.generation,
+      })
+    } finally {
+      reconciling = false
+    }
+  }
+  await reconcile()
   await runtime.start()
+  const reconciliationTimer = setInterval(() => {
+    void reconcile()
+  }, 1_000)
   const shutdown = async () => {
+    clearInterval(reconciliationTimer)
     await runtime.close()
     await producer.close()
     process.exit(0)

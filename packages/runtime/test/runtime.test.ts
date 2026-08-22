@@ -1,27 +1,27 @@
 import {
-  CurrentPointerSchema,
-  currentPointerKey,
-  hashReleaseManifest,
-  hashRoutingManifest,
-  releaseArtifactKey,
-  releaseManifestKey,
-  ReleaseManifestSchema,
-  routeIndexOf,
-  routingManifestKey,
-  RoutingManifestPointerSchema,
-  serializeReleaseManifest,
-  serializeRoutingManifest,
-} from "@geo/schema/release/v1"
-import {
   articleListPageFixture,
   articlePageFixture,
   categoryPageFixture,
   notFoundPageFixture,
+  type PageDocument,
   PageDocumentSchema,
   redirectPageFixture,
-  type PageDocument,
   tagPageFixture,
 } from "@geo/schema"
+import {
+  CurrentPointerSchema,
+  currentPointerKey,
+  hashReleaseManifest,
+  hashRoutingManifest,
+  ReleaseManifestSchema,
+  RoutingManifestPointerSchema,
+  releaseArtifactKey,
+  releaseManifestKey,
+  routeIndexOf,
+  routingManifestKey,
+  serializeReleaseManifest,
+  serializeRoutingManifest,
+} from "@geo/schema/release/v1"
 import { describe, expect, it } from "vitest"
 
 import {
@@ -49,7 +49,11 @@ class MemoryObjectReader implements RuntimeObjectReader {
 
   put(key: string, body: Uint8Array, contentType = "application/json"): void {
     this.#etag += 1
-    this.#objects.set(key, { body: new Uint8Array(body), contentType, etag: `"etag-${this.#etag}"` })
+    this.#objects.set(key, {
+      body: new Uint8Array(body),
+      contentType,
+      etag: `"etag-${this.#etag}"`,
+    })
   }
 
   failOnce(operation: "head" | "read", key: string): void {
@@ -139,13 +143,15 @@ type BuiltSiteRelease = {
 }
 
 const buildSiteRelease = async (input: {
+  readonly articlePath?: string
   readonly canonicalDomain: string
   readonly releaseId: string
   readonly siteId: string
   readonly store: MemoryObjectReader
 }): Promise<BuiltSiteRelease> => {
+  const articlePath = input.articlePath ?? "/article"
   const pages = [
-    documentOf("article", "/article", input.siteId, input.canonicalDomain),
+    documentOf("article", articlePath, input.siteId, input.canonicalDomain),
     documentOf("article-list", "/articles", input.siteId, input.canonicalDomain),
     documentOf("category", "/category", input.siteId, input.canonicalDomain),
     documentOf("tag", "/tag", input.siteId, input.canonicalDomain),
@@ -155,7 +161,12 @@ const buildSiteRelease = async (input: {
   const routes = routeIndexOf({
     canonicalDomain: input.canonicalDomain,
     routes: [
-      { objectKey: objectPathOf("/article"), pageType: "article", pathname: "/article", status: "active" },
+      {
+        objectKey: objectPathOf(articlePath),
+        pageType: "article",
+        pathname: articlePath,
+        status: "active",
+      },
       {
         objectKey: objectPathOf("/articles"),
         pageType: "article-list",
@@ -170,13 +181,18 @@ const buildSiteRelease = async (input: {
       },
       { pathname: "/gone", status: "gone" },
       {
-          objectKey: objectPathOf("/not-found"),
-          pageType: "not-found",
-          pathname: "/not-found",
+        objectKey: objectPathOf("/not-found"),
+        pageType: "not-found",
+        pathname: "/not-found",
 
         status: "not-found",
       },
-      { objectKey: objectPathOf("/old"), pageType: "redirect", pathname: "/old", status: "redirect" },
+      {
+        objectKey: objectPathOf("/old"),
+        pageType: "redirect",
+        pathname: "/old",
+        status: "redirect",
+      },
       { objectKey: objectPathOf("/tag"), pageType: "tag", pathname: "/tag", status: "active" },
     ],
     schemaVersion: 1,
@@ -190,7 +206,9 @@ const buildSiteRelease = async (input: {
     })),
     { body: jsonBody(routes), contentType: "application/json", path: "routes.json" },
     {
-      body: encoder.encode(`<urlset data-site="${input.siteId}" data-release="${input.releaseId}"/>`),
+      body: encoder.encode(
+        `<urlset data-site="${input.siteId}" data-release="${input.releaseId}"/>`,
+      ),
       contentType: "application/xml",
       path: "sitemap.xml",
     },
@@ -218,7 +236,10 @@ const buildSiteRelease = async (input: {
       artifact.contentType,
     )
   }
-  input.store.put(releaseManifestKey(manifest.siteId, manifest.releaseId), serializeReleaseManifest(manifest))
+  input.store.put(
+    releaseManifestKey(manifest.siteId, manifest.releaseId),
+    serializeReleaseManifest(manifest),
+  )
   const pointer = CurrentPointerSchema.parse({
     actor: { actorId: "runtime-fixture", kind: "service" },
     manifestSha256: await hashReleaseManifest(manifest),
@@ -285,25 +306,35 @@ describe("runtime resolution", () => {
     const world = await worldOf()
     const runtime = createRuntime({ store: world.store })
 
-    await expect(runtime.resolve({ hostname: "SITE-A.TEST:443", pathname: "/article" })).resolves.toMatchObject({
+    await expect(
+      runtime.resolve({ hostname: "SITE-A.TEST:443", pathname: "/article" }),
+    ).resolves.toMatchObject({
       kind: "page",
       siteId: "site-a",
       status: 200,
     })
-    await expect(runtime.resolve({ hostname: "www.site-a.test", pathname: "/articles" })).resolves.toMatchObject({
+    await expect(
+      runtime.resolve({ hostname: "www.site-a.test", pathname: "/articles" }),
+    ).resolves.toMatchObject({
       document: { pageType: "article-list" },
       kind: "page",
       siteId: "site-a",
     })
-    await expect(runtime.resolve({ hostname: "site-a.test", pathname: "/category" })).resolves.toMatchObject({
+    await expect(
+      runtime.resolve({ hostname: "site-a.test", pathname: "/category" }),
+    ).resolves.toMatchObject({
       document: { pageType: "category" },
       kind: "page",
     })
-    await expect(runtime.resolve({ hostname: "site-a.test", pathname: "/tag" })).resolves.toMatchObject({
+    await expect(
+      runtime.resolve({ hostname: "site-a.test", pathname: "/tag" }),
+    ).resolves.toMatchObject({
       document: { pageType: "tag" },
       kind: "page",
     })
-    await expect(runtime.resolve({ hostname: "site-a.test", pathname: "/old" })).resolves.toMatchObject({
+    await expect(
+      runtime.resolve({ hostname: "site-a.test", pathname: "/old" }),
+    ).resolves.toMatchObject({
       kind: "redirect",
       status: 301,
       targetUrl: "https://site-a.test/guides/article",
@@ -314,17 +345,25 @@ describe("runtime resolution", () => {
       siteId: "site-a",
       status: 410,
     })
-    expect(world.store.reads(`sites/site-a/releases/${world.aV1.releaseId}/pages/gone.json`)).toBe(0)
-    await expect(runtime.resolve({ hostname: "site-a.test", pathname: "/does-not-exist" })).resolves.toMatchObject({
+    expect(world.store.reads(`sites/site-a/releases/${world.aV1.releaseId}/pages/gone.json`)).toBe(
+      0,
+    )
+    await expect(
+      runtime.resolve({ hostname: "site-a.test", pathname: "/does-not-exist" }),
+    ).resolves.toMatchObject({
       document: { pageType: "not-found" },
       kind: "not-found",
       status: 404,
     })
-    await expect(runtime.resolve({ hostname: "unknown.test", pathname: "/article" })).resolves.toEqual({
+    await expect(
+      runtime.resolve({ hostname: "unknown.test", pathname: "/article" }),
+    ).resolves.toEqual({
       kind: "unknown-host",
       status: 404,
     })
-    await expect(runtime.resolve({ hostname: "site-b.test", pathname: "/article" })).resolves.toMatchObject({
+    await expect(
+      runtime.resolve({ hostname: "site-b.test", pathname: "/article" }),
+    ).resolves.toMatchObject({
       kind: "page",
       siteId: "site-b",
     })
@@ -380,26 +419,34 @@ describe("runtime resolution", () => {
     world.store.put(pageKey, encoder.encode("{}"))
     const runtime = createRuntime({ store: world.store })
 
-    await expect(runtime.resolve({ hostname: "site-a.test", pathname: "/article" })).resolves.toEqual({
+    await expect(
+      runtime.resolve({ hostname: "site-a.test", pathname: "/article" }),
+    ).resolves.toEqual({
       code: RUNTIME_UNAVAILABLE_CODE.ARTIFACT_INVALID,
       kind: "unavailable",
       status: 503,
     })
 
     world.store.put(pageKey, original.body)
-    await expect(runtime.resolve({ hostname: "site-a.test", pathname: "/article" })).resolves.toMatchObject({
+    await expect(
+      runtime.resolve({ hostname: "site-a.test", pathname: "/article" }),
+    ).resolves.toMatchObject({
       kind: "page",
       status: 200,
     })
 
     world.store.failOnce("read", "routing/channels/current.json")
     const unstableRuntime = createRuntime({ store: world.store })
-    await expect(unstableRuntime.resolve({ hostname: "site-a.test", pathname: "/article" })).resolves.toEqual({
+    await expect(
+      unstableRuntime.resolve({ hostname: "site-a.test", pathname: "/article" }),
+    ).resolves.toEqual({
       code: RUNTIME_UNAVAILABLE_CODE.STORAGE_UNAVAILABLE,
       kind: "unavailable",
       status: 503,
     })
-    await expect(unstableRuntime.resolve({ hostname: "site-a.test", pathname: "/article" })).resolves.toMatchObject({
+    await expect(
+      unstableRuntime.resolve({ hostname: "site-a.test", pathname: "/article" }),
+    ).resolves.toMatchObject({
       kind: "page",
       status: 200,
     })
@@ -408,7 +455,9 @@ describe("runtime resolution", () => {
   it("invalidates routing and selected-site state when their pointer ETags change", async () => {
     const world = await worldOf()
     const runtime = createRuntime({ store: world.store })
-    await expect(runtime.resolve({ hostname: "www.site-a.test", pathname: "/article" })).resolves.toMatchObject({
+    await expect(
+      runtime.resolve({ hostname: "www.site-a.test", pathname: "/article" }),
+    ).resolves.toMatchObject({
       siteId: "site-a",
     })
 
@@ -417,7 +466,9 @@ describe("runtime resolution", () => {
       { canonical: true, host: "site-b.test", siteId: "site-b" },
       { canonical: false, host: "www.site-a.test", siteId: "site-b" },
     ])
-    await expect(runtime.resolve({ hostname: "www.site-a.test", pathname: "/article" })).resolves.toMatchObject({
+    await expect(
+      runtime.resolve({ hostname: "www.site-a.test", pathname: "/article" }),
+    ).resolves.toMatchObject({
       siteId: "site-b",
     })
 
@@ -428,9 +479,49 @@ describe("runtime resolution", () => {
       store: world.store,
     })
     world.store.put(aV2.pointerKey, aV2.pointerBody)
-    await expect(runtime.resolve({ hostname: "site-a.test", pathname: "/does-not-exist" })).resolves.toMatchObject({
+    await expect(
+      runtime.resolve({ hostname: "site-a.test", pathname: "/does-not-exist" }),
+    ).resolves.toMatchObject({
       kind: "not-found",
       releaseId: "release-a-v2",
+    })
+  })
+
+  it("does not retain a stale not-found response after a site pointer publishes that pathname", async () => {
+    const world = await worldOf()
+    const runtime = createRuntime({ store: world.store })
+
+    await expect(
+      runtime.resolve({ hostname: "site-a.test", pathname: "/newly-published" }),
+    ).resolves.toMatchObject({
+      kind: "not-found",
+      releaseId: "release-a-v1",
+      status: 404,
+    })
+
+    const aV2 = await buildSiteRelease({
+      articlePath: "/newly-published",
+      canonicalDomain: "site-a.test",
+      releaseId: "release-a-v2",
+      siteId: "site-a",
+      store: world.store,
+    })
+    world.store.put(aV2.pointerKey, aV2.pointerBody)
+
+    await expect(
+      runtime.resolve({ hostname: "site-a.test", pathname: "/newly-published" }),
+    ).resolves.toMatchObject({
+      kind: "page",
+      releaseId: "release-a-v2",
+      status: 200,
+    })
+    await expect(
+      runtime.resolve({ hostname: "site-b.test", pathname: "/article" }),
+    ).resolves.toMatchObject({
+      kind: "page",
+      releaseId: "release-b-v1",
+      siteId: "site-b",
+      status: 200,
     })
   })
 
@@ -461,7 +552,9 @@ describe("runtime resolution", () => {
     const world = await worldOf()
     const runtime = createRuntime({ store: world.store })
 
-    await expect(runtime.resolve({ hostname: "site-a.test", pathname: "/article?x=1" })).resolves.toEqual({
+    await expect(
+      runtime.resolve({ hostname: "site-a.test", pathname: "/article?x=1" }),
+    ).resolves.toEqual({
       code: RUNTIME_UNAVAILABLE_CODE.REQUEST_INVALID,
       kind: "unavailable",
       status: 503,
@@ -469,7 +562,9 @@ describe("runtime resolution", () => {
 
     world.store.put(routingManifestKey("routing-v1" as never), encoder.encode('{"hosts":[]}'))
     const invalidRuntime = createRuntime({ store: world.store })
-    await expect(invalidRuntime.resolve({ hostname: "site-a.test", pathname: "/article" })).resolves.toEqual({
+    await expect(
+      invalidRuntime.resolve({ hostname: "site-a.test", pathname: "/article" }),
+    ).resolves.toEqual({
       code: RUNTIME_UNAVAILABLE_CODE.ROUTING_INVALID,
       kind: "unavailable",
       status: 503,

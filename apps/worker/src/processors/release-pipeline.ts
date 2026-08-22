@@ -3,7 +3,7 @@ import { mkdtemp } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
-import { compileSite, type CompileRequest } from "@geo/compiler"
+import { CompilerError, compileSite, type CompileRequest } from "@geo/compiler"
 import {
   buildReleaseDirectory,
   createS3ArtifactStore,
@@ -117,11 +117,19 @@ export const compileAndPlanRelease = async (
     )
   }
   const snapshot = await context.client.getCompileSnapshot(edition.siteId)
-  const compileOutput = await compileSite({
-    ...(snapshot as unknown as Omit<CompileRequest, "clock" | "compilerVersion">),
-    clock: { now: edition.modifiedAt },
-    compilerVersion: COMPILER_VERSION,
-  })
+  let compileOutput: Awaited<ReturnType<typeof compileSite>>
+  try {
+    compileOutput = await compileSite({
+      ...(snapshot as unknown as Omit<CompileRequest, "clock" | "compilerVersion">),
+      clock: { now: edition.modifiedAt },
+      compilerVersion: COMPILER_VERSION,
+    })
+  } catch (error) {
+    if (error instanceof CompilerError) {
+      throw new TerminalJobError(error.code, error.message)
+    }
+    throw error
+  }
   const releaseId = releaseIdOf(input.operationId)
   const siteKey = `site-${edition.siteId}`
   const routingManifest = {
@@ -178,6 +186,5 @@ export const publishPlannedRelease = async (
     operationId: input.operationId,
     receipt: result.receipt,
   })
-  await context.client.requestPublish(input.editionId, { reason: input.planned.releaseId })
   return result.receipt
 }

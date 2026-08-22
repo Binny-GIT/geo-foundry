@@ -23,24 +23,56 @@
     }
   ],
   "users": {
-    "superAdmin": { "email": "mvp-boot@geo-foundry.test", "password": "mvp-bootstrap-260821", "role": "editor" },
+    "superAdmin": { "email": "mvp-boot@geo-foundry.test", "role": "super-admin" },
     "roles": [
-      { "key": "editor", "email": "mvp-editor@geo-foundry.test", "password": "mvp-editor-260821", "role": "editor" },
-      { "key": "reviewer", "email": "mvp-reviewer@geo-foundry.test", "password": "mvp-reviewer-260821", "role": "reviewer" },
-      { "key": "publisher", "email": "mvp-publisher@geo-foundry.test", "password": "mvp-publisher-260821", "role": "publisher" }
+      {
+        "key": "tenantAdmin",
+        "email": "mvp-tenant-admin@geo-foundry.test",
+        "role": "tenant-admin"
+      },
+      { "key": "editor", "email": "mvp-editor@geo-foundry.test", "role": "editor" },
+      { "key": "reviewer", "email": "mvp-reviewer@geo-foundry.test", "role": "reviewer" },
+      { "key": "publisher", "email": "mvp-publisher@geo-foundry.test", "role": "publisher" },
+      {
+        "key": "contentService",
+        "email": "mvp-content-service@geo-foundry.test",
+        "role": "content-service"
+      }
     ]
   },
   "content": {
     "topic": "Geo Foundry dual-site release workflow",
     "intent": "Explain how two sites share one content source and publish immutable releases independently",
     "researchBundle": [
-      { "id": "src-prd", "title": "Product requirements", "snippet": "Two sites share one content source and publish immutable releases.", "url": "https://site-a.test/sources/prd" },
-      { "id": "src-arch", "title": "Serving plane architecture", "snippet": "Runtime resolves published artifacts from object storage without the control plane.", "url": "https://site-a.test/sources/arch" }
+      {
+        "id": "src-prd",
+        "title": "Product requirements",
+        "snippet": "Two sites share one content source and publish immutable releases.",
+        "url": "https://site-a.test/sources/prd"
+      },
+      {
+        "id": "src-arch",
+        "title": "Serving plane architecture",
+        "snippet": "Runtime resolves published artifacts from object storage without the control plane.",
+        "url": "https://site-a.test/sources/arch"
+      }
     ]
   },
   "editions": [
-    { "key": "edition-a", "siteKey": "site-a", "angle": "Engineering deep-dive", "pathname": "/articles/mvp-dual-site", "strategy": "technical-editorial" },
-    { "key": "edition-b", "siteKey": "site-b", "angle": "Operational readiness report", "pathname": "/articles/mvp-operations", "strategy": "operations-business" }
+    {
+      "key": "edition-a",
+      "siteKey": "site-a",
+      "angle": "Engineering deep-dive",
+      "pathname": "/articles/mvp-dual-site",
+      "strategy": "technical-editorial"
+    },
+    {
+      "key": "edition-b",
+      "siteKey": "site-b",
+      "angle": "Operational readiness report",
+      "pathname": "/articles/mvp-operations",
+      "strategy": "operations-business"
+    }
   ],
   "quality": {
     "failingThresholds": { "overallMin": 99, "dimensionMin": 99 },
@@ -48,9 +80,12 @@
   },
   "idempotencyKeys": {
     "generate": "mvp.generate.v1",
+    "generateRevisionA": "mvp.generate.a.revision.v1",
+    "generateV2A": "mvp.generate.a.v2.v1",
     "evaluateFailA": "mvp.evaluate.a.fail.v1",
     "evaluateB": "mvp.evaluate.b.v1",
     "evaluatePassA": "mvp.evaluate.a.pass.v1",
+    "evaluateV2A": "mvp.evaluate.a.v2.v1",
     "publishV1A": "mvp.publish.a.v1.v1",
     "publishV1B": "mvp.publish.b.v1.v1",
     "publishV2A": "mvp.publish.a.v2.v1",

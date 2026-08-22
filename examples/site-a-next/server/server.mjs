@@ -6,7 +6,7 @@ import next from "next"
 import { createRuntime } from "@geo/runtime"
 
 import { siteAEnvironmentOf } from "./environment.mjs"
-import { pageHtml, redirectHtml, statusHtml } from "./response.mjs"
+import { pageHtml, statusHtml } from "./response.mjs"
 import { createSiteAObjectReader } from "./s3-reader.mjs"
 
 const environment = siteAEnvironmentOf()
@@ -31,7 +31,7 @@ const respondPage = (response, result) => {
       send(response, result.status, pageHtml(result.document), releaseHeader)
       return
     case "redirect":
-      send(response, result.status, redirectHtml(result.targetUrl), {
+      send(response, result.status, pageHtml(result.document), {
         ...releaseHeader,
         Location: result.targetUrl,
       })

@@ -30,19 +30,28 @@ describe("operation flows", () => {
     expect(() => operationStageJobId("", "generation")).toThrow()
   })
 
-  it("builds publish-rooted flows for generate operations", () => {
+  it("builds one terminal generation job for generate operations", () => {
     const flow = operationFlowOf({
       operationId: "11111111-2222-3333-4444-555555555555",
       operationType: "generate",
       payload: { body: {} },
     })
+    expect(flow.name).toBe("generation")
+    expect(flow.queueName).toBe("content-generation")
+    expect(flow.children).toBeUndefined()
+    expect(flow.opts?.jobId).toBe("op-11111111-2222-3333-4444-555555555555-generation")
+  })
+
+  it("builds one terminal publish job for publish operations", () => {
+    const flow = operationFlowOf({
+      operationId: "11111111-2222-3333-4444-555555555555",
+      operationType: "publish",
+      payload: { body: { editionId: 12 } },
+    })
     expect(flow.name).toBe("publish-gate")
     expect(flow.queueName).toBe("content-publish")
-    const compile = flow.children?.[0]
-    expect(compile?.name).toBe("compile-trigger")
-    expect(compile?.children?.[0]?.name).toBe("generation")
-    expect(compile?.children?.[0]?.queueName).toBe("content-generation")
-    expect(flow.opts?.jobId).toBe("op-11111111-2222-3333-4444-555555555555-publish-gate")
+    expect(flow.data).toMatchObject({ payload: { body: { editionId: 12 } } })
+    expect(flow.children).toBeUndefined()
   })
 
   it("builds a single evaluation job for evaluate operations", () => {

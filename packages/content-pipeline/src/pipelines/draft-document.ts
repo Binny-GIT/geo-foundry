@@ -36,7 +36,12 @@ const blockOf = (raw: unknown, index: number): ContentBlock | null => {
     return null
   }
   const mapped: Record<string, unknown> = { ...candidate, type }
+  delete mapped["blockName"]
   delete mapped["blockType"]
+  delete mapped["id"]
+  if (mapped["extensions"] === null) {
+    delete mapped["extensions"]
+  }
   if (typeof candidate["level"] === "string") {
     mapped["level"] = Number(candidate["level"])
   }
@@ -49,9 +54,7 @@ const blockOf = (raw: unknown, index: number): ContentBlock | null => {
   if (typeof candidate["style"] === "string" && candidate["style"] === "ordered") {
     mapped["style"] = "ordered"
   }
-  if (typeof candidate["id"] !== "string" || candidate["id"].length === 0) {
-    mapped["id"] = `generated-block-${index}`
-  }
+  mapped["id"] = `generated-block-${index}`
   return mapped as unknown as ContentBlock
 }
 
@@ -71,6 +74,7 @@ export const draftDocumentOf = (input: DraftDocumentInput): ArticlePage => {
   const now = new Date(0).toISOString()
   const slug = input.siteId.toLowerCase().replace(/[^a-z0-9]+/g, "-")
   const siteId = slug.replace(/^-+|-+$/g, "") || "site"
+  const canonicalUrl = `https://draft.invalid${input.pathname}`
   return ArticlePageSchema.parse({
     body,
     pageType: "article",
@@ -87,11 +91,18 @@ export const draftDocumentOf = (input: DraftDocumentInput): ArticlePage => {
       title: input.title,
     },
     route: {
-      canonicalUrl: `https://draft.invalid${input.pathname}`,
+      canonicalUrl,
       locale: "en-US",
       pathname: input.pathname,
     },
     schemaVersion: 1,
+    structuredData: [
+      {
+        headline: input.title,
+        type: "Article",
+        url: canonicalUrl,
+      },
+    ],
     seo: {
       description: input.summary,
       openGraph: { description: input.summary, title: input.title, type: "website" },

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 
-import type { EditionInput, OperationSnapshot } from "@geo/content-client"
+import type { EditionInput } from "@geo/content-client"
 
 import { createFakeProvider } from "../../src/providers/fake.js"
 import { ProviderError } from "../../src/providers/errors.js"
@@ -26,30 +26,10 @@ const editionInput = (inputHash: string): EditionInput => ({
   workflowStatus: "draft",
 })
 
-const operationSnapshot = (stage: string): OperationSnapshot => ({
-  attempt: 1,
-  requestPayload: {},
-  currentStage: stage,
-  endpoint: "/v1/generate",
-  error: null,
-  operationId: "op-0001-abcd",
-  operationType: "generate",
-  result: null,
-  state: "running",
-  tenantId: 7,
-})
-
 const depsWith = (edition: EditionInput) => {
-  const stages: { stage: string; outcome?: string }[] = []
   const drafts: { body: unknown[]; title: string }[] = []
   const assessments: { state: string; issues: { code: string; severity: string }[] }[] = []
   const client = {
-    completeOperationStage: vi.fn(
-      async (_id: string, request: { stage: string; outcome: string }) => {
-        stages.push({ outcome: request.outcome, stage: request.stage })
-        return operationSnapshot(request.stage)
-      },
-    ),
     findSimilarEditions: vi.fn(async () => []),
     getEditionInput: vi.fn(async () => edition),
     recordAssessment: vi.fn(
@@ -61,10 +41,6 @@ const depsWith = (edition: EditionInput) => {
         return { assessmentId: 41 + assessments.length }
       },
     ),
-    startOperationStage: vi.fn(async (_id: string, request: { stage: string }) => {
-      stages.push({ stage: request.stage })
-      return operationSnapshot(request.stage)
-    }),
     storeEmbedding: vi.fn(async () => ({ created: true, embeddingId: 1, embeddingKey: "k" })),
     writeDraftVersion: vi.fn(
       async (_editionId: number, patch: { body: unknown[]; title: string }) => {
@@ -78,7 +54,7 @@ const depsWith = (edition: EditionInput) => {
       },
     ),
   }
-  return { assessments, client, drafts, stages }
+  return { assessments, client, drafts }
 }
 
 const documentOf = (edition: EditionInput) =>
@@ -92,6 +68,32 @@ const documentOf = (edition: EditionInput) =>
   })
 
 describe("evaluateEdition", () => {
+  it("normalizes Payload block storage fields before schema validation", () => {
+    const document = draftDocumentOf({
+      body: [
+        {
+          blockName: "heading-1",
+          blockType: "heading",
+          extensions: null,
+          id: "stored-row-id",
+          level: "2",
+          text: "Stored heading",
+        },
+      ],
+      contentId: 12,
+      pathname: "/drafts/101",
+      siteId: "site-a",
+      summary: "Stored body conversion",
+      title: "Stored heading",
+    })
+    expect(document.body[0]).toMatchObject({
+      id: "generated-block-0",
+      level: 2,
+      text: "Stored heading",
+      type: "heading",
+    })
+  })
+
   it("records one aggregate assessment from three clean layers", async () => {
     const edition = editionInput("a".repeat(64))
     const { assessments, client } = depsWith(edition)
@@ -130,17 +132,16 @@ describe("evaluateEdition", () => {
 })
 
 describe("runEvaluationOperation", () => {
-  it("journeys the evaluation stage on the ledger", async () => {
+  it("records evaluation evidence without changing the operation ledger", async () => {
     const edition = editionInput("c".repeat(64))
-    const { client, stages } = depsWith(edition)
+    const { assessments, client } = depsWith(edition)
     const result = await runEvaluationOperation(
       { client, provider: createFakeProvider() },
       { attempt: 1, editionId: 101, operationId: "op-0001-abcd" },
       documentOf,
     )
-    expect(result.operation.currentStage).toBe("evaluation")
-    expect(stages.map((stage) => stage.stage)).toEqual(["evaluation", "evaluation"])
     expect(result.aggregate.decision).toBe("passed")
+    expect(assessments).toHaveLength(1)
   })
 })
 
@@ -171,65 +172,18 @@ describe("runGenerationOperation", () => {
     targets,
   }
 
-  it("generates two angle-specific drafts and passes the gate", async () => {
+  it("generates two angle-specific CMS-compatible drafts without evaluating them", async () => {
     const edition = editionInput("d".repeat(64))
-    const { assessments, client, drafts, stages } = depsWith(edition)
+    const { assessments, client, drafts } = depsWith(edition)
     const result = await runGenerationOperation({ client, provider: createFakeProvider() }, input)
-    expect(result.outcomes).toHaveLength(2)
-    expect(result.outcomes.map((outcome) => outcome.decision)).toEqual(["passed", "passed"])
-    expect(result.outcomes.every((outcome) => !outcome.revised)).toBe(true)
+    expect(result.outcomes).toEqual([{ editionId: 101 }, { editionId: 102 }])
     expect(drafts).toHaveLength(2)
-    expect(stages.map((stage) => stage.stage)).toEqual([
-      "outline-101",
-      "outline-101",
-      "draft-101",
-      "draft-101",
-      "adaptation-101",
-      "adaptation-101",
-      "outline-102",
-      "outline-102",
-      "draft-102",
-      "draft-102",
-      "adaptation-102",
-      "adaptation-102",
-      "generation",
-    ])
-    expect(assessments).toHaveLength(2)
-  })
-
-  it("revises exactly once when the first gate fails", async () => {
-    const edition = editionInput("e".repeat(64))
-    const { client, drafts } = depsWith(edition)
-    let calls = 0
-    const provider = {
-      ...createFakeProvider(),
-      async generate(request: { promptVersion: string }) {
-        if (request.promptVersion === "quality-evaluation-v1") {
-          calls += 1
-          const failing = calls === 1
-          return {
-            content: {
-              dimensions: { geo: 90, originality: 90, quality: 90, seo: 90, siteFit: 90 },
-              issues: [],
-              overall: failing ? 70 : 92,
-              recommendations: [],
-              schemaVersion: 1,
-            } as never,
-            latencyMs: 1,
-            modelId: "fake-chat-v1",
-            providerId: "fake",
-            rawResponseHash: "f".repeat(64),
-          }
-        }
-        const providerInstance = createFakeProvider()
-        return providerInstance.generate(request as never)
-      },
-    }
-    const result = await runGenerationOperation({ client, provider }, input)
-    expect(result.outcomes[0]?.revised).toBe(true)
-    expect(result.outcomes[0]?.decision).toBe("passed")
-    expect(result.outcomes[1]?.revised).toBe(false)
-    expect(drafts).toHaveLength(3)
+    expect(drafts[0]?.body[0]).toEqual({
+      blockType: "heading",
+      level: "2",
+      text: "The Practitioner Playbook for Deterministic Content",
+    })
+    expect(assessments).toHaveLength(0)
   })
 
   it("refuses to generate without an operator research bundle", async () => {

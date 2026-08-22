@@ -1,7 +1,6 @@
 import type {
   ContentServiceClient,
   EditionInput,
-  OperationSnapshot,
   RecordAssessmentRequest,
 } from "@geo/content-client"
 import {
@@ -19,12 +18,7 @@ import type { LLMProvider } from "../providers/types.js"
 export type EvaluationDeps = {
   readonly client: Pick<
     ContentServiceClient,
-    | "completeOperationStage"
-    | "findSimilarEditions"
-    | "getEditionInput"
-    | "recordAssessment"
-    | "startOperationStage"
-    | "storeEmbedding"
+    "findSimilarEditions" | "getEditionInput" | "recordAssessment" | "storeEmbedding"
   >
   readonly provider: LLMProvider
 }
@@ -149,28 +143,13 @@ export const runEvaluationOperation = async (
   deps: EvaluationDeps,
   input: EvaluationOperationInput,
   documentOf: (edition: EditionInput) => ArticlePage,
-): Promise<EditionEvaluation & { operation: OperationSnapshot }> => {
-  await deps.client.startOperationStage(input.operationId, {
-    attempt: input.attempt,
-    stage: "evaluation",
-  })
+): Promise<EditionEvaluation> => {
   const snapshot = await deps.client.getEditionInput(input.editionId)
-  const evaluation = await evaluateEdition(deps, {
+  return evaluateEdition(deps, {
     document: documentOf(snapshot),
     editionId: input.editionId,
     siteAngle: input.siteAngle ?? "default",
     siteName: input.siteName ?? "site",
     ...(input.thresholds === undefined ? {} : { thresholds: input.thresholds }),
   })
-  const operation = await deps.client.completeOperationStage(input.operationId, {
-    attempt: input.attempt,
-    outcome: "succeeded",
-    result: {
-      assessmentId: evaluation.assessmentId,
-      decision: evaluation.aggregate.decision,
-      reasons: [...evaluation.aggregate.gate.reasons],
-    },
-    stage: "evaluation",
-  })
-  return { ...evaluation, operation }
 }

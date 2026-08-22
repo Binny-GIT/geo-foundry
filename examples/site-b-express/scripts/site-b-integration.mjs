@@ -322,6 +322,13 @@ export const runSiteBIntegration = async () => {
       }
       if (item.path === "/old-site-b") {
         assert.equal(response.headers.location, `https://${host}/articles/site-b`)
+        const html = responseText(response)
+        assert.match(html, new RegExp(`https://${host}/old-site-b`))
+        assert.match(
+          html,
+          /name="robots"[^>]*content="noindex,follow"|content="noindex,follow"[^>]*name="robots"/,
+        )
+        assert.equal(html.includes("application/ld+json"), false)
       }
       if (item.host === foreignHost) {
         const html = responseText(response)

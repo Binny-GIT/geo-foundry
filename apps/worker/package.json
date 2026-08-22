@@ -10,6 +10,7 @@
     "build": "tsc --project tsconfig.build.json",
     "dev": "tsc --project tsconfig.build.json --watch",
     "lint": "biome lint --config-path ../../biome.json .",
+    "start": "node dist/main.js",
     "test": "vitest run --configLoader runner test/unit",
     "test:integration": "node scripts/run-integration.mjs",
     "test:e2e": "node --input-type=module --eval \"\"",
@@ -29,6 +30,7 @@
   },
   "devDependencies": {
     "@types/node": "24.13.3",
+    "redis": "5.8.2",
     "typescript": "5.9.3",
     "vitest": "4.1.10"
   }

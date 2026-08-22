@@ -28,6 +28,7 @@ const RenderedGeoPage = (): ReactNode => {
   if (page.kind === "redirect") {
     return (
       <main style={{ color: tokens.foregroundColor, fontFamily: tokens.fontFamily }}>
+        <style>{`a { color: ${tokens.accentColor}; }`}</style>
         <h1>{page.head.metadata.title}</h1>
         <p>
           This page has moved. <a href={page.targetUrl}>Continue to the current page</a>.
@@ -43,7 +44,9 @@ const RenderedGeoPage = (): ReactNode => {
         fontFamily: tokens.fontFamily,
       }}
     >
+      <style>{`a { color: ${tokens.accentColor}; }`}</style>
       <Slot name="page-header" />
+
       <ContentBody page={page} />
       <Slot name="footer" />
     </main>

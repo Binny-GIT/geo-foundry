@@ -64,13 +64,7 @@ export const createGenerationProcessor = (context: ProcessorContext, provider: L
         )
         return {
           kind: "succeeded" as const,
-          result: {
-            outcomes: result.outcomes.map((outcome) => ({
-              decision: outcome.decision,
-              editionId: outcome.editionId,
-              revised: outcome.revised,
-            })),
-          },
+          result: { generatedEditionIds: result.outcomes.map((outcome) => outcome.editionId) },
         }
       },
     },

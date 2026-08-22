@@ -14,13 +14,16 @@ import {
 import { type ProcessorContext, TerminalJobError } from "./types.js"
 
 const editionIdOfJob = (payload: Record<string, unknown> | undefined): number => {
-  const raw = payload?.["editionId"]
+  const raw = payload?.editionId
   const parsed = Number(raw)
   if (!Number.isInteger(parsed) || parsed <= 0) {
     throw new TerminalJobError("RELEASE_PAYLOAD_INVALID", "editionId must be a positive integer")
   }
   return parsed
 }
+
+export const terminalPublishErrorOf = (error: unknown): TerminalJobError | null =>
+  error instanceof StalePointerEtagError ? new TerminalJobError(error.code, error.message) : null
 
 /**
  * Compile and publish trigger stages exist so the flow topology (and the
@@ -35,7 +38,9 @@ export const createCompileTriggerProcessor = (context: ProcessorContext) =>
     {
       stage: "compile-trigger",
       work: async (ctx, job) => {
-        const editionId = editionIdOfJob(job.data.payload as Record<string, unknown> | undefined)
+        const editionId = editionIdOfJob(
+          job.data.payload?.body as Record<string, unknown> | undefined,
+        )
         const planned = await compileAndPlanRelease(context, {
           editionId,
           operationId: job.data.operationId,
@@ -64,7 +69,7 @@ export const createRollbackGateProcessor = (context: ProcessorContext) =>
     {
       stage: "rollback-gate",
       work: async (_ctx, job) => {
-        const parsed = rollbackRequestSchema.safeParse(job.data.payload?.["body"])
+        const parsed = rollbackRequestSchema.safeParse(job.data.payload?.body)
         if (!parsed.success) {
           throw new TerminalJobError("ROLLBACK_PAYLOAD_INVALID", "rollback request body is invalid")
         }
@@ -115,26 +120,42 @@ export const createPublishGateProcessor = (context: ProcessorContext) =>
     {
       stage: "publish-gate",
       work: async (_ctx, job) => {
-        const editionId = editionIdOfJob(job.data.payload as Record<string, unknown> | undefined)
+        const editionId = editionIdOfJob(
+          job.data.payload?.body as Record<string, unknown> | undefined,
+        )
         const planned = await compileAndPlanRelease(context, {
           editionId,
           operationId: job.data.operationId,
         })
+        await context.client.recordCompileResult(editionId, {
+          manifestSha256: planned.manifestSha256,
+          objectCount: planned.objectCount,
+          releaseId: planned.releaseId,
+          totalBytes: planned.plan.manifest.objects.reduce((sum, object) => sum + object.bytes, 0),
+        })
         const store = createWorkerArtifactStore(
           parseWorkerS3Options(process.env, (path) => readFileSync(path, "utf8").trim()),
         )
-        const receipt = await publishPlannedRelease(context, {
-          editionId,
-          operationId: job.data.operationId,
-          planned,
-          store,
-        })
-        return {
-          kind: "succeeded" as const,
-          result: {
-            manifestSha256: receipt.manifestSha256,
-            releaseId: receipt.releaseId,
-          },
+        try {
+          const receipt = await publishPlannedRelease(context, {
+            editionId,
+            operationId: job.data.operationId,
+            planned,
+            store,
+          })
+          return {
+            kind: "succeeded" as const,
+            result: {
+              manifestSha256: receipt.manifestSha256,
+              releaseId: receipt.releaseId,
+            },
+          }
+        } catch (error) {
+          const terminal = terminalPublishErrorOf(error)
+          if (terminal !== null) {
+            throw terminal
+          }
+          throw error
         }
       },
     },
@@ -151,7 +172,7 @@ export const createEmbeddingProcessor = (context: ProcessorContext, provider: LL
     {
       stage: "embedding",
       work: async (ctx, job) => {
-        const editionId = Number(job.data.payload?.["editionId"])
+        const editionId = Number(job.data.payload?.editionId)
         if (!Number.isInteger(editionId) || editionId <= 0) {
           throw new TerminalJobError(
             "EMBEDDING_PAYLOAD_INVALID",

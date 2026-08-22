@@ -1,6 +1,6 @@
+import { type JobsOptions, type Processor, Queue, Worker, type WorkerOptions } from "bullmq"
 import type { ProcessorContext, WorkerLogger } from "../processors/types.js"
-import { QUEUE_NAME, QUEUE_PREFIX, workJobOptions, type WorkQueueName } from "../queues/flows.js"
-import { Queue, Worker, type JobsOptions, type Processor, type WorkerOptions } from "bullmq"
+import { QUEUE_NAME, QUEUE_PREFIX, type WorkQueueName, workJobOptions } from "../queues/flows.js"
 
 /** Concurrency by workload: heavy generation is narrow, triggers are serial. */
 export const QUEUE_CONCURRENCY: Readonly<Record<WorkQueueName, number>> = {
@@ -13,6 +13,11 @@ export const QUEUE_CONCURRENCY: Readonly<Record<WorkQueueName, number>> = {
 
 export type WorkerRuntimeConfig = {
   readonly prefix?: string
+  readonly recovery?: {
+    readonly lockDurationMs?: number
+    readonly maxStalledCount?: number
+    readonly stalledIntervalMs?: number
+  }
   readonly connection: {
     readonly db: number
     readonly host: string
@@ -32,6 +37,23 @@ export type WorkerRuntime = {
   readonly workers: readonly Worker[]
 }
 
+const recoveryOptionsOf = (config: WorkerRuntimeConfig) => {
+  const lockDuration = config.recovery?.lockDurationMs ?? 30_000
+  const maxStalledCount = config.recovery?.maxStalledCount ?? 1
+  const stalledInterval = config.recovery?.stalledIntervalMs ?? 30_000
+  if (
+    !Number.isInteger(lockDuration) ||
+    lockDuration < 1 ||
+    !Number.isInteger(maxStalledCount) ||
+    maxStalledCount < 0 ||
+    !Number.isInteger(stalledInterval) ||
+    stalledInterval < 1
+  ) {
+    throw new Error("WORKER_RECOVERY_OPTIONS_INVALID")
+  }
+  return { lockDuration, maxStalledCount, stalledInterval }
+}
+
 export const workerOptionsOf = (
   queue: WorkQueueName,
   config: WorkerRuntimeConfig,
@@ -40,8 +62,7 @@ export const workerOptionsOf = (
   connection: config.connection,
   concurrency: QUEUE_CONCURRENCY[queue],
   prefix: config.prefix ?? QUEUE_PREFIX,
-  stalledInterval: 30_000,
-  maxStalledCount: 1,
+  ...recoveryOptionsOf(config),
 })
 
 /**

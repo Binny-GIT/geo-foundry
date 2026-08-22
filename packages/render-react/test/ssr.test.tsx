@@ -29,28 +29,37 @@ const streamToString = (page: ReturnType<typeof renderPage>): Promise<string> =>
   })
 
 describe("Geo SSR", () => {
-  it.each(canonicalPageFixtures)("renders the $pageType fixture without JavaScript", async (fixture) => {
-    const page = renderPage(fixture)
-    const stringHtml = renderToString(<GeoPage page={page} />)
-    const streamingHtml = await streamToString(page)
+  it.each(canonicalPageFixtures)(
+    "renders the $pageType fixture without JavaScript",
+    async (fixture) => {
+      const page = renderPage(fixture)
+      const stringHtml = renderToString(<GeoPage page={page} />)
+      const streamingHtml = await streamToString(page)
 
-    expect(stringHtml).toContain(fixture.metadata.title)
-    expect(streamingHtml).toContain(fixture.metadata.title)
-    if (page.kind === "redirect") {
-      expect(stringHtml).toContain(page.targetUrl)
-      expect(stringHtml).not.toContain("application/ld+json")
-      return
-    }
-    expect(stringHtml).toContain("<main")
-    expect(stringHtml).toContain("Breadcrumb")
-    const firstBlock = page.content.blocks[0]
-    expect(firstBlock === undefined || firstBlock.kind !== "paragraph" ? "" : stringHtml).toContain(
-      firstBlock === undefined || firstBlock.kind !== "paragraph" ? "" : firstBlock.text,
-    )
-    if (page.pageType === "article-list" || page.pageType === "category" || page.pageType === "tag") {
-      expect(stringHtml).toContain("Page listing")
-    }
-  })
+      expect(stringHtml).toContain(fixture.metadata.title)
+      expect(streamingHtml).toContain(fixture.metadata.title)
+      if (page.kind === "redirect") {
+        expect(stringHtml).toContain(page.targetUrl)
+        expect(stringHtml).not.toContain("application/ld+json")
+        return
+      }
+      expect(stringHtml).toContain("<main")
+      expect(stringHtml).toContain("Breadcrumb")
+      const firstBlock = page.content.blocks[0]
+      expect(
+        firstBlock === undefined || firstBlock.kind !== "paragraph" ? "" : stringHtml,
+      ).toContain(
+        firstBlock === undefined || firstBlock.kind !== "paragraph" ? "" : firstBlock.text,
+      )
+      if (
+        page.pageType === "article-list" ||
+        page.pageType === "category" ||
+        page.pageType === "tag"
+      ) {
+        expect(stringHtml).toContain("Page listing")
+      }
+    },
+  )
 
   it("renders every semantic content block and stable output", async () => {
     const page = renderPage(canonicalPageFixtures[0])
@@ -91,6 +100,22 @@ describe("Geo SSR", () => {
     expect(json).not.toContain("</script>")
   })
 
+  it("uses the theme accent color for links", () => {
+    const page = renderPage(canonicalPageFixtures[0])
+    const html = renderToString(
+      <GeoPage
+        page={page}
+        theme={{
+          tokens: {
+            accentColor: "#a16207",
+          },
+        }}
+      />,
+    )
+
+    expect(html).toContain("a { color: #a16207; }")
+  })
+
   it("renders fixed slots in their declared order", () => {
     const page = renderPage(canonicalPageFixtures[0])
     const html = renderToString(
@@ -108,9 +133,15 @@ describe("Geo SSR", () => {
       />,
     )
 
-    expect(html.indexOf('data-slot="page-header"')).toBeLessThan(html.indexOf('data-slot="after-hero"'))
-    expect(html.indexOf('data-slot="after-hero"')).toBeLessThan(html.indexOf('data-slot="before-body"'))
-    expect(html.indexOf('data-slot="before-body"')).toBeLessThan(html.indexOf('data-slot="after-body"'))
+    expect(html.indexOf('data-slot="page-header"')).toBeLessThan(
+      html.indexOf('data-slot="after-hero"'),
+    )
+    expect(html.indexOf('data-slot="after-hero"')).toBeLessThan(
+      html.indexOf('data-slot="before-body"'),
+    )
+    expect(html.indexOf('data-slot="before-body"')).toBeLessThan(
+      html.indexOf('data-slot="after-body"'),
+    )
     expect(html.indexOf('data-slot="after-body"')).toBeLessThan(html.indexOf('data-slot="footer"'))
   })
 })

@@ -22,7 +22,10 @@
     "test:integration": "turbo run test:integration",
     "test:integration:fresh": "turbo run test:integration --force --output-logs=full",
     "test:serving-isolation": "pnpm build && pnpm --filter @geo/runtime test:integration",
-    "test:e2e": "turbo run test:e2e",
+    "test:faults:contracts": "node --test tests/faults/contracts.test.mjs && pnpm --filter @geo/domain exec vitest run test/site-host.test.ts && pnpm --filter @geo/compiler exec vitest run test/routes.test.ts test/two-sites.test.ts && pnpm --filter @geo/runtime test && pnpm --filter @geo/publisher exec vitest run test/artifact-store-adversarial.test.ts test/rollback.test.ts && pnpm --filter @geo/content-pipeline test && pnpm --filter @geo/quality-rules test && pnpm --filter @geo/worker test",
+    "test:faults": "turbo run build --filter=@geo/site-a-next --filter=@geo/site-b-express && node tests/faults/run.mjs",
+    "test:e2e": "turbo run build --filter=@geo/site-a-next --filter=@geo/site-b-express && GEO_FOUNDRY_E2E_ENABLED=true pnpm exec playwright test",
+    "test:e2e:update": "turbo run build --filter=@geo/site-a-next --filter=@geo/site-b-express && GEO_FOUNDRY_E2E_ENABLED=true pnpm exec playwright test --update-snapshots",
     "build": "turbo run build",
     "build:fresh": "turbo run build --force --output-logs=full",
     "api:check": "pnpm build && api-extractor run --config packages/schema/api-extractor.json && api-extractor run --config packages/schema/api-extractor.release-v1.json && api-extractor run --config packages/publisher/api-extractor.json && api-extractor run --config packages/publisher/api-extractor.artifact-store.json && api-extractor run --config packages/render-core/api-extractor.json && api-extractor run --config packages/render-react/api-extractor.json",
@@ -37,10 +40,15 @@
     "shared:check": "node scripts/shared-services/secure-run.mjs check",
     "shared:cleanup": "node scripts/shared-services/secure-run.mjs cleanup",
     "evidence:verify": "node scripts/evidence/verify.mjs",
-    "mvp:seed": "cd apps/cms && node scripts/secure-run.mjs node scripts/mvp-seed.mjs"
+    "mvp:seed": "cd apps/cms && node scripts/secure-run.mjs node --import tsx scripts/mvp-seed.mjs",
+    "mvp:run": "node scripts/mvp-scenario.mjs run"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
     "@biomejs/biome": "2.5.8",
+    "@geo/compiler": "workspace:*",
+    "@geo/publisher": "workspace:*",
+    "@geo/schema": "workspace:*",
     "@microsoft/api-extractor": "7.58.12",
     "@playwright/test": "1.62.1",
     "@types/node": "24.13.3",

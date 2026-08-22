@@ -1,6 +1,7 @@
-# Local agent working state. Approved plans remain trackable.
+# Local agent working state.
 .omo/drafts/
 .omo/evidence/
+.zcode/
 
 # Dependencies and generated outputs
 node_modules/

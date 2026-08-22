@@ -34,7 +34,7 @@ const stableFixtureText = (fixture: unknown): string => JSON.stringify(fixture)
 export const createFakeProvider = (options: Partial<FakeProviderOptions> = {}): LLMProvider => {
   const chatFixtures = options.chatFixtures ?? CHAT_FIXTURES
   const chatModelId = options.chatModelId ?? CHAT_FIXTURE_MODEL_ID
-  const dimension = options.dimension ?? 64
+  const dimension = options.dimension ?? 1536
   const embeddingModelId = options.embeddingModelId ?? EMBEDDING_FIXTURE_MODEL_ID
   const emit = (event: ProviderEvent) => {
     options.onEvent?.(event)
@@ -126,7 +126,7 @@ export const createFakeProvider = (options: Partial<FakeProviderOptions> = {}): 
         dimension,
         modelId: embeddingModelId,
         providerId: FAKE_PROVIDER_ID,
-        vector: deterministicEmbeddingVector(dimension),
+        vector: deterministicEmbeddingVector(dimension, request.input),
       }
     },
   }

@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto"
+
 export const OUTLINE_PROMPT_VERSION = "outline-v1"
 export const DRAFT_PROMPT_VERSION = "draft-v1"
 export const ADAPTATION_PROMPT_VERSION = "adaptation-v1"
@@ -36,7 +38,7 @@ export const adaptationFixture = {
   blocks: [
     { text: "The Practitioner Playbook for Deterministic Content", type: "heading" },
     {
-      text: "Adapted for the site angle: gates run before anything ships.",
+      text: "Deterministic content operations begin with an operator-supplied brief, preserve the sources that constrained the draft, and create a separately reviewable edition for every site. The generation worker records the exact draft input before the quality gate runs, so a later publisher can prove which body, title, and summary were approved. Site adaptation changes the editorial framing without sharing a mutable page between audiences, which keeps release decisions local to the site that will serve them.",
       type: "paragraph",
     },
   ],
@@ -97,5 +99,15 @@ export const EMBEDDING_FIXTURE_MODEL_ID = "fake-embedding-v1"
  * floating-point library calls - so CI vectors are byte-identical across
  * platforms and Node versions.
  */
-export const deterministicEmbeddingVector = (dimension: number): readonly number[] =>
-  Array.from({ length: dimension }, (_, index) => (((index * 37) % 101) - 50) / 127)
+export const deterministicEmbeddingVector = (
+  dimension: number,
+  input = "fixture",
+): readonly number[] =>
+  Array.from({ length: dimension }, (_, index) => {
+    const block = Math.floor(index / 32)
+    const component = index % 32
+    const hash = createHash("sha256")
+      .update(`${input}\n${String(block)}`)
+      .digest()
+    return ((hash[component] ?? 127.5) - 127.5) / 127.5
+  })

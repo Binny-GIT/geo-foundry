@@ -310,6 +310,13 @@ export const runSiteAIntegration = async () => {
       }
       if (item.path === "/old-site-a") {
         assert.equal(response.headers.location, `https://${host}/articles/site-a`)
+        const html = responseText(response)
+        assert.match(html, new RegExp(`https://${host}/old-site-a`))
+        assert.match(
+          html,
+          /name="robots"[^>]*content="noindex,follow"|content="noindex,follow"[^>]*name="robots"/,
+        )
+        assert.equal(html.includes("application/ld+json"), false)
       }
     }
     const sitemap = await requestHost({ host, path: "/sitemap.xml", port: normalHost.port })
