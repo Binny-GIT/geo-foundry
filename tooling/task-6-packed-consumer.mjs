@@ -25,25 +25,28 @@ try {
   const consumerDirectory = join(temporaryRoot, "consumer")
   await Promise.all([mkdir(packageDirectory), mkdir(consumerDirectory)])
 
-  run(
-    "pnpm",
-    ["--filter", "@geo/schema", "pack", "--pack-destination", packageDirectory],
-    repositoryRoot,
-  )
-  run(
-    "pnpm",
-    ["--filter", "@geo/publisher", "pack", "--pack-destination", packageDirectory],
-    repositoryRoot,
-  )
+  for (const packageName of ["@geo/schema", "@geo/compiler", "@geo/publisher"]) {
+    run(
+      "pnpm",
+      ["--filter", packageName, "pack", "--pack-destination", packageDirectory],
+      repositoryRoot,
+    )
+  }
 
   const tarballs = await readdir(packageDirectory)
   const schemaTarball = tarballs.find((name) => name.startsWith("geo-schema-"))
+  const compilerTarball = tarballs.find((name) => name.startsWith("geo-compiler-"))
   const publisherTarball = tarballs.find((name) => name.startsWith("geo-publisher-"))
-  if (schemaTarball === undefined || publisherTarball === undefined) {
-    throw new Error("Expected packed schema and publisher tarballs")
+  if (
+    schemaTarball === undefined ||
+    compilerTarball === undefined ||
+    publisherTarball === undefined
+  ) {
+    throw new Error("Expected packed schema, compiler, and publisher tarballs")
   }
 
   const schemaPackage = `file:${join(packageDirectory, schemaTarball)}`
+  const compilerPackage = `file:${join(packageDirectory, compilerTarball)}`
   const publisherPackage = `file:${join(packageDirectory, publisherTarball)}`
   const packageJson = {
     name: `geo-foundry-task6-${packageManager}-consumer`,
@@ -51,6 +54,7 @@ try {
     private: true,
     type: "module",
     dependencies: {
+      "@geo/compiler": compilerPackage,
       "@geo/publisher": publisherPackage,
       "@geo/schema": schemaPackage,
     },
@@ -63,7 +67,7 @@ try {
   if (packageManager === "pnpm") {
     await writeFile(
       join(consumerDirectory, "pnpm-workspace.yaml"),
-      `packages:\n  - "."\noverrides:\n  "@geo/schema@0.0.0": "${schemaPackage}"\n`,
+      `packages:\n  - "."\noverrides:\n  "@geo/compiler@0.0.0": "${compilerPackage}"\n  "@geo/schema@0.0.0": "${schemaPackage}"\n`,
     )
   }
   await writeFile(
@@ -163,8 +167,8 @@ process.stdout.write(
   )
 
   if (packageManager === "pnpm") {
-    run("pnpm", ["install", "--offline", "--lockfile-only"], consumerDirectory)
-    run("pnpm", ["install", "--offline", "--frozen-lockfile"], consumerDirectory)
+    run("pnpm", ["install", "--lockfile-only"], consumerDirectory)
+    run("pnpm", ["install", "--frozen-lockfile"], consumerDirectory)
   } else {
     run(
       "npm",
