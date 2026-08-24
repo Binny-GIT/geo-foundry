@@ -1,0 +1,15 @@
+/*
+ * Payload's stock AppHeader renders a small account-avatar link
+ * (`.app-header__account`, verified in @payloadcms/ui's compiled
+ * elements/AppHeader/index.js) that only links to /admin/account — no
+ * email, role, or logout. The sidebar footer (NavLinks.tsx) now owns that
+ * identity block (avatar + email + role + sign-out), so this becomes a
+ * genuine duplicate. Hiding it via CSS — rather than replacing the whole
+ * AppHeader through `admin.components.header` — deliberately keeps every
+ * other AppHeader responsibility untouched: the mobile hamburger toggle,
+ * StepNav breadcrumbs, and per-view action buttons all still render exactly
+ * as Payload ships them.
+ */
+.app-header__account {
+  display: none;
+}
