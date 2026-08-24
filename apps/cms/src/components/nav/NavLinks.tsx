@@ -48,14 +48,18 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
         // split — collapsing them onto one element is what broke the footer
         // pinning the first time).
         //
-        // top-14/h-[calc(100vh-3.5rem)] (not top-0/h-screen): the custom
+        // top-[56px]/h-[calc(100vh-56px)] (not top-0/h-screen): the custom
         // Header (components/header/) renders *above* the whole template
         // grid as a full-width global bar, not inside the content column
         // where Payload's own AppHeader lived — confirmed by inspecting the
         // live DOM, not assumed. Without this offset the sidebar's h-screen
         // overflows the viewport by exactly the header's height and clips
-        // the account footer off-screen.
-        "gf-sidebar sticky top-14 h-[calc(100vh-3.5rem)] w-[var(--nav-width)] shrink-0 overflow-hidden opacity-0",
+        // the account footer off-screen. 56px matches the header's h-14
+        // (Payload's admin root is 13px, not the usual 16px, so admin-
+        // tailwind.css rescales `--spacing` to compensate — h-14 already
+        // resolves to a real 56px, but a literal `3.5rem` here would not
+        // go through that rescale and would compute short by ~10px).
+        "gf-sidebar sticky top-[56px] h-[calc(100vh-56px)] w-[var(--nav-width)] shrink-0 overflow-hidden opacity-0",
         navOpen && "opacity-100",
         shouldAnimate && "transition-opacity duration-150 ease-in-out",
         hydrated && "gf-sidebar--hydrated",
