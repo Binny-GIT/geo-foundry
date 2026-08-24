@@ -14,7 +14,6 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 
-import { GeoIcon } from "../branding/GeoIcon"
 import { LogOutIcon, NAV_ICON_BY_SLUG } from "../icons"
 
 type NavLinksProps = {
@@ -67,13 +66,6 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
       inert={!navOpen}
     >
       <div className="flex h-full flex-col bg-gfs-ink-900 text-white">
-        <div className="flex items-center gap-2.5 px-5 pt-6 pb-5">
-          <GeoIcon size={26} />
-          <span className="text-base font-bold tracking-tight">Geo Foundry</span>
-        </div>
-
-        <Separator className="mx-5 w-auto bg-white/10" />
-
         <ScrollArea className="min-h-0 flex-1" viewportRef={navRef}>
           <nav className="flex flex-col gap-5 px-3 py-4">
             {groups.map((group) => (
