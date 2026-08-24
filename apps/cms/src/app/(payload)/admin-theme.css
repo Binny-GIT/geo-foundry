@@ -409,9 +409,12 @@ body {
 }
 
 .list-header__title-actions {
+  /* 32px = list view's 20px top gutter + the controls card's 12px inner
+     padding — lands the button on the search row instead of poking above
+     the card. Verified by measuring live geometry after deploy. */
   position: absolute;
   right: var(--gf-space-200);
-  top: var(--gf-space-150);
+  top: 32px;
   z-index: 5;
 }
 
