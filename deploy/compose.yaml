@@ -1,5 +1,14 @@
 # Geo Foundry CMS — base service definition
 # Overlay with compose.verify.yaml or compose.mk-dev.yaml.
+#
+# `name:` is set explicitly because Compose otherwise derives the project
+# name from this file's directory ("deploy") — a name generic enough to
+# collide with an unrelated project's own unnamed "deploy/" compose stack.
+# Such a collision lets that other project's `docker compose down
+# --remove-orphans` treat our container as one of its own orphans and
+# delete it (confirmed root cause of two unexplained outages on 2026-08-24).
+# Pinning a unique name scopes orphan detection to this project only.
+name: geo-foundry-${COMPOSE_ENV:?COMPOSE_ENV is required}
 
 services:
   cms:

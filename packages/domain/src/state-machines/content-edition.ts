@@ -122,7 +122,14 @@ function guardTransition(
         : ok(null)
     case "generating":
     case "review":
-      return ok(null)
+      return actorHasRole(context.actor, "editor")
+        ? ok(null)
+        : err(
+            new TransitionGuardError(
+              DOMAIN_ERROR_CODE.CONTENT_EDITION_EDITOR_REQUIRED,
+              "Editor role is required to prepare an edition for review",
+            ),
+          )
   }
 }
 

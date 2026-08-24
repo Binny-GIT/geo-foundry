@@ -1,13 +1,13 @@
 {
-  "at": "2026-08-19T15:01:16.751Z",
+  "at": "2026-08-22T08:22:26.773Z",
   "base": "https://geo-foundry-mk-dev.aixllent.com",
   "failed": 0,
   "passed": 7,
   "results": [
     {
-      "detail": "final=https://geo-foundry-mk-dev.aixllent.com/admin",
+      "detail": "title=Geo Foundry",
       "id": "1",
-      "name": "GET / follows redirect",
+      "name": "GET / public entry",
       "pass": true
     },
     {
@@ -29,7 +29,7 @@
       "pass": true
     },
     {
-      "detail": "title=Login - Payload; loginFormRendered=false (false = 已知缺陷 admin-blank)",
+      "detail": "title=Login - Payload; login form rendered",
       "id": "3",
       "name": "GET /admin/login",
       "pass": true

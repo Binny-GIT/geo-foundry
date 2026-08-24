@@ -29,7 +29,7 @@ export type ReleaseDoc = {
   readonly tenant: unknown
 }
 
-type SiteDoc = { readonly id: number; readonly tenant: unknown }
+export type SiteDoc = { readonly id: number; readonly tenant: unknown }
 
 type ReleaseStore = {
   create(options: Record<string, unknown>): Promise<unknown>

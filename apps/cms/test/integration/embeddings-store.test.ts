@@ -72,8 +72,11 @@ describe("pgvector embedding store persistence", () => {
       scope: "content",
       vector: queryVector(),
     })
-    expect(foreignTenantCall.status).toBe(403)
-    expect(await errorCodeOf(foreignTenantCall)).toBe("EDITION_WORKFLOW_TENANT_MISMATCH")
+    // Cross-tenant edition access is obfuscated as not-found (workflowErrorToResponse),
+    // matching the same-shape-for-foreign-and-unknown contract asserted in
+    // internal-endpoints.test.ts, so it never confirms a foreign edition exists.
+    expect(foreignTenantCall.status).toBe(404)
+    expect(await errorCodeOf(foreignTenantCall)).toBe("EDITION_WORKFLOW_NOT_FOUND")
     const anonymous = await world.store(world.queryEdition, null, {
       dimension: DIM,
       inputHash: SHA,

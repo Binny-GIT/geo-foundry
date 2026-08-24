@@ -1,6 +1,17 @@
 import type { Block, Field } from "payload"
 
-const extensionsField = (): Field => ({ name: "extensions", type: "json" })
+/**
+ * A vendor-extension escape hatch carried through compilation
+ * (packages/compiler/src/compile/blocks.ts). Almost no editor touches it, so
+ * it stays collapsed by default instead of showing a raw JSON editor on
+ * every single block — the field name and stored shape are unchanged.
+ */
+const extensionsField = (): Field => ({
+  admin: { initCollapsed: true },
+  fields: [{ name: "extensions", type: "json" }],
+  label: "Extensions (advanced)",
+  type: "collapsible",
+})
 
 export const PAGE_DOCUMENT_BLOCKS = [
   {

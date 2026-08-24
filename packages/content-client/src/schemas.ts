@@ -62,6 +62,7 @@ export const consumeRollbackIntentRequestSchema = z
 export const consumeRollbackIntentReceiptSchema = z.object({ consumed: z.literal(true) })
 
 export const recordReleaseReceiptRequestSchema = z.object({
+  editionId: z.number().int().positive().optional(),
   operationId: z.string().regex(/^[A-Za-z0-9._-]{4,128}$/),
   receipt: z.record(z.string(), z.unknown()),
 })
@@ -69,6 +70,7 @@ export const recordReleaseReceiptRequestSchema = z.object({
 export const recordReleaseReceiptSchema = z.object({ recorded: z.literal(true) })
 
 export const editionInputSchema = z.object({
+  compiledRelease: z.string().min(1).nullable(),
   modifiedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/),
   publishedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/),
   body: z.unknown(),

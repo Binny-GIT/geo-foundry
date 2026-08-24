@@ -188,7 +188,7 @@ export interface User {
 export interface Site {
   id: number;
   name: string;
-  tenant: number | Tenant;
+  tenant?: (number | null) | Tenant;
   locale: string;
   timezone: string;
   status: 'active' | 'disabled';
@@ -224,7 +224,7 @@ export interface Domain {
   id: number;
   hostname: string;
   site: number | Site;
-  tenant: number | Tenant;
+  tenant?: (number | null) | Tenant;
   role: 'canonical' | 'alias';
   status: 'active' | 'disabled';
   updatedAt: string;
@@ -238,7 +238,7 @@ export interface Content {
   id: number;
   topic: string;
   intent: string;
-  tenant: number | Tenant;
+  tenant?: (number | null) | Tenant;
   createdBy: 'ai' | 'human' | 'hybrid';
   updatedAt: string;
   createdAt: string;
@@ -251,7 +251,7 @@ export interface ContentEdition {
   id: number;
   content: number | Content;
   site: number | Site;
-  tenant: number | Tenant;
+  tenant?: (number | null) | Tenant;
   angle: string;
   title: string;
   summary: string;
@@ -523,7 +523,7 @@ export interface ContentEdition {
  */
 export interface Media {
   id: number;
-  tenant: number | Tenant;
+  tenant?: (number | null) | Tenant;
   mediaPath?: string | null;
   alt: string;
   caption?: string | null;
@@ -547,7 +547,7 @@ export interface Media {
 export interface UrlRecord {
   id: number;
   site: number | Site;
-  tenant: number | Tenant;
+  tenant?: (number | null) | Tenant;
   content: number | Content;
   locale: string;
   pathname: string;
@@ -577,7 +577,7 @@ export interface QualityAssessment {
   id: number;
   edition: number | ContentEdition;
   site: number | Site;
-  tenant: number | Tenant;
+  tenant?: (number | null) | Tenant;
   state: 'pending' | 'running' | 'passed' | 'failed' | 'error';
   inputHash: string;
   issues:
@@ -615,7 +615,7 @@ export interface Release {
   releaseId: string;
   manifestSha256: string;
   runtimeSiteId: string;
-  tenant: number | Tenant;
+  tenant?: (number | null) | Tenant;
   site: number | Site;
   state: 'building' | 'validated' | 'uploaded' | 'current' | 'superseded' | 'rolled_back' | 'failed';
   revision: number;
@@ -648,7 +648,7 @@ export interface Release {
 export interface RollbackIntent {
   id: number;
   intentId: string;
-  tenant: number | Tenant;
+  tenant?: (number | null) | Tenant;
   site: number | Site;
   runtimeSiteId: string;
   targetReleaseId: string;
@@ -713,7 +713,7 @@ export interface OutboxEvent {
 export interface Operation {
   id: number;
   operationId: string;
-  tenant: number | Tenant;
+  tenant?: (number | null) | Tenant;
   site?: (number | null) | Site;
   operationType: 'generate' | 'evaluate' | 'publish' | 'rollback';
   endpoint: string;

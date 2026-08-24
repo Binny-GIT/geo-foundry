@@ -141,7 +141,7 @@ describe("transition result immutability", () => {
 
     // When
     const result = transitionContentEdition(draft, "generating", {
-      actor: serviceActor,
+      actor: userActor("editor"),
       clock,
       expectedRevision: 1,
       qualityAssessmentState: null,

@@ -27,7 +27,11 @@
   },
   "overrides": [
     {
-      "includes": ["**/vitest*.config.ts", "vitest.workspace.ts", "playwright.config.ts"],
+      "includes": [
+        "**/vitest*.config.ts",
+        "vitest.workspace.ts",
+        "playwright.config.ts"
+      ],
       "linter": {
         "rules": {
           "style": {
@@ -47,7 +51,9 @@
         "apps/cms/src/app/**/page.tsx",
         "src/app/**/page.tsx",
         "apps/cms/src/app/**/not-found.tsx",
-        "src/app/**/not-found.tsx"
+        "src/app/**/not-found.tsx",
+        "apps/cms/postcss.config.mjs",
+        "postcss.config.mjs"
       ],
       "linter": {
         "rules": {
@@ -70,7 +76,8 @@
       "!**/.omo/evidence",
       "!packages/content-client/contracts",
       "!apps/cms/src/payload-types.ts",
-      "!apps/cms/src/app/**/importMap.ts"
+      "!apps/cms/src/app/**/importMap.ts",
+      "!**/admin-tailwind.css"
     ]
   },
   "javascript": {

@@ -7,20 +7,16 @@ import {
   EditionWorkflowError,
   transitionEdition,
 } from "../services/edition-workflow"
+import {
+  OperationsLedgerError,
+  submitEditionPublishOperation,
+} from "../services/operations-ledger"
 
 const bodySchema = z
   .object({
     compiledReleaseId: z.string().min(6).max(128).optional(),
     reason: z.string().min(1).max(500).optional(),
-    target: z.enum([
-      "draft",
-      "generating",
-      "review",
-      "approved",
-      "compiled",
-      "published",
-      "archived",
-    ]),
+    target: z.enum(["draft", "generating", "review", "approved", "archived"]),
   })
   .strict()
 
@@ -36,7 +32,11 @@ const response = (status: number, body: unknown): Response =>
   })
 
 const errorStatusOf = (error: EditionWorkflowError): number =>
-  error.code.endsWith("ACTOR_INVALID") || error.code.endsWith("TENANT_MISMATCH") ? 403 : 409
+  error.code.endsWith("ACTOR_INVALID") ||
+  error.code.endsWith("TENANT_MISMATCH") ||
+  error.code === "EDITION_WORKFLOW_PUBLISHER_REQUIRED"
+    ? 403
+    : 409
 
 export const createDraftFromPublishedEndpoint: Endpoint = {
   handler: async (req) => {
@@ -114,4 +114,42 @@ export const transitionEditionEndpoint: Endpoint = {
   },
   method: "post",
   path: "/editions/:id/workflow-transitions",
+}
+
+/**
+ * Publisher-authorized publish intent. This only records a real, idempotent
+ * ledger operation under the requesting publisher's identity; it never
+ * writes workflow state directly. The worker's reconciliation loop picks up
+ * the operation, compiles/uploads the artifact, and the release registry
+ * advances the edition to published only after a verified receipt.
+ */
+export const submitPublishOperationEndpoint: Endpoint = {
+  handler: async (req) => {
+    const editionId = editionIdOf(req)
+    if (editionId === null) {
+      return response(400, { error: { code: "EDITION_WORKFLOW_ID_INVALID" } })
+    }
+    if (resolveSessionClaims(req.user) === null) {
+      return response(401, { error: { code: "EDITION_WORKFLOW_UNAUTHENTICATED" } })
+    }
+    try {
+      const outcome = await submitEditionPublishOperation(req.payload, {
+        editionId,
+        user: req.user,
+      })
+      return response(outcome.created ? 202 : 200, { editionId, operation: outcome })
+    } catch (error) {
+      if (error instanceof EditionWorkflowError) {
+        return response(errorStatusOf(error), { error: { code: error.code } })
+      }
+      if (error instanceof OperationsLedgerError) {
+        return response(error.code === "IDEMPOTENCY_KEY_REUSED" ? 409 : 500, {
+          error: { code: error.code },
+        })
+      }
+      throw error
+    }
+  },
+  method: "post",
+  path: "/editions/:id/publish-operations",
 }

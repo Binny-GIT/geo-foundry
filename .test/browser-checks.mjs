@@ -33,9 +33,9 @@ const context = await browser.newContext({ viewport: { height: 800, width: 1280 
 try {
   await mkdir(ARTIFACTS, { recursive: true })
 
-  // Case 1: root redirects to /admin (also gives the page its site origin)
+  // Case 1: root renders the public entry page.
   const page = await context.newPage()
-  const finalUrl = await withRetry("1", async () => {
+  const rootTitle = await withRetry("1", async () => {
     const response = await page.goto(`${BASE}/`, {
       timeout: TIMEOUT_MS,
       waitUntil: "domcontentloaded",
@@ -43,9 +43,11 @@ try {
     if (response !== null && response.status() >= 400) {
       throw new Error(`root status ${response.status()}`)
     }
-    return page.url()
+    const heading = page.getByRole("heading", { name: "Content operations workspace" })
+    await heading.waitFor({ state: "visible", timeout: TIMEOUT_MS })
+    return page.title()
   })
-  record("1", "GET / follows redirect", finalUrl.includes("/admin"), `final=${finalUrl}`)
+  record("1", "GET / public entry", true, `title=${rootTitle}`)
 
   // Case 4/5: API probes from inside the page (uses the browser network stack)
   for (const [id, path, expect] of [
@@ -77,27 +79,16 @@ try {
   record("2", "GET /admin", true, `title=${adminTitle}`)
   await page.screenshot({ path: `${ARTIFACTS}admin.png` })
 
-  // Case 3: /admin/login reachable; form rendering is a known-defect observation
+  // Case 3: /admin/login must render a usable login form.
   const loginProbe = await withRetry("3", async () => {
     await page.goto(`${BASE}/admin/login`, { timeout: TIMEOUT_MS, waitUntil: "domcontentloaded" })
+    const email = page.locator('input[name="email"], input[type="email"]').first()
+    const password = page.locator('input[name="password"], input[type="password"]').first()
+    await email.waitFor({ state: "visible", timeout: 90_000 })
+    await password.waitFor({ state: "visible", timeout: 90_000 })
     return { title: await page.title() }
   })
-  await page
-    .locator('input[name="email"], input[type="email"]')
-    .first()
-    .waitFor({ state: "visible", timeout: 90_000 })
-    .catch(() => {})
-  const formVisible = await page
-    .locator('input[name="email"], input[type="email"]')
-    .first()
-    .isVisible()
-    .catch(() => false)
-  record(
-    "3",
-    "GET /admin/login",
-    true,
-    `title=${loginProbe.title}; loginFormRendered=${formVisible} (false = 已知缺陷 admin-blank)`,
-  )
+  record("3", "GET /admin/login", true, `title=${loginProbe.title}; login form rendered`)
   await page.screenshot({ path: `${ARTIFACTS}admin-login.png`, fullPage: false })
 
   // Case 6: unknown route 404s

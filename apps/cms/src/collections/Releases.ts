@@ -22,7 +22,18 @@ export const Releases = {
     { name: "manifestSha256", type: "text", required: true },
     { name: "runtimeSiteId", type: "text", required: true, index: true },
     tenantField({ index: true }),
-    { name: "site", type: "relationship", relationTo: "sites", required: true, index: true },
+    {
+      name: "site",
+      type: "relationship",
+      relationTo: "sites",
+      required: true,
+      index: true,
+      admin: {
+        components: {
+          Cell: "/components/fields/SiteCell#SiteCell",
+        },
+      },
+    },
     {
       name: "state",
       type: "select",

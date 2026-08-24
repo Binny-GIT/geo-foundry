@@ -80,7 +80,7 @@ describe("edition workflow gating integration", () => {
     state: "error" | "failed" | "passed",
     issues: readonly { readonly code: string; readonly severity: string }[] = [],
   ): Promise<number> => {
-    const doc = await loadWorkflowEdition(payload, editionId)
+    const doc = await loadWorkflowEdition(payload, editionId, {}, true)
     return recordAssessment(payload, {
       editionId,
       inputHash: currentEditionInputHash(doc),
@@ -111,12 +111,12 @@ describe("edition workflow gating integration", () => {
   }
 
   const auditOf = async (editionId: number): Promise<readonly AuditEntry[]> => {
-    const doc = await loadWorkflowEdition(payload, editionId)
+    const doc = await loadWorkflowEdition(payload, editionId, {}, true)
     return Array.isArray(doc.auditLog) ? (doc.auditLog as AuditEntry[]) : []
   }
 
   const statusOf = async (editionId: number): Promise<unknown> => {
-    const doc = await loadWorkflowEdition(payload, editionId)
+    const doc = await loadWorkflowEdition(payload, editionId, {}, true)
     return doc.workflowStatus
   }
 

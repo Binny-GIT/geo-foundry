@@ -6,6 +6,7 @@ import { CMS_RESOURCE } from "../access/policy"
 export const Tenants = {
   slug: "tenants",
   admin: {
+    defaultColumns: ["name", "updatedAt"],
     group: "Access",
     useAsTitle: "name",
   },

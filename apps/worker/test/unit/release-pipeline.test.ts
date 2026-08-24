@@ -16,7 +16,35 @@ import { describe, expect, it } from "vitest"
 import {
   type PlannedSiteRelease,
   publishPlannedRelease,
+  releaseIdentityFor,
 } from "../../src/processors/release-pipeline.js"
+
+describe("release identity", () => {
+  it("mints a fresh deterministic release id when the edition has no compiled release yet", () => {
+    const releaseId = releaseIdentityFor("op-approve-and-compile", {
+      compiledRelease: null,
+      workflowStatus: "approved",
+    })
+    expect(releaseId).toBe(releaseIdentityFor("op-approve-and-compile", {
+      compiledRelease: null,
+      workflowStatus: "approved",
+    }))
+    expect(releaseId).not.toBe(
+      releaseIdentityFor("op-different-operation", {
+        compiledRelease: null,
+        workflowStatus: "approved",
+      }),
+    )
+  })
+
+  it("reuses the persisted compiled release instead of minting a new one from the publish operation", () => {
+    const releaseId = releaseIdentityFor("op-publish-gate", {
+      compiledRelease: "rel-already-compiled-evidence",
+      workflowStatus: "compiled",
+    })
+    expect(releaseId).toBe("rel-already-compiled-evidence")
+  })
+})
 
 type StoredObject = {
   readonly body: Uint8Array

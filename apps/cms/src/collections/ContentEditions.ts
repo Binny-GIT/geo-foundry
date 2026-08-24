@@ -154,6 +154,7 @@ const ensureTenantConsistency: CollectionBeforeChangeHook = async ({ data, req, 
 export const ContentEditions = {
   slug: "content-editions",
   admin: {
+    defaultColumns: ["title", "workflowStatus", "site", "creationOrigin", "updatedAt"],
     group: "Content",
     useAsTitle: "title",
   },
@@ -185,6 +186,11 @@ export const ContentEditions = {
       type: "relationship",
       relationTo: "sites",
       required: true,
+      admin: {
+        components: {
+          Cell: "/components/fields/SiteCell#SiteCell",
+        },
+      },
     },
     tenantField(),
     {

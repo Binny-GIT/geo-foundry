@@ -1,19 +1,37 @@
-import type { CollectionConfig } from "payload"
+import { APIError, type CollectionBeforeChangeHook, type CollectionConfig } from "payload"
 
 import { claimsFromRequest, collectionAccess } from "../access/functions"
 import { CMS_ACTION, CMS_RESOURCE, decideAccess } from "../access/policy"
 import { forceRoleFromSession } from "../access/role-field"
 import { CMS_ROLES } from "../access/roles"
+import { validateUserTenantInvariant } from "../access/user-tenant-invariant"
 import { tenantField } from "./shared/tenant-field"
+
+const assertUserTenantInvariant: CollectionBeforeChangeHook = ({ data, originalDoc }) => {
+  const result = validateUserTenantInvariant({
+    existingRole: originalDoc?.["role"],
+    existingTenant: originalDoc?.["tenant"],
+    incomingRole: data["role"],
+    incomingTenant: data["tenant"],
+  })
+  if (result !== true) {
+    throw new APIError("CMS_USER_TENANT_REQUIRED", 400)
+  }
+  return data
+}
 
 export const Users = {
   slug: "users",
   admin: {
+    defaultColumns: ["email", "role", "tenant", "updatedAt"],
     group: "Access",
     useAsTitle: "email",
   },
   auth: {
     useAPIKey: true,
+  },
+  hooks: {
+    beforeChange: [assertUserTenantInvariant],
   },
   access: {
     ...collectionAccess(CMS_RESOURCE.USERS),

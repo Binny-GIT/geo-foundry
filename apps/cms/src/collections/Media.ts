@@ -103,6 +103,7 @@ const withMediaPath = (data: Record<string, unknown>): Record<string, unknown> =
 export const Media = {
   slug: "media",
   admin: {
+    defaultColumns: ["filename", "alt", "mimeType", "filesize", "tenant", "updatedAt"],
     group: "Content",
     useAsTitle: "filename",
   },

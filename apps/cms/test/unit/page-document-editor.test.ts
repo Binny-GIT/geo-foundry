@@ -24,9 +24,15 @@ describe("PageDocument Lexical blocks", () => {
     expect(actual).toEqual(expectedBlocks)
   })
 
-  it("Given the PageDocument block mapping, when fields are inspected, then every block carries extensions", () => {
+  it("Given the PageDocument block mapping, when fields are inspected, then every block carries a collapsed extensions escape hatch", () => {
     const blocksWithoutExtensions = PAGE_DOCUMENT_BLOCKS.filter(
-      (block) => !block.fields.some((field) => "name" in field && field.name === "extensions"),
+      (block) =>
+        !block.fields.some(
+          (field) =>
+            field.type === "collapsible" &&
+            field.admin?.initCollapsed === true &&
+            field.fields.some((nested) => "name" in nested && nested.name === "extensions"),
+        ),
     )
 
     expect(blocksWithoutExtensions).toEqual([])

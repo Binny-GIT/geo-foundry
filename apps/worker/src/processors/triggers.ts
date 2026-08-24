@@ -45,12 +45,19 @@ export const createCompileTriggerProcessor = (context: ProcessorContext) =>
           editionId,
           operationId: job.data.operationId,
         })
-        await ctx.client.recordCompileResult(editionId, {
-          manifestSha256: planned.manifestSha256,
-          objectCount: planned.objectCount,
-          releaseId: planned.releaseId,
-          totalBytes: planned.plan.manifest.objects.reduce((sum, object) => sum + object.bytes, 0),
-        })
+        await ctx.client.recordCompileResult(
+          editionId,
+          {
+            manifestSha256: planned.manifestSha256,
+            objectCount: planned.objectCount,
+            releaseId: planned.releaseId,
+            totalBytes: planned.plan.manifest.objects.reduce(
+              (sum, object) => sum + object.bytes,
+              0,
+            ),
+          },
+          { operationId: job.data.operationId },
+        )
         return {
           kind: "succeeded" as const,
           result: {
@@ -127,12 +134,19 @@ export const createPublishGateProcessor = (context: ProcessorContext) =>
           editionId,
           operationId: job.data.operationId,
         })
-        await context.client.recordCompileResult(editionId, {
-          manifestSha256: planned.manifestSha256,
-          objectCount: planned.objectCount,
-          releaseId: planned.releaseId,
-          totalBytes: planned.plan.manifest.objects.reduce((sum, object) => sum + object.bytes, 0),
-        })
+        await context.client.recordCompileResult(
+          editionId,
+          {
+            manifestSha256: planned.manifestSha256,
+            objectCount: planned.objectCount,
+            releaseId: planned.releaseId,
+            totalBytes: planned.plan.manifest.objects.reduce(
+              (sum, object) => sum + object.bytes,
+              0,
+            ),
+          },
+          { operationId: job.data.operationId },
+        )
         const store = createWorkerArtifactStore(
           parseWorkerS3Options(process.env, (path) => readFileSync(path, "utf8").trim()),
         )

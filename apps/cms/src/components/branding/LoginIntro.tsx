@@ -1,53 +1,13 @@
-import { GeoIcon } from "./GeoIcon"
-
 export const LoginIntro = () => (
-  <div
-    style={{
-      borderBottom: "1px solid var(--theme-elevation-150)",
-      marginBottom: "1.75rem",
-      paddingBottom: "1.5rem",
-    }}
-  >
-    <span
-      style={{
-        alignItems: "center",
-        display: "inline-flex",
-        gap: "0.5rem",
-        marginBottom: "1rem",
-      }}
-    >
-      <GeoIcon size={34} />
-      <span
-        style={{
-          color: "var(--theme-text)",
-          fontFamily: "Arial, sans-serif",
-          fontSize: "1.15rem",
-          fontWeight: 800,
-          letterSpacing: "-0.03em",
-        }}
-      >
-        Geo Foundry
-      </span>
-    </span>
-    <h1
-      style={{
-        color: "var(--theme-text)",
-        fontSize: "1.7rem",
-        letterSpacing: "-0.03em",
-        lineHeight: 1.15,
-        margin: 0,
-      }}
-    >
-      Content operations
+  <div className="mb-7 border-b border-[var(--gf-border)] pb-6">
+    <p className="m-0 mb-1.5 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
+      Geo Foundry
+    </p>
+    <h1 className="m-0 text-[28px] font-semibold leading-[1.15] tracking-tight text-[var(--theme-text)]">
+      内容运营中心
     </h1>
-    <p
-      style={{
-        color: "var(--theme-elevation-600)",
-        lineHeight: 1.5,
-        margin: "0.6rem 0 0",
-      }}
-    >
-      Sign in to manage content editions, quality review, publishing, and delivery.
+    <p className="m-0 mt-2.5 leading-relaxed text-[var(--theme-elevation-600)]">
+      登录以管理内容版本、质量审核、发布与分发。
     </p>
   </div>
 )

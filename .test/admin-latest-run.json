@@ -1,0 +1,116 @@
+{
+  "at": "2026-08-24T00:03:48.732Z",
+  "base": "https://geo-foundry-mk-dev.aixllent.com",
+  "failed": 1,
+  "passed": 17,
+  "results": [
+    {
+      "detail": "title=Geo Foundry",
+      "id": "API-P0-060",
+      "name": "GET / 首页渲染",
+      "pass": true
+    },
+    {
+      "detail": "href=/admin",
+      "id": "API-P1-061",
+      "name": "首页 Open administration 指向 /admin",
+      "pass": true
+    },
+    {
+      "detail": "status=404",
+      "id": "API-P1-062",
+      "name": "未知路径 404",
+      "pass": true
+    },
+    {
+      "detail": "desktop:ok(overflow=0,cta=212x46,workflow=4/true) small-desktop:ok(overflow=0,cta=212x46,workflow=4/true) tablet:ok(overflow=0,cta=212x46,workflow=4/true) mobile:ok(overflow=0,cta=212x46,workflow=4/true)",
+      "id": "API-P2-063",
+      "name": "首页响应式 4 视口",
+      "pass": true
+    },
+    {
+      "detail": "Geo Foundry 品牌 + Email/Password/Forgot/Login 可见",
+      "id": "API-P0-051",
+      "name": "/admin/login 表单渲染 + 无 console error",
+      "pass": true
+    },
+    {
+      "detail": "200 {\"status\":\"alive\"}",
+      "id": "API-P2-031",
+      "name": "GET /api/health 无鉴权可达",
+      "pass": true
+    },
+    {
+      "detail": "title=Dashboard | Geo Foundry; sidebar-collections=12; service-owned-hidden=true; dashboard=true; stock-collections-heading=false",
+      "id": "API-P0-052",
+      "name": "登录成功 → Dashboard + 侧栏 12 集合 + Operations dashboard",
+      "pass": true
+    },
+    {
+      "detail": "body-text=1318; hard-errors=0",
+      "id": "API-P0-050",
+      "name": "Dashboard 客户端挂载",
+      "pass": true
+    },
+    {
+      "detail": "users:DEFECT(rows=10/期望7,err=0) | tenants:DEFECT(rows=3/期望2,err=0) | sites:DEFECT(rows=4/期望3,err=0) | domains:DEFECT(rows=2/期望0,err=0) | contents:DEFECT(rows=8/期望6,err=0) | content-editions:DEFECT(rows=8/期望6,err=0) | media:DEFECT(rows=1/期望0,err=0) | url-records:ok(rows=0/期望0,err=0) | quality-assessments:DEFECT(rows=2/期望0,err=0) | releases:DEFECT(rows=2/期望0,err=0) | rollback-intents:DEFECT(rows=1/期望0,err=0) | operations:DEFECT(rows=3/期望0,err=0)",
+      "id": "API-P1-053",
+      "name": "12 个集合列表页可打开无空白无 console error",
+      "pass": false
+    },
+    {
+      "detail": "title=true; before-table=true; domain-empty=true; release-empty=true; overflow=0",
+      "id": "COL-UI-SITES-WORKSPACE",
+      "name": "Sites workspace 显示真实运营空态且保留标准表格",
+      "pass": true
+    },
+    {
+      "detail": "outbox-events:404-ok | idempotency-records:404-ok",
+      "id": "COL-UI-DENIED",
+      "name": "服务自有集合管理页 by design 404",
+      "pass": true
+    },
+    {
+      "detail": "file-input-exists=true; dropzone-visible=true; form=COLLECTIONS Users Sites Domains Contents Content Editions Media Url Records Quality Assessments Operations / Media / Cre",
+      "id": "API-P2-054",
+      "name": "editor: Media 创建表单上传控件可见",
+      "pass": true
+    },
+    {
+      "detail": "url=/admin/collections/contents/584; body-text=427",
+      "id": "COL-UI-DOC",
+      "name": "contents 文档视图渲染",
+      "pass": true
+    },
+    {
+      "detail": "status=200; rows=1 (期望 1=仅自己); self-row=true",
+      "id": "RBAC-UI-001",
+      "name": "editor 访问 users 列表仅见自己 1 行（self-scope）",
+      "pass": true
+    },
+    {
+      "detail": "tenant-control-hidden=true; tenant-cell-clean=true",
+      "id": "RBAC-UI-004",
+      "name": "editor 租户字段隐藏且列表无 Untitled-ID",
+      "pass": true
+    },
+    {
+      "detail": "permission-copy=true",
+      "id": "RBAC-UI-005",
+      "name": "无 create 权限页显示准确权限提示",
+      "pass": true
+    },
+    {
+      "detail": "rows=2 (期望 2); 含 Embed Site A/B",
+      "id": "RBAC-UI-002",
+      "name": "tenant-admin sites 列表租户隔离（仅本租户 2 站点）",
+      "pass": true
+    },
+    {
+      "detail": "rows=1 (期望 1); 含 Embed Foreign",
+      "id": "RBAC-UI-003",
+      "name": "foreign-admin sites 反向隔离（仅 1 foreign 站点）",
+      "pass": true
+    }
+  ]
+}

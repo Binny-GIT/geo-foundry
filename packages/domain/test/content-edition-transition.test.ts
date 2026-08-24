@@ -31,7 +31,9 @@ function context(
       ? userActor("reviewer")
       : to === "published" || to === "archived"
         ? userActor("publisher")
-        : serviceActor
+        : to === "generating" || to === "review"
+          ? userActor("editor")
+          : serviceActor
   return {
     actor,
     clock,
@@ -71,6 +73,18 @@ describe("transitionContentEdition", () => {
   )
 
   it.each([
+    {
+      actor: userActor("reviewer"),
+      code: "CONTENT_EDITION_EDITOR_REQUIRED",
+      from: "draft",
+      to: "generating",
+    },
+    {
+      actor: userActor("publisher"),
+      code: "CONTENT_EDITION_EDITOR_REQUIRED",
+      from: "generating",
+      to: "review",
+    },
     {
       actor: userActor("editor"),
       code: "CONTENT_EDITION_REVIEWER_REQUIRED",

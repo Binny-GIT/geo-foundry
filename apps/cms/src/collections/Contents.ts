@@ -7,6 +7,7 @@ import { tenantField } from "./shared/tenant-field"
 export const Contents = {
   slug: "contents",
   admin: {
+    defaultColumns: ["topic", "intent", "createdBy", "tenant", "updatedAt"],
     group: "Content",
     useAsTitle: "topic",
   },

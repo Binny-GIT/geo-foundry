@@ -49,6 +49,7 @@ const ensureSiteTenantMatches: CollectionBeforeChangeHook = async ({ data, req }
 export const Domains = {
   slug: "domains",
   admin: {
+    defaultColumns: ["hostname", "status", "role", "site", "tenant", "updatedAt"],
     group: "Sites & Domains",
     useAsTitle: "hostname",
   },

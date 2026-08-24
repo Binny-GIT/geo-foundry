@@ -56,6 +56,10 @@ const permittedCommand = (argumentsList) => {
       action === "--import" &&
       argumentsList[2] === "tsx" &&
       argumentsList[3] === "scripts/mvp-seed.mjs") ||
+    (binary === "node" &&
+      action === "--import" &&
+      argumentsList[2] === "tsx" &&
+      argumentsList[3] === "scripts/admin-ui-fixture.mjs") ||
     (binary === "payload" && (action === "migrate" || action === "migrate:status")) ||
     (binary === "vitest" && action === "run")
   )

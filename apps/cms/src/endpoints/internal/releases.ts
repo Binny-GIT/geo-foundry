@@ -17,6 +17,7 @@ const handleRecordPublishedRelease = withInternalGuards(
   { bodySchema: releaseReceiptBodySchema, operation: "recordPublishedRelease" },
   async (req, ctx, body: ReleaseReceiptBody) => {
     await recordPublishedRelease(req.payload, {
+      ...(body.editionId === undefined ? {} : { editionId: body.editionId }),
       operationId: body.operationId,
       receipt: body.receipt,
       siteId: siteIdOf(req),

@@ -5,6 +5,7 @@ import { multiTenantPlugin } from "@payloadcms/plugin-multi-tenant"
 import { BlocksFeature, lexicalEditor } from "@payloadcms/richtext-lexical"
 import { s3Storage } from "@payloadcms/storage-s3"
 import { enTranslations } from "@payloadcms/translations/languages/en"
+import { zhTranslations } from "@payloadcms/translations/languages/zh"
 import { buildConfig } from "payload"
 
 import { ContentEditions } from "./collections/ContentEditions"
@@ -26,6 +27,7 @@ import { parseCmsEnvironment } from "./config/environment"
 import { PAGE_DOCUMENT_BLOCKS } from "./editor/page-document-blocks"
 import {
   createDraftFromPublishedEndpoint,
+  submitPublishOperationEndpoint,
   transitionEditionEndpoint,
 } from "./endpoints/edition-workflow"
 import { allInternalEndpoints } from "./endpoints/internal/index"
@@ -48,13 +50,17 @@ export default buildConfig({
       titleSuffix: " | Geo Foundry",
     },
     components: {
-      beforeDashboard: ["/components/dashboard/OperationsWorkspace#OperationsWorkspace"],
       beforeLogin: ["/components/branding/LoginIntro#LoginIntro"],
       graphics: {
         Icon: "/components/branding/GeoIcon#GeoIcon",
         Logo: "/components/branding/GeoLogo#GeoLogo",
       },
       Nav: "/components/nav/Nav#Nav",
+      views: {
+        dashboard: {
+          Component: "/components/dashboard/OperationsDashboard#OperationsDashboard",
+        },
+      },
     },
     // 不依赖外部 Gravatar 服务（测试/生产网络不可达，导致管理端页面 console error 与请求超时）
     avatar: "default",
@@ -76,6 +82,7 @@ export default buildConfig({
     IdempotencyRecords,
   ],
   i18n: {
+    fallbackLanguage: "zh",
     translations: {
       en: {
         ...enTranslations,
@@ -85,11 +92,20 @@ export default buildConfig({
           unauthorized: "You do not have permission to perform this action.",
         },
       },
+      zh: {
+        ...zhTranslations,
+        error: {
+          ...zhTranslations.error,
+          notAllowedToAccessPage: "您的账号没有访问此页面的权限。",
+          unauthorized: "您没有权限执行此操作。",
+        },
+      },
     },
   },
   endpoints: [
     createRollbackIntentEndpoint,
     createDraftFromPublishedEndpoint,
+    submitPublishOperationEndpoint,
     transitionEditionEndpoint,
     renameUrlRecordEndpoint,
     ...allInternalEndpoints,

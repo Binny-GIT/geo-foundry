@@ -5,8 +5,14 @@ import {
 } from "@geo/schema/release/v1"
 import type { Payload } from "payload"
 
-import { runOutboxScopedTransaction } from "../outbox/outbox"
-import { requireServiceIdentity } from "./edition-workflow"
+import { runOutboxScopedTransaction, type TransactionScope } from "../outbox/outbox"
+import {
+  loadWorkflowEdition,
+  parseWorkflowStatus,
+  requireServiceIdentity,
+  transitionEditionWithinTransaction,
+} from "./edition-workflow"
+import { loadPublishOperationCreator } from "./operations-ledger"
 import {
   assertReleaseIdentity,
   assertTenant,
@@ -18,15 +24,75 @@ import {
   releaseStoreOf,
   siteOf,
   updateRelease,
+  type SiteDoc,
 } from "./release-registry-support"
 
 export { ReleaseRegistryError } from "./release-registry-support"
 
 export type RecordPublishedReleaseInput = {
+  readonly editionId?: number
   readonly operationId: string
   readonly receipt: unknown
   readonly siteId: number
   readonly user: unknown
+}
+
+/**
+ * Advances an edition from compiled to published inside the same
+ * transaction as the release registry write. The actor is recovered from
+ * the publish operation's own creation record - never the service identity
+ * reporting the receipt - so the domain's publisher-role guard is satisfied
+ * by whoever actually authorized this exact release. Requires an exact
+ * compiled-release match; an already-published edition under the same
+ * release is a no-op replay, anything else fails closed.
+ */
+const advanceEditionToPublished = async (
+  payload: Payload,
+  input: {
+    readonly editionId: number
+    readonly operationId: string
+    readonly receipt: PublishReceipt
+    readonly site: SiteDoc
+  },
+  req: TransactionScope,
+): Promise<void> => {
+  const doc = await loadWorkflowEdition(payload, input.editionId, req, true)
+  if (numberOf(doc.site) !== input.site.id) {
+    throw new ReleaseRegistryError("RELEASE_EDITION_SITE_MISMATCH", String(input.editionId))
+  }
+  const status = parseWorkflowStatus(doc.workflowStatus)
+  const compiledRelease =
+    typeof doc.compiledRelease === "string" && doc.compiledRelease.length > 0
+      ? doc.compiledRelease
+      : null
+  if (status === "published" && compiledRelease === input.receipt.releaseId) {
+    return
+  }
+  if (status !== "compiled" || compiledRelease !== input.receipt.releaseId) {
+    throw new ReleaseRegistryError("RELEASE_EDITION_NOT_COMPILED", String(input.editionId))
+  }
+  const creator = await loadPublishOperationCreator(payload, input.operationId, req)
+  if (
+    creator.operationType !== "publish" ||
+    creator.actor.role !== "publisher" ||
+    String(creator.actor.tenantId) !== String(doc.tenant)
+  ) {
+    throw new ReleaseRegistryError("RELEASE_PUBLISH_AUTHORIZATION_INVALID", input.operationId)
+  }
+  await transitionEditionWithinTransaction(
+    payload,
+    {
+      editionId: input.editionId,
+      operationId: input.operationId,
+      target: "published",
+      user: {
+        id: creator.actor.userId,
+        role: creator.actor.role,
+        tenant: creator.actor.tenantId ?? undefined,
+      },
+    },
+    req,
+  )
 }
 
 const markCurrent = async (
@@ -81,17 +147,24 @@ const markCurrent = async (
         overrideAccess: true,
         req,
       })
-      return
+    } else {
+      assertTenant(claims, existing.tenant)
+      assertReleaseIdentity(existing, receipt)
+      if (existing.state !== "current") {
+        await updateRelease(
+          payload,
+          existing,
+          "current",
+          auditOf("release.reconciled.current", receipt, input.operationId),
+          { operationId: input.operationId, receipt },
+          req,
+        )
+      }
     }
-    assertTenant(claims, existing.tenant)
-    assertReleaseIdentity(existing, receipt)
-    if (existing.state !== "current") {
-      await updateRelease(
+    if (input.editionId !== undefined) {
+      await advanceEditionToPublished(
         payload,
-        existing,
-        "current",
-        auditOf("release.reconciled.current", receipt, input.operationId),
-        { operationId: input.operationId, receipt },
+        { editionId: input.editionId, operationId: input.operationId, receipt, site },
         req,
       )
     }

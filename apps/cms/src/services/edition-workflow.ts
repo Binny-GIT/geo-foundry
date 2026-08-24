@@ -273,117 +273,125 @@ export type TransitionOptions = {
   readonly requestId?: string
 }
 
-export async function transitionEdition(
+const transitionEditionInScope = async (
   payload: Payload,
   options: TransitionOptions,
-): Promise<ContentEditionState> {
+  req: TransactionScope,
+): Promise<ContentEditionState> => {
   const actor = actorOf(options.user)
   if (actor === null) {
     throw fail("EDITION_WORKFLOW_ACTOR_INVALID", "session has no valid user actor")
   }
-  return runOutboxScopedTransaction(payload, async (req) => {
-    const doc = await loadWorkflowEdition(payload, options.editionId, req, true)
-    assertEditionTenantScope(options.user, doc)
-    const aggregate = aggregateOf(doc)
+  const doc = await loadWorkflowEdition(payload, options.editionId, req, true)
+  assertEditionTenantScope(options.user, doc)
+  const aggregate = aggregateOf(doc)
 
-    const needsAssessment = options.target === "approved" || options.target === "compiled"
-    const qualityAssessmentState = needsAssessment
-      ? await verifiedAssessmentState(payload, doc, req)
-      : null
+  const needsAssessment = options.target === "approved" || options.target === "compiled"
+  const qualityAssessmentState = needsAssessment
+    ? await verifiedAssessmentState(payload, doc, req)
+    : null
 
-    if (options.target === "compiled" && stringField(options.compiledReleaseId) === null) {
-      throw fail("EDITION_WORKFLOW_RELEASE_REQUIRED", "compile intent requires artifact metadata")
-    }
-    if (options.target === "published" && stringField(doc.compiledRelease) === null) {
-      throw fail("EDITION_WORKFLOW_NOT_COMPILED", "publish intent requires a compiled release")
-    }
+  if (options.target === "compiled" && stringField(options.compiledReleaseId) === null) {
+    throw fail("EDITION_WORKFLOW_RELEASE_REQUIRED", "compile intent requires artifact metadata")
+  }
+  if (options.target === "published" && stringField(doc.compiledRelease) === null) {
+    throw fail("EDITION_WORKFLOW_NOT_COMPILED", "publish intent requires a compiled release")
+  }
 
-    const transitioned = transitionContentEdition(aggregate, options.target, {
-      actor,
-      clock: systemClock,
-      expectedRevision: aggregate.revision,
-      qualityAssessmentState,
-    })
-    if (!transitioned.ok) {
-      throw new EditionWorkflowError(transitioned.error.code, transitioned.error.message)
-    }
-
-    const serializedActor = serializedActorOf(options.user)
-    if (serializedActor === null) {
-      throw fail("EDITION_WORKFLOW_ACTOR_INVALID", "session has no serializable actor")
-    }
-    const entry: AuditEntry = {
-      action: `content-edition.${aggregate.state}.${options.target}`,
-      actor: serializedActor,
-      at: systemClock.now().value,
-      from: aggregate.state,
-      ...(options.reason === undefined ? {} : { reason: options.reason }),
-      tenantId: numberFieldOf(doc.tenant) ?? -1,
-      to: options.target,
-    }
-    const existingAudit = Array.isArray(doc.auditLog) ? doc.auditLog : []
-    const data = {
-      auditLog: [...existingAudit, entry],
-      ...(options.target === "compiled" ? { compiledRelease: options.compiledReleaseId } : {}),
-      workflowRevision: aggregate.revision + 1,
-      workflowStatus: options.target,
-    }
-    // Published and archived are externally visible terminal states. Persist them
-    // to the live document rather than only the Payload draft version, otherwise
-    // a later archive action appears in the editor but API readers still see published.
-    if (options.target === "published" || options.target === "archived") {
-      const updated = (await payload.update({
-        collection: "content-editions",
-        data,
-        depth: 0,
-        draft: false,
-        id: options.editionId,
-        overrideAccess: true,
-        req,
-      })) as unknown as WorkflowEditionDoc
-      if (
-        parseWorkflowStatus(updated.workflowStatus) !== options.target ||
-        numberFieldOf(updated.workflowRevision) !== aggregate.revision + 1
-      ) {
-        throw fail("EDITION_WORKFLOW_REVISION_CONFLICT", `edition ${options.editionId}`)
-      }
-    } else {
-      const updated = (await payload.update({
-        collection: "content-editions",
-        data,
-        depth: 0,
-        draft: true,
-        id: options.editionId,
-        overrideAccess: true,
-        req,
-      })) as unknown as WorkflowEditionDoc
-      if (numberFieldOf(updated.workflowRevision) !== aggregate.revision + 1) {
-        throw fail("EDITION_WORKFLOW_REVISION_CONFLICT", `edition ${options.editionId}`)
-      }
-    }
-    await appendOutboxEvent(
-      payload,
-      {
-        aggregateId: options.editionId,
-        eventPayload: {
-          from: aggregate.state,
-          to: options.target,
-          workflowRevision: aggregate.revision + 1,
-          ...(options.target === "compiled" && options.compiledReleaseId !== undefined
-            ? { releaseId: options.compiledReleaseId }
-            : {}),
-          ...(options.reason === undefined ? {} : { reason: options.reason }),
-        },
-        tenantId: numberFieldOf(doc.tenant) ?? -1,
-        type: OUTBOX_EVENT.EDITION_TRANSITIONED,
-        ...(options.operationId === undefined ? {} : { operationId: options.operationId }),
-        ...(options.requestId === undefined ? {} : { requestId: options.requestId }),
-      },
-      req,
-    )
-    return options.target
+  const transitioned = transitionContentEdition(aggregate, options.target, {
+    actor,
+    clock: systemClock,
+    expectedRevision: aggregate.revision,
+    qualityAssessmentState,
   })
+  if (!transitioned.ok) {
+    throw new EditionWorkflowError(transitioned.error.code, transitioned.error.message)
+  }
+
+  const serializedActor = serializedActorOf(options.user)
+  if (serializedActor === null) {
+    throw fail("EDITION_WORKFLOW_ACTOR_INVALID", "session has no serializable actor")
+  }
+  const entry: AuditEntry = {
+    action: `content-edition.${aggregate.state}.${options.target}`,
+    actor: serializedActor,
+    at: systemClock.now().value,
+    from: aggregate.state,
+    ...(options.reason === undefined ? {} : { reason: options.reason }),
+    tenantId: numberFieldOf(doc.tenant) ?? -1,
+    to: options.target,
+  }
+  const existingAudit = Array.isArray(doc.auditLog) ? doc.auditLog : []
+  const data = {
+    auditLog: [...existingAudit, entry],
+    ...(options.target === "compiled" ? { compiledRelease: options.compiledReleaseId } : {}),
+    workflowRevision: aggregate.revision + 1,
+    workflowStatus: options.target,
+  }
+  // Published and archived are externally visible terminal states. Persist them
+  // to the live document rather than only the Payload draft version, otherwise
+  // a later archive action appears in the editor but API readers still see published.
+  if (options.target === "published" || options.target === "archived") {
+    const updated = (await payload.update({
+      collection: "content-editions",
+      data,
+      depth: 0,
+      draft: false,
+      id: options.editionId,
+      overrideAccess: true,
+      req,
+    })) as unknown as WorkflowEditionDoc
+    if (
+      parseWorkflowStatus(updated.workflowStatus) !== options.target ||
+      numberFieldOf(updated.workflowRevision) !== aggregate.revision + 1
+    ) {
+      throw fail("EDITION_WORKFLOW_REVISION_CONFLICT", `edition ${options.editionId}`)
+    }
+  } else {
+    const updated = (await payload.update({
+      collection: "content-editions",
+      data,
+      depth: 0,
+      draft: true,
+      id: options.editionId,
+      overrideAccess: true,
+      req,
+    })) as unknown as WorkflowEditionDoc
+    if (numberFieldOf(updated.workflowRevision) !== aggregate.revision + 1) {
+      throw fail("EDITION_WORKFLOW_REVISION_CONFLICT", `edition ${options.editionId}`)
+    }
+  }
+  await appendOutboxEvent(
+    payload,
+    {
+      aggregateId: options.editionId,
+      eventPayload: {
+        from: aggregate.state,
+        to: options.target,
+        workflowRevision: aggregate.revision + 1,
+        ...(options.target === "compiled" && options.compiledReleaseId !== undefined
+          ? { releaseId: options.compiledReleaseId }
+          : {}),
+        ...(options.reason === undefined ? {} : { reason: options.reason }),
+      },
+      tenantId: numberFieldOf(doc.tenant) ?? -1,
+      type: OUTBOX_EVENT.EDITION_TRANSITIONED,
+      ...(options.operationId === undefined ? {} : { operationId: options.operationId }),
+      ...(options.requestId === undefined ? {} : { requestId: options.requestId }),
+    },
+    req,
+  )
+  return options.target
 }
+
+export async function transitionEdition(
+  payload: Payload,
+  options: TransitionOptions,
+): Promise<ContentEditionState> {
+  return runOutboxScopedTransaction(payload, (req) => transitionEditionInScope(payload, options, req))
+}
+
+export const transitionEditionWithinTransaction = transitionEditionInScope
 
 /**
  * Version supersession: editing published content opens a new draft version.

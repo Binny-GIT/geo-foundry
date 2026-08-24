@@ -1,6 +1,7 @@
 import type { ContentEditionState } from "@geo/domain"
 import type { Payload } from "payload"
 
+import { validateEditionBody } from "../editor/validate-body"
 import { appendOutboxEvent, OUTBOX_EVENT, runOutboxScopedTransaction } from "../outbox/outbox"
 import {
   type AuditEntry,
@@ -13,6 +14,7 @@ import {
   requireServiceIdentity,
   serializedActorOf,
   systemClockOf,
+  transitionEditionWithinTransaction,
   type WorkflowEditionDoc,
 } from "./edition-workflow"
 
@@ -21,6 +23,7 @@ const fail = (code: string, detail: string): EditionWorkflowError =>
 
 export type EditionInputSnapshot = {
   readonly body: unknown
+  readonly compiledRelease: string | null
   readonly contentId: number
   readonly editionId: number
   readonly inputHash: string
@@ -50,6 +53,10 @@ export async function readEditionInput(
   assertEditionTenantScope(options.user, doc)
   return {
     body: doc.body,
+    compiledRelease:
+      typeof doc.compiledRelease === "string" && doc.compiledRelease.length > 0
+        ? doc.compiledRelease
+        : null,
     contentId: numberFieldOf(doc.content) ?? -1,
     editionId: doc.id,
     inputHash: currentEditionInputHash(doc),
@@ -125,6 +132,12 @@ export async function writeGeneratedDraft(
   options: WriteDraftVersionOptions,
 ): Promise<DraftWriteReceipt> {
   requireServiceIdentity(options.user)
+  if (options.patch.body !== undefined) {
+    const validation = validateEditionBody(options.patch.body)
+    if (validation !== true) {
+      throw fail("EDITION_BODY_INVALID", validation)
+    }
+  }
   return runOutboxScopedTransaction(payload, async (req) => {
     const doc = await loadWorkflowEdition(payload, options.editionId, req, true)
     assertEditionTenantScope(options.user, doc)
@@ -185,10 +198,34 @@ export type CompileResultReceipt = {
   readonly workflowStatus: ContentEditionState
 }
 
+const compileEvidenceOf = (entry: unknown): Record<string, unknown> | null => {
+  if (typeof entry !== "object" || entry === null) {
+    return null
+  }
+  const audit = entry as { action?: unknown; detail?: unknown }
+  if (
+    audit.action !== "edition.compile.recorded" ||
+    typeof audit.detail !== "object" ||
+    audit.detail === null
+  ) {
+    return null
+  }
+  return audit.detail as Record<string, unknown>
+}
+
+const compileEvidenceMatches = (
+  evidence: Record<string, unknown>,
+  input: CompileResultInput,
+): boolean =>
+  evidence["manifestSha256"] === input.manifestSha256 &&
+  evidence["objectCount"] === input.objectCount &&
+  evidence["releaseId"] === input.releaseId &&
+  evidence["totalBytes"] === input.totalBytes
+
 /**
- * Compile evidence recording. The worker reports a verified artifact for an
- * approved edition; the CMS stores the metadata as an audit entry plus an
- * outbox event and never performs compiler work itself.
+ * Compile evidence recording. A verified worker result atomically records the
+ * artifact identity and advances the approved draft to compiled. Exact retries
+ * are no-ops; a conflicting result for an already compiled edition is rejected.
  */
 export async function recordCompileResult(
   payload: Payload,
@@ -201,6 +238,25 @@ export async function recordCompileResult(
     const status = parseWorkflowStatus(doc.workflowStatus)
     if (status !== "approved" && status !== "compiled") {
       throw fail("EDITION_WORKFLOW_NOT_APPROVED", `edition ${input.editionId} is ${status}`)
+    }
+    const existingAudit = Array.isArray(doc.auditLog) ? doc.auditLog : []
+    if (status === "compiled") {
+      const evidence = [...existingAudit]
+        .reverse()
+        .map(compileEvidenceOf)
+        .find((entry) => entry?.["releaseId"] === doc.compiledRelease)
+      if (
+        doc.compiledRelease === input.releaseId &&
+        evidence !== undefined &&
+        evidence !== null &&
+        compileEvidenceMatches(evidence, input)
+      ) {
+        return { releaseId: input.releaseId, workflowStatus: "compiled" }
+      }
+      throw fail(
+        "EDITION_WORKFLOW_COMPILE_CONFLICT",
+        `edition ${input.editionId} already has a different compiled artifact`,
+      )
     }
     const actor = serializedActorOf(input.user)
     if (actor === null) {
@@ -218,9 +274,8 @@ export async function recordCompileResult(
       },
       from: status,
       tenantId: numberFieldOf(doc.tenant) ?? -1,
-      to: status,
+      to: "compiled",
     }
-    const existingAudit = Array.isArray(doc.auditLog) ? doc.auditLog : []
     await payload.update({
       collection: "content-editions",
       draft: true,
@@ -230,6 +285,18 @@ export async function recordCompileResult(
       depth: 0,
       req,
     })
+    await transitionEditionWithinTransaction(
+      payload,
+      {
+        compiledReleaseId: input.releaseId,
+        editionId: input.editionId,
+        target: "compiled",
+        user: input.user,
+        ...(input.operationId === undefined ? {} : { operationId: input.operationId }),
+        ...(input.requestId === undefined ? {} : { requestId: input.requestId }),
+      },
+      req,
+    )
     await appendOutboxEvent(
       payload,
       {
@@ -239,7 +306,7 @@ export async function recordCompileResult(
           objectCount: input.objectCount,
           releaseId: input.releaseId,
           totalBytes: input.totalBytes,
-          workflowStatus: status,
+          workflowStatus: "compiled",
         },
         tenantId: numberFieldOf(doc.tenant) ?? -1,
         type: OUTBOX_EVENT.EDITION_COMPILE_RECORDED,
@@ -248,7 +315,7 @@ export async function recordCompileResult(
       },
       req,
     )
-    return { releaseId: input.releaseId, workflowStatus: status }
+    return { releaseId: input.releaseId, workflowStatus: "compiled" }
   })
 }
 

@@ -72,7 +72,6 @@ describe("internal integration endpoints", () => {
   let tenantAdmin: User
   let editor: User
   let reviewer: User
-  let publisher: User
   let serviceUser: User
   let foreignServiceUser: User
   let edition: ContentEdition
@@ -193,16 +192,6 @@ describe("internal integration endpoints", () => {
       },
       ...asUser(tenantAdmin),
     })) as User
-    publisher = (await payload.create({
-      collection: "users",
-      data: {
-        email: "internal-publisher@geo-foundry.test",
-        password: "publisher-password",
-        role: "publisher",
-        tenant: tenant.id,
-      },
-      ...asUser(tenantAdmin),
-    })) as User
     serviceUser = (await payload.create({
       collection: "users",
       data: {
@@ -287,7 +276,7 @@ describe("internal integration endpoints", () => {
     expect((body["fields"] as string[]).sort()).toEqual(["body", "summary", "title"].sort())
     expect(response.headers.get("x-request-id")).toBe("req-0001-abcd")
 
-    const doc = await loadWorkflowEdition(payload, edition.id)
+    const doc = await loadWorkflowEdition(payload, edition.id, {}, true)
     expect(doc.title).toBe("Generated title")
     const events = await outboxRows("edition.draft-written", edition.id)
     expect(events).toHaveLength(1)
@@ -325,7 +314,7 @@ describe("internal integration endpoints", () => {
     expect(await responseJson(response)).toMatchObject({
       error: { code: "EDITION_WORKFLOW_NOT_FOUND", message: "edition not found" },
     })
-    const doc = await loadWorkflowEdition(payload, edition.id)
+    const doc = await loadWorkflowEdition(payload, edition.id, {}, true)
     expect(doc.title).toBe("Generated title")
     expect(await outboxRows("edition.draft-written", edition.id)).toHaveLength(1)
   })
@@ -350,8 +339,9 @@ describe("internal integration endpoints", () => {
       id: edition.id,
       user: serviceUser,
     })
-    expect(response.status).toBe(500)
-    const doc = await loadWorkflowEdition(payload, edition.id)
+    expect(response.status).toBe(400)
+    expect(await errorCodeOf(response)).toBe("EDITION_BODY_INVALID")
+    const doc = await loadWorkflowEdition(payload, edition.id, {}, true)
     expect(doc.title).toBe("Generated title")
     expect(await outboxRows("edition.draft-written", edition.id)).toHaveLength(eventsBefore)
   })
@@ -391,7 +381,7 @@ describe("internal integration endpoints", () => {
   })
 
   it("records assessments with service identity and commits the outbox event", async () => {
-    const doc = await loadWorkflowEdition(payload, edition.id)
+    const doc = await loadWorkflowEdition(payload, edition.id, {}, true)
     const inputHash = currentEditionInputHash(doc)
     const response = await call("/internal/editions/:id/assessments", "post", {
       body: {
@@ -415,14 +405,15 @@ describe("internal integration endpoints", () => {
     expect(events[0]?.operationId).toBe("op-evaluate-0002")
   })
 
-  it("records compile results only for approved editions", async () => {
+  it("atomically records compile evidence and advances an approved edition", async () => {
+    const compileResult = {
+      manifestSha256: "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      objectCount: 3,
+      releaseId: "release-2026-08-18-internal",
+      totalBytes: 4096,
+    }
     const response = await call("/internal/editions/:id/compile-results", "post", {
-      body: {
-        manifestSha256: "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-        objectCount: 3,
-        releaseId: "release-2026-08-18-internal",
-        totalBytes: 4096,
-      },
+      body: compileResult,
       id: edition.id,
       user: serviceUser,
     })
@@ -437,47 +428,85 @@ describe("internal integration endpoints", () => {
       user: reviewer,
     })
 
-    const approved = await call("/internal/editions/:id/compile-results", "post", {
-      body: {
-        manifestSha256: "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-        objectCount: 3,
-        releaseId: "release-2026-08-18-internal",
-        totalBytes: 4096,
-      },
+    const compiled = await call("/internal/editions/:id/compile-results", "post", {
+      body: compileResult,
       headers: { "x-operation-id": "op-compile-0003" },
       id: edition.id,
       user: serviceUser,
     })
-    expect(approved.status).toBe(200)
-    const receipt = await responseJson(approved)
-    expect(receipt["releaseId"]).toBe("release-2026-08-18-internal")
-    expect(receipt["workflowStatus"]).toBe("approved")
+    expect(compiled.status).toBe(200)
+    const receipt = await responseJson(compiled)
+    expect(receipt["releaseId"]).toBe(compileResult.releaseId)
+    expect(receipt["workflowStatus"]).toBe("compiled")
 
-    const events = await outboxRows("edition.compile-recorded", edition.id)
-    expect(events).toHaveLength(1)
-    const doc = await loadWorkflowEdition(payload, edition.id)
+    const doc = await loadWorkflowEdition(payload, edition.id, {}, true)
+    expect(doc.workflowStatus).toBe("compiled")
+    expect(doc.compiledRelease).toBe(compileResult.releaseId)
+    expect(Number(doc.workflowRevision)).toBe(4)
     const audit = Array.isArray(doc.auditLog) ? doc.auditLog : []
     const compileEntry = audit.find(
       (entry) => (entry as { action?: string }).action === "edition.compile.recorded",
-    ) as { detail?: { releaseId?: string } } | undefined
-    expect(compileEntry?.detail?.releaseId).toBe("release-2026-08-18-internal")
+    ) as { detail?: { releaseId?: string }; to?: string } | undefined
+    expect(compileEntry).toMatchObject({
+      detail: { releaseId: compileResult.releaseId },
+      to: "compiled",
+    })
+    expect(
+      audit.some(
+        (entry) =>
+          (entry as { action?: string }).action === "content-edition.approved.compiled",
+      ),
+    ).toBe(true)
+
+    const compileEvents = await outboxRows("edition.compile-recorded", edition.id)
+    expect(compileEvents).toHaveLength(1)
+    expect(compileEvents[0]?.operationId).toBe("op-compile-0003")
+    const transitionEvents = await outboxRows("edition.transitioned", edition.id)
+    expect(
+      transitionEvents.find(
+        (event) =>
+          event.operationId === "op-compile-0003" &&
+          typeof event.eventPayload === "object" &&
+          event.eventPayload !== null &&
+          !Array.isArray(event.eventPayload) &&
+          event.eventPayload["to"] === "compiled",
+      ),
+    ).toBeDefined()
+
+    const replay = await call("/internal/editions/:id/compile-results", "post", {
+      body: compileResult,
+      headers: { "x-operation-id": "op-compile-0003" },
+      id: edition.id,
+      user: serviceUser,
+    })
+    expect(replay.status).toBe(200)
+    expect(await responseJson(replay)).toMatchObject({
+      releaseId: compileResult.releaseId,
+      workflowStatus: "compiled",
+    })
+    expect(await outboxRows("edition.compile-recorded", edition.id)).toHaveLength(1)
+    const afterReplay = await loadWorkflowEdition(payload, edition.id, {}, true)
+    expect(Number(afterReplay.workflowRevision)).toBe(4)
+    expect(Array.isArray(afterReplay.auditLog) ? afterReplay.auditLog : []).toHaveLength(audit.length)
+
+    const conflict = await call("/internal/editions/:id/compile-results", "post", {
+      body: { ...compileResult, manifestSha256: "d".repeat(64) },
+      id: edition.id,
+      user: serviceUser,
+    })
+    expect(conflict.status).toBe(409)
+    expect(await errorCodeOf(conflict)).toBe("EDITION_WORKFLOW_COMPILE_CONFLICT")
   })
 
   it("records publish requests only for compiled editions", async () => {
+    const uncompiledEdition = await makeEdition()
     const response = await call("/internal/editions/:id/publish-requests", "post", {
       body: { reason: "launch window" },
-      id: edition.id,
+      id: uncompiledEdition.id,
       user: serviceUser,
     })
     expect(response.status).toBe(409)
     expect(await errorCodeOf(response)).toBe("EDITION_WORKFLOW_NOT_COMPILED")
-
-    await transitionEdition(payload, {
-      compiledReleaseId: "release-2026-08-18-internal",
-      editionId: edition.id,
-      target: "compiled",
-      user: publisher,
-    })
 
     const compiled = await call("/internal/editions/:id/publish-requests", "post", {
       body: { reason: "launch window" },

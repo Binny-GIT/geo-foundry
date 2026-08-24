@@ -18,7 +18,15 @@ import type { Payload } from "payload"
 import type { SessionClaims } from "../access/session"
 import { runOutboxScopedTransaction, type TransactionScope } from "../outbox/outbox"
 import { canonicalize } from "./edition-input-hash"
-import { requireServiceIdentity, serializedActorOf } from "./edition-workflow"
+import {
+  assertEditionTenantScope,
+  EditionWorkflowError,
+  loadWorkflowEdition,
+  parseWorkflowStatus,
+  requireServiceIdentity,
+  serializedActorOf,
+  type SerializedAuditActor,
+} from "./edition-workflow"
 
 export class OperationsLedgerError extends Error {
   override readonly name = "OperationsLedgerError"
@@ -433,6 +441,154 @@ export async function getOperation(
   const doc = await loadOperationByPublicId(payload, operationId)
   assertTenantScope(claims, doc)
   return snapshotOf(doc)
+}
+
+export type PublishOperationCreator = {
+  readonly actor: SerializedAuditActor
+  readonly operationType: OperationType
+}
+
+/**
+ * Recovers the identity that originally authorized a publish operation. The
+ * worker completes the publish job under the content-service identity, but
+ * the edition may only advance to published under the actor who actually
+ * requested it - never the service actor that reports the verified receipt.
+ */
+export async function loadPublishOperationCreator(
+  payload: Payload,
+  operationId: string,
+  req: TransactionScope = {},
+): Promise<PublishOperationCreator> {
+  const doc = await loadOperationByPublicId(payload, operationId, req)
+  const created = auditOf(doc).find((entry) => entry.action === "operation.created")
+  if (created === undefined || created.actor === null || created.actor === undefined) {
+    throw fail("OPERATION_STATE_INVALID", `operation ${operationId} has no creator actor`)
+  }
+  return { actor: created.actor, operationType: parseOperationType(doc.operationType) }
+}
+
+export type SubmitEditionPublishInput = {
+  readonly editionId: number
+  readonly user: unknown
+}
+
+export type SubmitEditionPublishOutcome = {
+  readonly created: boolean
+  readonly operationId: string
+  readonly releaseId: string
+  readonly state: OperationState
+}
+
+/**
+ * Publisher-authorized publish intent for one compiled edition. The
+ * idempotency key is derived from the exact compiled release, so re-clicking
+ * the same publish action replays the same operation instead of creating a
+ * new one, and a later compile of a new release opens a genuinely new key.
+ * Creation alone never mutates workflow state; the release registry advances
+ * the edition only after a real, CAS-verified artifact upload is recorded.
+ */
+export async function submitEditionPublishOperation(
+  payload: Payload,
+  input: SubmitEditionPublishInput,
+): Promise<SubmitEditionPublishOutcome> {
+  return runOutboxScopedTransaction(payload, async (req) => {
+    const doc = await loadWorkflowEdition(payload, input.editionId, req, true)
+    const claims = assertEditionTenantScope(input.user, doc)
+    if (claims.role !== "publisher") {
+      throw new EditionWorkflowError(
+        "EDITION_WORKFLOW_PUBLISHER_REQUIRED",
+        `role ${claims.role} cannot submit a publish operation`,
+      )
+    }
+    const status = parseWorkflowStatus(doc.workflowStatus)
+    const releaseId =
+      typeof doc.compiledRelease === "string" && doc.compiledRelease.length > 0
+        ? doc.compiledRelease
+        : null
+    if (status !== "compiled" || releaseId === null) {
+      throw new EditionWorkflowError(
+        "EDITION_WORKFLOW_NOT_COMPILED",
+        `edition ${input.editionId} is ${status}`,
+      )
+    }
+
+    const tenantId = numberField(doc.tenant) ?? -1
+    const siteId = numberField(doc.site)
+    const endpoint = `/editions/${input.editionId}/publish`
+    const idempotencyKey = `publish-edition-${input.editionId}-${releaseId}`
+    const uniqueKey = operationUniqueKeyOf(tenantId, endpoint, idempotencyKey)
+    const requestPayload = { body: { editionId: input.editionId } }
+    const requestHash = operationRequestHashOf(requestPayload)
+
+    const existing = await loadRecordByUniqueKey(payload, uniqueKey, req)
+    if (existing !== null) {
+      if (existing.requestHash !== requestHash) {
+        throw fail(
+          "IDEMPOTENCY_KEY_REUSED",
+          `edition ${input.editionId} publish key already bound to a different request`,
+        )
+      }
+      const operation = await loadOperationByPublicId(payload, existing.operationId, req)
+      return {
+        created: false,
+        operationId: existing.operationId,
+        releaseId,
+        state: parseState(operation.state),
+      }
+    }
+
+    const actor = serializedActorOf(input.user)
+    if (actor === null) {
+      throw new EditionWorkflowError(
+        "EDITION_WORKFLOW_ACTOR_INVALID",
+        "session has no serializable actor",
+      )
+    }
+    const operationId = crypto.randomUUID()
+    const entry: LedgerAuditEntry = {
+      action: "operation.created",
+      actor,
+      at: ledgerClock.now().value,
+      detail: { endpoint, requestHash },
+    }
+    await payload.create({
+      collection: "operations",
+      data: {
+        auditLog: [entry],
+        attempt: 1,
+        endpoint,
+        error: null,
+        idempotencyKeyHash: sha256Text(idempotencyKey),
+        operationId,
+        operationType: "publish",
+        requestPayload,
+        revision: 0,
+        result: null,
+        ...(siteId === null ? {} : { site: siteId }),
+        state: "queued",
+        targetIds: { editionId: input.editionId },
+        tenant: tenantId,
+      },
+      overrideAccess: true,
+      depth: 0,
+      req,
+    })
+    await payload.create({
+      collection: "idempotency-records",
+      data: {
+        endpoint,
+        idempotencyKey,
+        operationId,
+        requestHash,
+        tenant: tenantId,
+        uniqueKey,
+      },
+      overrideAccess: true,
+      depth: 0,
+      req,
+    })
+    return { created: true, operationId, releaseId, state: "queued" }
+  })
 }
 
 export type StageInput = {

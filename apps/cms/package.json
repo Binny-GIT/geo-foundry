@@ -11,6 +11,7 @@
     "db:migrate": "node scripts/run-migrations.mjs",
     "db:migrate:create": "node scripts/create-migration.mjs",
     "db:migrate:status": "node scripts/secure-run.mjs payload migrate:status",
+    "admin-ui:fixture": "node scripts/secure-run.mjs node --import tsx scripts/admin-ui-fixture.mjs",
     "dev": "node scripts/secure-run.mjs next dev",
     "generate:importmap": "cross-env GEO_FOUNDRY_CMS_CONFIG_MODE=build payload generate:importmap",
     "generate:types": "cross-env GEO_FOUNDRY_CMS_CONFIG_MODE=build payload generate:types",

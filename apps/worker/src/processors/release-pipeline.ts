@@ -24,6 +24,22 @@ const COMPILER_VERSION = "1.0.0"
 export const releaseIdOf = (operationId: string): string =>
   `rel-${createHash("sha256").update(operationId).digest("hex").slice(0, 24)}`
 
+/**
+ * Release identity for one compile: a fresh compile of an approved edition
+ * mints a new deterministic id from its operation; recompiling an edition
+ * that is already compiled (the publish-gate re-derives the same artifact
+ * before uploading) MUST reuse the persisted release id, or the publish
+ * receipt would report a release the compile-results evidence never agreed
+ * to.
+ */
+export const releaseIdentityFor = (
+  operationId: string,
+  edition: { readonly compiledRelease: string | null; readonly workflowStatus: string },
+): string =>
+  edition.workflowStatus === "compiled" && edition.compiledRelease !== null
+    ? edition.compiledRelease
+    : releaseIdOf(operationId)
+
 export type WorkerS3Options = {
   readonly accessKeyId: string
   readonly bucket: string
@@ -99,11 +115,11 @@ export type PlannedSiteRelease = {
 }
 
 /**
- * Deterministic release identity: the release id derives from the operation
- * id and the clock from the target edition's modifiedAt, so the compile
- * stage and the publish gate rebuild byte-identical plans from the same
- * ledger state even across process crashes. The staged directory is fully
- * verified before the plan is handed on.
+ * Deterministic release identity: initial compilation derives the release id
+ * from its operation; publication of an already compiled edition reuses that
+ * persisted release id. The content clock remains the edition's modifiedAt,
+ * so retries rebuild byte-identical plans before the staged directory is
+ * verified and handed on.
  */
 export const compileAndPlanRelease = async (
   context: ProcessorContext,
@@ -130,7 +146,7 @@ export const compileAndPlanRelease = async (
     }
     throw error
   }
-  const releaseId = releaseIdOf(input.operationId)
+  const releaseId = releaseIdentityFor(input.operationId, edition)
   const siteKey = `site-${edition.siteId}`
   const routingManifest = {
     hosts: [
@@ -183,6 +199,7 @@ export const publishPlannedRelease = async (
   })
   const edition = await context.client.getEditionInput(input.editionId)
   await context.client.recordPublishedRelease(edition.siteId, {
+    editionId: input.editionId,
     operationId: input.operationId,
     receipt: result.receipt,
   })

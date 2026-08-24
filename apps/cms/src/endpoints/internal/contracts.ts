@@ -84,6 +84,7 @@ export const consumeRollbackIntentBodySchema = z
 
 export const releaseReceiptBodySchema = z
   .object({
+    editionId: z.number().int().positive().optional(),
     operationId: z.string().regex(OPERATION_ID_PATTERN),
     receipt: z.record(z.string(), z.unknown()),
   })
