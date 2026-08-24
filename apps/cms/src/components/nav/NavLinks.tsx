@@ -39,105 +39,112 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
   return (
     <aside
       className={cn(
-        // `gf-sidebar` carries no visual styling of its own — it's the hook
-        // nav-layout.css uses to reproduce Payload's mobile show/hide
-        // contract, which stock Payload keys off the `.nav` class we no
-        // longer use.
-        "gf-sidebar sticky top-0 flex h-screen w-[var(--nav-width)] shrink-0 flex-col overflow-hidden bg-gfs-ink-900 text-white opacity-0",
+        // `gf-sidebar` is the only class nav-layout.css's ancestor-scoped
+        // show/hide rules touch on this element — deliberately the *only*
+        // thing that sets `display` here, so it never has to out-specificity
+        // a plain `.flex` utility. All real flex layout lives one level
+        // down, on a child div those rules never select (mirrors Payload's
+        // own outer `.nav` (visibility) / inner `.nav__scroll` (layout)
+        // split — collapsing them onto one element is what broke the footer
+        // pinning the first time).
+        "gf-sidebar sticky top-0 h-screen w-[var(--nav-width)] shrink-0 overflow-hidden opacity-0",
         navOpen && "opacity-100",
         shouldAnimate && "transition-opacity duration-150 ease-in-out",
         hydrated && "gf-sidebar--hydrated",
       )}
       inert={!navOpen}
     >
-      <div className="flex items-center gap-2.5 px-5 pt-6 pb-5">
-        <GeoIcon size={26} />
-        <span className="text-base font-bold tracking-tight">Geo Foundry</span>
-      </div>
-
-      <Separator className="mx-5 w-auto bg-white/10" />
-
-      <ScrollArea className="min-h-0 flex-1" viewportRef={navRef}>
-        <nav className="flex flex-col gap-5 px-3 py-4">
-          {groups.map((group) => (
-            <div className="flex flex-col gap-1" key={group.label}>
-              <div className="px-3 text-[11px] font-semibold uppercase tracking-wider text-white/40">
-                {group.label}
-              </div>
-              <div className="flex flex-col gap-0.5">
-                {group.entities.map((entity) => {
-                  const href =
-                    entity.type === EntityType.collection
-                      ? formatAdminURL({ adminRoute, path: `/collections/${entity.slug}` })
-                      : formatAdminURL({ adminRoute, path: `/globals/${entity.slug}` })
-                  const id =
-                    entity.type === EntityType.collection
-                      ? `nav-${entity.slug}`
-                      : `nav-global-${entity.slug}`
-                  // Same active-link rule as Payload's own DefaultNavClient:
-                  // an exact segment match, not a loose prefix match.
-                  const isActive =
-                    pathname.startsWith(href) && ["/", undefined].includes(pathname[href.length])
-                  const Icon = NAV_ICON_BY_SLUG[entity.slug]
-                  const linkClassName = cn(
-                    "relative flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-white/70 no-underline transition-colors",
-                    isActive ? "bg-white/10 text-white" : "hover:bg-white/5 hover:text-white",
-                  )
-                  const content = (
-                    <>
-                      {isActive && (
-                        <span className="absolute inset-y-1 left-0 w-[3px] rounded-full bg-gfs-accent-500" />
-                      )}
-                      {Icon !== undefined && <Icon size={17} strokeWidth={1.8} />}
-                      <span className="truncate">{getTranslation(entity.label, i18n)}</span>
-                    </>
-                  )
-                  if (pathname === href) {
-                    return (
-                      <div className={linkClassName} id={id} key={entity.slug}>
-                        {content}
-                      </div>
-                    )
-                  }
-                  return (
-                    <Link
-                      className={linkClassName}
-                      href={href}
-                      id={id}
-                      key={entity.slug}
-                      prefetch={false}
-                    >
-                      {content}
-                    </Link>
-                  )
-                })}
-              </div>
-            </div>
-          ))}
-        </nav>
-      </ScrollArea>
-
-      <Separator className="mx-5 w-auto bg-white/10" />
-
-      <div className="flex items-center gap-2.5 px-5 py-4">
-        <Avatar className="bg-gfs-accent-500/20">
-          <AvatarFallback className="bg-transparent text-gfs-accent-300">
-            {initialOf(email)}
-          </AvatarFallback>
-        </Avatar>
-        <div className="grid min-w-0 flex-1 gap-0.5">
-          <strong className="truncate text-xs font-semibold text-white">
-            {email ?? "Account"}
-          </strong>
-          {role !== null && (
-            <span className="truncate text-[11px] text-white/50 capitalize">{role}</span>
-          )}
+      <div className="flex h-full flex-col bg-gfs-ink-900 text-white">
+        <div className="flex items-center gap-2.5 px-5 pt-6 pb-5">
+          <GeoIcon size={26} />
+          <span className="text-base font-bold tracking-tight">Geo Foundry</span>
         </div>
-        <Button asChild aria-label={t("authentication:logOut")} size="icon" variant="ghost">
-          <Link href={logoutHref} prefetch={false} title={t("authentication:logOut")}>
-            <LogOutIcon size={16} strokeWidth={1.8} />
-          </Link>
-        </Button>
+
+        <Separator className="mx-5 w-auto bg-white/10" />
+
+        <ScrollArea className="min-h-0 flex-1" viewportRef={navRef}>
+          <nav className="flex flex-col gap-5 px-3 py-4">
+            {groups.map((group) => (
+              <div className="flex flex-col gap-1" key={group.label}>
+                <div className="px-3 text-[11px] font-semibold uppercase tracking-wider text-white/40">
+                  {group.label}
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  {group.entities.map((entity) => {
+                    const href =
+                      entity.type === EntityType.collection
+                        ? formatAdminURL({ adminRoute, path: `/collections/${entity.slug}` })
+                        : formatAdminURL({ adminRoute, path: `/globals/${entity.slug}` })
+                    const id =
+                      entity.type === EntityType.collection
+                        ? `nav-${entity.slug}`
+                        : `nav-global-${entity.slug}`
+                    // Same active-link rule as Payload's own DefaultNavClient:
+                    // an exact segment match, not a loose prefix match.
+                    const isActive =
+                      pathname.startsWith(href) &&
+                      ["/", undefined].includes(pathname[href.length])
+                    const Icon = NAV_ICON_BY_SLUG[entity.slug]
+                    const linkClassName = cn(
+                      "relative flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-white/70 no-underline transition-colors",
+                      isActive ? "bg-white/10 text-white" : "hover:bg-white/5 hover:text-white",
+                    )
+                    const content = (
+                      <>
+                        {isActive && (
+                          <span className="absolute inset-y-1 left-0 w-[3px] rounded-full bg-gfs-accent-500" />
+                        )}
+                        {Icon !== undefined && <Icon size={17} strokeWidth={1.8} />}
+                        <span className="truncate">{getTranslation(entity.label, i18n)}</span>
+                      </>
+                    )
+                    if (pathname === href) {
+                      return (
+                        <div className={linkClassName} id={id} key={entity.slug}>
+                          {content}
+                        </div>
+                      )
+                    }
+                    return (
+                      <Link
+                        className={linkClassName}
+                        href={href}
+                        id={id}
+                        key={entity.slug}
+                        prefetch={false}
+                      >
+                        {content}
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+          </nav>
+        </ScrollArea>
+
+        <Separator className="mx-5 w-auto bg-white/10" />
+
+        <div className="flex items-center gap-2.5 px-5 py-4">
+          <Avatar className="bg-gfs-accent-500/20">
+            <AvatarFallback className="bg-transparent text-gfs-accent-300">
+              {initialOf(email)}
+            </AvatarFallback>
+          </Avatar>
+          <div className="grid min-w-0 flex-1 gap-0.5">
+            <strong className="truncate text-xs font-semibold text-white">
+              {email ?? "Account"}
+            </strong>
+            {role !== null && (
+              <span className="truncate text-[11px] text-white/50 capitalize">{role}</span>
+            )}
+          </div>
+          <Button asChild aria-label={t("authentication:logOut")} size="icon" variant="ghost">
+            <Link href={logoutHref} prefetch={false} title={t("authentication:logOut")}>
+              <LogOutIcon size={16} strokeWidth={1.8} />
+            </Link>
+          </Button>
+        </div>
       </div>
     </aside>
   )
