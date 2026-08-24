@@ -160,6 +160,33 @@ export const MenuIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
   </svg>
 )
 
+/** Close / dismiss. */
+export const XIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <path d="M18 6 6 18" />
+    <path d="m6 6 12 12" />
+  </svg>
+)
+
+/** Dashboard / home overview. */
+export const LayoutGridIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <rect height="7" width="7" x="3" y="3" rx="1" />
+    <rect height="7" width="7" x="14" y="3" rx="1" />
+    <rect height="7" width="7" x="14" y="14" rx="1" />
+    <rect height="7" width="7" x="3" y="14" rx="1" />
+  </svg>
+)
+
+/** Inline hint / tooltip affordance. */
+export const HelpCircleIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <circle cx="12" cy="12" r="9" />
+    <path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.4-3 4" />
+    <path d="M12 17.5h.01" />
+  </svg>
+)
+
 /**
  * One nav icon per admin sidebar entry, keyed by collection slug. `sites`
  * and `domains` intentionally share GlobeIcon — a domain is a routing

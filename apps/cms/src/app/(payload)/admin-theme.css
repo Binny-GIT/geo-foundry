@@ -389,16 +389,30 @@ body {
 
 /* List view: the table sits directly on the page canvas by default, which
    reads as flat/unstyled. Elevate it — and the controls above it — as
-   distinct surfaces instead of leaving them bare. */
+   distinct surfaces instead of leaving them bare.
+
+   Chrome-less list header (user direction 2026-08-24): the collection
+   title is dropped entirely (the sidebar's active entry already says
+   where you are), and the header row collapses to zero height so the
+   "Create New" action no longer occupies its own first row — it is
+   absolutely positioned into the controls row below, right-aligned. */
 .list-header {
-  padding-block: var(--gf-space-300) var(--gf-space-200);
+  height: 0;
+  min-height: 0;
+  overflow: visible;
+  padding-block: 0;
+  position: relative;
 }
 
 .list-header__title {
-  font-size: var(--gf-font-size-page);
-  font-weight: 650;
-  letter-spacing: -0.01em;
-  line-height: var(--gf-line-height-page);
+  display: none;
+}
+
+.list-header__title-actions {
+  position: absolute;
+  right: var(--gf-space-200);
+  top: var(--gf-space-150);
+  z-index: 5;
 }
 
 .list-header__title-actions .btn--style-pill {
@@ -407,6 +421,19 @@ body {
   --hover-bg: var(--gf-accent-700);
   --hover-color: #ffffff;
   color: #ffffff;
+}
+
+/* Cell links read as quiet data, not shouty hyperlinks: lighter than body
+   text, never underlined; hover picks the accent instead. */
+.table tbody a,
+.table tbody a:visited {
+  color: var(--theme-elevation-500);
+  text-decoration: none;
+}
+
+.table tbody a:hover {
+  color: var(--gf-accent-700);
+  text-decoration: none;
 }
 
 .list-controls {

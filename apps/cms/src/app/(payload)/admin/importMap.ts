@@ -4,7 +4,6 @@ import { WorkflowActions as WorkflowActions_7f8f4f43782254a14e3e51ff6323c59b } f
 import { SiteCell as SiteCell_13b424544118fa45fcdf197a81c10103 } from '../../../components/fields/SiteCell'
 import { EditionCell as EditionCell_e566768d8a17eb49c4d4598ccffeded2 } from '../../../components/fields/EditionCell'
 import { Nav as Nav_2bbd50066e558bff01afc6b2e7fff4f6 } from '../../../components/nav/Nav'
-import { Header as Header_08bb92d60bd46c0e23142bd42bf42712 } from '../../../components/header/Header'
 import { GeoIcon as GeoIcon_0bf56e69fc3a855c33d823e15696a75b } from '../../../components/branding/GeoIcon'
 import { GeoLogo as GeoLogo_ae2fab9bcf31821a601f7fd41dcaa128 } from '../../../components/branding/GeoLogo'
 import { LoginIntro as LoginIntro_88dc5d7ad686d4065c45e8a7dca2751f } from '../../../components/branding/LoginIntro'
@@ -20,7 +19,6 @@ export const importMap = {
   "/components/fields/SiteCell#SiteCell": SiteCell_13b424544118fa45fcdf197a81c10103,
   "/components/fields/EditionCell#EditionCell": EditionCell_e566768d8a17eb49c4d4598ccffeded2,
   "/components/nav/Nav#Nav": Nav_2bbd50066e558bff01afc6b2e7fff4f6,
-  "/components/header/Header#Header": Header_08bb92d60bd46c0e23142bd42bf42712,
   "/components/branding/GeoIcon#GeoIcon": GeoIcon_0bf56e69fc3a855c33d823e15696a75b,
   "/components/branding/GeoLogo#GeoLogo": GeoLogo_ae2fab9bcf31821a601f7fd41dcaa128,
   "/components/branding/LoginIntro#LoginIntro": LoginIntro_88dc5d7ad686d4065c45e8a7dca2751f,

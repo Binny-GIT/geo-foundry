@@ -7,6 +7,7 @@ import {
   AlertTriangleIcon,
   CheckCircleIcon,
   GlobeIcon,
+  HelpCircleIcon,
   LayersIcon,
   PackageIcon,
   PencilIcon,
@@ -125,6 +126,38 @@ const siteNameFor = (site: unknown, sites: Map<string, RecordLike>): string => {
 const cardClass =
   "rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] shadow-[var(--gf-shadow-surface)]"
 
+/**
+ * Section heading: prominent title (big/bold/dark) with the explanatory
+ * intro demoted to quiet gray — inline after the title when short, or
+ * behind a help-icon tooltip when it would clutter the row.
+ */
+const SectionHeading = ({
+  title,
+  hint,
+  tooltip,
+}: {
+  readonly title: string
+  readonly hint?: string
+  readonly tooltip?: string
+}) => (
+  <div className="min-w-0">
+    <h2 className="m-0 flex flex-wrap items-baseline gap-x-2 text-lg font-bold tracking-tight text-[var(--theme-elevation-900)]">
+      {title}
+      {tooltip !== undefined && (
+        <span className="group relative inline-flex cursor-help py-0.5 align-baseline text-[var(--theme-elevation-400)]">
+          <HelpCircleIcon size={14} strokeWidth={1.9} />
+          <span className="pointer-events-none absolute top-full left-1/2 z-30 mt-1.5 w-56 -translate-x-1/2 rounded-lg bg-[var(--theme-elevation-900)] px-2.5 py-2 text-left text-xs font-normal leading-relaxed text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+            {tooltip}
+          </span>
+        </span>
+      )}
+      {hint !== undefined && (
+        <span className="text-xs font-normal text-[var(--theme-elevation-500)]">{hint}</span>
+      )}
+    </h2>
+  </div>
+)
+
 const metric = (
   value: number | "Restricted",
   label: string,
@@ -155,7 +188,7 @@ const queuePanel = (panel: Panel, sites: Map<string, RecordLike>) => (
         <panel.Icon size={18} strokeWidth={1.9} />
       </IconBadge>
       <div className="min-w-0 flex-1">
-        <h3 className="text-sm font-semibold text-[var(--theme-text)]">{panel.label}</h3>
+        <h3 className="text-sm font-bold text-[var(--theme-elevation-900)]">{panel.label}</h3>
         <p className="text-xs text-[var(--theme-elevation-600)]">
           在您的权限范围内 · {panel.count} 条
         </p>
@@ -329,7 +362,7 @@ export const OperationsDashboard = async ({ payload, user }: DashboardProps) => 
           <p className="m-0 mb-1 text-xs font-extrabold uppercase tracking-[0.06em] text-[var(--gf-accent-700)]">
             Geo Foundry
           </p>
-          <h1 className="m-0 text-[28px] font-semibold leading-9 tracking-tight text-[var(--theme-text)] md:text-2xl">
+          <h1 className="m-0 text-[28px] font-bold leading-9 tracking-tight text-[var(--theme-elevation-900)] md:text-2xl">
             运营控制台
           </h1>
           <span className="mt-1 block text-sm text-[var(--theme-elevation-600)]">
@@ -343,14 +376,7 @@ export const OperationsDashboard = async ({ payload, user }: DashboardProps) => 
 
       <section aria-label="Operational attention" className="flex flex-col gap-4">
         <div className="flex items-end justify-between gap-3">
-          <div>
-            <p className="m-0 mb-1 text-xs font-extrabold uppercase tracking-[0.06em] text-[var(--gf-accent-700)]">
-              待处理事项
-            </p>
-            <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--theme-text)]">
-              需要决策或跟进的工作
-            </h2>
-          </div>
+          <SectionHeading hint="需要决策或跟进的工作" title="待处理事项" />
           <span className="hidden shrink-0 text-xs text-[var(--theme-elevation-600)] sm:block">
             实时 · 按权限范围
           </span>
@@ -364,14 +390,10 @@ export const OperationsDashboard = async ({ payload, user }: DashboardProps) => 
 
       <section aria-label="Workflow pipeline" className="flex flex-col gap-4">
         <div className="flex items-end justify-between gap-3">
-          <div>
-            <p className="m-0 mb-1 text-xs font-extrabold uppercase tracking-[0.06em] text-[var(--gf-accent-700)]">
-              工作流管线
-            </p>
-            <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--theme-text)]">
-              内容流转情况
-            </h2>
-          </div>
+          <SectionHeading
+            title="工作流管线"
+            tooltip="内容从草稿到发布的七个流转状态，点击任意状态查看对应的内容版本列表。"
+          />
           <a
             className="shrink-0 whitespace-nowrap text-xs font-bold text-[var(--gf-accent-700)] no-underline hover:underline"
             href="/admin/collections/content-editions"
@@ -407,14 +429,7 @@ export const OperationsDashboard = async ({ payload, user }: DashboardProps) => 
 
       <section aria-label="Site fleet" className="flex flex-col gap-4">
         <div className="flex items-end justify-between gap-3">
-          <div>
-            <p className="m-0 mb-1 text-xs font-extrabold uppercase tracking-[0.06em] text-[var(--gf-accent-700)]">
-              站点概览
-            </p>
-            <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--theme-text)]">
-              配置与发布状态
-            </h2>
-          </div>
+          <SectionHeading hint="配置与发布状态" title="站点概览" />
           <a
             className="shrink-0 whitespace-nowrap text-xs font-bold text-[var(--gf-accent-700)] no-underline hover:underline"
             href="/admin/collections/sites"
@@ -513,7 +528,7 @@ export const OperationsDashboard = async ({ payload, user }: DashboardProps) => 
                 <IconBadge tone="accent">
                   <PackageIcon size={18} strokeWidth={1.9} />
                 </IconBadge>
-                <h2 className="flex-1 text-sm font-semibold text-[var(--theme-text)]">
+                <h2 className="flex-1 text-sm font-bold text-[var(--theme-elevation-900)]">
                   当前发布版本
                 </h2>
                 <a
@@ -559,7 +574,7 @@ export const OperationsDashboard = async ({ payload, user }: DashboardProps) => 
                 <IconBadge tone="neutral">
                   <LayersIcon size={18} strokeWidth={1.9} />
                 </IconBadge>
-                <h2 className="flex-1 text-sm font-semibold text-[var(--theme-text)]">最近操作</h2>
+                <h2 className="flex-1 text-sm font-bold text-[var(--theme-elevation-900)]">最近操作</h2>
                 <a
                   className="shrink-0 whitespace-nowrap text-xs font-bold text-[var(--gf-accent-700)] no-underline hover:underline"
                   href="/admin/collections/operations"
@@ -604,7 +619,7 @@ export const OperationsDashboard = async ({ payload, user }: DashboardProps) => 
                 <IconBadge tone={pendingRollback.length > 0 ? "danger" : "neutral"}>
                   <AlertTriangleIcon size={18} strokeWidth={1.9} />
                 </IconBadge>
-                <h2 className="flex-1 text-sm font-semibold text-[var(--theme-text)]">
+                <h2 className="flex-1 text-sm font-bold text-[var(--theme-elevation-900)]">
                   待处理回滚
                 </h2>
                 <a

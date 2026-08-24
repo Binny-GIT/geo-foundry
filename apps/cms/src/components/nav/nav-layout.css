@@ -27,3 +27,22 @@
     display: unset;
   }
 }
+
+/*
+ * Payload's stock AppHeader (breadcrumbs + account avatar + its own mobile
+ * toggler) is fully replaced by this app's own chrome: the sidebar owns
+ * identity + a Dashboard entry, NavLinks.tsx renders its own mobile
+ * open/close buttons, and list/doc views carry their own context. Hiding
+ * via CSS (rather than `admin.components.header`, which turned out to be
+ * additive — see git history) because DefaultTemplate hardcodes the
+ * AppHeader render with no opt-out. The toggler container is hidden
+ * separately: it is a DefaultTemplate-level element, not a descendant of
+ * .app-header, and NavLinks.tsx's floating button replaces it.
+ */
+.app-header {
+  display: none;
+}
+
+.template-default__nav-toggler-container {
+  display: none;
+}
