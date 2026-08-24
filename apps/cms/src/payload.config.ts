@@ -4,8 +4,8 @@ import { postgresAdapter } from "@payloadcms/db-postgres"
 import { multiTenantPlugin } from "@payloadcms/plugin-multi-tenant"
 import { BlocksFeature, lexicalEditor } from "@payloadcms/richtext-lexical"
 import { s3Storage } from "@payloadcms/storage-s3"
-import { enTranslations } from "@payloadcms/translations/languages/en"
-import { zhTranslations } from "@payloadcms/translations/languages/zh"
+import { en as enLanguage, enTranslations } from "@payloadcms/translations/languages/en"
+import { zh as zhLanguage, zhTranslations } from "@payloadcms/translations/languages/zh"
 import { buildConfig } from "payload"
 
 import { ContentEditions } from "./collections/ContentEditions"
@@ -82,7 +82,20 @@ export default buildConfig({
     IdempotencyRecords,
   ],
   i18n: {
+    // Without `supportedLanguages`, Payload's sanitizer keeps only its
+    // default `{ en }` and silently discards the `zh` fallback (verified in
+    // dist/config/sanitize.js: a fallback outside the supported keys falls
+    // back to the first supported key). The result was an admin UI locked
+    // to English — the payload-lng cookie and Accept-Language could never
+    // select zh because initI18n throws on unsupported languages. The
+    // language packs (with dateFNSKey + context-tagged translations) are
+    // what supportedLanguages wants; `translations` below stays as the
+    // override layer merged on top per language.
     fallbackLanguage: "zh",
+    supportedLanguages: {
+      en: enLanguage,
+      zh: zhLanguage,
+    },
     translations: {
       en: {
         ...enTranslations,
