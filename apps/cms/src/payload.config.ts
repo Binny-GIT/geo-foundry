@@ -55,6 +55,7 @@ export default buildConfig({
         Icon: "/components/branding/GeoIcon#GeoIcon",
         Logo: "/components/branding/GeoLogo#GeoLogo",
       },
+      header: ["/components/header/Header#Header"],
       Nav: "/components/nav/Nav#Nav",
       views: {
         dashboard: {

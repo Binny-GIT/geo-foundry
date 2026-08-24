@@ -151,6 +151,15 @@ export const LogOutIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
   </svg>
 )
 
+/** Mobile menu toggle (hamburger). */
+export const MenuIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <path d="M4 6h16" />
+    <path d="M4 12h16" />
+    <path d="M4 18h16" />
+  </svg>
+)
+
 /**
  * One nav icon per admin sidebar entry, keyed by collection slug. `sites`
  * and `domains` intentionally share GlobeIcon — a domain is a routing

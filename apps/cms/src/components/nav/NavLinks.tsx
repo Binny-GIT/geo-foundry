@@ -1,6 +1,5 @@
 "use client"
 
-import "./app-header.css"
 import "./nav-layout.css"
 
 import { getTranslation } from "@payloadcms/translations"
