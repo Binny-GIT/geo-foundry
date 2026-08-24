@@ -1,0 +1,20 @@
+/*
+ * `admin.components.header` (registered on Header.tsx) turned out to be an
+ * *additive* global top-bar slot, not a replacement for Payload's stock
+ * AppHeader — verified against the live DOM (two <header> elements
+ * rendered simultaneously), not assumed from reading the type comment
+ * ("Add custom header to top of page globally"). Payload's own
+ * `.app-header` still mounts inside the content column below ours, and its
+ * mobile toggler is a *separate* DefaultTemplate-level element
+ * (`.template-default__nav-toggler-container`, holding
+ * `.app-header__mobile-nav-toggler`) rather than a DOM child of
+ * `.app-header`, so both must be hidden explicitly — hiding `.app-header`
+ * alone leaves an orphaned floating hamburger button.
+ */
+.app-header {
+  display: none;
+}
+
+.template-default__nav-toggler-container {
+  display: none;
+}

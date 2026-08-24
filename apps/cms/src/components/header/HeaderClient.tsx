@@ -1,5 +1,7 @@
 "use client"
 
+import "./legacy-app-header.css"
+
 import { getTranslation } from "@payloadcms/translations"
 import { Link, useActions, useConfig, useNav, useStepNav, useTranslation } from "@payloadcms/ui"
 
