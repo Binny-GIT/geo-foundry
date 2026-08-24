@@ -1,5 +1,6 @@
 import { handleServerFunctions, RootLayout } from "@payloadcms/next/layouts"
 import "@payloadcms/next/css"
+import "./admin-tailwind.css"
 import config from "@payload-config"
 import type { ReactNode } from "react"
 import type { ServerFunctionClient } from "payload"

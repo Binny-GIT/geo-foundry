@@ -142,6 +142,15 @@ export const RotateCcwIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
   </svg>
 )
 
+/** Sign out of the current session. */
+export const LogOutIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <path d="M16 17l5-5-5-5" />
+    <path d="M21 12H9" />
+  </svg>
+)
+
 /**
  * One nav icon per admin sidebar entry, keyed by collection slug. `sites`
  * and `domains` intentionally share GlobeIcon — a domain is a routing

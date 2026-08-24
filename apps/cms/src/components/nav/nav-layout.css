@@ -1,0 +1,23 @@
+/*
+ * Layout-contract plumbing only — no visual design here (that's all Tailwind
+ * utility classes in NavLinks.tsx now). Payload's DefaultTemplate hardcodes
+ * its ≤1440px show/hide behavior against the `.nav` class name:
+ *
+ *   .template-default .nav { display: none; }
+ *   .template-default--nav-hydrated .nav { display: unset; }
+ *
+ * (verified in @payloadcms/next's compiled styles.css). Our sidebar's root
+ * element is `.gf-sidebar`, not `.nav`, so those selectors never match it —
+ * without this file the mobile hamburger toggle would have nothing to show
+ * or hide. `.template-default`/`.template-default--nav-hydrated` are
+ * Payload's own ancestor classes; we don't own that JSX, so this can't be
+ * expressed as a scannable Tailwind utility class token and has to stay
+ * plain CSS.
+ */
+.template-default .gf-sidebar {
+  display: none;
+}
+
+.template-default--nav-hydrated .gf-sidebar {
+  display: unset;
+}

@@ -6,12 +6,14 @@ import { NavLinks } from "./NavLinks"
 /**
  * Custom admin sidebar. Nav visibility is computed with Payload's own
  * `groupNavItems` — the same function the stock Nav uses — so RBAC and
- * tenant scoping stay byte-identical to the verified default behavior; only
- * the presentation layer changes (per-item icons, section grouping driven
- * by each collection's `admin.group`, a brand header, and an account
- * footer). The mobile toggle button and the global open/close state live
- * outside this component (Payload's own template plus its NavProvider) and
- * are unaffected by replacing this component.
+ * tenant scoping stay byte-identical to the verified default behavior. The
+ * presentation layer (NavLinks.tsx) is a from-scratch rebuild — Tailwind
+ * utility classes and Radix-based shadcn primitives, no Payload `.nav*`
+ * classes or `<NavGroup>`/`<Logout>` components — driven by section
+ * grouping from each collection's `admin.group`, a brand header, and an
+ * account footer. The mobile toggle button and the global open/close state
+ * live outside this component (Payload's own template plus its
+ * NavProvider) and are unaffected by replacing this component.
  */
 export const Nav = (props: ServerProps) => {
   const { i18n, payload, permissions, visibleEntities } = props

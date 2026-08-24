@@ -1,0 +1,106 @@
+/*
+ * GF Studio design system — Tailwind v4, scoped to the Payload admin route
+ * group only (imported from this group's layout, never the root/public one).
+ *
+ * Preflight is deliberately NOT imported: a global element reset would
+ * restyle every stock Payload component. Only the theme (design tokens) and
+ * the utilities are pulled in, so Payload's own stylesheet stays
+ * authoritative everywhere except where a utility class is explicitly
+ * applied to our own components' markup.
+ *
+ * Tailwind v4.3.3 ignores `prefix(tw)` on granular imports (verified: the
+ * emitted selectors stayed unprefixed), so utilities are UNPREFIXED. Safety
+ * comes from `source(none)` + the single explicit @source below: only class
+ * tokens literally written in src/components are ever compiled. Constraint
+ * for everyone editing those components: never use a bare utility name that
+ * is also a stock Payload class — notably `table` (Payload's .table wrapper,
+ * 50 uses). flex/grid/hidden/block/border/uppercase/truncate/etc. were all
+ * verified collision-free against @payloadcms/ui styles.css.
+ *
+ * The dark variant follows Payload's html[data-theme] attribute rather than
+ * the OS media query, so the admin theme toggle drives dark:* utilities.
+ */
+
+@layer gfs-theme;
+
+@import "tailwindcss/theme.css" layer(gfs-theme) source(none);
+@import "tailwindcss/utilities.css" source(none);
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@source "../../components";
+/* Payload's stock list tables use class="table"; never emit the display
+   utility of the same name, no matter where the token gets scanned. */
+@source not inline("{hover:,focus:,}table");
+
+/*
+ * GF Studio semantic palette. Everything is namespaced gfs-* so it can never
+ * collide with Payload's internal --color-base/success/warning/error ramps.
+ */
+@theme {
+  /*
+   * Payload sets html { font-size: 13px } (its own "--base" scale), not the
+   * browser default 16px that every Tailwind rem-based utility assumes. Left
+   * uncorrected, text-sm/rounded-2xl/gap-4/etc. all render ~19% smaller than
+   * intended (confirmed: text-sm measured 11.375px in an earlier round of
+   * this exact investigation). Rescaling the three rem-derived theme roots
+   * by 16/13 makes every spacing/font-size/radius utility resolve to its
+   * originally-intended pixel value regardless of the page's root size.
+   */
+  --spacing: calc(0.25rem * 16 / 13);
+  --text-xs: calc(0.75rem * 16 / 13);
+  --text-sm: calc(0.875rem * 16 / 13);
+  --text-base: calc(1rem * 16 / 13);
+  --text-lg: calc(1.125rem * 16 / 13);
+  --text-xl: calc(1.25rem * 16 / 13);
+  --text-2xl: calc(1.5rem * 16 / 13);
+  --radius-lg: calc(0.5rem * 16 / 13);
+  --radius-xl: calc(0.75rem * 16 / 13);
+  --radius-2xl: calc(1rem * 16 / 13);
+
+  --color-gfs-accent-50: #eef2ff;
+  --color-gfs-accent-100: #e0e7ff;
+  --color-gfs-accent-200: #c7d2fe;
+  --color-gfs-accent-300: #a5b4fc;
+  --color-gfs-accent-400: #818cf8;
+  --color-gfs-accent-500: #6366f1;
+  --color-gfs-accent-600: #4f46e5;
+  --color-gfs-accent-700: #4338ca;
+  --color-gfs-accent-800: #3730a3;
+  --color-gfs-accent-900: #312e81;
+  --color-gfs-accent-950: #1e1b4b;
+
+  --color-gfs-success-50: #ecfdf5;
+  --color-gfs-success-100: #d1fae5;
+  --color-gfs-success-300: #6ee7b7;
+  --color-gfs-success-500: #10b981;
+  --color-gfs-success-600: #059669;
+  --color-gfs-success-700: #047857;
+  --color-gfs-success-800: #065f46;
+
+  --color-gfs-warning-50: #fffbeb;
+  --color-gfs-warning-100: #fef3c7;
+  --color-gfs-warning-300: #fcd34d;
+  --color-gfs-warning-500: #f59e0b;
+  --color-gfs-warning-600: #d97706;
+  --color-gfs-warning-700: #b45309;
+  --color-gfs-warning-800: #92400e;
+
+  --color-gfs-danger-50: #fff1f2;
+  --color-gfs-danger-100: #ffe4e6;
+  --color-gfs-danger-300: #fda4af;
+  --color-gfs-danger-500: #f43f5e;
+  --color-gfs-danger-600: #e11d48;
+  --color-gfs-danger-700: #be123c;
+  --color-gfs-danger-800: #9f1239;
+
+  --color-gfs-canvas: #f7f8fa;
+  --color-gfs-surface: #ffffff;
+  --color-gfs-ink-500: #64748b;
+  --color-gfs-ink-700: #334155;
+  --color-gfs-ink-800: #1e293b;
+  --color-gfs-ink-900: #0f172a;
+
+  --shadow-gfs-card: 0 1px 2px rgb(15 23 42 / 5%), 0 8px 24px -12px rgb(15 23 42 / 12%);
+  --shadow-gfs-pop: 0 4px 8px -2px rgb(15 23 42 / 8%), 0 16px 40px -12px rgb(15 23 42 / 16%);
+}
