@@ -80,7 +80,7 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
                     pathname.startsWith(href) && ["/", undefined].includes(pathname[href.length])
                   const Icon = NAV_ICON_BY_SLUG[entity.slug]
                   const linkClassName = cn(
-                    "relative flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-white/70 transition-colors",
+                    "relative flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-white/70 no-underline transition-colors",
                     isActive ? "bg-white/10 text-white" : "hover:bg-white/5 hover:text-white",
                   )
                   const content = (

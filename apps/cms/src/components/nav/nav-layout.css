@@ -12,12 +12,18 @@
  * or hide. `.template-default`/`.template-default--nav-hydrated` are
  * Payload's own ancestor classes; we don't own that JSX, so this can't be
  * expressed as a scannable Tailwind utility class token and has to stay
- * plain CSS.
+ * plain CSS. Payload scopes its own version of this to <=1440px (the same
+ * breakpoint where its grid switches to the collapsible-drawer mode) — this
+ * must match exactly, or these two-class selectors (higher specificity than
+ * a plain `.flex` utility) permanently pin `display` on every viewport and
+ * break the sidebar's flex layout everywhere, not just on small screens.
  */
-.template-default .gf-sidebar {
-  display: none;
-}
+@media (max-width: 1440px) {
+  .template-default .gf-sidebar {
+    display: none;
+  }
 
-.template-default--nav-hydrated .gf-sidebar {
-  display: unset;
+  .template-default--nav-hydrated .gf-sidebar {
+    display: unset;
+  }
 }
