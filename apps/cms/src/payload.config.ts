@@ -54,6 +54,7 @@ export default buildConfig({
         Icon: "/components/branding/GeoIcon#GeoIcon",
         Logo: "/components/branding/GeoLogo#GeoLogo",
       },
+      Nav: "/components/nav/Nav#Nav",
     },
     // 不依赖外部 Gravatar 服务（测试/生产网络不可达，导致管理端页面 console error 与请求超时）
     avatar: "default",

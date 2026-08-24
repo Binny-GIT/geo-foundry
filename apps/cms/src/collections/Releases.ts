@@ -13,6 +13,7 @@ export const Releases = {
   timestamps: true,
   admin: {
     defaultColumns: ["releaseId", "state", "site", "tenant"],
+    group: "Quality & Release",
     useAsTitle: "releaseId",
   },
   access: collectionAccess(CMS_RESOURCE.RELEASES),

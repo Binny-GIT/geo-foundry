@@ -14,6 +14,7 @@ export const QualityAssessments = {
   slug: "quality-assessments",
   admin: {
     defaultColumns: ["state", "edition", "inputHash"],
+    group: "Quality & Release",
     useAsTitle: "inputHash",
   },
   access: collectionAccess(CMS_RESOURCE.ASSESSMENTS),

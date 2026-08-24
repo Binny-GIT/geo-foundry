@@ -154,6 +154,7 @@ const ensureTenantConsistency: CollectionBeforeChangeHook = async ({ data, req, 
 export const ContentEditions = {
   slug: "content-editions",
   admin: {
+    group: "Content",
     useAsTitle: "title",
   },
   access: collectionAccess(CMS_RESOURCE.EDITIONS),

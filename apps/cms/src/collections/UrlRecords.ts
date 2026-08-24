@@ -14,6 +14,7 @@ export const UrlRecords = {
   slug: "url-records",
   admin: {
     defaultColumns: ["pathname", "locale", "state"],
+    group: "Content",
     useAsTitle: "pathname",
   },
   access: collectionAccess(CMS_RESOURCE.URL_RECORDS),

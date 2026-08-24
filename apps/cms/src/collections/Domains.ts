@@ -49,6 +49,7 @@ const ensureSiteTenantMatches: CollectionBeforeChangeHook = async ({ data, req }
 export const Domains = {
   slug: "domains",
   admin: {
+    group: "Sites & Domains",
     useAsTitle: "hostname",
   },
   access: collectionAccess(CMS_RESOURCE.DOMAINS),

@@ -9,6 +9,7 @@ import { tenantField } from "./shared/tenant-field"
 export const Users = {
   slug: "users",
   admin: {
+    group: "Access",
     useAsTitle: "email",
   },
   auth: {

@@ -103,6 +103,7 @@ const withMediaPath = (data: Record<string, unknown>): Record<string, unknown> =
 export const Media = {
   slug: "media",
   admin: {
+    group: "Content",
     useAsTitle: "filename",
   },
   access: collectionAccess(CMS_RESOURCE.MEDIA),

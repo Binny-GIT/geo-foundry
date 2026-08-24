@@ -16,6 +16,7 @@ export const Operations = {
   timestamps: true,
   admin: {
     defaultColumns: ["operationType", "state", "attempt", "tenant"],
+    group: "Quality & Release",
     useAsTitle: "operationId",
   },
   access: collectionAccess(CMS_RESOURCE.OPERATIONS),

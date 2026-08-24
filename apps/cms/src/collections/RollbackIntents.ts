@@ -8,7 +8,10 @@ import { tenantField } from "./shared/tenant-field"
 export const RollbackIntents = {
   slug: "rollback-intents",
   timestamps: true,
-  admin: { defaultColumns: ["intentId", "site", "targetReleaseId", "consumedAt"] },
+  admin: {
+    defaultColumns: ["intentId", "site", "targetReleaseId", "consumedAt"],
+    group: "Quality & Release",
+  },
   access: collectionAccess(CMS_RESOURCE.RELEASES),
   fields: [
     { name: "intentId", type: "text", required: true, unique: true },

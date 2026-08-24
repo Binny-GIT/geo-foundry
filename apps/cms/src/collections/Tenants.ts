@@ -6,6 +6,7 @@ import { CMS_RESOURCE } from "../access/policy"
 export const Tenants = {
   slug: "tenants",
   admin: {
+    group: "Access",
     useAsTitle: "name",
   },
   access: collectionAccess(CMS_RESOURCE.TENANTS),

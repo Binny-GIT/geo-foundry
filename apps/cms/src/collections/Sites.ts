@@ -18,6 +18,7 @@ const validateTimezoneField = (value: unknown): true | string => {
 export const Sites = {
   slug: "sites",
   admin: {
+    group: "Sites & Domains",
     useAsTitle: "name",
   },
   access: collectionAccess(CMS_RESOURCE.SITES),

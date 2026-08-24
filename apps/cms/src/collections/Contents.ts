@@ -7,6 +7,7 @@ import { tenantField } from "./shared/tenant-field"
 export const Contents = {
   slug: "contents",
   admin: {
+    group: "Content",
     useAsTitle: "topic",
   },
   access: collectionAccess(CMS_RESOURCE.CONTENTS),
