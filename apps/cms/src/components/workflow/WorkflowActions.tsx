@@ -1,10 +1,11 @@
 "use client"
 
-import { toast, useAuth, useDocumentInfo, useFormFields } from "@payloadcms/ui"
+import { toast, useAuth, useDocumentInfo, useFormFields, useTranslation } from "@payloadcms/ui"
 import { useRouter } from "next/navigation"
 import type { UIFieldClientProps } from "payload"
 import { useState } from "react"
 
+import { uiLangOf } from "../i18n/ui-lang"
 import { Badge } from "../ui/Badge"
 import {
   isWorkflowStatus,
@@ -13,20 +14,27 @@ import {
   type WorkflowAction,
 } from "./workflow-actions-model"
 
-const messageFor = (code: unknown): string => {
-  switch (code) {
-    case "EDITION_WORKFLOW_ASSESSMENT_REQUIRED":
-    case "EDITION_WORKFLOW_ASSESSMENT_NOT_PASSED":
-      return "需要先获得一次通过的质量评估，才能进行此操作。"
-    case "EDITION_WORKFLOW_STALE":
-      return "该版本已在别处发生变化，请刷新后重试。"
-    case "EDITION_WORKFLOW_NOT_COMPILED":
-      return "该版本尚未编译。"
-    case "EDITION_WORKFLOW_PUBLISHER_REQUIRED":
-      return "只有发布者角色可以请求发布。"
-    default:
-      return "该工作流操作未能完成。"
-  }
+const MESSAGE = {
+  en: {
+    assessment: "A passed quality assessment is required before this action.",
+    default: "This workflow action did not complete.",
+    notCompiled: "This edition has not been compiled.",
+    publisherRequired: "Only the publisher role may request publishing.",
+    stale: "This edition changed elsewhere — refresh and retry.",
+    draftCreated: "New draft created.",
+    publishSubmitted: "Publish request submitted; it will complete in the background.",
+    transitioned: (status: string) => `Edition moved to ${status}.`,
+  },
+  zh: {
+    assessment: "需要先获得一次通过的质量评估，才能进行此操作。",
+    default: "该工作流操作未能完成。",
+    notCompiled: "该版本尚未编译。",
+    publisherRequired: "只有发布者角色可以请求发布。",
+    stale: "该版本已在别处发生变化，请刷新后重试。",
+    draftCreated: "已创建新草稿。",
+    publishSubmitted: "已提交发布请求，将在后台完成。",
+    transitioned: (status: string) => `版本已流转至 ${status}。`,
+  },
 }
 
 /**
@@ -37,14 +45,33 @@ const messageFor = (code: unknown): string => {
 export const WorkflowActions = (_: UIFieldClientProps) => {
   const { id } = useDocumentInfo()
   const { user } = useAuth()
+  const { i18n } = useTranslation()
   const router = useRouter()
   const statusValue = useFormFields(([fields]) => fields["workflowStatus"]?.value)
   const [pending, setPending] = useState<string | null>(null)
+  const lang = uiLangOf(i18n.language)
+  const M = MESSAGE[lang]
 
   if (id === undefined || id === null || !isWorkflowStatus(statusValue)) return null
 
-  const actions = workflowActionsFor(user?.["role"], statusValue)
+  const actions = workflowActionsFor(user?.["role"], statusValue, i18n.language)
   if (actions.length === 0) return null
+
+  const messageFor = (code: unknown): string => {
+    switch (code) {
+      case "EDITION_WORKFLOW_ASSESSMENT_REQUIRED":
+      case "EDITION_WORKFLOW_ASSESSMENT_NOT_PASSED":
+        return M.assessment
+      case "EDITION_WORKFLOW_STALE":
+        return M.stale
+      case "EDITION_WORKFLOW_NOT_COMPILED":
+        return M.notCompiled
+      case "EDITION_WORKFLOW_PUBLISHER_REQUIRED":
+        return M.publisherRequired
+      default:
+        return M.default
+    }
+  }
 
   const run = async (action: WorkflowAction) => {
     setPending(action.label)
@@ -69,14 +96,14 @@ export const WorkflowActions = (_: UIFieldClientProps) => {
       if (!response.ok) throw new Error(messageFor(result.error?.code))
       toast.success(
         action.type === "draft-from-published"
-          ? "已创建新草稿。"
+          ? M.draftCreated
           : action.type === "publish-operation"
-            ? "已提交发布请求，将在后台完成。"
-            : `版本已流转至 ${String(result.workflowStatus ?? action.target)}。`,
+            ? M.publishSubmitted
+            : M.transitioned(String(result.workflowStatus ?? action.target)),
       )
       router.refresh()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "该工作流操作未能完成。")
+      toast.error(error instanceof Error ? error.message : M.default)
     } finally {
       setPending(null)
     }
@@ -89,10 +116,12 @@ export const WorkflowActions = (_: UIFieldClientProps) => {
     >
       <div>
         <p className="m-0 mb-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-[var(--gf-accent-700)]">
-          工作流
+          {lang === "en" ? "Workflow" : "工作流"}
         </p>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm text-[var(--theme-elevation-600)]">当前状态</span>
+          <span className="text-sm text-[var(--theme-elevation-600)]">
+            {lang === "en" ? "Current state" : "当前状态"}
+          </span>
           <Badge tone={WORKFLOW_TONE[statusValue]}>{statusValue}</Badge>
         </div>
       </div>
@@ -109,7 +138,7 @@ export const WorkflowActions = (_: UIFieldClientProps) => {
             onClick={() => void run(action)}
             type="button"
           >
-            {pending === action.label ? "处理中…" : action.label}
+            {pending === action.label ? (lang === "en" ? "Working…" : "处理中…") : action.label}
           </button>
         ))}
       </div>
