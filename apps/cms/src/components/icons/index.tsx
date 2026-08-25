@@ -187,6 +187,13 @@ export const HelpCircleIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => 
   </svg>
 )
 
+/** Dropdown affordance. */
+export const ChevronDownIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <path d="m6 9 6 6 6-6" />
+  </svg>
+)
+
 /**
  * One nav icon per admin sidebar entry, keyed by collection slug. `sites`
  * and `domains` intentionally share GlobeIcon — a domain is a routing

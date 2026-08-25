@@ -10,12 +10,25 @@ import { formatAdminURL } from "payload/shared"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 
 import { GeoIcon } from "../branding/GeoIcon"
-import { LayoutGridIcon, LogOutIcon, MenuIcon, NAV_ICON_BY_SLUG, XIcon } from "../icons"
+import {
+  ChevronDownIcon,
+  LayoutGridIcon,
+  LogOutIcon,
+  MenuIcon,
+  NAV_ICON_BY_SLUG,
+  XIcon,
+} from "../icons"
 
 type NavLinksProps = {
   readonly groups: readonly NavGroupType[]
@@ -30,6 +43,12 @@ const UI_LANGUAGES = ["zh", "en"] as const
 const LANG_LABEL: Record<(typeof UI_LANGUAGES)[number], string> = {
   en: "EN",
   zh: "中",
+}
+
+/** Native names shown inside the dropdown menu. */
+const LANG_NATIVE_LABEL: Record<(typeof UI_LANGUAGES)[number], string> = {
+  en: "English",
+  zh: "中文",
 }
 
 /*
@@ -242,31 +261,39 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
               )}
             </div>
             {/*
-             * UI language toggle. Payload resolves the admin language from
+             * UI language dropdown. Payload resolves the admin language from
              * the `payload-lng` cookie (> Accept-Language > fallback); the
              * official switchLanguage server action writes that cookie and
-             * refreshes the tree, so this button is the whole mechanism.
+             * refreshes the tree, so selecting an item is the whole
+             * mechanism. Opens upward — the toggle lives in the sidebar
+             * footer, there is no room below it.
              */}
-            <div className="flex shrink-0 items-center gap-0.5 rounded-full bg-white/10 p-0.5">
-              {UI_LANGUAGES.map((lang) => (
-                <button
-                  className={
-                    lang === currentLang
-                      ? "rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-gfs-ink-900"
-                      : "rounded-full px-2 py-0.5 text-[11px] font-medium text-white/50 transition-colors hover:text-white"
-                  }
-                  key={lang}
-                  onClick={() => {
-                    if (lang !== currentLang) {
-                      void switchLanguage?.(lang)
-                    }
-                  }}
-                  type="button"
-                >
-                  {LANG_LABEL[lang]}
-                </button>
-              ))}
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                aria-label={t("general:language")}
+                className="flex shrink-0 items-center gap-1 rounded-full bg-white/10 px-2.5 py-1.5 text-[11px] font-bold text-white outline-none transition-colors hover:bg-white/20"
+              >
+                {LANG_LABEL[currentLang]}
+                <ChevronDownIcon size={12} strokeWidth={2} />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" side="top">
+                {UI_LANGUAGES.map((lang) => (
+                  <DropdownMenuItem
+                    key={lang}
+                    onSelect={() => {
+                      if (lang !== currentLang) {
+                        void switchLanguage?.(lang)
+                      }
+                    }}
+                  >
+                    <span className="w-4 text-gfs-accent-600">
+                      {lang === currentLang ? "✓" : ""}
+                    </span>
+                    {LANG_NATIVE_LABEL[lang]}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button asChild aria-label={t("authentication:logOut")} size="icon" variant="ghost">
               <Link href={logoutHref} prefetch={false} title={t("authentication:logOut")}>
                 <LogOutIcon size={16} strokeWidth={1.8} />
