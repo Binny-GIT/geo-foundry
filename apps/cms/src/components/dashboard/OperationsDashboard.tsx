@@ -40,7 +40,6 @@ type ReadableRole = Exclude<CmsRole, "content-service">
 
 type Panel = {
   readonly count: number
-  readonly empty: string
   readonly href: string
   readonly Icon: typeof SearchIcon
   readonly items: readonly RecordLike[]
@@ -200,9 +199,11 @@ const queuePanel = (panel: Panel, sites: Map<string, RecordLike>) => (
         查看队列 →
       </a>
     </div>
-    {panel.items.length === 0 ? (
-      <p className="m-0 text-sm text-[var(--theme-elevation-600)]">{panel.empty}</p>
-    ) : (
+    {/*
+     * No empty-state copy: the header's "在您的权限范围内 · 0 条" already
+     * says there's nothing to act on (user direction 2026-08-24).
+     */}
+    {panel.items.length > 0 && (
       <ul className="m-0 flex list-none flex-col p-0">
         {panel.items.map((item) => {
           const id = idOf(item)
@@ -316,7 +317,6 @@ export const OperationsDashboard = async ({ payload, user }: DashboardProps) => 
     {
       Icon: SearchIcon,
       count: editionCounts.review,
-      empty: "没有待审核的内容。",
       href: "/admin/collections/content-editions?where[workflowStatus][equals]=review",
       items: editions.filter((edition) => edition["workflowStatus"] === "review").slice(0, 3),
       label: "审核队列",
@@ -325,7 +325,6 @@ export const OperationsDashboard = async ({ payload, user }: DashboardProps) => 
     {
       Icon: SendIcon,
       count: editionCounts.compiled,
-      empty: "没有等待发布的已编译版本。",
       href: "/admin/collections/content-editions?where[workflowStatus][equals]=compiled",
       items: editions.filter((edition) => edition["workflowStatus"] === "compiled").slice(0, 3),
       label: "待发布",
@@ -334,7 +333,6 @@ export const OperationsDashboard = async ({ payload, user }: DashboardProps) => 
     {
       Icon: ShieldCheckIcon,
       count: assessments.length,
-      empty: "没有失败或错误的质量证据记录。",
       href: "/admin/collections/quality-assessments",
       items: assessments.slice(0, 3),
       label: "质量证据待处理",
@@ -345,7 +343,6 @@ export const OperationsDashboard = async ({ payload, user }: DashboardProps) => 
           {
             Icon: AlertTriangleIcon,
             count: failedOperations.length,
-            empty: "没有失败的操作记录。",
             href: "/admin/collections/operations?where[state][equals]=failed",
             items: failedOperations.slice(0, 3),
             label: "失败的操作",

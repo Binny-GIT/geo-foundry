@@ -32,6 +32,45 @@ const LANG_LABEL: Record<(typeof UI_LANGUAGES)[number], string> = {
   zh: "中",
 }
 
+/*
+ * Sidebar-local zh dictionary. Payload collection labels and admin.group
+ * strings are plain config-level English — they don't flow through the
+ * i18n translation pipeline (only Payload's own chrome does), so the
+ * sidebar translates them here until the collections declare per-language
+ * labels themselves. Keyed by slug / raw group string; unknown keys fall
+ * back to the configured English label.
+ */
+const ZH_GROUP_LABEL: Readonly<Record<string, string>> = {
+  Access: "访问控制",
+  "Sites & Domains": "站点与域名",
+  Content: "内容",
+  "Quality & Release": "质量与发布",
+}
+
+const ZH_ENTITY_LABEL: Readonly<Record<string, string>> = {
+  "content-editions": "内容版本",
+  contents: "内容",
+  domains: "域名",
+  media: "媒体库",
+  operations: "操作记录",
+  "quality-assessments": "质量评估",
+  releases: "发布版本",
+  "rollback-intents": "回滚意图",
+  sites: "站点",
+  tenants: "租户",
+  "url-records": "URL 记录",
+  users: "用户",
+}
+
+const ZH_ROLE_LABEL: Readonly<Record<string, string>> = {
+  "content-service": "内容服务",
+  editor: "编辑",
+  publisher: "发布",
+  reviewer: "审阅",
+  "super-admin": "超级管理员",
+  "tenant-admin": "租户管理员",
+}
+
 export const NavLinks = ({ groups }: NavLinksProps) => {
   const { hydrated, navOpen, navRef, setNavOpen, shouldAnimate } = useNav()
   const pathname = usePathname()
@@ -44,6 +83,8 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
   const role = typeof user?.["role"] === "string" ? user["role"] : null
   const logoutHref = formatAdminURL({ adminRoute, path: config.admin.routes.logout })
   const currentLang = UI_LANGUAGES.find((lang) => lang === i18n.language) ?? "zh"
+  const isZH = currentLang === "zh"
+  const roleLabel = isZH && role !== null ? (ZH_ROLE_LABEL[role] ?? role) : role
 
   const linkClassName = (isActive: boolean) =>
     cn(
@@ -127,7 +168,7 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
               {groups.map((group) => (
                 <div className="flex flex-col gap-1" key={group.label}>
                   <div className="px-3 text-[11px] font-semibold uppercase tracking-wider text-white/40">
-                    {group.label}
+                    {isZH ? (ZH_GROUP_LABEL[group.label] ?? group.label) : group.label}
                   </div>
                   <div className="flex flex-col gap-0.5">
                     {group.entities.map((entity) => {
@@ -151,7 +192,12 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
                             <span className="absolute inset-y-1 left-0 w-[3px] rounded-full bg-gfs-accent-500" />
                           )}
                           {Icon !== undefined && <Icon size={17} strokeWidth={1.8} />}
-                          <span className="truncate">{getTranslation(entity.label, i18n)}</span>
+                          <span className="truncate">
+                            {isZH
+                              ? (ZH_ENTITY_LABEL[entity.slug] ??
+                                getTranslation(entity.label, i18n))
+                              : getTranslation(entity.label, i18n)}
+                          </span>
                         </>
                       )
                       if (pathname === href) {
@@ -191,8 +237,8 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
               <strong className="truncate text-xs font-semibold text-white">
                 {email ?? "Account"}
               </strong>
-              {role !== null && (
-                <span className="truncate text-[11px] text-white/50 capitalize">{role}</span>
+              {roleLabel !== null && (
+                <span className="truncate text-[11px] text-white/50">{roleLabel}</span>
               )}
             </div>
             {/*
@@ -206,7 +252,7 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
                 <button
                   className={
                     lang === currentLang
-                      ? "rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-bold text-white"
+                      ? "rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-gfs-ink-900"
                       : "rounded-full px-2 py-0.5 text-[11px] font-medium text-white/50 transition-colors hover:text-white"
                   }
                   key={lang}
