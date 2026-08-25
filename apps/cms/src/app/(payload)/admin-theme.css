@@ -434,6 +434,24 @@ body {
   min-block-size: var(--gf-control-height);
 }
 
+@media (max-width: 600px) {
+  .list-header__title-actions {
+    left: var(--gf-space-200);
+    right: var(--gf-space-200);
+    top: 80px;
+  }
+
+  .list-header__title-actions .btn--style-pill {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .list-controls {
+    min-block-size: 112px;
+  }
+}
+
 /* Cell links read as quiet data, not shouty hyperlinks: lighter than body
    text, never underlined; hover picks the accent instead. */
 .table tbody a,
