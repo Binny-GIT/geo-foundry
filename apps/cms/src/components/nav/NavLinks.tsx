@@ -49,7 +49,7 @@ const ZH_GROUP_LABEL: Readonly<Record<string, string>> = {
 
 const ZH_ENTITY_LABEL: Readonly<Record<string, string>> = {
   "content-editions": "内容版本",
-  contents: "内容",
+  contents: "内容条目",
   domains: "域名",
   media: "媒体库",
   operations: "操作记录",
