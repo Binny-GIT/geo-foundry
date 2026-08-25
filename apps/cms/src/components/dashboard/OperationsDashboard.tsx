@@ -1,9 +1,9 @@
+import type { ComponentType, CSSProperties, ReactNode } from "react"
 import type { Payload, Where } from "payload"
 
 import { CMS_ROLE, type CmsRole } from "../../access/roles"
 import { uiLangOf, type HasLanguage } from "../i18n/ui-lang"
-import { Badge } from "../ui/Badge"
-import { IconBadge } from "../ui/IconBadge"
+import { ActionLink, Badge, IconBadge, type ActionLinkVariant, type Tone } from "../ui"
 import {
   AlertTriangleIcon,
   CheckCircleIcon,
@@ -19,19 +19,28 @@ import {
 } from "../icons"
 import {
   formatDate,
-  recordsOf,
   groupBySite,
   idOf,
+  operationHealth,
+  OPERATION_STATES,
+  OPERATION_TYPES,
+  recordsOf,
   shortHash,
+  siteReadiness,
+  sortSiteWorkload,
   stringOf,
   summarizeDomains,
   WORKFLOW_STATES,
+  workflowBottleneck,
   workflowCounts,
+  type DashboardLanguage,
+  type OperationState,
   type RecordLike,
+  type SiteReadiness,
+  type WorkflowState,
 } from "./operations-model"
 
 type DashboardProps = {
-  /** Passed by Payload's dashboard view (ServerProps slice); defaults to zh. */
   readonly i18n?: HasLanguage
   readonly payload: Payload
   readonly user?: {
@@ -41,13 +50,22 @@ type DashboardProps = {
 
 type ReadableRole = Exclude<CmsRole, "content-service">
 
-type Panel = {
+type DashboardText = (typeof TEXT)["zh"]
+type Icon = ComponentType<{ readonly size?: number; readonly strokeWidth?: number }>
+
+type AttentionItem = {
+  readonly href: string
+  readonly meta: string
+  readonly title: string
+}
+
+type AttentionPanel = {
   readonly count: number
   readonly href: string
-  readonly Icon: typeof SearchIcon
-  readonly items: readonly RecordLike[]
+  readonly Icon: Icon
+  readonly items: readonly AttentionItem[]
   readonly label: string
-  readonly tone: "danger" | "neutral" | "warning"
+  readonly tone: Tone
 }
 
 const humanRoles = new Set<ReadableRole>([
@@ -71,24 +89,7 @@ const rolesWithReleases = new Set<CmsRole>([
   CMS_ROLE.TENANT_ADMIN,
 ])
 
-const ROLE_LABEL = {
-  en: {
-    editor: "Content production queue",
-    publisher: "Publishing control plane",
-    reviewer: "Review & evidence queue",
-    "super-admin": "Cross-tenant global overview",
-    "tenant-admin": "Tenant operations overview",
-  } satisfies Record<ReadableRole, string>,
-  zh: {
-    editor: "内容生产队列",
-    publisher: "发布控制面",
-    reviewer: "审核与证据队列",
-    "super-admin": "跨租户全局总览",
-    "tenant-admin": "租户运营总览",
-  } satisfies Record<ReadableRole, string>,
-}
-
-const WORKFLOW_STATE_LABEL = {
+const WORKFLOW_STATE_LABEL: Record<DashboardLanguage, Record<WorkflowState, string>> = {
   en: {
     approved: "Approved",
     archived: "Archived",
@@ -109,145 +110,192 @@ const WORKFLOW_STATE_LABEL = {
   },
 }
 
-const SITE_STATUS_LABEL: Record<"en" | "zh", Record<string, string>> = {
-  en: { active: "Active", disabled: "Disabled" },
-  zh: { active: "启用", disabled: "停用" },
+const OPERATION_TYPE_LABEL: Record<DashboardLanguage, Record<string, string>> = {
+  en: { evaluate: "Evaluate", generate: "Generate", publish: "Publish", rollback: "Rollback" },
+  zh: { evaluate: "质量评估", generate: "内容生成", publish: "发布", rollback: "回滚" },
+}
+
+const OPERATION_STATE_LABEL: Record<DashboardLanguage, Record<OperationState, string>> = {
+  en: {
+    cancelled: "Cancelled",
+    failed: "Failed",
+    queued: "Queued",
+    running: "Running",
+    succeeded: "Succeeded",
+  },
+  zh: {
+    cancelled: "已取消",
+    failed: "失败",
+    queued: "排队中",
+    running: "进行中",
+    succeeded: "成功",
+  },
+}
+
+const READINESS_LABEL: Record<DashboardLanguage, Record<SiteReadiness, string>> = {
+  en: {
+    configure: "Needs domain setup",
+    disabled: "Disabled",
+    publish: "Needs first release",
+    ready: "Configuration ready",
+    restricted: "Release state restricted",
+  },
+  zh: {
+    configure: "待配置主域名",
+    disabled: "已停用",
+    publish: "待首次发布",
+    ready: "配置就绪",
+    restricted: "发布状态受限",
+  },
+}
+
+const ROLE_LABEL: Record<DashboardLanguage, Record<ReadableRole, string>> = {
+  en: {
+    editor: "Content production queue",
+    publisher: "Publishing control plane",
+    reviewer: "Review & evidence queue",
+    "super-admin": "Cross-tenant global overview",
+    "tenant-admin": "Tenant operations overview",
+  },
+  zh: {
+    editor: "内容生产队列",
+    publisher: "发布控制面",
+    reviewer: "审核与证据队列",
+    "super-admin": "跨租户全局总览",
+    "tenant-admin": "租户运营总览",
+  },
 }
 
 const TEXT = {
   en: {
+    activity: "Recent records",
+    activityHint: "Latest records in your visible scope",
     allTenants: "All tenants",
+    attentionCount: (count: number) => `${count} items need attention`,
+    attentionHint: "Ordered by operational impact",
+    bottleneck: (label: string, count: number) => `Current bottleneck: ${label} · ${count}`,
+    configurationReadiness: "Configuration readiness",
+    configurationReadinessHint: "Domain and current-release proxy; not uptime monitoring",
+    configuredSites: (ready: number, total: number) => `${ready} / ${total} ready`,
     currentReleases: "Current releases",
     currentTenant: "Current tenant",
-    denialHeadline: "This identity cannot use the operations console",
     denialBody:
       "Service identities should use the internal integration API instead of the human console.",
-    domainLabel: "Domain",
-    domainsToConfigure: "Domains to configure",
-    domainsToConfigureNote: "No canonical hostname",
-    domainsUnset: "Not configured",
+    denialHeadline: "This identity cannot use the operations console",
+    domain: "Domain",
+    domainRisk: "Domain configuration",
+    domainsUnset: "No active canonical domain",
     failedOperations: "Failed operations",
     kicker: "Geo Foundry",
+    latestRecords: "Recent records",
     liveScope: "Live · access-scoped",
     needsAttention: "Needs attention",
-    needsAttentionHint: "work awaiting a decision or follow-up",
     noCurrentReleases: "No current releases in your scope.",
     noOperations: "No operations in your scope.",
     noPendingRollbacks: "No approved rollback intents pending.",
-    openSitesWorkspace: "Open sites workspace →",
-    pageHeading: "Operations console",
+    noSites: "No sites are visible in your scope.",
+    openSites: "Open sites workspace",
+    operationsHealth: "Operations health",
+    operationsHealthHint: "Visible-record snapshot, not a time-window success rate",
+    pageHeading: "Operations command center",
     publisherRequired: "Requires publisher role",
     qualityEvidence: "Quality evidence",
     readyToPublish: "Ready to publish",
-    readyToPublishNote: "Compiled editions",
-    recentOperations: "Recent operations",
-    releaseLabel: "Release",
-    releaseLedgerNote: "Verified release ledger",
-    releaseHistoryLink: "Release ledger →",
+    readinessCoverage: (shown: number, total: number) =>
+      `Showing ${shown} of ${total} visible sites`,
+    release: "Release",
+    releaseLedger: "Release ledger",
     releaseNone: "None",
-    releasesCard: "Current releases",
     restricted: "Restricted",
-    restrictedRoleView: "Restricted view",
     reviewQueue: "Review queue",
-    rollbackCard: "Pending rollbacks",
-    rollbackIntentsLink: "Rollback intents →",
+    rollback: "Pending rollbacks",
     rollbackTarget: "target",
     scopeCount: (count: number) => `In your scope · ${count} item${count === 1 ? "" : "s"}`,
-    seeAllEditions: "View all editions →",
-    seeOperations: "Operations ledger →",
-    seeQueue: "View queue →",
-    siteFleet: "Site fleet",
-    siteFleetHint: "configuration & release status",
+    seeAllEditions: "View all editions",
+    seeAllSites: "View all sites",
+    seeOperations: "Operations ledger",
+    seeQueue: "Open queue",
+    siteFleet: "Site workload",
+    siteFleetHint: "Prioritized by configuration risk and actionable work",
+    sites: "Sites",
     sitesActive: (count: number) => `${count} active`,
-    sitesCount: "Sites",
-    sitesNote: "Visible to your role",
+    summaryActive: "Active sites",
+    summaryAttention: "At risk",
+    summaryCompiled: "Ready to publish",
+    summaryReview: "In review",
+    takeAction: "Take action",
     unknownSite: "Unknown site",
+    workload: "Workload",
+    workloadStates: "Review · Approved · Compiled · Published",
     workflowPipeline: "Workflow pipeline",
     workflowTooltip:
-      "Seven states from draft to published; click any state to see the matching content editions.",
-    workload: "Workload",
-    workloadLine: (c: { compiled: number; review: number }) =>
-      `${c.review} in review · ${c.compiled} compiled`,
-    attempt: (n: string) => `attempt ${n}`,
-    quickCreateContent: "Create content",
-    quickUploadMedia: "Upload media",
-    quickOpenReviewQueue: "Open review queue",
-    quickQualityEvidence: "Quality evidence",
-    quickReadyToPublish: "Ready to publish",
-    quickReleaseLedger: "Release ledger",
-    quickSitesDomains: "Sites & domains",
-    quickTenantUsers: "Tenant users",
-    quickAllSites: "All sites",
-    quickAllOperations: "All operations",
-    quickEditions: "Editions",
+      "Click a state to open the matching content editions. The highlighted bottleneck is the largest actionable queue.",
   },
   zh: {
+    activity: "最近记录",
+    activityHint: "您可见范围内的最新记录",
     allTenants: "全部租户",
+    attentionCount: (count: number) => `${count} 项需要处理`,
+    attentionHint: "按运营影响程度排序",
+    bottleneck: (label: string, count: number) => `当前瓶颈：${label} · ${count}`,
+    configurationReadiness: "配置就绪度",
+    configurationReadinessHint: "主域名与当前发布版本的代理指标，不代表真实可用性监控",
+    configuredSites: (ready: number, total: number) => `${ready} / ${total} 已就绪`,
     currentReleases: "当前发布版本",
     currentTenant: "当前租户",
-    denialHeadline: "此身份不可使用运营控制台",
     denialBody: "服务身份请使用内部集成接口，而非人工控制台。",
-    domainLabel: "域名",
-    domainsToConfigure: "待配置域名",
-    domainsToConfigureNote: "无有效主域名",
-    domainsUnset: "待配置",
+    denialHeadline: "此身份不可使用运营控制台",
+    domain: "域名",
+    domainRisk: "域名配置",
+    domainsUnset: "无有效主域名",
     failedOperations: "失败的操作",
     kicker: "Geo Foundry",
+    latestRecords: "最近记录",
     liveScope: "实时 · 按权限范围",
     needsAttention: "待处理事项",
-    needsAttentionHint: "需要决策或跟进的工作",
     noCurrentReleases: "您的权限范围内暂无当前发布版本。",
     noOperations: "您的权限范围内暂无操作记录。",
     noPendingRollbacks: "没有待处理的已批准回滚意图。",
-    openSitesWorkspace: "打开站点工作区 →",
-    pageHeading: "运营控制台",
+    noSites: "您的权限范围内暂无站点。",
+    openSites: "打开站点工作区",
+    operationsHealth: "操作健康度",
+    operationsHealthHint: "可见记录快照，不代表固定时间窗口的成功率",
+    pageHeading: "运营指挥台",
     publisherRequired: "需要发布权限",
     qualityEvidence: "质量证据待处理",
     readyToPublish: "待发布",
-    readyToPublishNote: "已编译版本",
-    recentOperations: "最近操作",
-    releaseLabel: "发布版本",
-    releaseLedgerNote: "已验证发布台账",
-    releaseHistoryLink: "发布台账 →",
+    readinessCoverage: (shown: number, total: number) => `显示 ${shown} / ${total} 个可见站点`,
+    release: "发布版本",
+    releaseLedger: "发布台账",
     releaseNone: "暂无",
-    releasesCard: "当前发布版本",
     restricted: "受限",
-    restrictedRoleView: "受限运营视图",
     reviewQueue: "审核队列",
-    rollbackCard: "待处理回滚",
-    rollbackIntentsLink: "回滚意图 →",
+    rollback: "待处理回滚",
     rollbackTarget: "目标",
     scopeCount: (count: number) => `在您的权限范围内 · ${count} 条`,
-    seeAllEditions: "查看全部版本 →",
-    seeOperations: "操作台账 →",
-    seeQueue: "查看队列 →",
-    siteFleet: "站点概览",
-    siteFleetHint: "配置与发布状态",
+    seeAllEditions: "查看全部版本",
+    seeAllSites: "查看全部站点",
+    seeOperations: "操作台账",
+    seeQueue: "打开队列",
+    siteFleet: "站点工作负载",
+    siteFleetHint: "按配置风险和可处理工作优先排序",
+    sites: "站点",
     sitesActive: (count: number) => `${count} 个启用`,
-    sitesCount: "站点",
-    sitesNote: "您的角色可见范围",
+    summaryActive: "启用站点",
+    summaryAttention: "风险事项",
+    summaryCompiled: "待发布",
+    summaryReview: "待审核",
+    takeAction: "立即处理",
     unknownSite: "未知站点",
-    workflowPipeline: "工作流管线",
-    workflowTooltip: "内容从草稿到发布的七个流转状态，点击任意状态查看对应的内容版本列表。",
     workload: "工作量",
-    workloadLine: (c: { compiled: number; review: number }) =>
-      `${c.review} 待审核 · ${c.compiled} 已编译`,
-    attempt: (n: string) => `第 ${n} 次尝试`,
-    quickCreateContent: "创建内容",
-    quickUploadMedia: "上传媒体",
-    quickOpenReviewQueue: "打开审核队列",
-    quickQualityEvidence: "质量证据",
-    quickReadyToPublish: "待发布",
-    quickReleaseLedger: "发布台账",
-    quickSitesDomains: "站点与域名",
-    quickTenantUsers: "租户用户",
-    quickAllSites: "全部站点",
-    quickAllOperations: "全部操作",
-    quickEditions: "内容版本",
+    workloadStates: "审核中 · 已批准 · 已编译 · 已发布",
+    workflowPipeline: "工作流管线",
+    workflowTooltip: "点击任一状态可打开对应的内容版本。高亮瓶颈代表当前数量最多的可处理队列。",
   },
 }
 
-type DashboardText = (typeof TEXT)["zh"]
+const cardClass =
+  "rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] shadow-[var(--gf-shadow-surface)]"
 
 const safeFind = async (
   payload: Payload,
@@ -263,141 +311,240 @@ const safeFind = async (
     ...options,
   })
 
+const siteNameFor = (
+  site: unknown,
+  sites: ReadonlyMap<string, RecordLike>,
+  fallback: string,
+): string => {
+  const id = idOf(site)
+  return id === null ? fallback : stringOf(sites.get(id)?.["name"], fallback)
+}
+
 const itemLabel = (row: RecordLike, fallback: string): string =>
   stringOf(row["title"], stringOf(row["operationType"], stringOf(row["inputHash"], fallback)))
 
-const siteNameFor = (
-  site: unknown,
-  sites: Map<string, RecordLike>,
-  unknownSite: string,
-): string => {
-  const id = idOf(site)
-  return id === null ? unknownSite : stringOf(sites.get(id)?.["name"], unknownSite)
+const statusTone = (value: unknown): Tone => {
+  if (value === "failed" || value === "error") return "danger"
+  if (value === "queued" || value === "running" || value === "review" || value === "compiled")
+    return "warning"
+  if (value === "succeeded" || value === "current" || value === "published") return "success"
+  return "neutral"
 }
 
-const cardClass =
-  "rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] shadow-[var(--gf-shadow-surface)]"
-
-/**
- * Section heading: prominent title (big/bold/dark) with the explanatory
- * intro demoted to quiet gray — inline after the title when short, or
- * behind a help-icon tooltip when it would clutter the row.
- */
 const SectionHeading = ({
-  title,
+  action,
   hint,
+  title,
   tooltip,
 }: {
-  readonly title: string
+  readonly action?: ReactNode
   readonly hint?: string
+  readonly title: string
   readonly tooltip?: string
 }) => (
-  <div className="min-w-0">
-    <h2 className="m-0 flex flex-wrap items-baseline gap-x-2 text-lg font-bold tracking-tight text-[var(--theme-elevation-900)]">
-      {title}
-      {tooltip !== undefined && (
-        <span className="group relative inline-flex cursor-help py-0.5 align-baseline text-[var(--theme-elevation-400)]">
-          <HelpCircleIcon size={14} strokeWidth={1.9} />
-          <span className="pointer-events-none absolute top-full left-1/2 z-30 mt-1.5 w-56 -translate-x-1/2 rounded-lg bg-[var(--theme-elevation-900)] px-2.5 py-2 text-left text-xs font-normal leading-relaxed text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
-            {tooltip}
+  <div className="flex items-end justify-between gap-3">
+    <div className="min-w-0">
+      <h2 className="m-0 flex flex-wrap items-baseline gap-x-2 text-xl font-bold tracking-tight text-[var(--theme-elevation-900)]">
+        {title}
+        {tooltip !== undefined && (
+          <span className="group relative inline-flex cursor-help py-0.5 text-[var(--theme-elevation-400)]">
+            <HelpCircleIcon size={15} strokeWidth={1.9} />
+            <span className="pointer-events-none absolute top-full left-1/2 z-30 mt-2 w-64 -translate-x-1/2 rounded-lg bg-[var(--theme-elevation-900)] px-3 py-2 text-left text-xs font-normal leading-relaxed text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+              {tooltip}
+            </span>
           </span>
-        </span>
-      )}
+        )}
+      </h2>
       {hint !== undefined && (
-        <span className="text-xs font-normal text-[var(--theme-elevation-500)]">{hint}</span>
+        <p className="m-0 mt-1 text-sm text-[var(--theme-elevation-600)]">{hint}</p>
       )}
-    </h2>
+    </div>
+    {action}
   </div>
 )
 
-const metric = (
-  value: number | "Restricted",
-  label: string,
-  note: string,
-  t: DashboardText,
-  tone: "neutral" | "warning" = "neutral",
-) => (
-  <article
-    className={`${cardClass} flex flex-col gap-1 p-5 ${
-      tone === "warning" ? "border-l-[3px] border-l-[var(--theme-warning-500)]" : ""
-    }`}
-  >
-    {value === "Restricted" ? (
-      <Badge>{t.restricted}</Badge>
-    ) : (
-      <strong className="text-[28px] font-semibold leading-8 tracking-tight tabular-nums text-[var(--theme-text)]">
-        {value}
-      </strong>
-    )}
-    <span className="text-sm font-bold text-[var(--theme-text)]">{label}</span>
-    <small className="text-xs text-[var(--theme-elevation-600)]">{note}</small>
-  </article>
+const InlineAction = ({
+  href,
+  children,
+  variant = "secondary",
+}: {
+  readonly children: ReactNode
+  readonly href: string
+  readonly variant?: ActionLinkVariant
+}) => (
+  <ActionLink href={href} variant={variant}>
+    {children}
+  </ActionLink>
 )
 
-const queuePanel = (panel: Panel, sites: Map<string, RecordLike>, t: DashboardText) => (
-  <article className={`${cardClass} flex flex-col gap-4 p-5`}>
-    <div className="flex items-center gap-3">
+const AttentionCard = ({ panel }: { readonly panel: AttentionPanel }) => (
+  <article className={`${cardClass} flex min-h-[188px] flex-col gap-4 p-5`}>
+    <div className="flex items-start gap-3">
       <IconBadge tone={panel.count > 0 ? panel.tone : "neutral"}>
         <panel.Icon size={18} strokeWidth={1.9} />
       </IconBadge>
       <div className="min-w-0 flex-1">
-        <h3 className="text-sm font-bold text-[var(--theme-elevation-900)]">{panel.label}</h3>
-        <p className="text-xs text-[var(--theme-elevation-600)]">{t.scopeCount(panel.count)}</p>
+        <h3 className="m-0 text-sm font-bold text-[var(--theme-elevation-900)]">{panel.label}</h3>
+        <p className="m-0 mt-0.5 text-xs text-[var(--theme-elevation-600)]">{panel.count}</p>
       </div>
       <a
-        className="shrink-0 whitespace-nowrap text-xs font-bold text-[var(--gf-accent-700)] no-underline hover:underline"
+        className="shrink-0 text-xs font-bold text-[var(--gf-accent-700)] no-underline hover:underline"
         href={panel.href}
       >
-        {t.seeQueue}
+        {"→"}
       </a>
     </div>
-    {/*
-     * No empty-state copy: the header count already says there's nothing to
-     * act on (user direction 2026-08-24).
-     */}
     {panel.items.length > 0 && (
       <ul className="m-0 flex list-none flex-col p-0">
-        {panel.items.map((item) => {
-          const id = idOf(item)
-          const site = siteNameFor(item["site"], sites, t.unknownSite)
-          return (
-            <li
-              className="grid gap-0.5 border-t border-[var(--theme-elevation-100)] py-2.5 first:border-t-0 first:pt-0"
-              key={id ?? itemLabel(item, panel.label)}
+        {panel.items.map((item) => (
+          <li
+            className="border-t border-[var(--theme-elevation-100)] py-2 first:border-t-0 first:pt-0"
+            key={`${item.href}-${item.title}`}
+          >
+            <a
+              className="block truncate text-sm font-semibold text-[var(--theme-text)] no-underline hover:underline"
+              href={item.href}
             >
-              <a
-                className="truncate text-sm font-semibold text-[var(--theme-text)] no-underline hover:underline"
-                href={id === null ? panel.href : `${panel.href}/${id}`}
-              >
-                {itemLabel(item, panel.label)}
-              </a>
-              <span className="text-xs text-[var(--theme-elevation-600)]">
-                {site} · {formatDate(item["updatedAt"] ?? item["createdAt"] ?? item["lastStageAt"])}
-              </span>
-            </li>
-          )
-        })}
+              {item.title}
+            </a>
+            <span className="block truncate text-xs text-[var(--theme-elevation-600)]">
+              {item.meta}
+            </span>
+          </li>
+        ))}
       </ul>
     )}
   </article>
 )
 
-/**
- * Human operations dashboard. Every query deliberately runs through Payload
- * access control, so role permissions and tenant scope stay authoritative.
- */
+const WorkflowNode = ({
+  count,
+  label,
+  state,
+}: {
+  readonly count: number
+  readonly label: string
+  readonly state: WorkflowState
+}) => {
+  const actionable = state === "review" || state === "compiled"
+  const complete = state === "published" || state === "archived"
+  return (
+    <a
+      className={`group relative flex min-h-[104px] min-w-0 flex-1 flex-col justify-between rounded-xl border p-3.5 no-underline transition-transform hover:-translate-y-0.5 ${
+        actionable
+          ? "border-[var(--gf-accent-300)] bg-[var(--gf-tone-accent-bg)]"
+          : complete
+            ? "border-[var(--theme-elevation-150)] bg-[var(--theme-elevation-50)]"
+            : "border-[var(--gf-border)] bg-[var(--gf-surface)]"
+      }`}
+      href={`/admin/collections/content-editions?where[workflowStatus][equals]=${state}`}
+    >
+      <span className="text-xs font-semibold text-[var(--theme-elevation-600)]">{label}</span>
+      <strong className="mt-3 text-[30px] font-bold leading-none tracking-tight tabular-nums text-[var(--theme-text)]">
+        {count}
+      </strong>
+    </a>
+  )
+}
+
+const Donut = ({ ready, total }: { readonly ready: number; readonly total: number }) => {
+  const radius = 42
+  const circumference = 2 * Math.PI * radius
+  const dash = total === 0 ? 0 : (ready / total) * circumference
+  return (
+    <svg
+      aria-label={`${ready} of ${total}`}
+      className="h-36 w-36 shrink-0"
+      role="img"
+      viewBox="0 0 112 112"
+    >
+      <title>{`${ready} / ${total}`}</title>
+      <circle
+        cx="56"
+        cy="56"
+        fill="none"
+        r={radius}
+        stroke="var(--theme-elevation-150)"
+        strokeWidth="12"
+      />
+      <circle
+        cx="56"
+        cy="56"
+        fill="none"
+        r={radius}
+        stroke="var(--gf-tone-success-fg)"
+        strokeDasharray={`${dash} ${circumference - dash}`}
+        strokeLinecap="round"
+        strokeWidth="12"
+        transform="rotate(-90 56 56)"
+      />
+      <text
+        fill="var(--theme-text)"
+        fontSize="22"
+        fontWeight="700"
+        textAnchor="middle"
+        x="56"
+        y="54"
+      >
+        {ready}
+      </text>
+      <text fill="var(--theme-elevation-600)" fontSize="10" textAnchor="middle" x="56" y="70">
+        / {total}
+      </text>
+    </svg>
+  )
+}
+
+const segmentStyle = (value: number, total: number, color: string): CSSProperties => ({
+  background: color,
+  width: total === 0 ? "0%" : `${(value / total) * 100}%`,
+})
+
+const readinessTone: Record<SiteReadiness, Tone> = {
+  configure: "warning",
+  disabled: "neutral",
+  publish: "accent",
+  ready: "success",
+  restricted: "neutral",
+}
+
+const roleAction = (
+  role: ReadableRole,
+  t: DashboardText,
+): { href: string; Icon: Icon; label: string } => {
+  switch (role) {
+    case CMS_ROLE.EDITOR:
+      return { href: "/admin/collections/contents/create", Icon: PencilIcon, label: t.takeAction }
+    case CMS_ROLE.REVIEWER:
+      return {
+        href: "/admin/collections/content-editions?where[workflowStatus][equals]=review",
+        Icon: SearchIcon,
+        label: t.takeAction,
+      }
+    case CMS_ROLE.PUBLISHER:
+      return {
+        href: "/admin/collections/content-editions?where[workflowStatus][equals]=compiled",
+        Icon: SendIcon,
+        label: t.takeAction,
+      }
+    case CMS_ROLE.TENANT_ADMIN:
+    case CMS_ROLE.SUPER_ADMIN:
+      return { href: "/admin/collections/sites", Icon: GlobeIcon, label: t.takeAction }
+  }
+}
+
 export const OperationsDashboard = async ({ i18n, payload, user }: DashboardProps) => {
   const lang = uiLangOf(i18n?.language)
   const t = TEXT[lang]
   const role = user?.role
   if (!humanRoles.has(role as ReadableRole)) {
     return (
-      <main className="mx-auto max-w-[1440px] p-8 md:p-6">
+      <main className="gf-operations-dashboard mx-auto max-w-[1440px] p-8 md:p-6">
         <section className={`${cardClass} grid gap-2 p-10`}>
-          <p className="m-0 text-xs font-extrabold uppercase tracking-[0.06em] text-[var(--gf-accent-700)]">
+          <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
             {t.kicker}
           </p>
-          <h1 className="m-0 text-2xl font-semibold text-[var(--theme-text)]">
+          <h1 className="m-0 text-2xl font-bold tracking-tight text-[var(--theme-text)]">
             {t.denialHeadline}
           </h1>
           <span className="text-sm text-[var(--theme-elevation-600)]">{t.denialBody}</span>
@@ -406,6 +553,7 @@ export const OperationsDashboard = async ({ i18n, payload, user }: DashboardProp
     )
   }
 
+  const readableRole = role as ReadableRole
   const canReadOperations = rolesWithOperations.has(role as CmsRole)
   const canReadReleases = rolesWithReleases.has(role as CmsRole)
   const [
@@ -419,11 +567,7 @@ export const OperationsDashboard = async ({ i18n, payload, user }: DashboardProp
   ] = await Promise.all([
     safeFind(payload, user, "sites", { depth: 0, sort: "name" }),
     safeFind(payload, user, "domains", { depth: 0, sort: "hostname" }),
-    safeFind(payload, user, "content-editions", {
-      depth: 0,
-      draft: true,
-      sort: "-updatedAt",
-    }),
+    safeFind(payload, user, "content-editions", { depth: 0, draft: true, sort: "-updatedAt" }),
     safeFind(payload, user, "quality-assessments", {
       depth: 0,
       sort: "-createdAt",
@@ -447,30 +591,117 @@ export const OperationsDashboard = async ({ i18n, payload, user }: DashboardProp
   const releases = recordsOf(releasesResult.docs)
   const rollbackIntents = recordsOf(rollbackResult.docs)
   const sitesById = new Map(
-    sites
-      .map((site) => [idOf(site), site])
-      .filter((entry): entry is [string, RecordLike] => entry[0] !== null),
+    sites.flatMap((site) => {
+      const id = idOf(site)
+      return id === null ? [] : [[id, site] as const]
+    }),
   )
-  const domainBySite = summarizeDomains(recordsOf(domainsResult.docs))
+  const domainsBySite = summarizeDomains(recordsOf(domainsResult.docs))
   const editionCounts = workflowCounts(editions)
   const editionsBySite = groupBySite(editions)
   const currentReleases = releases.filter((release) => release["state"] === "current")
+  const currentReleaseSiteIds = new Set(
+    currentReleases.flatMap((release) => {
+      const id = idOf(release["site"])
+      return id === null ? [] : [id]
+    }),
+  )
   const failedOperations = operations.filter((operation) => operation["state"] === "failed")
   const pendingRollback = rollbackIntents.filter(
     (intent) => intent["consumedAt"] === null || intent["consumedAt"] === undefined,
   )
-  const domainSetupNeeded = sites.filter((site) => {
-    const summary = domainBySite.get(idOf(site) ?? "")
-    return summary?.canonicalHostname === null || summary === undefined
-  }).length
+  const readinessRows = sortSiteWorkload(
+    siteReadiness({
+      canReadReleases,
+      currentReleaseSiteIds,
+      domains: domainsBySite,
+      editionsBySite,
+      sites,
+    }),
+  )
+  const readinessCounts = readinessRows.reduce<Record<SiteReadiness, number>>(
+    (counts, row) => ({ ...counts, [row.readiness]: counts[row.readiness] + 1 }),
+    { configure: 0, disabled: 0, publish: 0, ready: 0, restricted: 0 },
+  )
+  const bottleneck = workflowBottleneck(editionCounts)
+  const health = operationHealth(operations)
   const activeSites = sites.filter((site) => site["status"] === "active").length
+  const riskCount =
+    failedOperations.length +
+    pendingRollback.length +
+    assessments.length +
+    readinessCounts.configure +
+    editionCounts.review +
+    editionCounts.compiled
+  const action = roleAction(readableRole, t)
 
-  const panels: readonly Panel[] = [
+  const recordItem = (row: RecordLike, href: string, fallback: string): AttentionItem => ({
+    href: `${href}/${idOf(row) ?? ""}`,
+    meta: `${siteNameFor(row["site"], sitesById, t.unknownSite)} · ${formatDate(row["updatedAt"] ?? row["createdAt"] ?? row["lastStageAt"], lang)}`,
+    title: itemLabel(row, fallback),
+  })
+  const domainRiskSites = readinessRows.filter((row) => row.readiness === "configure").slice(0, 3)
+  const panels: readonly AttentionPanel[] = [
+    ...(canReadReleases
+      ? [
+          {
+            Icon: AlertTriangleIcon,
+            count: pendingRollback.length,
+            href: "/admin/collections/rollback-intents",
+            items: pendingRollback.slice(0, 3).map((row) => ({
+              href: `/admin/collections/rollback-intents/${idOf(row) ?? ""}`,
+              meta: `${siteNameFor(row["site"], sitesById, t.unknownSite)} · ${t.rollbackTarget} ${shortHash(row["targetReleaseId"])}`,
+              title: stringOf(row["intentId"]),
+            })),
+            label: t.rollback,
+            tone: "danger" as Tone,
+          },
+        ]
+      : []),
+    ...(canReadOperations
+      ? [
+          {
+            Icon: AlertTriangleIcon,
+            count: failedOperations.length,
+            href: "/admin/collections/operations?where[state][equals]=failed",
+            items: failedOperations
+              .slice(0, 3)
+              .map((row) => recordItem(row, "/admin/collections/operations", t.failedOperations)),
+            label: t.failedOperations,
+            tone: "danger" as Tone,
+          },
+        ]
+      : []),
+    {
+      Icon: ShieldCheckIcon,
+      count: assessments.length,
+      href: "/admin/collections/quality-assessments",
+      items: assessments
+        .slice(0, 3)
+        .map((row) => recordItem(row, "/admin/collections/quality-assessments", t.qualityEvidence)),
+      label: t.qualityEvidence,
+      tone: "warning",
+    },
+    {
+      Icon: GlobeIcon,
+      count: readinessCounts.configure,
+      href: "/admin/collections/sites",
+      items: domainRiskSites.map((row) => ({
+        href: `/admin/collections/sites/${row.id}`,
+        meta: t.domainsUnset,
+        title: stringOf(sitesById.get(row.id)?.["name"], t.unknownSite),
+      })),
+      label: t.domainRisk,
+      tone: "warning",
+    },
     {
       Icon: SearchIcon,
       count: editionCounts.review,
       href: "/admin/collections/content-editions?where[workflowStatus][equals]=review",
-      items: editions.filter((edition) => edition["workflowStatus"] === "review").slice(0, 3),
+      items: editions
+        .filter((edition) => edition["workflowStatus"] === "review")
+        .slice(0, 3)
+        .map((row) => recordItem(row, "/admin/collections/content-editions", t.reviewQueue)),
       label: t.reviewQueue,
       tone: "warning",
     },
@@ -478,216 +709,333 @@ export const OperationsDashboard = async ({ i18n, payload, user }: DashboardProp
       Icon: SendIcon,
       count: editionCounts.compiled,
       href: "/admin/collections/content-editions?where[workflowStatus][equals]=compiled",
-      items: editions.filter((edition) => edition["workflowStatus"] === "compiled").slice(0, 3),
+      items: editions
+        .filter((edition) => edition["workflowStatus"] === "compiled")
+        .slice(0, 3)
+        .map((row) => recordItem(row, "/admin/collections/content-editions", t.readyToPublish)),
       label: t.readyToPublish,
-      tone: "neutral",
+      tone: "accent",
     },
-    {
-      Icon: ShieldCheckIcon,
-      count: assessments.length,
-      href: "/admin/collections/quality-assessments",
-      items: assessments.slice(0, 3),
-      label: t.qualityEvidence,
-      tone: "warning",
-    },
-    ...(canReadOperations
-      ? [
-          {
-            Icon: AlertTriangleIcon,
-            count: failedOperations.length,
-            href: "/admin/collections/operations?where[state][equals]=failed",
-            items: failedOperations.slice(0, 3),
-            label: t.failedOperations,
-            tone: "danger" as const,
-          },
-        ]
-      : []),
   ]
 
-  const roleLabel = ROLE_LABEL[lang][role as ReadableRole] ?? t.restrictedRoleView
+  const visiblePanels = panels.filter(
+    (panel) => panel.count > 0 || panel.label === t.reviewQueue || panel.label === t.readyToPublish,
+  )
+  const workloadRows = readinessRows.slice(0, 6)
 
   return (
-    <main className="mx-auto flex max-w-[1440px] flex-col gap-10 p-8 md:gap-8 md:p-6">
-      <header className="flex flex-col items-start justify-between gap-3 border-b border-[var(--gf-border)] pb-6 sm:flex-row sm:items-end">
-        <div>
-          <p className="m-0 mb-1 text-xs font-extrabold uppercase tracking-[0.06em] text-[var(--gf-accent-700)]">
-            {t.kicker}
-          </p>
-          <h1 className="m-0 text-[28px] font-bold leading-9 tracking-tight text-[var(--theme-elevation-900)] md:text-2xl">
-            {t.pageHeading}
-          </h1>
-          <span className="mt-1 block text-sm text-[var(--theme-elevation-600)]">{roleLabel}</span>
+    <main className="gf-command-dashboard mx-auto flex max-w-[1440px] flex-col gap-10 p-8 md:gap-8 md:p-6">
+      <header className={`${cardClass} relative overflow-hidden p-6 sm:p-7`}>
+        <div
+          aria-hidden="true"
+          className="absolute -top-28 -right-20 hidden h-64 w-64 rounded-full bg-[var(--gf-accent-100)] blur-3xl sm:block"
+        />
+        <div className="relative flex flex-col gap-6">
+          <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
+            <div className="max-w-2xl">
+              <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
+                {t.kicker}
+              </p>
+              <h1 className="m-0 mt-1 text-[32px] font-bold leading-10 tracking-tight text-[var(--theme-elevation-900)] sm:text-[36px]">
+                {t.pageHeading}
+              </h1>
+              <p className="m-0 mt-2 text-sm text-[var(--theme-elevation-600)]">
+                {ROLE_LABEL[lang][readableRole]}
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <strong className="rounded-full bg-[var(--theme-elevation-100)] px-3 py-1.5 text-xs font-bold text-[var(--theme-elevation-700)]">
+                {role === CMS_ROLE.SUPER_ADMIN ? t.allTenants : t.currentTenant}
+              </strong>
+              <InlineAction href={action.href} variant="primary">
+                <action.Icon size={16} strokeWidth={2} /> {action.label}
+              </InlineAction>
+            </div>
+          </div>
+          <dl className="m-0 grid grid-cols-2 gap-x-4 gap-y-4 border-t border-[var(--theme-elevation-150)] pt-5 sm:grid-cols-5">
+            {[
+              [activeSites, t.summaryActive],
+              [editionCounts.review, t.summaryReview],
+              [editionCounts.compiled, t.summaryCompiled],
+              [riskCount, t.summaryAttention],
+              [canReadReleases ? currentReleases.length : t.restricted, t.currentReleases],
+            ].map(([value, label]) => (
+              <div key={String(label)}>
+                <dt className="text-xs font-semibold text-[var(--theme-elevation-600)]">{label}</dt>
+                <dd className="m-0 mt-1 text-2xl font-bold leading-none tracking-tight tabular-nums text-[var(--theme-text)]">
+                  {value}
+                </dd>
+              </div>
+            ))}
+          </dl>
         </div>
-        <strong className="shrink-0 whitespace-nowrap rounded-full bg-[var(--theme-elevation-100)] px-3 py-1.5 text-xs font-bold text-[var(--theme-elevation-700)]">
-          {role === CMS_ROLE.SUPER_ADMIN ? t.allTenants : t.currentTenant}
-        </strong>
       </header>
 
       <section aria-label="Operational attention" className="flex flex-col gap-4">
-        <div className="flex items-end justify-between gap-3">
-          <SectionHeading hint={t.needsAttentionHint} title={t.needsAttention} />
-          <span className="hidden shrink-0 text-xs text-[var(--theme-elevation-600)] sm:block">
-            {t.liveScope}
-          </span>
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {panels.map((panel) => (
-            <div key={panel.label}>{queuePanel(panel, sitesById, t)}</div>
+        <SectionHeading
+          hint={t.attentionHint}
+          title={t.needsAttention}
+          action={
+            <span className="hidden text-sm font-bold text-[var(--theme-elevation-700)] sm:block">
+              {t.attentionCount(riskCount)}
+            </span>
+          }
+        />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {visiblePanels.map((panel) => (
+            <AttentionCard key={panel.label} panel={panel} />
           ))}
         </div>
       </section>
 
-      <section aria-label="Workflow pipeline" className="flex flex-col gap-4">
-        <div className="flex items-end justify-between gap-3">
-          <SectionHeading title={t.workflowPipeline} tooltip={t.workflowTooltip} />
-          <a
-            className="shrink-0 whitespace-nowrap text-xs font-bold text-[var(--gf-accent-700)] no-underline hover:underline"
-            href="/admin/collections/content-editions"
-          >
-            {t.seeAllEditions}
-          </a>
+      <section
+        aria-label="Workflow pipeline"
+        className={`${cardClass} flex flex-col gap-5 p-5 sm:p-6`}
+      >
+        <SectionHeading
+          {...(bottleneck === null
+            ? {}
+            : {
+                hint: t.bottleneck(WORKFLOW_STATE_LABEL[lang][bottleneck.state], bottleneck.count),
+              })}
+          title={t.workflowPipeline}
+          tooltip={t.workflowTooltip}
+          action={
+            <InlineAction href="/admin/collections/content-editions">
+              {t.seeAllEditions}
+            </InlineAction>
+          }
+        />
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)_minmax(0,2fr)]">
+          <div className="grid grid-cols-2 gap-2">
+            {(["draft", "generating"] as const).map((state) => (
+              <WorkflowNode
+                count={editionCounts[state]}
+                key={state}
+                label={WORKFLOW_STATE_LABEL[lang][state]}
+                state={state}
+              />
+            ))}
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {(["review", "approved", "compiled"] as const).map((state) => (
+              <WorkflowNode
+                count={editionCounts[state]}
+                key={state}
+                label={WORKFLOW_STATE_LABEL[lang][state]}
+                state={state}
+              />
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {(["published", "archived"] as const).map((state) => (
+              <WorkflowNode
+                count={editionCounts[state]}
+                key={state}
+                label={WORKFLOW_STATE_LABEL[lang][state]}
+                state={state}
+              />
+            ))}
+          </div>
         </div>
-        <ol className="grid list-none grid-cols-2 gap-2 p-0 sm:grid-cols-4 xl:grid-cols-7">
-          {WORKFLOW_STATES.map((state) => (
-            <li
-              className={`rounded-xl border bg-[var(--theme-elevation-50)] ${
-                editionCounts[state] > 0
-                  ? "border-[var(--gf-accent-300)]"
-                  : "border-[var(--gf-border)]"
-              }`}
-              key={state}
-            >
-              <a
-                className="grid min-h-[84px] gap-1 p-3.5 no-underline"
-                href={`/admin/collections/content-editions?where[workflowStatus][equals]=${state}`}
-              >
-                <span className="text-xs text-[var(--theme-elevation-600)]">
-                  {WORKFLOW_STATE_LABEL[lang][state] ?? state}
-                </span>
-                <strong className="text-2xl font-semibold leading-7 tracking-tight tabular-nums text-[var(--theme-text)]">
-                  {editionCounts[state]}
-                </strong>
-              </a>
-            </li>
-          ))}
-        </ol>
       </section>
 
-      <section aria-label="Site fleet" className="flex flex-col gap-4">
-        <div className="flex items-end justify-between gap-3">
-          <SectionHeading hint={t.siteFleetHint} title={t.siteFleet} />
-          <a
-            className="shrink-0 whitespace-nowrap text-xs font-bold text-[var(--gf-accent-700)] no-underline hover:underline"
-            href="/admin/collections/sites"
-          >
-            {t.openSitesWorkspace}
-          </a>
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {metric(sites.length, t.sitesCount, t.sitesActive(activeSites), t)}
-          {metric(
-            domainSetupNeeded,
-            t.domainsToConfigure,
-            t.domainsToConfigureNote,
-            t,
-            domainSetupNeeded > 0 ? "warning" : "neutral",
-          )}
-          {metric(
-            canReadReleases ? currentReleases.length : "Restricted",
-            t.currentReleases,
-            canReadReleases ? t.releaseLedgerNote : t.publisherRequired,
-            t,
-          )}
-          {metric(
-            editionCounts.compiled,
-            t.readyToPublish,
-            t.readyToPublishNote,
-            t,
-            editionCounts.compiled > 0 ? "warning" : "neutral",
-          )}
-        </div>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {sites.slice(0, 4).map((site) => {
-            const siteId = idOf(site) ?? ""
-            const domain = domainBySite.get(siteId)
-            const currentRelease = currentReleases.find(
-              (release) => idOf(release["site"]) === siteId,
-            )
-            const counts = workflowCounts(editionsBySite.get(siteId) ?? [])
-            const active = site["status"] === "active"
-            return (
-              <article className={`${cardClass} flex flex-col gap-4 p-5`} key={siteId}>
-                <div>
-                  <span
-                    className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold capitalize ${
-                      active
-                        ? "bg-[var(--gf-tone-success-bg)] text-[var(--gf-tone-success-fg)]"
-                        : "bg-[var(--theme-elevation-150)] text-[var(--theme-elevation-700)]"
-                    }`}
-                  >
-                    {SITE_STATUS_LABEL[lang][stringOf(site["status"])] ?? stringOf(site["status"])}
-                  </span>
-                  <h3 className="mt-1.5 text-base font-semibold tracking-tight">
-                    <a
-                      className="text-[var(--theme-text)] no-underline hover:underline"
-                      href={`/admin/collections/sites/${siteId}`}
-                    >
-                      {stringOf(site["name"])}
-                    </a>
-                  </h3>
-                  <p className="m-0 mt-0.5 text-xs text-[var(--theme-elevation-600)]">
-                    {stringOf(site["locale"])} · {stringOf(site["timezone"])}
-                  </p>
+      <section
+        aria-label="Site readiness and workload"
+        className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(340px,2fr)_minmax(0,3fr)]"
+      >
+        <article className={`${cardClass} flex flex-col gap-5 p-5 sm:p-6`}>
+          <SectionHeading hint={t.configurationReadinessHint} title={t.configurationReadiness} />
+          {sites.length === 0 ? (
+            <p className="m-0 text-sm text-[var(--theme-elevation-600)]">{t.noSites}</p>
+          ) : (
+            <>
+              <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+                <Donut ready={readinessCounts.ready} total={sites.length} />
+                <div className="grid flex-1 gap-2.5">
+                  <strong className="text-base text-[var(--theme-text)]">
+                    {t.configuredSites(readinessCounts.ready, sites.length)}
+                  </strong>
+                  {(["ready", "publish", "configure", "disabled", "restricted"] as const).map(
+                    (state) => (
+                      <div className="flex items-center justify-between gap-3" key={state}>
+                        <span className="flex min-w-0 items-center gap-2 text-sm text-[var(--theme-elevation-700)]">
+                          <Badge tone={readinessTone[state]}>{READINESS_LABEL[lang][state]}</Badge>
+                        </span>
+                        <strong className="text-sm tabular-nums text-[var(--theme-text)]">
+                          {readinessCounts[state]}
+                        </strong>
+                      </div>
+                    ),
+                  )}
                 </div>
-                <dl className="m-0 grid gap-2">
-                  <div className="grid grid-cols-[64px_1fr] items-baseline gap-2">
-                    <dt className="text-xs text-[var(--theme-elevation-600)]">{t.domainLabel}</dt>
-                    <dd className="m-0 truncate text-sm text-[var(--theme-text)]">
-                      {domain?.canonicalHostname ?? t.domainsUnset}
-                    </dd>
+              </div>
+              <ul className="m-0 flex list-none flex-col p-0">
+                {readinessRows
+                  .filter((row) => row.readiness !== "ready")
+                  .slice(0, 3)
+                  .map((row) => (
+                    <li
+                      className="flex items-center justify-between gap-3 border-t border-[var(--theme-elevation-100)] py-2.5"
+                      key={row.id}
+                    >
+                      <a
+                        className="truncate text-sm font-semibold text-[var(--theme-text)] no-underline hover:underline"
+                        href={`/admin/collections/sites/${row.id}`}
+                      >
+                        {stringOf(sitesById.get(row.id)?.["name"], t.unknownSite)}
+                      </a>
+                      <Badge tone={readinessTone[row.readiness]}>
+                        {READINESS_LABEL[lang][row.readiness]}
+                      </Badge>
+                    </li>
+                  ))}
+              </ul>
+            </>
+          )}
+        </article>
+
+        <article className={`${cardClass} flex flex-col gap-5 p-5 sm:p-6`}>
+          <SectionHeading
+            hint={t.siteFleetHint}
+            title={t.siteFleet}
+            action={<InlineAction href="/admin/collections/sites">{t.seeAllSites}</InlineAction>}
+          />
+          <p className="m-0 text-xs text-[var(--theme-elevation-600)]">
+            {t.workloadStates} · {t.readinessCoverage(workloadRows.length, sites.length)}
+          </p>
+          <div className="grid min-w-0 gap-4">
+            {workloadRows.map((row) => {
+              const site = sitesById.get(row.id)
+              const counts = row.counts
+              const total = counts.review + counts.approved + counts.compiled + counts.published
+              return (
+                <div className="grid min-w-0 gap-2" key={row.id}>
+                  <div className="flex min-w-0 items-center justify-between gap-3">
+                    <a
+                      className="min-w-0 truncate text-sm font-bold text-[var(--theme-text)] no-underline hover:underline"
+                      href={`/admin/collections/sites/${row.id}`}
+                    >
+                      {stringOf(site?.["name"], t.unknownSite)}
+                    </a>
+                    <Badge tone={readinessTone[row.readiness]}>
+                      {READINESS_LABEL[lang][row.readiness]}
+                    </Badge>
                   </div>
-                  <div className="grid grid-cols-[64px_1fr] items-baseline gap-2">
-                    <dt className="text-xs text-[var(--theme-elevation-600)]">{t.releaseLabel}</dt>
-                    <dd className="m-0 truncate font-mono text-sm text-[var(--theme-text)]">
-                      {canReadReleases
-                        ? stringOf(currentRelease?.["releaseId"], t.releaseNone)
-                        : t.restricted}
-                    </dd>
+                  <div
+                    aria-label={`${stringOf(site?.["name"], t.unknownSite)} ${total}`}
+                    className="flex h-3 overflow-hidden rounded-full bg-[var(--theme-elevation-100)]"
+                    role="img"
+                  >
+                    <span
+                      style={segmentStyle(counts.review, total, "var(--gf-tone-warning-fg)")}
+                      title={`${WORKFLOW_STATE_LABEL[lang].review}: ${counts.review}`}
+                    />
+                    <span
+                      style={segmentStyle(counts.approved, total, "var(--gf-accent-400)")}
+                      title={`${WORKFLOW_STATE_LABEL[lang].approved}: ${counts.approved}`}
+                    />
+                    <span
+                      style={segmentStyle(counts.compiled, total, "var(--gf-accent-650)")}
+                      title={`${WORKFLOW_STATE_LABEL[lang].compiled}: ${counts.compiled}`}
+                    />
+                    <span
+                      style={segmentStyle(counts.published, total, "var(--gf-tone-success-fg)")}
+                      title={`${WORKFLOW_STATE_LABEL[lang].published}: ${counts.published}`}
+                    />
                   </div>
-                  <div className="grid grid-cols-[64px_1fr] items-baseline gap-2">
-                    <dt className="text-xs text-[var(--theme-elevation-600)]">{t.workload}</dt>
-                    <dd className="m-0 text-sm text-[var(--theme-text)]">
-                      {t.workloadLine(counts)}
-                    </dd>
-                  </div>
-                </dl>
-              </article>
-            )
-          })}
-        </div>
+                  <span className="text-xs text-[var(--theme-elevation-600)]">
+                    {WORKFLOW_STATE_LABEL[lang].review} {counts.review} ·{" "}
+                    {WORKFLOW_STATE_LABEL[lang].approved} {counts.approved} ·{" "}
+                    {WORKFLOW_STATE_LABEL[lang].compiled} {counts.compiled} ·{" "}
+                    {WORKFLOW_STATE_LABEL[lang].published} {counts.published}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </article>
       </section>
+
+      {canReadOperations && (
+        <section
+          aria-label="Operations health"
+          className={`${cardClass} flex flex-col gap-5 p-5 sm:p-6`}
+        >
+          <SectionHeading
+            hint={t.operationsHealthHint}
+            title={t.operationsHealth}
+            action={
+              <InlineAction href="/admin/collections/operations">{t.seeOperations}</InlineAction>
+            }
+          />
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {OPERATION_TYPES.map((type) => {
+              const stateCounts = health[type]
+              const total = OPERATION_STATES.reduce((sum, state) => sum + stateCounts[state], 0)
+              return (
+                <a
+                  className="rounded-xl border border-[var(--theme-elevation-150)] bg-[var(--theme-elevation-50)] p-4 no-underline hover:border-[var(--gf-accent-300)]"
+                  href={`/admin/collections/operations?where[operationType][equals]=${type}`}
+                  key={type}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-bold text-[var(--theme-text)]">
+                      {OPERATION_TYPE_LABEL[lang][type]}
+                    </span>
+                    <strong className="text-lg tabular-nums text-[var(--theme-text)]">
+                      {total}
+                    </strong>
+                  </div>
+                  <div className="mt-4 flex h-2.5 overflow-hidden rounded-full bg-[var(--theme-elevation-150)]">
+                    <span
+                      style={segmentStyle(
+                        stateCounts.succeeded,
+                        total,
+                        "var(--gf-tone-success-fg)",
+                      )}
+                    />
+                    <span
+                      style={segmentStyle(stateCounts.running, total, "var(--gf-accent-500)")}
+                    />
+                    <span
+                      style={segmentStyle(stateCounts.queued, total, "var(--gf-tone-warning-fg)")}
+                    />
+                    <span
+                      style={segmentStyle(stateCounts.failed, total, "var(--gf-tone-danger-fg)")}
+                    />
+                    <span
+                      style={segmentStyle(
+                        stateCounts.cancelled,
+                        total,
+                        "var(--theme-elevation-400)",
+                      )}
+                    />
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-x-2 gap-y-1 text-xs text-[var(--theme-elevation-600)]">
+                    {OPERATION_STATES.filter((state) => stateCounts[state] > 0).map((state) => (
+                      <span key={state}>
+                        {OPERATION_STATE_LABEL[lang][state]} {stateCounts[state]}
+                      </span>
+                    ))}
+                  </div>
+                </a>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
       {(canReadOperations || canReadReleases) && (
-        <section
-          aria-label="Release and activity"
-          className="grid grid-cols-1 gap-4 lg:grid-cols-3"
-        >
+        <section aria-label="Recent records" className="grid grid-cols-1 gap-4 xl:grid-cols-3">
           {canReadReleases && (
             <article className={`${cardClass} flex flex-col gap-4 p-5`}>
-              <div className="flex items-center gap-3">
-                <IconBadge tone="accent">
-                  <PackageIcon size={18} strokeWidth={1.9} />
-                </IconBadge>
-                <h2 className="flex-1 text-sm font-bold text-[var(--theme-elevation-900)]">
-                  {t.releasesCard}
-                </h2>
-                <a
-                  className="shrink-0 whitespace-nowrap text-xs font-bold text-[var(--gf-accent-700)] no-underline hover:underline"
-                  href="/admin/collections/releases"
-                >
-                  {t.releaseHistoryLink}
-                </a>
-              </div>
+              <SectionHeading
+                title={t.currentReleases}
+                action={
+                  <InlineAction href="/admin/collections/releases">{t.releaseLedger}</InlineAction>
+                }
+              />
               {currentReleases.length === 0 ? (
                 <p className="m-0 text-sm text-[var(--theme-elevation-600)]">
                   {t.noCurrentReleases}
@@ -695,22 +1043,27 @@ export const OperationsDashboard = async ({ i18n, payload, user }: DashboardProp
               ) : (
                 <ul className="m-0 flex list-none flex-col p-0">
                   {currentReleases.slice(0, 5).map((release) => {
-                    const releaseId = idOf(release) ?? ""
+                    const id = idOf(release) ?? ""
                     return (
                       <li
-                        className="grid gap-0.5 border-t border-[var(--theme-elevation-100)] py-2.5 first:border-t-0 first:pt-0"
-                        key={releaseId}
+                        className="flex gap-3 border-t border-[var(--theme-elevation-100)] py-2.5 first:border-t-0 first:pt-0"
+                        key={id}
                       >
-                        <a
-                          className="truncate font-mono text-sm font-semibold text-[var(--theme-text)] no-underline hover:underline"
-                          href={`/admin/collections/releases/${releaseId}`}
-                        >
-                          {stringOf(release["releaseId"])}
-                        </a>
-                        <span className="text-xs text-[var(--theme-elevation-600)]">
-                          {siteNameFor(release["site"], sitesById, t.unknownSite)} ·{" "}
-                          {formatDate(release["updatedAt"])}
-                        </span>
+                        <IconBadge tone="success">
+                          <PackageIcon size={16} />
+                        </IconBadge>
+                        <div className="min-w-0">
+                          <a
+                            className="block truncate font-mono text-sm font-bold text-[var(--theme-text)] no-underline hover:underline"
+                            href={`/admin/collections/releases/${id}`}
+                          >
+                            {stringOf(release["releaseId"])}
+                          </a>
+                          <span className="text-xs text-[var(--theme-elevation-600)]">
+                            {siteNameFor(release["site"], sitesById, t.unknownSite)} ·{" "}
+                            {formatDate(release["updatedAt"], lang)}
+                          </span>
+                        </div>
                       </li>
                     )
                   })}
@@ -720,42 +1073,48 @@ export const OperationsDashboard = async ({ i18n, payload, user }: DashboardProp
           )}
           {canReadOperations && (
             <article className={`${cardClass} flex flex-col gap-4 p-5`}>
-              <div className="flex items-center gap-3">
-                <IconBadge tone="neutral">
-                  <LayersIcon size={18} strokeWidth={1.9} />
-                </IconBadge>
-                <h2 className="flex-1 text-sm font-bold text-[var(--theme-elevation-900)]">
-                  {t.recentOperations}
-                </h2>
-                <a
-                  className="shrink-0 whitespace-nowrap text-xs font-bold text-[var(--gf-accent-700)] no-underline hover:underline"
-                  href="/admin/collections/operations"
-                >
-                  {t.seeOperations}
-                </a>
-              </div>
+              <SectionHeading
+                title={t.latestRecords}
+                action={
+                  <InlineAction href="/admin/collections/operations">
+                    {t.seeOperations}
+                  </InlineAction>
+                }
+              />
               {operations.length === 0 ? (
                 <p className="m-0 text-sm text-[var(--theme-elevation-600)]">{t.noOperations}</p>
               ) : (
                 <ul className="m-0 flex list-none flex-col p-0">
                   {operations.slice(0, 5).map((operation) => {
-                    const operationId = idOf(operation) ?? ""
+                    const id = idOf(operation) ?? ""
+                    const state = stringOf(operation["state"], "queued")
                     return (
                       <li
-                        className="grid gap-0.5 border-t border-[var(--theme-elevation-100)] py-2.5 first:border-t-0 first:pt-0"
-                        key={operationId}
+                        className="flex gap-3 border-t border-[var(--theme-elevation-100)] py-2.5 first:border-t-0 first:pt-0"
+                        key={id}
                       >
-                        <a
-                          className="truncate text-sm font-semibold text-[var(--theme-text)] no-underline hover:underline"
-                          href={`/admin/collections/operations/${operationId}`}
-                        >
-                          {stringOf(operation["operationType"])} · {stringOf(operation["state"])}
-                        </a>
-                        <span className="text-xs text-[var(--theme-elevation-600)]">
-                          {siteNameFor(operation["site"], sitesById, t.unknownSite)} ·{" "}
-                          {formatDate(operation["updatedAt"])} ·{" "}
-                          {t.attempt(stringOf(operation["attempt"], "1"))}
-                        </span>
+                        <IconBadge tone={statusTone(state)}>
+                          <LayersIcon size={16} />
+                        </IconBadge>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <a
+                              className="truncate text-sm font-bold text-[var(--theme-text)] no-underline hover:underline"
+                              href={`/admin/collections/operations/${id}`}
+                            >
+                              {OPERATION_TYPE_LABEL[lang][
+                                stringOf(operation["operationType"], "generate")
+                              ] ?? stringOf(operation["operationType"])}
+                            </a>
+                            <Badge tone={statusTone(state)}>
+                              {OPERATION_STATE_LABEL[lang][state as OperationState] ?? state}
+                            </Badge>
+                          </div>
+                          <span className="block truncate text-xs text-[var(--theme-elevation-600)]">
+                            {siteNameFor(operation["site"], sitesById, t.unknownSite)} ·{" "}
+                            {formatDate(operation["updatedAt"], lang)}
+                          </span>
+                        </div>
                       </li>
                     )
                   })}
@@ -765,43 +1124,45 @@ export const OperationsDashboard = async ({ i18n, payload, user }: DashboardProp
           )}
           {canReadReleases && (
             <article className={`${cardClass} flex flex-col gap-4 p-5`}>
-              <div className="flex items-center gap-3">
-                <IconBadge tone={pendingRollback.length > 0 ? "danger" : "neutral"}>
-                  <AlertTriangleIcon size={18} strokeWidth={1.9} />
-                </IconBadge>
-                <h2 className="flex-1 text-sm font-bold text-[var(--theme-elevation-900)]">
-                  {t.rollbackCard}
-                </h2>
-                <a
-                  className="shrink-0 whitespace-nowrap text-xs font-bold text-[var(--gf-accent-700)] no-underline hover:underline"
-                  href="/admin/collections/rollback-intents"
-                >
-                  {t.rollbackIntentsLink}
-                </a>
-              </div>
+              <SectionHeading
+                title={t.rollback}
+                action={
+                  <InlineAction href="/admin/collections/rollback-intents">
+                    {t.seeQueue}
+                  </InlineAction>
+                }
+              />
               {pendingRollback.length === 0 ? (
                 <p className="m-0 text-sm text-[var(--theme-elevation-600)]">
                   {t.noPendingRollbacks}
                 </p>
               ) : (
                 <ul className="m-0 flex list-none flex-col p-0">
-                  {pendingRollback.slice(0, 5).map((intent) => (
-                    <li
-                      className="grid gap-0.5 border-t border-[var(--theme-elevation-100)] py-2.5 first:border-t-0 first:pt-0"
-                      key={idOf(intent) ?? stringOf(intent["intentId"])}
-                    >
-                      <a
-                        className="truncate font-mono text-sm font-semibold text-[var(--theme-text)] no-underline hover:underline"
-                        href={`/admin/collections/rollback-intents/${idOf(intent)}`}
+                  {pendingRollback.slice(0, 5).map((intent) => {
+                    const id = idOf(intent) ?? ""
+                    return (
+                      <li
+                        className="flex gap-3 border-t border-[var(--theme-elevation-100)] py-2.5 first:border-t-0 first:pt-0"
+                        key={id}
                       >
-                        {stringOf(intent["intentId"])}
-                      </a>
-                      <span className="text-xs text-[var(--theme-elevation-600)]">
-                        {siteNameFor(intent["site"], sitesById, t.unknownSite)} ·{" "}
-                        {t.rollbackTarget} {shortHash(intent["targetReleaseId"])}
-                      </span>
-                    </li>
-                  ))}
+                        <IconBadge tone="danger">
+                          <AlertTriangleIcon size={16} />
+                        </IconBadge>
+                        <div className="min-w-0">
+                          <a
+                            className="block truncate font-mono text-sm font-bold text-[var(--theme-text)] no-underline hover:underline"
+                            href={`/admin/collections/rollback-intents/${id}`}
+                          >
+                            {stringOf(intent["intentId"])}
+                          </a>
+                          <span className="block truncate text-xs text-[var(--theme-elevation-600)]">
+                            {siteNameFor(intent["site"], sitesById, t.unknownSite)} ·{" "}
+                            {t.rollbackTarget} {shortHash(intent["targetReleaseId"])}
+                          </span>
+                        </div>
+                      </li>
+                    )
+                  })}
                 </ul>
               )}
             </article>
@@ -809,93 +1170,24 @@ export const OperationsDashboard = async ({ i18n, payload, user }: DashboardProp
         </section>
       )}
 
-      <section aria-label="Quick links" className="flex flex-wrap gap-2">
-        {role === CMS_ROLE.EDITOR && (
-          <>
-            <a
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--theme-elevation-100)] px-3 py-2 text-xs font-bold text-[var(--theme-text)] no-underline hover:bg-[var(--gf-tone-accent-bg)]"
-              href="/admin/collections/contents/create"
-            >
-              <PencilIcon size={17} /> {t.quickCreateContent}
-            </a>
-            <a
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--theme-elevation-100)] px-3 py-2 text-xs font-bold text-[var(--theme-text)] no-underline hover:bg-[var(--gf-tone-accent-bg)]"
-              href="/admin/collections/media/create"
-            >
-              <GlobeIcon size={17} /> {t.quickUploadMedia}
-            </a>
-          </>
-        )}
-        {role === CMS_ROLE.REVIEWER && (
-          <>
-            <a
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--theme-elevation-100)] px-3 py-2 text-xs font-bold text-[var(--theme-text)] no-underline hover:bg-[var(--gf-tone-accent-bg)]"
-              href="/admin/collections/content-editions?where[workflowStatus][equals]=review"
-            >
-              <SearchIcon size={17} /> {t.quickOpenReviewQueue}
-            </a>
-            <a
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--theme-elevation-100)] px-3 py-2 text-xs font-bold text-[var(--theme-text)] no-underline hover:bg-[var(--gf-tone-accent-bg)]"
-              href="/admin/collections/quality-assessments"
-            >
-              <ShieldCheckIcon size={17} /> {t.quickQualityEvidence}
-            </a>
-          </>
-        )}
-        {role === CMS_ROLE.PUBLISHER && (
-          <>
-            <a
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--theme-elevation-100)] px-3 py-2 text-xs font-bold text-[var(--theme-text)] no-underline hover:bg-[var(--gf-tone-accent-bg)]"
-              href="/admin/collections/content-editions?where[workflowStatus][equals]=compiled"
-            >
-              <SendIcon size={17} /> {t.quickReadyToPublish}
-            </a>
-            <a
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--theme-elevation-100)] px-3 py-2 text-xs font-bold text-[var(--theme-text)] no-underline hover:bg-[var(--gf-tone-accent-bg)]"
-              href="/admin/collections/releases"
-            >
-              <PackageIcon size={17} /> {t.quickReleaseLedger}
-            </a>
-          </>
-        )}
-        {role === CMS_ROLE.TENANT_ADMIN && (
-          <>
-            <a
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--theme-elevation-100)] px-3 py-2 text-xs font-bold text-[var(--theme-text)] no-underline hover:bg-[var(--gf-tone-accent-bg)]"
-              href="/admin/collections/sites"
-            >
-              <GlobeIcon size={17} /> {t.quickSitesDomains}
-            </a>
-            <a
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--theme-elevation-100)] px-3 py-2 text-xs font-bold text-[var(--theme-text)] no-underline hover:bg-[var(--gf-tone-accent-bg)]"
-              href="/admin/collections/users"
-            >
-              <UsersIcon size={17} /> {t.quickTenantUsers}
-            </a>
-          </>
-        )}
-        {role === CMS_ROLE.SUPER_ADMIN && (
-          <>
-            <a
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--theme-elevation-100)] px-3 py-2 text-xs font-bold text-[var(--theme-text)] no-underline hover:bg-[var(--gf-tone-accent-bg)]"
-              href="/admin/collections/sites"
-            >
-              <GlobeIcon size={17} /> {t.quickAllSites}
-            </a>
-            <a
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--theme-elevation-100)] px-3 py-2 text-xs font-bold text-[var(--theme-text)] no-underline hover:bg-[var(--gf-tone-accent-bg)]"
-              href="/admin/collections/operations"
-            >
-              <LayersIcon size={17} /> {t.quickAllOperations}
-            </a>
-          </>
-        )}
-        <a
-          className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--theme-elevation-100)] px-3 py-2 text-xs font-bold text-[var(--theme-text)] no-underline hover:bg-[var(--gf-tone-accent-bg)]"
-          href="/admin/collections/content-editions"
-        >
-          <CheckCircleIcon size={17} /> {t.quickEditions}
-        </a>
+      <section
+        aria-label="Dashboard actions"
+        className={`${cardClass} flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between`}
+      >
+        <div>
+          <h2 className="m-0 text-base font-bold text-[var(--theme-text)]">{t.takeAction}</h2>
+          <p className="m-0 mt-1 text-sm text-[var(--theme-elevation-600)]">{t.liveScope}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <InlineAction href={action.href} variant="primary">
+            <action.Icon size={16} /> {action.label}
+          </InlineAction>
+          <InlineAction href="/admin/collections/content-editions">{t.seeAllEditions}</InlineAction>
+          <InlineAction href="/admin/collections/sites">{t.openSites}</InlineAction>
+          {canReadReleases && (
+            <InlineAction href="/admin/collections/releases">{t.releaseLedger}</InlineAction>
+          )}
+        </div>
       </section>
     </main>
   )
