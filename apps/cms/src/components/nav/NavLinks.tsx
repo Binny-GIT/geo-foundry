@@ -282,7 +282,17 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
                     key={lang}
                     onSelect={() => {
                       if (lang !== currentLang) {
-                        void switchLanguage?.(lang)
+                        /*
+                         * router.refresh() (inside switchLanguage) reliably
+                         * re-renders client chrome, but server-rendered
+                         * surfaces like the dashboard lag behind it —
+                         * verified live: the dashboard only swapped after a
+                         * full navigation. A hard reload after the cookie
+                         * write guarantees the whole page swaps atomically.
+                         */
+                        void switchLanguage?.(lang).then(() => {
+                          window.location.reload()
+                        })
                       }
                     }}
                   >
