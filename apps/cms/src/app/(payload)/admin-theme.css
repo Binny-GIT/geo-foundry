@@ -450,7 +450,26 @@ body {
 .search-bar {
   align-items: center;
   display: flex;
-  gap: var(--gf-space-100);
+  gap: 0;
+}
+
+/*
+ * Stock layout leaves the magnifier icon floating OUTSIDE the input pill,
+ * ~48px from where the focus ring/typing cursor actually starts — reads as
+ * two disconnected controls (user direction 2026-08-25). Pull the icon
+ * inside the pill's left edge via a negative margin, and push the typed
+ * text past it, so icon + focus ring + cursor read as one search box.
+ */
+.search-bar > svg {
+  color: var(--theme-elevation-500);
+  margin-right: -40px;
+  pointer-events: none;
+  position: relative;
+  z-index: 1;
+}
+
+.search-filter {
+  position: relative;
 }
 
 .search-filter__input {
@@ -458,6 +477,7 @@ body {
   border: none;
   font-size: var(--gf-font-size-body);
   min-block-size: var(--gf-control-height);
+  padding-left: 48px;
 }
 
 .search-filter__input:focus {
