@@ -420,10 +420,18 @@ body {
 
 .list-header__title-actions .btn--style-pill {
   --bg-color: var(--gf-accent-600);
+  --btn-padding-block-end: 0;
+  --btn-padding-block-start: 0;
+  --btn-padding-inline-end: var(--gf-space-150);
+  --btn-padding-inline-start: var(--gf-space-150);
   --color: #ffffff;
   --hover-bg: var(--gf-accent-700);
   --hover-color: #ffffff;
   color: #ffffff;
+  font-size: var(--gf-font-size-body);
+  font-weight: 600;
+  line-height: var(--gf-line-height-body);
+  min-block-size: var(--gf-control-height);
 }
 
 /* Cell links read as quiet data, not shouty hyperlinks: lighter than body
