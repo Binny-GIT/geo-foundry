@@ -6,6 +6,7 @@ import {
   toast,
   useAuth,
   useDocumentInfo,
+  useForm,
   useFormFields,
   useFormModified,
   useFormProcessing,
@@ -49,6 +50,7 @@ const COPY = {
 
 const ContentEditionDocumentBody = ({ readOnly }: { readonly readOnly: boolean }) => {
   const { id } = useDocumentInfo()
+  const { getData } = useForm()
   const { i18n } = useTranslation()
   const lang = uiLangOf(i18n.language)
   const t = COPY[lang]
@@ -65,17 +67,21 @@ const ContentEditionDocumentBody = ({ readOnly }: { readonly readOnly: boolean }
   const updatedAt = useFormFields(([fields]) => fields["updatedAt"]?.value)
   const [mode, setMode] = useState<"edit" | "preview">(id === undefined || id === null ? "edit" : "preview")
   const [selectedVersion, setSelectedVersion] = useState<VersionSelection>(null)
+  // getData reduces block row state into the actual Payload document value.
+  // This preserves unsaved editor changes without treating a form field-state
+  // object as if it were the stored block array.
+  const formData = getData() as Record<string, unknown>
   const source = selectedVersion === null
     ? {
-        body,
-        citations,
-        contentId: content,
+        body: formData["body"] ?? body,
+        citations: formData["citations"] ?? citations,
+        contentId: formData["content"] ?? content,
         editionId: id,
-        entities,
+        entities: formData["entities"] ?? entities,
         modifiedAt: updatedAt,
-        siteId: site,
-        summary,
-        title,
+        siteId: formData["site"] ?? site,
+        summary: formData["summary"] ?? summary,
+        title: formData["title"] ?? title,
       }
     : {
         body: selectedVersion.snapshot.body,

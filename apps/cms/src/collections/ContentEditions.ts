@@ -1,7 +1,7 @@
 import { APIError, type CollectionBeforeChangeHook, type CollectionConfig } from "payload"
 
-import { collectionAccess } from "../access/functions"
-import { CMS_RESOURCE } from "../access/policy"
+import { claimsFromRequest, collectionAccess } from "../access/functions"
+import { CMS_RESOURCE, readScope } from "../access/policy"
 import { PAGE_DOCUMENT_BLOCKS } from "../editor/page-document-blocks"
 import { validateEditionBody } from "../editor/validate-body"
 import { canonicalize } from "../services/edition-input-hash"
@@ -172,7 +172,10 @@ export const ContentEditions = {
     group: localized("Content", "内容"),
     useAsTitle: "title",
   },
-  access: collectionAccess(CMS_RESOURCE.EDITIONS),
+  access: {
+    ...collectionAccess(CMS_RESOURCE.EDITIONS),
+    readVersions: ({ req }) => readScope(claimsFromRequest(req), CMS_RESOURCE.EDITIONS),
+  },
   versions: {
     drafts: true,
   },
