@@ -11,6 +11,7 @@ import {
   operationStateLabel,
   releaseStateLabel,
 } from "../workspaces/workspace-labels"
+import { workspaceUserOf, type WorkspaceServerContext } from "../workspaces/workspace-server-context"
 import {
   cardClass,
   StatusBadge,
@@ -19,11 +20,10 @@ import {
   WorkspaceShell,
 } from "../workspaces/workspace-shared"
 
-export type EditionWorkspaceProps = {
+export type EditionWorkspaceProps = WorkspaceServerContext & {
   readonly i18n?: HasLanguage
   readonly params?: { readonly id?: string | readonly string[] | undefined }
   readonly payload: Payload
-  readonly user?: { readonly role?: unknown }
 }
 
 const readableRoles = new Set<CmsRole>([
@@ -120,14 +120,15 @@ const assessmentTone = (state: unknown) => {
   return "warning" as const
 }
 
-export const EditionWorkspace = async ({ i18n, params, payload, user }: EditionWorkspaceProps) => {
+export const EditionWorkspace = async ({ i18n, initPageResult, params, payload, user }: EditionWorkspaceProps) => {
   const lang = uiLangOf(i18n?.language)
   const t = TEXT[lang]
   const id = documentIdOf(params)
-  const role = user?.role as CmsRole | undefined
+  const currentUser = workspaceUserOf({ initPageResult, user })
+  const role = currentUser?.role as CmsRole | undefined
   if (id === null || role === undefined || !readableRoles.has(role)) return <WorkspaceDenied i18n={i18n} />
 
-  const editionResult = await safeFind(payload, user, "content-editions", {
+  const editionResult = await safeFind(payload, currentUser, "content-editions", {
     draft: true,
     limit: 1,
     where: { id: { equals: id } },
@@ -138,15 +139,15 @@ export const EditionWorkspace = async ({ i18n, params, payload, user }: EditionW
   const canReadOperations = operationRoles.has(role)
   const canReadReleases = releaseRoles.has(role)
   const [assessmentsResult, operationsResult, releasesResult] = await Promise.all([
-    safeFind(payload, user, "quality-assessments", {
+    safeFind(payload, currentUser, "quality-assessments", {
       sort: "-createdAt",
       where: { edition: { equals: id } },
     }),
     canReadOperations
-      ? safeFind(payload, user, "operations", { sort: "-updatedAt" })
+      ? safeFind(payload, currentUser, "operations", { sort: "-updatedAt" })
       : Promise.resolve({ docs: [] as unknown[] }),
     canReadReleases
-      ? safeFind(payload, user, "releases", { sort: "-updatedAt" })
+      ? safeFind(payload, currentUser, "releases", { sort: "-updatedAt" })
       : Promise.resolve({ docs: [] as unknown[] }),
   ])
 

@@ -6,6 +6,7 @@ import { PackageIcon, RotateCcwIcon } from "../icons"
 import { uiLangOf, type HasLanguage } from "../i18n/ui-lang"
 import { IconBadge } from "../ui"
 import { releaseHistoryForSite, rollbackCandidatesForSite } from "../workspaces/lifecycle-workspace-model"
+import { workspaceUserOf, type WorkspaceServerContext } from "../workspaces/workspace-server-context"
 import { releaseStateLabel } from "../workspaces/workspace-labels"
 import {
   cardClass,
@@ -16,10 +17,9 @@ import {
   WorkspaceShell,
 } from "../workspaces/workspace-shared"
 
-export type ReleaseHistoryProps = {
+export type ReleaseHistoryProps = WorkspaceServerContext & {
   readonly i18n?: HasLanguage
   readonly payload: Payload
-  readonly user?: { readonly role?: unknown }
 }
 
 const readableRoles = new Set<CmsRole>([
@@ -57,15 +57,16 @@ const TEXT = {
 
 const short = (value: string | null) => (value === null ? "—" : value.length > 16 ? `${value.slice(0, 16)}…` : value)
 
-export const ReleaseHistory = async ({ i18n, payload, user }: ReleaseHistoryProps) => {
+export const ReleaseHistory = async ({ i18n, initPageResult, payload, user }: ReleaseHistoryProps) => {
   const lang = uiLangOf(i18n?.language)
   const t = TEXT[lang]
-  const role = user?.role as CmsRole | undefined
+  const currentUser = workspaceUserOf({ initPageResult, user })
+  const role = currentUser?.role as CmsRole | undefined
   if (role === undefined || !readableRoles.has(role)) return <WorkspaceDenied i18n={i18n} />
 
   const [sitesResult, releasesResult] = await Promise.all([
-    payload.find({ collection: "sites", depth: 0, limit: 100, overrideAccess: false, ...(user === undefined ? {} : { user }), sort: "name" }),
-    payload.find({ collection: "releases", depth: 0, limit: 100, overrideAccess: false, ...(user === undefined ? {} : { user }), sort: "-updatedAt" }),
+    payload.find({ collection: "sites", depth: 0, limit: 100, overrideAccess: false, ...(currentUser === undefined ? {} : { user: currentUser }), sort: "name" }),
+    payload.find({ collection: "releases", depth: 0, limit: 100, overrideAccess: false, ...(currentUser === undefined ? {} : { user: currentUser }), sort: "-updatedAt" }),
   ])
   const sites = recordsOf(sitesResult.docs)
   const releases = recordsOf(releasesResult.docs)

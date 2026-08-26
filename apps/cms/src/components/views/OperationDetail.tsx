@@ -6,6 +6,7 @@ import { AlertTriangleIcon, CheckCircleIcon, LayersIcon } from "../icons"
 import { uiLangOf, type HasLanguage } from "../i18n/ui-lang"
 import { IconBadge } from "../ui"
 import { operationTimelineDisplayOf } from "../workspaces/lifecycle-workspace-model"
+import { workspaceUserOf, type WorkspaceServerContext } from "../workspaces/workspace-server-context"
 import { operationStateLabel, operationTypeLabel, roleLabel } from "../workspaces/workspace-labels"
 import {
   cardClass,
@@ -15,11 +16,10 @@ import {
   WorkspaceShell,
 } from "../workspaces/workspace-shared"
 
-export type OperationDetailProps = {
+export type OperationDetailProps = WorkspaceServerContext & {
   readonly i18n?: HasLanguage
   readonly params?: { readonly id?: string | readonly string[] | undefined }
   readonly payload: Payload
-  readonly user?: { readonly role?: unknown }
 }
 
 const readableRoles = new Set<CmsRole>([
@@ -64,10 +64,11 @@ const paramId = (params: OperationDetailProps["params"]): string | null => {
   return typeof value === "string" && value.length > 0 ? value : null
 }
 
-export const OperationDetail = async ({ i18n, params, payload, user }: OperationDetailProps) => {
+export const OperationDetail = async ({ i18n, initPageResult, params, payload, user }: OperationDetailProps) => {
   const lang = uiLangOf(i18n?.language)
   const t = TEXT[lang]
-  const role = user?.role as CmsRole | undefined
+  const currentUser = workspaceUserOf({ initPageResult, user })
+  const role = currentUser?.role as CmsRole | undefined
   const id = paramId(params)
   if (id === null || role === undefined || !readableRoles.has(role)) return <WorkspaceDenied i18n={i18n} />
 
@@ -76,7 +77,7 @@ export const OperationDetail = async ({ i18n, params, payload, user }: Operation
     depth: 0,
     limit: 1,
     overrideAccess: false,
-    ...(user === undefined ? {} : { user }),
+    ...(currentUser === undefined ? {} : { user: currentUser }),
     where: { id: { equals: id } },
   })
   const operation = recordsOf(result.docs)[0]

@@ -6,6 +6,7 @@ import { AlertTriangleIcon, CheckCircleIcon, LayersIcon } from "../icons"
 import { uiLangOf, type HasLanguage } from "../i18n/ui-lang"
 import { checkRuntimeReadiness } from "../../readiness/runtime-readiness"
 import { IconBadge } from "../ui"
+import { workspaceUserOf, type WorkspaceServerContext } from "../workspaces/workspace-server-context"
 import {
   cardClass,
   WorkspaceAction,
@@ -13,10 +14,9 @@ import {
   WorkspaceShell,
 } from "../workspaces/workspace-shared"
 
-export type SystemDiagnosticsProps = {
+export type SystemDiagnosticsProps = WorkspaceServerContext & {
   readonly i18n?: HasLanguage
   readonly payload: Payload
-  readonly user?: { readonly role?: unknown }
 }
 
 const TEXT = {
@@ -47,15 +47,16 @@ const TEXT = {
 const status = (value: string, lang: "en" | "zh") =>
   value === "ready" ? (lang === "zh" ? "已就绪" : "Ready") : lang === "zh" ? "未就绪" : "Not ready"
 
-export const SystemDiagnostics = async ({ i18n, payload, user }: SystemDiagnosticsProps) => {
+export const SystemDiagnostics = async ({ i18n, initPageResult, payload, user }: SystemDiagnosticsProps) => {
   const lang = uiLangOf(i18n?.language)
   const t = TEXT[lang]
-  if (user?.role !== CMS_ROLE.SUPER_ADMIN) return <WorkspaceDenied i18n={i18n} />
+  const currentUser = workspaceUserOf({ initPageResult, user })
+  if (currentUser?.role !== CMS_ROLE.SUPER_ADMIN) return <WorkspaceDenied i18n={i18n} />
 
   const [readiness, operationsResult, rollbackResult] = await Promise.all([
     checkRuntimeReadiness(process.env),
-    payload.find({ collection: "operations", depth: 0, limit: 100, overrideAccess: false, ...(user === undefined ? {} : { user }), where: { state: { equals: "failed" } } }),
-    payload.find({ collection: "rollback-intents", depth: 0, limit: 100, overrideAccess: false, ...(user === undefined ? {} : { user }) }),
+    payload.find({ collection: "operations", depth: 0, limit: 100, overrideAccess: false, ...(currentUser === undefined ? {} : { user: currentUser }), where: { state: { equals: "failed" } } }),
+    payload.find({ collection: "rollback-intents", depth: 0, limit: 100, overrideAccess: false, ...(currentUser === undefined ? {} : { user: currentUser }) }),
   ])
   const failedOperations = recordsOf(operationsResult.docs)
   const pendingRollbacks = recordsOf(rollbackResult.docs).filter((row) => row["consumedAt"] === null || row["consumedAt"] === undefined)

@@ -5,6 +5,7 @@ import { idOf, recordsOf, stringOf, summarizeDomains, type RecordLike } from "..
 import { GlobeIcon, UsersIcon } from "../icons"
 import { uiLangOf, type HasLanguage } from "../i18n/ui-lang"
 import { IconBadge } from "../ui"
+import { workspaceUserOf, type WorkspaceServerContext } from "../workspaces/workspace-server-context"
 import { siteStatusLabel } from "../workspaces/workspace-labels"
 import {
   cardClass,
@@ -15,10 +16,9 @@ import {
   WorkspaceShell,
 } from "../workspaces/workspace-shared"
 
-export type TenantWorkspaceProps = {
+export type TenantWorkspaceProps = WorkspaceServerContext & {
   readonly i18n?: HasLanguage
   readonly payload: Payload
-  readonly user?: { readonly role?: unknown }
 }
 
 const readableRoles = new Set<CmsRole>([CMS_ROLE.SUPER_ADMIN, CMS_ROLE.TENANT_ADMIN])
@@ -44,16 +44,17 @@ const TEXT = {
   },
 } as const
 
-export const TenantWorkspace = async ({ i18n, payload, user }: TenantWorkspaceProps) => {
+export const TenantWorkspace = async ({ i18n, initPageResult, payload, user }: TenantWorkspaceProps) => {
   const lang = uiLangOf(i18n?.language)
   const t = TEXT[lang]
-  const role = user?.role as CmsRole | undefined
+  const currentUser = workspaceUserOf({ initPageResult, user })
+  const role = currentUser?.role as CmsRole | undefined
   if (role === undefined || !readableRoles.has(role)) return <WorkspaceDenied i18n={i18n} />
 
   const [sitesResult, domainsResult, usersResult] = await Promise.all([
-    payload.find({ collection: "sites", depth: 0, limit: 100, overrideAccess: false, ...(user === undefined ? {} : { user }), sort: "name" }),
-    payload.find({ collection: "domains", depth: 0, limit: 100, overrideAccess: false, ...(user === undefined ? {} : { user }), sort: "hostname" }),
-    payload.find({ collection: "users", depth: 0, limit: 100, overrideAccess: false, ...(user === undefined ? {} : { user }), sort: "email" }),
+    payload.find({ collection: "sites", depth: 0, limit: 100, overrideAccess: false, ...(currentUser === undefined ? {} : { user: currentUser }), sort: "name" }),
+    payload.find({ collection: "domains", depth: 0, limit: 100, overrideAccess: false, ...(currentUser === undefined ? {} : { user: currentUser }), sort: "hostname" }),
+    payload.find({ collection: "users", depth: 0, limit: 100, overrideAccess: false, ...(currentUser === undefined ? {} : { user: currentUser }), sort: "email" }),
   ])
   const sites = recordsOf(sitesResult.docs)
   const users = recordsOf(usersResult.docs)

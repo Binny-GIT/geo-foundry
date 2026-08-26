@@ -3,6 +3,7 @@ import type { Payload } from "payload"
 import { CMS_ROLE } from "../../access/roles"
 import { recordsOf } from "../dashboard/operations-model"
 import { lifecycleWorkspaceQueues } from "../workspaces/lifecycle-workspace-model"
+import { workspaceUserOf, type WorkspaceServerContext } from "../workspaces/workspace-server-context"
 import { workflowStatusLabel } from "../workflow/workflow-actions-model"
 import {
   cardClass,
@@ -14,10 +15,9 @@ import {
 } from "../workspaces/workspace-shared"
 import { uiLangOf, type HasLanguage } from "../i18n/ui-lang"
 
-export type WorkQueueProps = {
+export type WorkQueueProps = WorkspaceServerContext & {
   readonly i18n?: HasLanguage
   readonly payload: Payload
-  readonly user?: { readonly role?: unknown }
 }
 
 const ROLE_QUEUE = {
@@ -86,14 +86,15 @@ const dateOf = (value: string | null, lang: "en" | "zh") => {
   }).format(date)
 }
 
-export const WorkQueue = async ({ i18n, payload, user }: WorkQueueProps) => {
+export const WorkQueue = async ({ i18n, initPageResult, payload, user }: WorkQueueProps) => {
   const lang = uiLangOf(i18n?.language)
   const t = TEXT[lang]
-  const role = user?.role
+  const currentUser = workspaceUserOf({ initPageResult, user })
+  const role = currentUser?.role
   if (typeof role !== "string" || !(role in ROLE_QUEUE)) return <WorkspaceDenied i18n={i18n} />
 
   const queueRole = role as QueueRole
-  const editionsResult = await safeFind(payload, user, "content-editions", {
+  const editionsResult = await safeFind(payload, currentUser, "content-editions", {
     draft: true,
     sort: "-updatedAt",
   })
