@@ -15,7 +15,7 @@ const restoreBodySchema = z
     expectedRevision: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
     expectedUpdatedAt: z.string().datetime({ offset: true }),
     reason: z.string().trim().min(1).max(500),
-    versionId: z.string().uuid(),
+    versionId: z.number().int().positive(),
   })
   .strict()
 

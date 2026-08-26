@@ -65,7 +65,7 @@ export type EditionVersionSnapshot = Readonly<{
 export type EditionVersionHistoryItem = Readonly<{
   createdAt: string
   draft: boolean
-  id: string
+  id: number
   latest: boolean
   snapshot: EditionVersionSnapshot
   updatedAt: string
@@ -116,7 +116,7 @@ const snapshotOf = (value: unknown): EditionVersionSnapshot | null => {
 
 const historyItemOf = (value: StoredVersion): EditionVersionHistoryItem | null => {
   const snapshot = snapshotOf(value.version)
-  const id = textOf(value.id)
+  const id = numberOf(value.id)
   const version = recordOf(value.version)
   const createdAt = textOf(value.createdAt)
   const updatedAt = textOf(value.updatedAt)
@@ -199,12 +199,12 @@ export type RestoreEditionDraftInput = Readonly<{
   reason: string
   requestId: string
   user: unknown
-  versionId: string
+  versionId: number
 }>
 
 export type RestoreEditionDraftResponse = Readonly<{
   editionId: number
-  restoredVersionId: string
+  restoredVersionId: number
   updatedAt: string
 }>
 
@@ -241,7 +241,7 @@ const loadRestoreRecord = async (
 const responseOf = (value: unknown): RestoreEditionDraftResponse => {
   const row = recordOf(value)
   const editionId = numberOf(row?.["editionId"])
-  const restoredVersionId = textOf(row?.["restoredVersionId"])
+  const restoredVersionId = numberOf(row?.["restoredVersionId"])
   const updatedAt = textOf(row?.["updatedAt"])
   if (editionId === null || restoredVersionId === null || updatedAt === null) {
     throw fail("EDITION_DRAFT_RESTORE_IDEMPOTENCY_INVALID", "stored response is invalid")
@@ -343,7 +343,7 @@ export async function restoreEditionDraft(
       })
       const source = versions.docs[0]
       const snapshot = source === undefined ? null : snapshotOf(source.version)
-      if (snapshot === null) throw fail("EDITION_DRAFT_RESTORE_VERSION_NOT_FOUND", input.versionId)
+      if (snapshot === null) throw fail("EDITION_DRAFT_RESTORE_VERSION_NOT_FOUND", String(input.versionId))
 
       const actor = serializedActorOf(input.user)
       if (actor === null) throw fail("EDITION_DRAFT_RESTORE_UNAUTHENTICATED", "actor is not serializable")
@@ -420,7 +420,7 @@ export async function restoreEditionDraft(
           responsePayload: response,
           tenant: tenantId,
           uniqueKey,
-          versionId: input.versionId,
+          versionId: String(input.versionId),
         },
         depth: 0,
         overrideAccess: true,

@@ -59,7 +59,7 @@ const restoreBody = {
   expectedRevision: 3,
   expectedUpdatedAt: "2026-08-26T10:00:00.000Z",
   reason: "Restore the approved editorial baseline.",
-  versionId: "1c9e4fa0-7e2a-4bd8-a2c2-83e986fea213",
+  versionId: 1462,
 }
 
 describe("edition version history endpoints", () => {
