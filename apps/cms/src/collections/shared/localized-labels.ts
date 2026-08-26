@@ -18,6 +18,7 @@ export const localizedOption = (value: string, en: string, zh: string) => ({
 const fieldLabels: Readonly<Record<string, LocalizedLabel>> = {
   aggregateId: localized("Aggregate ID", "聚合 ID"),
   aggregateType: localized("Aggregate type", "聚合类型"),
+  actorUserId: localized("Actor user ID", "操作用户 ID"),
   alt: localized("Alternative text", "替代文本"),
   answer: localized("Answer", "回答"),
   attribution: localized("Attribution", "署名"),
@@ -100,6 +101,7 @@ const fieldLabels: Readonly<Record<string, LocalizedLabel>> = {
   requestId: localized("Request ID", "请求 ID"),
   requestPayload: localized("Request payload", "请求负载"),
   result: localized("Result", "结果"),
+  responsePayload: localized("Response payload", "响应负载"),
   revision: localized("Revision", "修订版本"),
   role: localized("Role", "角色"),
   rows: localized("Rows", "行"),
@@ -127,6 +129,7 @@ const fieldLabels: Readonly<Record<string, LocalizedLabel>> = {
   url: localized("URL", "URL"),
   workflowActions: localized("Workflow actions", "工作流操作"),
   workflowRevision: localized("Workflow revision", "工作流修订版本"),
+  versionId: localized("Version ID", "版本 ID"),
   width: localized("Width", "宽度"),
   workflowStatus: localized("Workflow status", "工作流状态"),
 }

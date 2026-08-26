@@ -871,6 +871,127 @@ body {
   }
 }
 
+/* Preview-first Content Edition workspace. The renderer stays semantic; this
+   surface gives its article markup a deliberate document-reading rhythm. */
+.gf-edition-preview main {
+  background: transparent !important;
+}
+
+.gf-edition-preview article {
+  margin: 0 auto;
+}
+
+.gf-edition-preview article > nav {
+  display: none;
+}
+
+.gf-edition-preview h1,
+.gf-edition-preview h2,
+.gf-edition-preview h3,
+.gf-edition-preview h4,
+.gf-edition-preview h5,
+.gf-edition-preview h6 {
+  color: var(--theme-text);
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.gf-edition-preview h1 {
+  font-size: clamp(28px, 3vw, 40px);
+  margin: 0 0 var(--gf-space-200);
+}
+
+.gf-edition-preview h2 {
+  font-size: 24px;
+  margin: var(--gf-space-500) 0 var(--gf-space-150);
+}
+
+.gf-edition-preview h3 {
+  font-size: 19px;
+  margin: var(--gf-space-400) 0 var(--gf-space-100);
+}
+
+.gf-edition-preview p,
+.gf-edition-preview li,
+.gf-edition-preview figcaption,
+.gf-edition-preview summary {
+  color: var(--theme-elevation-700);
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+.gf-edition-preview p,
+.gf-edition-preview blockquote,
+.gf-edition-preview figure,
+.gf-edition-preview pre,
+.gf-edition-preview table,
+.gf-edition-preview section {
+  margin: 0 0 var(--gf-space-300);
+}
+
+.gf-edition-preview blockquote,
+.gf-edition-preview aside[data-tone] {
+  border-left: 3px solid var(--gf-accent-500);
+  border-radius: 0 var(--style-radius-s) var(--style-radius-s) 0;
+  background: var(--gf-tone-accent-bg);
+  margin-inline: 0;
+  padding: var(--gf-space-200);
+}
+
+.gf-edition-preview pre {
+  overflow-x: auto;
+  border-radius: var(--style-radius-s);
+  background: var(--theme-elevation-900);
+  color: #f8fafc;
+  padding: var(--gf-space-200);
+}
+
+.gf-edition-preview pre code {
+  color: inherit;
+  font-family: var(--gf-font-mono);
+  font-size: 13px;
+}
+
+.gf-edition-preview table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+.gf-edition-preview th,
+.gf-edition-preview td {
+  border: 1px solid var(--theme-elevation-200);
+  padding: var(--gf-space-100) var(--gf-space-150);
+  text-align: left;
+}
+
+.gf-edition-preview th {
+  background: var(--theme-elevation-50);
+  color: var(--theme-text);
+}
+
+.gf-edition-preview img,
+.gf-edition-preview video {
+  display: block;
+  height: auto;
+  max-width: 100%;
+}
+
+.gf-edition-preview a {
+  color: var(--gf-accent-700);
+  font-weight: 650;
+}
+
+@media (max-width: 768px) {
+  .gf-edition-preview p,
+  .gf-edition-preview li,
+  .gf-edition-preview figcaption,
+  .gf-edition-preview summary {
+    font-size: 15px;
+  }
+}
+
 /* Custom operations surfaces deliberately stay scoped to their own views. */
 .gf-operations-dashboard,
 .gf-sites-workspace {

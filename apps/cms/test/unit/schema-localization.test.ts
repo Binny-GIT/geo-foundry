@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import { ContentEditions } from "../../src/collections/ContentEditions"
+import { EditionDraftRestoreIdempotency } from "../../src/collections/EditionDraftRestoreIdempotency"
 import { Contents } from "../../src/collections/Contents"
 import { Domains, validateHostnameField } from "../../src/collections/Domains"
 import { IdempotencyRecords } from "../../src/collections/IdempotencyRecords"
@@ -39,6 +40,7 @@ const collections: readonly Schema[] = [
   Sites,
   Domains,
   ContentEditions,
+  EditionDraftRestoreIdempotency,
   Releases,
   RollbackIntents,
   Media,

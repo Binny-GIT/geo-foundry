@@ -24,6 +24,14 @@ export const PencilIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
   </svg>
 )
 
+/** Preview / document reading. */
+export const EyeIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <path d="M2.5 12s3.3-6 9.5-6 9.5 6 9.5 6-3.3 6-9.5 6-9.5-6-9.5-6Z" />
+    <circle cx="12" cy="12" r="2.5" />
+  </svg>
+)
+
 /** Quality gate / review evidence. */
 export const ShieldCheckIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">

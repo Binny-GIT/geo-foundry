@@ -80,6 +80,9 @@ importers:
       '@geo/quality-rules':
         specifier: workspace:*
         version: link:../../packages/quality-rules
+      '@geo/render-react':
+        specifier: workspace:*
+        version: link:../../packages/render-react
       '@geo/schema':
         specifier: workspace:*
         version: link:../../packages/schema

@@ -42,6 +42,10 @@
 | [ ] | UX-P0-032 | P0 | publisher 在 compiled/published 版本详情 | compiled 显示发布版本，提交后提示后台处理；published 显示归档版本 | 发布请求不被 UI 误报为完成；归档后主文档状态为 archived | NOT_RUN |
 | [ ] | UX-P1-033 | P1 | 质量未通过、未编译、角色不足、陈旧 revision | 出现对应可理解反馈；失败不清空当前表单/不改变显示状态 | 映射既有端点错误，状态无越权/越级写入 | NOT_RUN |
 | [ ] | UX-P1-034 | P1 | 工作流操作进行中或重复点击 | 当前按钮显示处理中且禁用重复提交，结束后恢复/刷新 | 单次请求；幂等与乐观并发仍由服务端保证 | NOT_RUN |
+| [ ] | UX-P0-035 | P0 | 打开 Content Edition 默认详情 | 默认显示标题、摘要和正文预览；编辑者可显式切换到紧凑编辑态，其他人保持只读预览 | 预览由当前会话可读草稿数据规范化而来；不调用 `/api/internal/*`，不显示 secret/raw audit/internal request | NOT_RUN |
+| [ ] | UX-P1-036 | P1 | editor 编辑并保存标题、摘要和正文 | 保存后预览与已保存文档一致；复杂区块仍可通过高级结构化入口编辑 | Payload body 校验、tenant/site/content/media hooks、draft/version 语义保持 | NOT_RUN |
+| [ ] | UX-P1-037 | P1 | 查看历史版本并恢复草稿 | 选择历史版本只切换只读预览；仅当前状态为 draft 的 editor 可确认恢复，恢复原因必填 | 恢复需 expected revision 与 Idempotency-Key；仅复制编辑字段，产生新 draft/audit/outbox；不改 release/workflow/tenant 且无跨租户泄漏 | NOT_RUN |
+| [ ] | UX-P1-038 | P1 | 访问旧工作台 URL | 侧栏不显示发布历史/租户工作区/系统诊断；旧自定义路径不再是运营入口 | Dashboard 与原始 Releases/Rollback Intents/Sites/Domains/Users/Operations 集合页承接信息；权限不放宽 | NOT_RUN |
 
 ## 租户、权限、可访问性与响应式
 

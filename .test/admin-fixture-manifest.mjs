@@ -11,6 +11,7 @@ export const TRACKED_COLLECTIONS = new Set([
   "domains",
   "contents",
   "content-editions",
+  "edition-draft-restore-idempotency",
   "media",
   "url-records",
   "quality-assessments",

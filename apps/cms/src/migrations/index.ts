@@ -14,6 +14,7 @@ import * as migration_20260819_153000_task24_request_payload from "./20260819_15
 import * as migration_20260820_090000_task30_releases from "./20260820_090000_task30_releases"
 import * as migration_20260822_093000_content_modified_at from "./20260822_093000_content_modified_at"
 import * as migration_20260826_074307_reviewer_edition_decisions from "./20260826_074307_reviewer_edition_decisions"
+import * as migration_20260826_100744_edition_draft_restore from "./20260826_100744_edition_draft_restore"
 
 export const migrations = [
   {
@@ -95,5 +96,10 @@ export const migrations = [
     up: migration_20260826_074307_reviewer_edition_decisions.up,
     down: migration_20260826_074307_reviewer_edition_decisions.down,
     name: "20260826_074307_reviewer_edition_decisions",
+  },
+  {
+    up: migration_20260826_100744_edition_draft_restore.up,
+    down: migration_20260826_100744_edition_draft_restore.down,
+    name: "20260826_100744_edition_draft_restore",
   },
 ]

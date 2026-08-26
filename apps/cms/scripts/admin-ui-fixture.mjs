@@ -32,6 +32,7 @@ const cleanupOrder = [
   "outbox-events",
   "quality-assessments",
   "url-records",
+  "edition-draft-restore-idempotency",
   "content-editions",
   "contents",
   "media",

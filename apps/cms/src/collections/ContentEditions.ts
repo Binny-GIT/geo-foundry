@@ -159,6 +159,15 @@ export const ContentEditions = {
     singular: localized("Content edition", "内容版本"),
   },
   admin: {
+    components: {
+      views: {
+        edit: {
+          root: {
+            Component: "/components/views/ContentEditionDocument#ContentEditionDocument",
+          },
+        },
+      },
+    },
     defaultColumns: ["title", "workflowStatus", "site", "creationOrigin", "updatedAt"],
     group: localized("Content", "内容"),
     useAsTitle: "title",

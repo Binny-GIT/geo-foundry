@@ -267,7 +267,7 @@ export const EditionWorkspace = async ({ i18n, initPageResult, params, payload, 
               <div className="flex items-center justify-between gap-3"><dt className="text-sm text-[var(--theme-elevation-600)]">{t.current}</dt><dd className="m-0"><Badge tone={release?.["state"] === "current" ? "success" : "neutral"}>{releaseStateLabel(release?.["state"], lang)}</Badge></dd></div>
             </dl>
           ) : <p className="m-0 text-sm text-[var(--theme-elevation-600)]">{t.releaseRestricted}</p>}
-          {canReadReleases && <WorkspaceAction href="/admin/history/releases">{t.openRecord}</WorkspaceAction>}
+          {canReadReleases && <WorkspaceAction href="/admin/collections/releases">{t.openRecord}</WorkspaceAction>}
         </article>
 
         <article className={`${cardClass} flex flex-col gap-4 p-5`}>

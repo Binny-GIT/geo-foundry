@@ -2,7 +2,6 @@
 
 import { toast, useAuth, useDocumentInfo, useFormFields, useTranslation } from "@payloadcms/ui"
 import { useRouter } from "next/navigation"
-import type { UIFieldClientProps } from "payload"
 import { useEffect, useId, useRef, useState } from "react"
 
 import { uiLangOf } from "../i18n/ui-lang"
@@ -84,7 +83,7 @@ const impactFor = (action: WorkflowAction, messages: (typeof MESSAGE)["zh"]): st
  * session-authenticated endpoints, whose domain guards enforce actor role,
  * tenant scope, quality gates, and optimistic revision checks.
  */
-export const WorkflowActions = (_: UIFieldClientProps) => {
+export const WorkflowActions = () => {
   const { id } = useDocumentInfo()
   const { user } = useAuth()
   const { i18n } = useTranslation()

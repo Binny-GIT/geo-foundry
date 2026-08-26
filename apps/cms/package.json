@@ -26,6 +26,7 @@
     "@aws-sdk/client-s3": "3.1112.0",
     "@geo/compiler": "workspace:*",
     "@geo/domain": "workspace:*",
+    "@geo/render-react": "workspace:*",
     "@geo/quality-rules": "workspace:*",
     "@geo/schema": "workspace:*",
     "@payloadcms/db-postgres": "3.88.0",

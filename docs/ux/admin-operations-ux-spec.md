@@ -48,7 +48,7 @@
 | 操作健康度 | generate / evaluate / publish / rollback 的 queued、running、succeeded、failed、cancelled 分布 | 仅有操作读取权限的角色可见；这是可见记录快照，不是时间窗口成功率 |
 | 台账与最近记录 | 发布、操作与回滚的可见记录 | 无记录显示明确空态；每条可到详情页 |
 
-Dashboard 必须保留面向角色的主操作：editor 创建内容、reviewer 打开审核队列、publisher 打开待发布版本、tenant-admin/super-admin 打开站点工作区。指标和卡片不得代替原始登记页，也不得写入或修改底层记录。
+Dashboard 是唯一的运营总览入口，必须保留面向角色的主操作：editor 创建内容、reviewer 打开审核队列、publisher 打开待发布版本、tenant-admin/super-admin 打开站点集合页。发布、回滚、租户配置和诊断摘要均跳转到受权限保护的原始集合页；不再提供独立的发布历史、租户工作区或系统诊断自定义路由。指标和卡片不得代替原始登记页，也不得写入或修改底层记录。
 
 ### 3.3 Sites workspace `/admin/collections/sites`
 
@@ -73,7 +73,7 @@ Dashboard 必须保留面向角色的主操作：editor 创建内容、reviewer 
 | publisher / published | 归档版本 | 成功后刷新为 `archived` |
 | editor / published | 创建新草稿 | 从已发布版本派生新的 draft，不改写已发布版本 |
 
-审核专用命令为 `POST /api/workspaces/reviewer/editions/:id/approve` 与 `POST /api/workspaces/reviewer/editions/:id/request-changes`。二者固定目标状态，要求 `Idempotency-Key`、`expectedRevision` 和会话关联 ID；重复的同一成功请求只重放最初响应，不会重复写入审计或 Outbox。未知版本与跨租户版本返回相同的 404 响应，避免存在性泄漏。质量评估未通过、版本未编译、角色不足、陈旧 revision 或其他端点错误必须给出可理解的 toast/页面反馈。客户端不能自行修改 `workflowStatus`，不能把提交成功误报为发布完成。
+审核专用命令为 `POST /api/workspaces/reviewer/editions/:id/approve` 与 `POST /api/workspaces/reviewer/editions/:id/request-changes`。二者固定目标状态，要求 `Idempotency-Key`、`expectedRevision` 和会话关联 ID；重复的同一成功请求只重放最初响应，不会重复写入审计或 Outbox。未知版本与跨租户版本返回相同的 404 响应，避免存在性泄漏。内容版本默认详情页是预览优先的文档工作台：打开时先展示标题、摘要和接近最终页面的正文预览，编辑者可显式切换到紧凑的文档编辑态；reviewer、publisher、tenant-admin 和 super-admin 保持只读预览并仅显示其被允许的工作流操作。版本历史只读预览不会覆盖当前表单。仅当当前内容版本本来就是 `draft` 时，editor 才可在确认并填写原因后将历史版本的可编辑字段复制为新的当前草稿；该命令必须携带 expected revision 与幂等键，不能复制 workflow/release/tenant/audit 字段，也不能覆盖历史版本或发布制品。质量评估未通过、版本未编译、角色不足、陈旧 revision 或其他端点错误必须给出可理解的 toast/页面反馈。客户端不能自行修改 `workflowStatus`，不能把提交成功误报为发布完成。
 
 ## 5. 租户、权限与数据可见性
 

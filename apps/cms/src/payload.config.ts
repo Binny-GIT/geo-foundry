@@ -9,6 +9,7 @@ import { zh as zhLanguage, zhTranslations } from "@payloadcms/translations/langu
 import { buildConfig } from "payload"
 
 import { ContentEditions } from "./collections/ContentEditions"
+import { EditionDraftRestoreIdempotency } from "./collections/EditionDraftRestoreIdempotency"
 import { Contents } from "./collections/Contents"
 import { Domains } from "./collections/Domains"
 import { IdempotencyRecords } from "./collections/IdempotencyRecords"
@@ -35,6 +36,10 @@ import {
   reviewerApproveEditionEndpoint,
   reviewerRequestChangesEditionEndpoint,
 } from "./endpoints/reviewer-edition-decisions"
+import {
+  editionVersionHistoryEndpoint,
+  restoreEditionDraftEndpoint,
+} from "./endpoints/edition-version-history"
 import { allInternalEndpoints } from "./endpoints/internal/index"
 import { createRollbackIntentEndpoint } from "./endpoints/rollback-intents"
 import { renameUrlRecordEndpoint } from "./endpoints/url-records"
@@ -80,21 +85,6 @@ export default buildConfig({
           exact: true,
           path: "/work/operations/:id",
         },
-        releaseHistory: {
-          Component: "/components/views/ReleaseHistory#ReleaseHistory",
-          exact: true,
-          path: "/history/releases",
-        },
-        tenantWorkspace: {
-          Component: "/components/views/TenantWorkspace#TenantWorkspace",
-          exact: true,
-          path: "/tenant",
-        },
-        systemDiagnostics: {
-          Component: "/components/views/SystemDiagnostics#SystemDiagnostics",
-          exact: true,
-          path: "/system/diagnostics",
-        },
       },
     },
     // 不依赖外部 Gravatar 服务（测试/生产网络不可达，导致管理端页面 console error 与请求超时）
@@ -107,6 +97,7 @@ export default buildConfig({
     Domains,
     Contents,
     ContentEditions,
+    EditionDraftRestoreIdempotency,
     Media,
     UrlRecords,
     QualityAssessments,
@@ -158,6 +149,8 @@ export default buildConfig({
     transitionEditionEndpoint,
     reviewerApproveEditionEndpoint,
     reviewerRequestChangesEditionEndpoint,
+    editionVersionHistoryEndpoint,
+    restoreEditionDraftEndpoint,
     renameUrlRecordEndpoint,
     ...allInternalEndpoints,
   ],

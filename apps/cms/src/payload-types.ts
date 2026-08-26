@@ -73,6 +73,7 @@ export interface Config {
     domains: Domain;
     contents: Content;
     'content-editions': ContentEdition;
+    'edition-draft-restore-idempotency': EditionDraftRestoreIdempotency;
     media: Media;
     'url-records': UrlRecord;
     'quality-assessments': QualityAssessment;
@@ -95,6 +96,7 @@ export interface Config {
     domains: DomainsSelect<false> | DomainsSelect<true>;
     contents: ContentsSelect<false> | ContentsSelect<true>;
     'content-editions': ContentEditionsSelect<false> | ContentEditionsSelect<true>;
+    'edition-draft-restore-idempotency': EditionDraftRestoreIdempotencySelect<false> | EditionDraftRestoreIdempotencySelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     'url-records': UrlRecordsSelect<false> | UrlRecordsSelect<true>;
     'quality-assessments': QualityAssessmentsSelect<false> | QualityAssessmentsSelect<true>;
@@ -530,6 +532,34 @@ export interface ContentEdition {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "edition-draft-restore-idempotency".
+ */
+export interface EditionDraftRestoreIdempotency {
+  id: number;
+  uniqueKey: string;
+  tenant: number | Tenant;
+  endpoint: string;
+  idempotencyKey: string;
+  requestHash: string;
+  edition: number | ContentEdition;
+  versionId: string;
+  actorUserId: string;
+  requestId: string;
+  responsePayload:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  replayCount?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media".
  */
 export interface Media {
@@ -879,6 +909,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'content-editions';
         value: number | ContentEdition;
+      } | null)
+    | ({
+        relationTo: 'edition-draft-restore-idempotency';
+        value: number | EditionDraftRestoreIdempotency;
       } | null)
     | ({
         relationTo: 'media';
@@ -1234,6 +1268,25 @@ export interface ContentEditionsSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "edition-draft-restore-idempotency_select".
+ */
+export interface EditionDraftRestoreIdempotencySelect<T extends boolean = true> {
+  uniqueKey?: T;
+  tenant?: T;
+  endpoint?: T;
+  idempotencyKey?: T;
+  requestHash?: T;
+  edition?: T;
+  versionId?: T;
+  actorUserId?: T;
+  requestId?: T;
+  responsePayload?: T;
+  replayCount?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
