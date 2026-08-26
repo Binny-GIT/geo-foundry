@@ -95,7 +95,7 @@ export const ReleaseHistory = async ({ i18n, initPageResult, payload, user }: Re
                 : []
             return (
               <article className={`${cardClass} flex flex-col gap-5 p-5`} key={siteId}>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex flex-col items-start gap-3 sm:flex-row sm:justify-between">
                   <div className="flex min-w-0 items-start gap-3"><IconBadge tone="accent"><PackageIcon size={18} /></IconBadge><div className="min-w-0"><p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">{t.site}</p><h2 className="m-0 mt-1 truncate text-lg font-bold text-[var(--theme-text)]">{stringOf(site["name"], siteId)}</h2></div></div>
                   <WorkspaceAction href={`/admin/collections/sites/${siteId}`}>{t.openLedger}</WorkspaceAction>
                 </div>
