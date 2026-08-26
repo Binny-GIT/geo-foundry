@@ -38,7 +38,7 @@
 | 已测 | ID | 优先级 | 场景/操作 | 可见断言/期望 | 后端/数据断言 | 证据/备注 |
 | --- | --- | --- | --- | --- | --- | --- |
 | [ ] | UX-P0-030 | P0 | editor 在 draft/generating/published 版本详情 | 分别只见开始生成；提交审核/退回草稿；创建新草稿 | 仅调用既有会话端点；非法角色/状态无 action | NOT_RUN |
-| [ ] | UX-P0-031 | P0 | reviewer 在 review 版本详情 | 显示批准版本与退回修改；成功后刷新状态 | 服务端复核角色、tenant 和合法状态迁移 | NOT_RUN |
+| [ ] | UX-P0-031 | P0 | reviewer 在 review 版本详情 | 显示批准版本与退回修改；退回原因必填；成功后刷新状态 | 仅审核专用端点；服务端复核 reviewer 身份、tenant、expected revision 和 Idempotency-Key；未知与跨租户版本返回同一 404 | NOT_RUN |
 | [ ] | UX-P0-032 | P0 | publisher 在 compiled/published 版本详情 | compiled 显示发布版本，提交后提示后台处理；published 显示归档版本 | 发布请求不被 UI 误报为完成；归档后主文档状态为 archived | NOT_RUN |
 | [ ] | UX-P1-033 | P1 | 质量未通过、未编译、角色不足、陈旧 revision | 出现对应可理解反馈；失败不清空当前表单/不改变显示状态 | 映射既有端点错误，状态无越权/越级写入 | NOT_RUN |
 | [ ] | UX-P1-034 | P1 | 工作流操作进行中或重复点击 | 当前按钮显示处理中且禁用重复提交，结束后恢复/刷新 | 单次请求；幂等与乐观并发仍由服务端保证 | NOT_RUN |

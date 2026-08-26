@@ -268,6 +268,9 @@ export type TransitionOptions = {
   readonly target: ContentEditionState
   readonly user: unknown
   readonly compiledReleaseId?: string
+  readonly decisionId?: string
+  readonly expectedRevision?: number
+  readonly idempotencyKeyHash?: string
   readonly operationId?: string
   readonly reason?: string
   readonly requestId?: string
@@ -285,6 +288,12 @@ const transitionEditionInScope = async (
   const doc = await loadWorkflowEdition(payload, options.editionId, req, true)
   const claims = assertEditionTenantScope(options.user, doc)
   const aggregate = aggregateOf(doc)
+  if (
+    options.expectedRevision !== undefined &&
+    options.expectedRevision !== aggregate.revision
+  ) {
+    throw fail("EDITION_WORKFLOW_REVISION_CONFLICT", `edition ${options.editionId}`)
+  }
   const reason = stringField(options.reason)?.trim()
   if (
     claims.role === "reviewer" &&
@@ -325,6 +334,19 @@ const transitionEditionInScope = async (
     action: `content-edition.${aggregate.state}.${options.target}`,
     actor: serializedActor,
     at: systemClock.now().value,
+    ...(options.decisionId === undefined &&
+    options.idempotencyKeyHash === undefined &&
+    options.requestId === undefined
+      ? {}
+      : {
+          detail: {
+            ...(options.decisionId === undefined ? {} : { decisionId: options.decisionId }),
+            ...(options.idempotencyKeyHash === undefined
+              ? {}
+              : { idempotencyKeyHash: options.idempotencyKeyHash }),
+            ...(options.requestId === undefined ? {} : { requestId: options.requestId }),
+          },
+        }),
     from: aggregate.state,
     ...(reason === undefined || reason.length === 0 ? {} : { reason }),
     tenantId: numberFieldOf(doc.tenant) ?? -1,
@@ -340,35 +362,28 @@ const transitionEditionInScope = async (
   // Published and archived are externally visible terminal states. Persist them
   // to the live document rather than only the Payload draft version, otherwise
   // a later archive action appears in the editor but API readers still see published.
-  if (options.target === "published" || options.target === "archived") {
-    const updated = (await payload.update({
-      collection: "content-editions",
-      data,
-      depth: 0,
-      draft: false,
-      id: options.editionId,
-      overrideAccess: true,
-      req,
-    })) as unknown as WorkflowEditionDoc
-    if (
-      parseWorkflowStatus(updated.workflowStatus) !== options.target ||
-      numberFieldOf(updated.workflowRevision) !== aggregate.revision + 1
-    ) {
-      throw fail("EDITION_WORKFLOW_REVISION_CONFLICT", `edition ${options.editionId}`)
-    }
-  } else {
-    const updated = (await payload.update({
-      collection: "content-editions",
-      data,
-      depth: 0,
-      draft: true,
-      id: options.editionId,
-      overrideAccess: true,
-      req,
-    })) as unknown as WorkflowEditionDoc
-    if (numberFieldOf(updated.workflowRevision) !== aggregate.revision + 1) {
-      throw fail("EDITION_WORKFLOW_REVISION_CONFLICT", `edition ${options.editionId}`)
-    }
+  const updated = await payload.update({
+    collection: "content-editions",
+    data,
+    depth: 0,
+    draft: options.target === "published" || options.target === "archived" ? false : true,
+    overrideAccess: true,
+    req,
+    where: {
+      and: [
+        { id: { equals: options.editionId } },
+        { workflowRevision: { equals: aggregate.revision } },
+      ],
+    },
+  })
+  const persisted = (updated.docs[0] as unknown as WorkflowEditionDoc | undefined) ?? null
+  if (
+    updated.docs.length !== 1 ||
+    persisted === null ||
+    parseWorkflowStatus(persisted.workflowStatus) !== options.target ||
+    numberFieldOf(persisted.workflowRevision) !== aggregate.revision + 1
+  ) {
+    throw fail("EDITION_WORKFLOW_REVISION_CONFLICT", `edition ${options.editionId}`)
   }
   await appendOutboxEvent(
     payload,
@@ -382,6 +397,8 @@ const transitionEditionInScope = async (
           ? { releaseId: options.compiledReleaseId }
           : {}),
         ...(reason === undefined || reason.length === 0 ? {} : { reason }),
+        ...(options.decisionId === undefined ? {} : { decisionId: options.decisionId }),
+        ...(options.requestId === undefined ? {} : { correlationId: options.requestId }),
       },
       tenantId: numberFieldOf(doc.tenant) ?? -1,
       type: OUTBOX_EVENT.EDITION_TRANSITIONED,

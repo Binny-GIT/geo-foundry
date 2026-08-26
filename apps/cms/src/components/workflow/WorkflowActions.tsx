@@ -73,9 +73,9 @@ const requiresReason = (action: WorkflowAction): boolean => action.reasonRequire
 const impactFor = (action: WorkflowAction, messages: (typeof MESSAGE)["zh"]): string | null => {
   if (action.type === "draft-from-published") return messages.createDraftImpact
   if (action.type === "publish-operation") return messages.publishImpact
-  if (action.target === "approved") return messages.approveImpact
+  if (action.type === "reviewer-approve") return messages.approveImpact
+  if (action.type === "reviewer-request-changes") return messages.requestChangesImpact
   if (action.target === "archived") return messages.archiveImpact
-  if (requiresReason(action)) return messages.requestChangesImpact
   return null
 }
 
@@ -90,6 +90,7 @@ export const WorkflowActions = (_: UIFieldClientProps) => {
   const { i18n } = useTranslation()
   const router = useRouter()
   const statusValue = useFormFields(([fields]) => fields["workflowStatus"]?.value)
+  const workflowRevision = useFormFields(([fields]) => fields["workflowRevision"]?.value)
   const [pending, setPending] = useState<string | null>(null)
   const [selectedAction, setSelectedAction] = useState<WorkflowAction | null>(null)
   const [reason, setReason] = useState("")
@@ -139,21 +140,34 @@ export const WorkflowActions = (_: UIFieldClientProps) => {
   const run = async (action: WorkflowAction, auditReason?: string) => {
     setPending(action.label)
     try {
+      const reviewerDecision =
+        action.type === "reviewer-approve" || action.type === "reviewer-request-changes"
       const endpoint =
         action.type === "draft-from-published"
           ? `/api/editions/${id}/draft-from-published`
           : action.type === "publish-operation"
             ? `/api/editions/${id}/publish-operations`
-            : `/api/editions/${id}/workflow-transitions`
+            : action.type === "reviewer-approve"
+              ? `/api/workspaces/reviewer/editions/${id}/approve`
+              : action.type === "reviewer-request-changes"
+                ? `/api/workspaces/reviewer/editions/${id}/request-changes`
+                : `/api/editions/${id}/workflow-transitions`
       const normalizedReason = auditReason?.trim()
       const body = {
         ...(action.type === "transition" ? { target: action.target } : {}),
+        ...(reviewerDecision ? { expectedRevision: Number(workflowRevision) } : {}),
         ...(normalizedReason === undefined || normalizedReason.length === 0 ? {} : { reason: normalizedReason }),
       }
+      const requestId = crypto.randomUUID()
       const response = await fetch(endpoint, {
         body: JSON.stringify(body),
         credentials: "same-origin",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          ...(reviewerDecision
+            ? { "idempotency-key": crypto.randomUUID(), "x-request-id": requestId }
+            : {}),
+        },
         method: "POST",
       })
       const result = (await response.json().catch(() => ({}))) as {

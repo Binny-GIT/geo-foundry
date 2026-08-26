@@ -12,6 +12,7 @@ import { ContentEditions } from "./collections/ContentEditions"
 import { Contents } from "./collections/Contents"
 import { Domains } from "./collections/Domains"
 import { IdempotencyRecords } from "./collections/IdempotencyRecords"
+import { ReviewerEditionDecisionIdempotency } from "./collections/ReviewerEditionDecisionIdempotency"
 import { Media } from "./collections/Media"
 import { Operations } from "./collections/Operations"
 import { OutboxEvents } from "./collections/OutboxEvents"
@@ -30,6 +31,10 @@ import {
   submitPublishOperationEndpoint,
   transitionEditionEndpoint,
 } from "./endpoints/edition-workflow"
+import {
+  reviewerApproveEditionEndpoint,
+  reviewerRequestChangesEditionEndpoint,
+} from "./endpoints/reviewer-edition-decisions"
 import { allInternalEndpoints } from "./endpoints/internal/index"
 import { createRollbackIntentEndpoint } from "./endpoints/rollback-intents"
 import { renameUrlRecordEndpoint } from "./endpoints/url-records"
@@ -110,6 +115,7 @@ export default buildConfig({
     OutboxEvents,
     Operations,
     IdempotencyRecords,
+    ReviewerEditionDecisionIdempotency,
   ],
   i18n: {
     // Without `supportedLanguages`, Payload's sanitizer keeps only its
@@ -150,6 +156,8 @@ export default buildConfig({
     createDraftFromPublishedEndpoint,
     submitPublishOperationEndpoint,
     transitionEditionEndpoint,
+    reviewerApproveEditionEndpoint,
+    reviewerRequestChangesEditionEndpoint,
     renameUrlRecordEndpoint,
     ...allInternalEndpoints,
   ],

@@ -68,12 +68,12 @@ Dashboard 必须保留面向角色的主操作：editor 创建内容、reviewer 
 | --- | --- | --- |
 | editor / draft | 开始生成 | 进入 `generating` 后刷新详情 |
 | editor / generating | 提交审核；退回草稿 | 成功后显示目标状态；失败保留当前页面和输入 |
-| reviewer / review | 批准版本；退回修改 | 仅在审核中显示；服务端复核角色和租户 |
+| reviewer / review | 批准版本；退回修改 | 仅在审核中显示；审核专用会话端点复核 reviewer 身份、租户、当前 revision 与幂等键；退回修改必须填写原因 |
 | publisher / compiled | 发布版本 | 提交异步发布请求，明确说明“将在后台完成”，不提前宣称已发布 |
 | publisher / published | 归档版本 | 成功后刷新为 `archived` |
 | editor / published | 创建新草稿 | 从已发布版本派生新的 draft，不改写已发布版本 |
 
-质量评估未通过、版本未编译、角色不足、陈旧 revision 或其他端点错误必须给出可理解的 toast/页面反馈。客户端不能自行修改 `workflowStatus`，不能把提交成功误报为发布完成。
+审核专用命令为 `POST /api/workspaces/reviewer/editions/:id/approve` 与 `POST /api/workspaces/reviewer/editions/:id/request-changes`。二者固定目标状态，要求 `Idempotency-Key`、`expectedRevision` 和会话关联 ID；重复的同一成功请求只重放最初响应，不会重复写入审计或 Outbox。未知版本与跨租户版本返回相同的 404 响应，避免存在性泄漏。质量评估未通过、版本未编译、角色不足、陈旧 revision 或其他端点错误必须给出可理解的 toast/页面反馈。客户端不能自行修改 `workflowStatus`，不能把提交成功误报为发布完成。
 
 ## 5. 租户、权限与数据可见性
 

@@ -81,6 +81,7 @@ export interface Config {
     'outbox-events': OutboxEvent;
     operations: Operation;
     'idempotency-records': IdempotencyRecord;
+    'reviewer-edition-decision-idempotency': ReviewerEditionDecisionIdempotency;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -102,6 +103,7 @@ export interface Config {
     'outbox-events': OutboxEventsSelect<false> | OutboxEventsSelect<true>;
     operations: OperationsSelect<false> | OperationsSelect<true>;
     'idempotency-records': IdempotencyRecordsSelect<false> | IdempotencyRecordsSelect<true>;
+    'reviewer-edition-decision-idempotency': ReviewerEditionDecisionIdempotencySelect<false> | ReviewerEditionDecisionIdempotencySelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -189,7 +191,13 @@ export interface Site {
   id: number;
   name: string;
   tenant?: (number | null) | Tenant;
+  /**
+   * Canonical BCP-47 language tag, such as en-US.
+   */
   locale: string;
+  /**
+   * Canonical IANA timezone, such as America/New_York.
+   */
   timezone: string;
   status: 'active' | 'disabled';
   contentStrategy?: {
@@ -222,6 +230,9 @@ export interface Site {
  */
 export interface Domain {
   id: number;
+  /**
+   * A valid DNS hostname, without a protocol or path.
+   */
   hostname: string;
   site: number | Site;
   tenant?: (number | null) | Tenant;
@@ -499,7 +510,7 @@ export interface ContentEdition {
   creationOrigin: 'ai' | 'human' | 'hybrid';
   contentModifiedAt?: string | null;
   /**
-   * Owned by the edition workflow service
+   * Owned by the edition workflow service.
    */
   workflowStatus?: ('draft' | 'generating' | 'review' | 'approved' | 'compiled' | 'published' | 'archived') | null;
   workflowRevision?: number | null;
@@ -719,7 +730,7 @@ export interface Operation {
   endpoint: string;
   idempotencyKeyHash?: string | null;
   /**
-   * Owned by the operations-ledger service
+   * Owned by the operations-ledger service.
    */
   state: 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled';
   attempt?: number | null;
@@ -789,6 +800,34 @@ export interface IdempotencyRecord {
   idempotencyKey: string;
   requestHash: string;
   operationId: string;
+  replayCount?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "reviewer-edition-decision-idempotency".
+ */
+export interface ReviewerEditionDecisionIdempotency {
+  id: number;
+  uniqueKey: string;
+  tenant: number | Tenant;
+  endpoint: string;
+  idempotencyKey: string;
+  requestHash: string;
+  edition: number | ContentEdition;
+  decisionId: string;
+  actorUserId: string;
+  requestId: string;
+  responsePayload:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   replayCount?: number | null;
   updatedAt: string;
   createdAt: string;
@@ -872,6 +911,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'idempotency-records';
         value: number | IdempotencyRecord;
+      } | null)
+    | ({
+        relationTo: 'reviewer-edition-decision-idempotency';
+        value: number | ReviewerEditionDecisionIdempotency;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -1352,6 +1395,25 @@ export interface IdempotencyRecordsSelect<T extends boolean = true> {
   idempotencyKey?: T;
   requestHash?: T;
   operationId?: T;
+  replayCount?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "reviewer-edition-decision-idempotency_select".
+ */
+export interface ReviewerEditionDecisionIdempotencySelect<T extends boolean = true> {
+  uniqueKey?: T;
+  tenant?: T;
+  endpoint?: T;
+  idempotencyKey?: T;
+  requestHash?: T;
+  edition?: T;
+  decisionId?: T;
+  actorUserId?: T;
+  requestId?: T;
+  responsePayload?: T;
   replayCount?: T;
   updatedAt?: T;
   createdAt?: T;

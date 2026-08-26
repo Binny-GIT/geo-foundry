@@ -34,9 +34,9 @@ describe("workflowActionsFor", () => {
   })
 
   it("keeps reviewer and publisher actions scoped to their workflow states", () => {
-    expect(workflowActionsFor("reviewer", "review").map((action) => action.label)).toEqual([
-      "批准版本",
-      "退回修改",
+    expect(workflowActionsFor("reviewer", "review")).toEqual([
+      expect.objectContaining({ label: "批准版本", type: "reviewer-approve" }),
+      expect.objectContaining({ label: "退回修改", type: "reviewer-request-changes" }),
     ])
     expect(workflowActionsFor("publisher", "compiled")).toEqual([
       { confirm: true, label: "发布版本", tone: "primary", type: "publish-operation" },

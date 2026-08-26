@@ -13,6 +13,7 @@ import * as migration_20260819_092000_task20_embeddings from "./20260819_092000_
 import * as migration_20260819_153000_task24_request_payload from "./20260819_153000_task24_request_payload"
 import * as migration_20260820_090000_task30_releases from "./20260820_090000_task30_releases"
 import * as migration_20260822_093000_content_modified_at from "./20260822_093000_content_modified_at"
+import * as migration_20260826_074307_reviewer_edition_decisions from "./20260826_074307_reviewer_edition_decisions"
 
 export const migrations = [
   {
@@ -89,5 +90,10 @@ export const migrations = [
     up: migration_20260822_093000_content_modified_at.up,
     down: migration_20260822_093000_content_modified_at.down,
     name: "20260822_093000_content_modified_at",
+  },
+  {
+    up: migration_20260826_074307_reviewer_edition_decisions.up,
+    down: migration_20260826_074307_reviewer_edition_decisions.down,
+    name: "20260826_074307_reviewer_edition_decisions",
   },
 ]

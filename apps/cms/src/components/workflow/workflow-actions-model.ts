@@ -57,7 +57,12 @@ export type WorkflowAction = {
   readonly reasonRequired?: true
   readonly tone: "primary" | "secondary"
   readonly target?: WorkflowStatus
-  readonly type: "draft-from-published" | "publish-operation" | "transition"
+  readonly type:
+    | "draft-from-published"
+    | "publish-operation"
+    | "reviewer-approve"
+    | "reviewer-request-changes"
+    | "transition"
 }
 
 export const isWorkflowStatus = (value: unknown): value is WorkflowStatus =>
@@ -75,7 +80,12 @@ type ActionTemplate = {
   readonly reasonRequired?: true
   readonly target?: WorkflowStatus
   readonly tone: "primary" | "secondary"
-  readonly type: "draft-from-published" | "publish-operation" | "transition"
+  readonly type:
+    | "draft-from-published"
+    | "publish-operation"
+    | "reviewer-approve"
+    | "reviewer-request-changes"
+    | "transition"
   readonly zh: string
 }
 
@@ -86,8 +96,8 @@ const ACTION_TEMPLATES: readonly ActionTemplate[] = [
   { en: "Submit for review", target: "review", tone: "primary", type: "transition", zh: "提交审核" },
   { en: "Return to draft", target: "draft", tone: "secondary", type: "transition", zh: "退回草稿" },
   // reviewer: review → approved / back to draft
-  { confirm: true, en: "Approve edition", target: "approved", tone: "primary", type: "transition", zh: "批准版本" },
-  { confirm: true, en: "Request changes", reasonRequired: true, target: "draft", tone: "secondary", type: "transition", zh: "退回修改" },
+  { confirm: true, en: "Approve edition", target: "approved", tone: "primary", type: "reviewer-approve", zh: "批准版本" },
+  { confirm: true, en: "Request changes", reasonRequired: true, target: "draft", tone: "secondary", type: "reviewer-request-changes", zh: "退回修改" },
   // publisher: compiled → publish
   { confirm: true, en: "Publish edition", tone: "primary", type: "publish-operation", zh: "发布版本" },
   // publisher: published → archived
