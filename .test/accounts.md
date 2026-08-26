@@ -25,7 +25,7 @@
 
 ## mk-dev 现存账号（embed-*，浏览器/UI 测试用）
 
-由 `apps/cms/test/integration/helpers/embeddings-world.ts` 于 2026-08-20 直接写入 mk-dev 生产库创建；**口令为仓库内固定测试口令**（同一文件内，`embeddings-world.ts` 各 `password` 字面量），本表不重复抄录。租户：`embed-tenant`（本租户）与一个 foreign 租户。
+由 `apps/cms/test/integration/helpers/embeddings-world.ts` 于 2026-08-20 直接写入 mk-dev 生产库创建；**口令为仓库内固定测试口令**（同一文件内，`embeddings-world.ts` 各 `password` 字面量），本表不重复抄录。浏览器回归脚本 `browser-admin-tests.mjs` 不保存口令，运行时需要从受控环境传入 `GEO_FOUNDRY_BROWSER_{SUPER_ADMIN,EDITOR,TENANT_ADMIN,FOREIGN_ADMIN}_PASSWORD`；测试执行器可从该 helper 读取后仅在进程内注入。租户：`embed-tenant`（本租户）与一个 foreign 租户。
 
 | 角色 | 邮箱 | CMS role | 租户 | 用途 |
 | --- | --- | --- | --- | --- |

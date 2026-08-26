@@ -1,0 +1,101 @@
+{
+  "reviewer": {
+    "desktop": {
+      "approveDialog": true,
+      "dimensions": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "hiddenAdminLinks": true,
+      "requestChangesReasonError": true
+    },
+    "mobile": {
+      "dialogVisible": true,
+      "dimensions": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      }
+    }
+  },
+  "workspaces": [
+    {
+      "name": "release-history",
+      "viewport": "desktop",
+      "dimensions": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "content": {
+        "当前发布版本": true,
+        "安全回滚候选版本": true
+      }
+    },
+    {
+      "name": "tenant-workspace",
+      "viewport": "desktop",
+      "dimensions": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "content": {
+        "站点": true,
+        "域名": true,
+        "用户": true
+      }
+    },
+    {
+      "name": "system-diagnostics",
+      "viewport": "desktop",
+      "dimensions": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "content": {
+        "控制面就绪状态": true,
+        "PostgreSQL": true,
+        "RustFS": true,
+        "此页面刻意不展示配置值、凭据、请求载荷或 Provider 提示词。": true
+      }
+    },
+    {
+      "name": "release-history",
+      "viewport": "mobile",
+      "dimensions": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "content": {
+        "当前发布版本": true,
+        "安全回滚候选版本": true
+      }
+    },
+    {
+      "name": "tenant-workspace",
+      "viewport": "mobile",
+      "dimensions": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "content": {
+        "站点": true,
+        "域名": true,
+        "用户": true
+      }
+    },
+    {
+      "name": "system-diagnostics",
+      "viewport": "mobile",
+      "dimensions": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "content": {
+        "控制面就绪状态": true,
+        "PostgreSQL": true,
+        "RustFS": true,
+        "此页面刻意不展示配置值、凭据、请求载荷或 Provider 提示词。": true
+      }
+    }
+  ],
+  "consoleErrors": []
+}

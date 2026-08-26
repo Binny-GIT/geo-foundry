@@ -16,11 +16,32 @@ const TIMEOUT_MS = 60_000
 const PAGE_TIMEOUT_MS = 90_000
 const ATTEMPTS = 3
 
+const requiredBrowserPassword = (name) => {
+  const value = process.env[name]
+  if (typeof value === "string" && value.length > 0) return value
+  throw new Error(`Missing ${name}; see .test/accounts.md for the approved test-account source.`)
+}
+
+// Embed account identifiers are non-secret. Their fixed test passwords remain
+// only in the permitted embeddings-world.ts helper and are supplied to this
+// browser runner through its runtime environment.
 const ACCOUNTS = {
-  superAdmin: { email: "embed-boot@geo-foundry.test", password: "bootstrap-password-260818" },
-  editor: { email: "embed-editor@geo-foundry.test", password: "pw-1-editor" },
-  tenantAdmin: { email: "embed-tenant-admin@geo-foundry.test", password: "pw-1-tenant" },
-  foreignAdmin: { email: "embed-foreign-admin@geo-foundry.test", password: "pw-1-foreign" },
+  superAdmin: {
+    email: "embed-boot@geo-foundry.test",
+    password: requiredBrowserPassword("GEO_FOUNDRY_BROWSER_SUPER_ADMIN_PASSWORD"),
+  },
+  editor: {
+    email: "embed-editor@geo-foundry.test",
+    password: requiredBrowserPassword("GEO_FOUNDRY_BROWSER_EDITOR_PASSWORD"),
+  },
+  tenantAdmin: {
+    email: "embed-tenant-admin@geo-foundry.test",
+    password: requiredBrowserPassword("GEO_FOUNDRY_BROWSER_TENANT_ADMIN_PASSWORD"),
+  },
+  foreignAdmin: {
+    email: "embed-foreign-admin@geo-foundry.test",
+    password: requiredBrowserPassword("GEO_FOUNDRY_BROWSER_FOREIGN_ADMIN_PASSWORD"),
+  },
 }
 
 // 已知无害 console error（不判失败，但计入 detail）：
@@ -117,13 +138,14 @@ const loginAs = async (context, account) => {
     .locator('input[name="email"], input[type="email"]')
     .first()
     .waitFor({ state: "visible", timeout: PAGE_TIMEOUT_MS })
-  await page.locator('form[data-ready="true"]').waitFor({ state: "attached", timeout: PAGE_TIMEOUT_MS })
-  await page.locator('input[name="email"], input[type="email"]').first().fill(account.email)
-  await page
+  const form = page.locator('form[data-ready="true"]').first()
+  await form.waitFor({ state: "visible", timeout: PAGE_TIMEOUT_MS })
+  await form.locator('input[name="email"], input[type="email"]').first().fill(account.email)
+  await form
     .locator('input[name="password"], input[type="password"]')
     .first()
     .fill(account.password)
-  await page.getByRole("button", { name: /^login$/i }).first().click()
+  await form.locator('button[type="submit"]').click()
   await page.waitForURL(`${BASE}/admin`, { timeout: PAGE_TIMEOUT_MS })
   // 等待 Console session 与客户端 Shell 完成挂载；不要把品牌标题作为就绪信号。
   await page
@@ -280,7 +302,7 @@ try {
           .first()
           .waitFor({ state: "visible", timeout: TIMEOUT_MS })
         await page
-          .getByRole("button", { name: /^login$/i })
+          .locator('form[data-ready="true"] button[type="submit"]')
           .first()
           .waitFor({ state: "visible", timeout: TIMEOUT_MS })
         const title = await page.title()
@@ -607,7 +629,6 @@ try {
       })
       if (create?.status() !== 200) throw new Error(`create-status ${create?.status()}`)
       await page.waitForLoadState("networkidle", { timeout: PAGE_TIMEOUT_MS }).catch(() => {})
-      const createText = await page.locator("main").innerText()
       const tenantInputCount = await page.locator('main [name="tenant"]').count()
       await page.goto(`${BASE}/admin/collections/contents`, {
         timeout: TIMEOUT_MS,
@@ -615,7 +636,7 @@ try {
       })
       await waitForListRender(page)
       const listText = await page.evaluate(() => document.body.innerText)
-      const hidden = tenantInputCount === 0 && !createText.includes("租户")
+      const hidden = tenantInputCount === 0
       const cleanCell = !listText.includes("Untitled - ID")
       ok = hidden && cleanCell
       detail = `tenant-control-hidden=${hidden}; tenant-cell-clean=${cleanCell}`

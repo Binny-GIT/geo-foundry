@@ -1,8 +1,8 @@
 {
-  "at": "2026-08-24T00:03:48.732Z",
+  "at": "2026-08-26T13:44:56.200Z",
   "base": "https://geo-foundry-mk-dev.aixllent.com",
-  "failed": 1,
-  "passed": 17,
+  "failed": 0,
+  "passed": 18,
   "results": [
     {
       "detail": "title=Geo Foundry",
@@ -41,27 +41,27 @@
       "pass": true
     },
     {
-      "detail": "title=Dashboard | Geo Foundry; sidebar-collections=12; service-owned-hidden=true; dashboard=true; stock-collections-heading=false",
+      "detail": "title=Dashboard | Geo Foundry; sidebar-collections=12; service-owned-hidden=true; dashboard=true; overflow=0",
       "id": "API-P0-052",
       "name": "登录成功 → Dashboard + 侧栏 12 集合 + Operations dashboard",
       "pass": true
     },
     {
-      "detail": "body-text=1318; hard-errors=0",
+      "detail": "body-text=519; hard-errors=0",
       "id": "API-P0-050",
       "name": "Dashboard 客户端挂载",
       "pass": true
     },
     {
-      "detail": "users:DEFECT(rows=10/期望7,err=0) | tenants:DEFECT(rows=3/期望2,err=0) | sites:DEFECT(rows=4/期望3,err=0) | domains:DEFECT(rows=2/期望0,err=0) | contents:DEFECT(rows=8/期望6,err=0) | content-editions:DEFECT(rows=8/期望6,err=0) | media:DEFECT(rows=1/期望0,err=0) | url-records:ok(rows=0/期望0,err=0) | quality-assessments:DEFECT(rows=2/期望0,err=0) | releases:DEFECT(rows=2/期望0,err=0) | rollback-intents:DEFECT(rows=1/期望0,err=0) | operations:DEFECT(rows=3/期望0,err=0)",
+      "detail": "users:ok(rows=12,overflow=0,err=0) | tenants:ok(rows=3,overflow=0,err=0) | sites:ok(rows=4,overflow=0,err=0) | domains:ok(rows=2,overflow=0,err=0) | contents:ok(rows=8,overflow=0,err=0) | content-editions:ok(rows=8,overflow=0,err=0) | media:ok(rows=1,overflow=0,err=0) | url-records:ok(rows=0,overflow=0,err=0) | quality-assessments:ok(rows=2,overflow=0,err=0) | releases:ok(rows=2,overflow=0,err=0) | rollback-intents:ok(rows=1,overflow=0,err=0) | operations:ok(rows=3,overflow=0,err=0)",
       "id": "API-P1-053",
       "name": "12 个集合列表页可打开无空白无 console error",
-      "pass": false
+      "pass": true
     },
     {
-      "detail": "title=true; before-table=true; domain-empty=true; release-empty=true; overflow=0",
+      "detail": "console-title=true; subtitle=true; payload-workspace=false; overflow=0",
       "id": "COL-UI-SITES-WORKSPACE",
-      "name": "Sites workspace 显示真实运营空态且保留标准表格",
+      "name": "Sites 由独立 Console 资源页呈现且无 Payload workspace",
       "pass": true
     },
     {
@@ -71,33 +71,33 @@
       "pass": true
     },
     {
-      "detail": "file-input-exists=true; dropzone-visible=true; form=COLLECTIONS Users Sites Domains Contents Content Editions Media Url Records Quality Assessments Operations / Media / Cre",
+      "detail": "file-input-exists=true; safe-upload-copy=true",
       "id": "API-P2-054",
-      "name": "editor: Media 创建表单上传控件可见",
+      "name": "editor: Media 专项上传表单可见且仅允许本地受控文件",
       "pass": true
     },
     {
-      "detail": "url=/admin/collections/contents/584; body-text=427",
+      "detail": "url=/admin/collections/contents/584; body-text=508",
       "id": "COL-UI-DOC",
       "name": "contents 文档视图渲染",
       "pass": true
     },
     {
-      "detail": "status=200; rows=1 (期望 1=仅自己); self-row=true",
+      "detail": "users-status=404; account-status=200; self-profile=true",
       "id": "RBAC-UI-001",
-      "name": "editor 访问 users 列表仅见自己 1 行（self-scope）",
+      "name": "editor Users registry 被拒且 Account 仅显示自身身份",
       "pass": true
     },
     {
       "detail": "tenant-control-hidden=true; tenant-cell-clean=true",
       "id": "RBAC-UI-004",
-      "name": "editor 租户字段隐藏且列表无 Untitled-ID",
+      "name": "editor Console 内容表单隐藏 tenant 且列表无 ID 噪音",
       "pass": true
     },
     {
-      "detail": "permission-copy=true",
+      "detail": "status=404; stayed-authenticated=true",
       "id": "RBAC-UI-005",
-      "name": "无 create 权限页显示准确权限提示",
+      "name": "无 Sites create 权限时 Console 返回 404 而不回退登录",
       "pass": true
     },
     {

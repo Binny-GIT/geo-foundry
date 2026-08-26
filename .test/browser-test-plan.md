@@ -245,3 +245,17 @@ v1（仅覆盖 `--theme-success-*` 色阶+按钮/聚焦色）用户反馈"看不
 排查本轮起始时还发现 `geo-foundry-cms-mk-dev` 容器一度完全消失（公网 502），核实数据层（共享 Postgres/对象存储）未受影响后用既有镜像原样重新拉起、smoke 验证通过，根因未查明（无 docker events 记录）。
 
 最终运行容器：`geo-foundry-cms-mk-dev`，health=`healthy`，image digest=`sha256:1dc1e4c2c34dd777f2ce2fd0a1a566dcbf7a36eea0660a9142a85c1e23e76242`。
+
+## 独立 shadcn/Tailwind Console 正式接管 `/admin`（2026-08-26，commit `f524ae0`，镜像 `mk-dev-f524ae0`，摘要 `sha256:62151763...`）
+
+用户明确要求所有管理页面去掉 Payload 原生视觉组件，改用 shadcn/Tailwind；Payload 只保留为认证 Cookie、REST/Local API、集合 schema、RBAC、租户隔离、上传、草稿/版本及工作流/审计后端。本轮完成正式路由切换：
+
+- **普通 `/admin` 全部为 Console**：独立 Next route group、Tailwind v4 设计层、响应式 Shell、登录/忘记密码/重置密码/账户页、12 个可见集合的权限范围列表与安全详情。普通 Console 不导入 `RootLayout`、`RootPage`、`@payloadcms/ui` 或 Payload Admin CSS。
+- **Payload 原生 Admin 下沉为 `/admin/_emergency/*`**：`payload.config.ts` 的顶层 `routes.admin` 指向该路径；Next 用 `%5Femergency` 源目录将公开 URL 保持为 `_emergency`；该子树才加载 Payload CSS、`RootLayout` 和 `RootPage`，并在服务器先用同一 HTTP-only Payload cookie + `resolveSessionClaims()` 限制为 super-admin。非 super-admin 无法从导航进入，也不能通过直接 URL 看到原生 Admin。
+- **安全资源边界**：浏览器从不调用 `/api/internal/*`；所有 server read 使用当前 Payload user + `overrideAccess:false`；关系列以 `depth:1` 在可读时水合名称，无法解析时显示“受限”，不显示裸关系 ID。服务所有集合 `outbox-events`、`idempotency-records` 继续 by-design 404。
+- **专项页面**：Users/Sites/Contents/Domains 的 create/edit 使用白名单字段和 server-side policy gate；Media 仅 editor 可访问 multipart `file + alt + caption` 上传页（不传 tenant/prefix/mediaPath，不支持 URL 导入）；URL Records 只允许 editor/publisher 使用专用 rename endpoint；Rollback Intents 只允许 publisher 使用专用创建 endpoint；Content Edition Studio 保存 raw block JSON draft，只提交可编辑字段，工作流仅调用既有公开 session endpoint（reviewer 仍传 expectedRevision、Idempotency-Key、x-request-id）。不可变质量/发布/操作账本保持只读。
+- **深链兼容**：旧 `/console/*` 无状态跳转到 `/admin/*` 并保留查询参数；旧 `/admin/work*`、`/admin/history/releases`、`/admin/tenant` 与诊断路径均由 server session/RBAC 判定后跳入对应 Console 页面或 emergency fallback，不能借旧链接绕开访问控制。
+
+**验证**：typecheck clean；CMS 单测 **140/140 PASS**；Biome lint 0 error；production build 路由表同时含 `/admin` Console、`/admin/_emergency/[[...segments]]` 和 `/console/[[...segments]]` compatibility redirect；mk-dev smoke 通过。真实 Chromium 完整回归 **18/18 PASS**：公开页 4 视口、Console 登录与密码恢复入口、Dashboard、12 集合、服务集合 404、Media 专项上传控件、Contents 详情、editor self-account/tenant 字段隐藏、super-admin 无 Sites create 权限 404、tenant-admin 与 foreign-admin 站点隔离全部通过。最终运行容器 `geo-foundry-cms-mk-dev` health=`healthy`，实际镜像摘要 `sha256:621517639d5aa8485c81bd868e764368c81c55a8b8b9d76aa72784505249b580`。
+
+**并行部署说明**：本轮首次部署后发现 mk-dev 已被另一轮工作切换到 `main@a40fd52`，使公网仍显示 Payload 原生集合页；这不是 CDN 缓存或路由失效。Console migration 因此被单独提交到 `feat/console-admin-shadcn@f524ae0`，以 `mk-dev-f524ae0` 唯一镜像标签重新部署，并通过 `docker inspect` 核实当前容器确为该 digest 后才执行最终浏览器验收。

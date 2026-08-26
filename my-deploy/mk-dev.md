@@ -274,6 +274,19 @@ deploy/smoke/smoke.sh
 
 **修复**：在 `deploy/compose.yaml` 顶层加显式 `name: geo-foundry-${COMPOSE_ENV}`，把项目名从通用的 `deploy` 钉死为 `geo-foundry-mk-dev`（verify 环境为 `geo-foundry-verify`），彻底避免和其它未命名项目发生项目名碰撞。修复后 `docker inspect` 确认 `com.docker.compose.project=geo-foundry-mk-dev`，`smoke.sh` 与公网复验均通过。未采用"自动看护/自动拉起"脚本（用户明确要求不用，此修复是消除误删的根因，不是给误删兜底）。
 
+## 独立 shadcn/Tailwind Console 正式接管 `/admin`（2026-08-26，commit `f524ae0`，镜像 `mk-dev-f524ae0`，摘要 `sha256:62151763...`）
+
+用户最终确认“全部页面去掉 Payload，用 shadcn/Tailwind 实现”，但保留 Payload 作为唯一后端（auth Cookie、REST/Local API、schema、RBAC、tenant scope、S3、草稿/版本、发布/回滚审计）。本轮以独立分支 `feat/console-admin-shadcn` 完成并正式部署：
+
+- `/admin` 是独立 Next Console：不加载 Payload `RootLayout`/`RootPage`/Admin CSS，不使用 `@payloadcms/ui`；提供中文优先的响应式 Shell、深浅主题、登录/忘记密码/重置密码/账户、12 个资源列表/详情、Users/Sites/Contents/Domains 受控 create/edit、Media multipart 上传、URL rename、publisher-only rollback intent 和 Content Edition Studio。
+- 所有浏览器读写继续使用同源公开 `/api/*`，读取在服务端带当前 Payload user + `overrideAccess:false`；Console 绝不请求 `/api/internal/*`。关系在可读时 `depth:1` 水合；否则显示“受限”，不显示裸 ID。
+- `payload.config.ts` 顶层 `routes.admin` 改为 `/admin/_emergency`。Payload 原生 Admin 保留在此 super-admin-only emergency subtree：源码目录 `%5Femergency` 映射公开 `_emergency` URL（Next 将裸 `_` 目录视为私有）；子树单独加载 Payload RootLayout/CSS/RootPage，并通过同一 HTTP-only Payload cookie + `resolveSessionClaims()` 预先限制 super-admin。普通用户无导航入口且直接 URL 不会获得原生 Admin。
+- 旧 `/console/*` 跳转到 `/admin/*` 并保留查询参数；旧 `/admin/work*`、Release history、Tenant workspace/diagnostics 深链通过服务器 RBAC 跳到 Console 对应页或 emergency fallback，不能绕过权限。
+
+**验收**：typecheck clean；CMS unit 140/140 PASS；Biome lint 0 error；production route manifest 已包含 `/admin`、`/admin/_emergency/[[...segments]]`、`/console/[[...segments]]`。镜像构建后 compose recreate 与 `smoke.sh` 均 PASS。真实 Chromium 全量回归 `browser-admin-tests.mjs` **18/18 PASS**（公开首页 4 视口、Console login/recovery、Dashboard、12 resources、服务集合 404、Media upload、Contents detail、editor self-account 和 tenant field、Sites denied create、tenant-admin/foreign-admin 隔离）。
+
+**重要部署纪律**：本轮第一次部署的 Console 镜像随后被另一轮工作将 `/opt/geo-foundry/mk-dev.env` 的 `IMAGE_TAG` 切到 `mk-dev-a40fd52` 覆盖，导致公网重新出现 Payload 原生集合页。不是 CDN 缓存。最终以已提交的 `f524ae0` 生成唯一镜像 `mk-dev-f524ae0`，将 `IMAGE_TAG` 显式切到该 tag 后 compose recreate，并用 `docker inspect geo-foundry-cms-mk-dev` 确认实际 digest 为 `sha256:621517639d5aa8485c81bd868e764368c81c55a8b8b9d76aa72784505249b580` 才执行验收。后续并行部署前必须确认当前 target branch/IMAGE_TAG，避免无意覆盖 Console。
+
 ## 回滚
 
 1. `sudoedit /opt/geo-foundry/mk-dev.env` 将 `IMAGE_TAG` 改回上一 `mk-dev-<sha>`。

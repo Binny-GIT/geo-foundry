@@ -1,0 +1,125 @@
+{
+  "reviewer": {
+    "desktop": {
+      "dimensions": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "buttons": [
+        "",
+        "",
+        "中",
+        "批准版本",
+        "退回修改",
+        "全部折叠",
+        "显示全部",
+        "",
+        "切换区块",
+        "",
+        "切换区块",
+        "",
+        "添加 Body",
+        "browser移除移除",
+        "移除移除",
+        "review移除移除",
+        "移除移除"
+      ],
+      "hiddenWorkspaceLinks": []
+    },
+    "mobile": {
+      "dimensions": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "reasonRequiredVisible": true,
+      "dialogVisible": true
+    }
+  },
+  "workspaces": [
+    {
+      "route": "/admin/history/releases",
+      "viewport": "desktop",
+      "dimensions": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "heading": "发布历史",
+      "requiredText": {
+        "当前发布版本": true,
+        "安全回滚候选版本": true
+      }
+    },
+    {
+      "route": "/admin/tenant",
+      "viewport": "desktop",
+      "dimensions": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "heading": "租户工作区",
+      "requiredText": {
+        "站点": true,
+        "域名": true,
+        "用户": true
+      }
+    },
+    {
+      "route": "/admin/system/diagnostics",
+      "viewport": "desktop",
+      "dimensions": {
+        "clientWidth": 1440,
+        "scrollWidth": 1440
+      },
+      "heading": "系统诊断",
+      "requiredText": {
+        "控制面就绪状态": true,
+        "PostgreSQL": true,
+        "RustFS": true,
+        "此页面刻意不展示配置值、凭据、请求载荷或 Provider 提示词。": true
+      }
+    },
+    {
+      "route": "/admin/history/releases",
+      "viewport": "mobile",
+      "dimensions": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "heading": "发布历史",
+      "requiredText": {
+        "当前发布版本": true,
+        "安全回滚候选版本": true
+      }
+    },
+    {
+      "route": "/admin/tenant",
+      "viewport": "mobile",
+      "dimensions": {
+        "clientWidth": 390,
+        "scrollWidth": 450
+      },
+      "heading": "租户工作区",
+      "requiredText": {
+        "站点": true,
+        "域名": true,
+        "用户": true
+      }
+    },
+    {
+      "route": "/admin/system/diagnostics",
+      "viewport": "mobile",
+      "dimensions": {
+        "clientWidth": 390,
+        "scrollWidth": 390
+      },
+      "heading": "系统诊断",
+      "requiredText": {
+        "控制面就绪状态": true,
+        "PostgreSQL": true,
+        "RustFS": true,
+        "此页面刻意不展示配置值、凭据、请求载荷或 Provider 提示词。": true
+      }
+    }
+  ],
+  "consoleErrors": []
+}
