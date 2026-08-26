@@ -12,10 +12,12 @@ import {
   submitEditionPublishOperation,
 } from "../services/operations-ledger"
 
+const reasonSchema = z.string().trim().min(1).max(500)
+
 const bodySchema = z
   .object({
     compiledReleaseId: z.string().min(6).max(128).optional(),
-    reason: z.string().min(1).max(500).optional(),
+    reason: reasonSchema.optional(),
     target: z.enum(["draft", "generating", "review", "approved", "archived"]),
   })
   .strict()
@@ -55,7 +57,7 @@ export const createDraftFromPublishedEndpoint: Endpoint = {
       return response(400, { error: { code: "EDITION_WORKFLOW_BODY_INVALID" } })
     }
     const parsed = z
-      .object({ reason: z.string().min(1).max(500).optional() })
+      .object({ reason: reasonSchema.optional() })
       .strict()
       .safeParse(body)
     if (!parsed.success) {
@@ -132,9 +134,20 @@ export const submitPublishOperationEndpoint: Endpoint = {
     if (resolveSessionClaims(req.user) === null) {
       return response(401, { error: { code: "EDITION_WORKFLOW_UNAUTHENTICATED" } })
     }
+    let body: unknown
+    try {
+      body = (await req.json?.()) ?? {}
+    } catch {
+      return response(400, { error: { code: "EDITION_WORKFLOW_BODY_INVALID" } })
+    }
+    const parsed = z.object({ reason: reasonSchema.optional() }).strict().safeParse(body)
+    if (!parsed.success) {
+      return response(400, { error: { code: "EDITION_WORKFLOW_BODY_INVALID" } })
+    }
     try {
       const outcome = await submitEditionPublishOperation(req.payload, {
         editionId,
+        ...(parsed.data.reason === undefined ? {} : { reason: parsed.data.reason }),
         user: req.user,
       })
       return response(outcome.created ? 202 : 200, { editionId, operation: outcome })

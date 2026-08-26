@@ -1,5 +1,7 @@
 import { ContentBlockSchema } from "@geo/schema"
 
+import { localizedValidationMessage } from "../collections/shared/localized-labels"
+
 type Row = Record<string, unknown>
 
 const isRow = (value: unknown): value is Row => typeof value === "object" && value !== null
@@ -79,10 +81,23 @@ const convertBlock = (row: unknown): unknown => {
  * contract: every write is re-validated against @geo/schema, so a body that
  * cannot compile to a PageDocument never enters the CMS.
  */
-export function validateEditionBody(value: unknown): true | string {
+export function validateEditionBody(
+  value: unknown,
+  { req }: { req?: Parameters<typeof localizedValidationMessage>[0] } = {},
+): true | string {
   if (!Array.isArray(value) || value.length === 0) {
-    return "Body must be a non-empty list of content blocks"
+    return localizedValidationMessage(
+      req,
+      "Body must be a non-empty list of content blocks",
+      "正文必须是非空的内容区块列表",
+    )
   }
   const parsed = ContentBlockSchema.array().safeParse(value.map(convertBlock))
-  return parsed.success ? true : "Body blocks do not satisfy the PageDocument contract"
+  return parsed.success
+    ? true
+    : localizedValidationMessage(
+        req,
+        "Body blocks do not satisfy the PageDocument contract",
+        "正文区块不符合 PageDocument 契约",
+      )
 }

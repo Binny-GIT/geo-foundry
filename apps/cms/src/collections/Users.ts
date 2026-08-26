@@ -5,6 +5,7 @@ import { CMS_ACTION, CMS_RESOURCE, decideAccess } from "../access/policy"
 import { forceRoleFromSession } from "../access/role-field"
 import { CMS_ROLES } from "../access/roles"
 import { validateUserTenantInvariant } from "../access/user-tenant-invariant"
+import { localized, localizedFields } from "./shared/localized-labels"
 import { tenantField } from "./shared/tenant-field"
 
 const assertUserTenantInvariant: CollectionBeforeChangeHook = ({ data, originalDoc }) => {
@@ -22,9 +23,13 @@ const assertUserTenantInvariant: CollectionBeforeChangeHook = ({ data, originalD
 
 export const Users = {
   slug: "users",
+  labels: {
+    plural: localized("Users", "用户"),
+    singular: localized("User", "用户"),
+  },
   admin: {
     defaultColumns: ["email", "role", "tenant", "updatedAt"],
-    group: "Access",
+    group: localized("Access", "访问控制"),
     useAsTitle: "email",
   },
   auth: {
@@ -52,7 +57,7 @@ export const Users = {
       return false
     },
   },
-  fields: [
+  fields: localizedFields([
     {
       name: "role",
       type: "select",
@@ -63,5 +68,5 @@ export const Users = {
       },
     },
     tenantField({ required: false }),
-  ],
+  ]),
 } satisfies CollectionConfig

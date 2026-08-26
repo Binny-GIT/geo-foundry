@@ -283,8 +283,17 @@ const transitionEditionInScope = async (
     throw fail("EDITION_WORKFLOW_ACTOR_INVALID", "session has no valid user actor")
   }
   const doc = await loadWorkflowEdition(payload, options.editionId, req, true)
-  assertEditionTenantScope(options.user, doc)
+  const claims = assertEditionTenantScope(options.user, doc)
   const aggregate = aggregateOf(doc)
+  const reason = stringField(options.reason)?.trim()
+  if (
+    claims.role === "reviewer" &&
+    aggregate.state === "review" &&
+    options.target === "draft" &&
+    (reason === undefined || reason.length === 0)
+  ) {
+    throw fail("EDITION_WORKFLOW_REASON_REQUIRED", "reviewer return-to-draft requires a reason")
+  }
 
   const needsAssessment = options.target === "approved" || options.target === "compiled"
   const qualityAssessmentState = needsAssessment
@@ -317,7 +326,7 @@ const transitionEditionInScope = async (
     actor: serializedActor,
     at: systemClock.now().value,
     from: aggregate.state,
-    ...(options.reason === undefined ? {} : { reason: options.reason }),
+    ...(reason === undefined || reason.length === 0 ? {} : { reason }),
     tenantId: numberFieldOf(doc.tenant) ?? -1,
     to: options.target,
   }
@@ -372,7 +381,7 @@ const transitionEditionInScope = async (
         ...(options.target === "compiled" && options.compiledReleaseId !== undefined
           ? { releaseId: options.compiledReleaseId }
           : {}),
-        ...(options.reason === undefined ? {} : { reason: options.reason }),
+        ...(reason === undefined || reason.length === 0 ? {} : { reason }),
       },
       tenantId: numberFieldOf(doc.tenant) ?? -1,
       type: OUTBOX_EVENT.EDITION_TRANSITIONED,

@@ -8,6 +8,7 @@ const readText = (path) => readFile(new URL(path, root), "utf8")
 const documents = [
   "README.md",
   "docs/package-integration.md",
+  "docs/ux/admin-operations-ux-spec.md",
   "docs/adr/001-control-plane-serving-plane.md",
   "docs/adr/002-page-document-versioning.md",
   "docs/adr/003-tenancy-no-existence-leak.md",
@@ -34,6 +35,11 @@ test("Given Todo 40 documentation When checked Then architecture, package, and o
   assert.match(readme, /pnpm ci:verify/)
   assert.match(readme, /mydocs\/260817-geo-foundry-PRD\.md/)
   assert.match(readme, /owner-only/)
+  assert.match(readme, /docs\/ux\/admin-operations-ux-spec\.md/)
+  const adminOperationsUx = contents[2] ?? ""
+  assert.match(adminOperationsUx, /运营指挥台/)
+  assert.match(adminOperationsUx, /overrideAccess=false/)
+  assert.match(adminOperationsUx, /不得调用 `\/api\/internal\/\*`/)
 })
 
 test("Given operator runbooks When inspected Then they route sensitive actions through bounded approved commands", async () => {

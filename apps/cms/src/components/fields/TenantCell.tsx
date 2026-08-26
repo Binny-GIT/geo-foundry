@@ -1,10 +1,24 @@
 "use client"
 
-import { useAuth } from "@payloadcms/ui"
+import { useAuth, useTranslation } from "@payloadcms/ui"
 import { useEffect, useState } from "react"
 import type { DefaultCellComponentProps } from "payload"
 
+import { uiLangOf } from "../i18n/ui-lang"
 import { tenantHrefOf, tenantReferenceOf } from "./tenant-cell-model"
+
+const TEXT = {
+  en: {
+    current: "Current tenant",
+    loading: "Loading tenant…",
+    unavailable: (id: string | number) => `Tenant ${String(id)} unavailable`,
+  },
+  zh: {
+    current: "当前租户",
+    loading: "正在加载租户…",
+    unavailable: (id: string | number) => `租户 ${String(id)} 不可用`,
+  },
+} as const
 
 type Resolution = "idle" | "loading" | "unavailable"
 
@@ -26,6 +40,8 @@ const tenantNameFromResponse = (value: unknown): string | null => {
  */
 export const TenantCell = ({ cellData }: DefaultCellComponentProps) => {
   const { user } = useAuth()
+  const { i18n } = useTranslation()
+  const t = TEXT[uiLangOf(i18n.language)]
   const reference = tenantReferenceOf(cellData)
   const isSuperAdmin = user?.["role"] === "super-admin"
   const [name, setName] = useState(reference.name)
@@ -72,13 +88,13 @@ export const TenantCell = ({ cellData }: DefaultCellComponentProps) => {
     return <span>—</span>
   }
   if (!isSuperAdmin) {
-    return <span>Current tenant</span>
+    return <span>{t.current}</span>
   }
   if (name !== null) {
     return <a href={tenantHrefOf(reference.id)}>{name}</a>
   }
   if (resolution === "loading") {
-    return <span>Loading tenant…</span>
+    return <span>{t.loading}</span>
   }
-  return <span>{`Tenant ${String(reference.id)} unavailable`}</span>
+  return <span>{t.unavailable(reference.id)}</span>
 }

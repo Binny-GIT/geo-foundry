@@ -6,7 +6,7 @@
 
 - `README-test-loop.md`（本文）— 状态词、优先级、ID、执行循环、证据字段。
 - `requirements/00-scope-and-index.md` — 测试范围、模块索引、最近变更。
-- `requirements/1x-*.md` — CMS（集合、权限、内部端点、公开端点、服务层）。
+- `requirements/1x-*.md` — CMS（集合、权限、内部端点、公开端点、服务层、管理端运营 UX）。
 - `requirements/2x~9x-*.md` — domain、compiler、content-pipeline、content-client、worker、示例站点、部署运维、横切质量。
 - `requirements/execution-matrix.md` — **权威状态账本**，聚合所有用例 ID 与最新状态。
 - `accounts.md` — 测试账号（非机密标识）与凭据文件路径引用；口令/密钥只进安全文件。
@@ -48,6 +48,7 @@
 | INT | CMS 内部零信任端点 |
 | API | CMS 公开端点/健康/后台/首页 |
 | SVC | CMS 服务层 |
+| UX | 管理端运营体验：登录、指挥台、站点工作区、工作流、权限反馈 |
 | DOM | domain 状态机/URL/不变量 |
 | CMP | compiler 编译器 |
 | CPL | content-pipeline 内容流水线 |

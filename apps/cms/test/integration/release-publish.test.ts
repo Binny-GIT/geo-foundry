@@ -295,11 +295,23 @@ describe("publisher-authorized release publication", () => {
 
     const first = await submitEditionPublishOperation(payload, {
       editionId: edition.id,
+      reason: "Approved launch window",
       user: publisher,
     })
     expect(first.created).toBe(true)
     expect(first.releaseId).toBe("release-publish-idempotent")
     expect(first.state).toBe("queued")
+    const operation = await payload.find({
+      collection: "operations",
+      depth: 0,
+      limit: 1,
+      overrideAccess: true,
+      where: { operationId: { equals: first.operationId } },
+    })
+    expect((operation.docs[0]?.auditLog as AuditEntry[] | undefined)?.[0]).toMatchObject({
+      action: "operation.created",
+      reason: "Approved launch window",
+    })
 
     const replay = await submitEditionPublishOperation(payload, {
       editionId: edition.id,

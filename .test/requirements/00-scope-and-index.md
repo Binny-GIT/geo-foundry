@@ -17,6 +17,7 @@ Geo Foundry 是一个多租户内容运营平台，分三层：
 | `12-cms-internal-endpoints.md` | INT | 17 个内部零信任端点 + `withInternalGuards` 守卫与错误码映射 |
 | `13-cms-public-endpoints.md` | API | 回滚意图/版本工作流/URL 改名公开端点、健康、就绪、后台、首页 |
 | `14-cms-services.md` | SVC | 编译快照、版本工作流、嵌入、操作账本、发布注册、回滚、URL 注册、outbox |
+| `15-admin-operations-ux.md` | UX | 登录、运营指挥台、站点工作区、版本动作、权限反馈、响应式与可访问性 |
 | `20-domain.md` | DOM | 内容/发布/操作/质量/URL 状态机、URL 注册表、不变量、站点host解析 |
 | `30-compiler.md` | CMP | compileSite、blocks/pages、路由索引、分页、SEO、sitemap、结构化数据、确定性 |
 | `40-content-pipeline.md` | CPL | 草稿/生成/评估流水线、LLM 评估、语义检查、providers |

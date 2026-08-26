@@ -3,15 +3,11 @@ import { APIError, type CollectionConfig, type FieldHook } from "payload"
 import { collectionAccess } from "../access/functions"
 import { CMS_RESOURCE } from "../access/policy"
 import { resolveSessionClaims } from "../access/session"
+import { localized, localizedFields } from "./shared/localized-labels"
+import { ALLOWED_MEDIA_MIME_TYPES, MAX_MEDIA_BYTES } from "../media/upload-policy"
 import { tenantField } from "./shared/tenant-field"
 
-export const MAX_MEDIA_BYTES = 5 * 1024 * 1024
-export const ALLOWED_MEDIA_MIME_TYPES = [
-  "image/png",
-  "image/jpeg",
-  "image/webp",
-  "image/gif",
-] as const
+export { ALLOWED_MEDIA_MIME_TYPES, MAX_MEDIA_BYTES } from "../media/upload-policy"
 
 const isRow = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
@@ -102,14 +98,22 @@ const withMediaPath = (data: Record<string, unknown>): Record<string, unknown> =
 
 export const Media = {
   slug: "media",
+  labels: {
+    plural: localized("Media", "媒体"),
+    singular: localized("Media item", "媒体项"),
+  },
   admin: {
+    components: {
+      beforeList: ["/components/media/MediaUploadGuidance#MediaUploadGuidance"],
+    },
     defaultColumns: ["filename", "alt", "mimeType", "filesize", "tenant", "updatedAt"],
-    group: "Content",
+    group: localized("Content", "内容"),
     useAsTitle: "filename",
   },
   access: collectionAccess(CMS_RESOURCE.MEDIA),
   upload: {
     mimeTypes: [...ALLOWED_MEDIA_MIME_TYPES],
+    pasteURL: false,
   },
   hooks: {
     beforeValidate: [
@@ -125,7 +129,7 @@ export const Media = {
       },
     ],
   },
-  fields: [
+  fields: localizedFields([
     tenantField(),
     {
       name: "prefix",
@@ -155,5 +159,5 @@ export const Media = {
       name: "caption",
       type: "text",
     },
-  ],
+  ]),
 } satisfies CollectionConfig

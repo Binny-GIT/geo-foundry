@@ -11,6 +11,7 @@
 | INT | 12-cms-internal-endpoints | 40 | 20 | 0 | 内部端点+守卫+错误映射 |
 | API | 13-cms-public-endpoints | 36 | 22 | 13 | 首页/后台/health/readiness 公网已验（+2 新用例） |
 | SVC | 14-cms-services | 34 | 20 | 0 | 服务层业务逻辑 |
+| UX | 15-admin-operations-ux | 26 | 12 | 0 | 登录、指挥台、站点工作区、工作流、权限与可用性 |
 | DOM | 20-domain | 34 | 24 | 0 | 状态机/URL/不变量 |
 | CMP | 30-compiler | 20 | 8 | 0 | 编译器 |
 | CPL | 40-content-pipeline | 20 | 9 | 0 | 内容流水线 |

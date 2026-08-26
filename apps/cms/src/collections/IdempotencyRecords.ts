@@ -1,5 +1,7 @@
 import type { CollectionConfig } from "payload"
 
+import { localized, localizedFields } from "./shared/localized-labels"
+
 /**
  * Idempotency ledger: one row per (tenant, endpoint, idempotencyKey),
  * arbitrated by the unique `uniqueKey` index. It binds the caller's key to
@@ -10,8 +12,13 @@ import type { CollectionConfig } from "payload"
 export const IdempotencyRecords = {
   slug: "idempotency-records",
   timestamps: true,
+  labels: {
+    plural: localized("Idempotency records", "幂等记录"),
+    singular: localized("Idempotency record", "幂等记录"),
+  },
   admin: {
     defaultColumns: ["endpoint", "idempotencyKey", "operationId"],
+    group: localized("Diagnostics", "诊断"),
     useAsTitle: "uniqueKey",
   },
   access: {
@@ -20,7 +27,7 @@ export const IdempotencyRecords = {
     update: () => false,
     delete: () => false,
   },
-  fields: [
+  fields: localizedFields([
     {
       name: "uniqueKey",
       type: "text",
@@ -66,5 +73,5 @@ export const IdempotencyRecords = {
         update: () => false,
       },
     },
-  ],
+  ]),
 } satisfies CollectionConfig

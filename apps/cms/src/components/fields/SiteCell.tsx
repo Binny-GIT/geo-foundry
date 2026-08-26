@@ -1,10 +1,22 @@
 "use client"
 
-import { useAuth } from "@payloadcms/ui"
+import { useAuth, useTranslation } from "@payloadcms/ui"
 import { useEffect, useState } from "react"
 import type { DefaultCellComponentProps } from "payload"
 
+import { uiLangOf } from "../i18n/ui-lang"
 import { siteHrefOf, siteReferenceOf } from "./site-cell-model"
+
+const TEXT = {
+  en: {
+    loading: "Loading site…",
+    unavailable: (id: string | number) => `Site ${String(id)} unavailable`,
+  },
+  zh: {
+    loading: "正在加载站点…",
+    unavailable: (id: string | number) => `站点 ${String(id)} 不可用`,
+  },
+} as const
 
 type Resolution = "idle" | "loading" | "unavailable"
 
@@ -25,6 +37,8 @@ const siteNameFromResponse = (value: unknown): string | null => {
  */
 export const SiteCell = ({ cellData }: DefaultCellComponentProps) => {
   const { user } = useAuth()
+  const { i18n } = useTranslation()
+  const t = TEXT[uiLangOf(i18n.language)]
   const reference = siteReferenceOf(cellData)
   const [name, setName] = useState(reference.name)
   const [resolution, setResolution] = useState<Resolution>(reference.name === null ? "idle" : "loading")
@@ -73,7 +87,7 @@ export const SiteCell = ({ cellData }: DefaultCellComponentProps) => {
     return <a href={siteHrefOf(reference.id)}>{name}</a>
   }
   if (resolution === "loading") {
-    return <span>Loading site…</span>
+    return <span>{t.loading}</span>
   }
-  return <span>{`Site ${String(reference.id)} unavailable`}</span>
+  return <span>{t.unavailable(reference.id)}</span>
 }

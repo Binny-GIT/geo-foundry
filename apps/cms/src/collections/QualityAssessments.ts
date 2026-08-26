@@ -2,6 +2,7 @@ import type { CollectionConfig } from "payload"
 
 import { collectionAccess } from "../access/functions"
 import { CMS_RESOURCE } from "../access/policy"
+import { localized, localizedFields } from "./shared/localized-labels"
 import { tenantField } from "./shared/tenant-field"
 
 /**
@@ -12,13 +13,17 @@ import { tenantField } from "./shared/tenant-field"
  */
 export const QualityAssessments = {
   slug: "quality-assessments",
+  labels: {
+    plural: localized("Quality assessments", "质量评估"),
+    singular: localized("Quality assessment", "质量评估"),
+  },
   admin: {
     defaultColumns: ["state", "edition", "inputHash"],
-    group: "Quality & Release",
+    group: localized("Quality & Release", "质量与发布"),
     useAsTitle: "inputHash",
   },
   access: collectionAccess(CMS_RESOURCE.ASSESSMENTS),
-  fields: [
+  fields: localizedFields([
     {
       name: "edition",
       type: "relationship",
@@ -83,5 +88,5 @@ export const QualityAssessments = {
       type: "text",
       required: true,
     },
-  ],
+  ]),
 } satisfies CollectionConfig

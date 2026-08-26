@@ -291,6 +291,39 @@ describe("edition workflow gating integration", () => {
     expect(Number.isFinite(Date.parse(String(published?.at)))).toBe(true)
   })
 
+  it("Given a review edition, when a reviewer requests changes without a reason, then the service rejects it", async () => {
+    const edition = await makeEdition()
+    await advanceToReview(edition.id)
+
+    const code = await failureCodeOf(() =>
+      transitionEdition(payload, { editionId: edition.id, reason: "   ", target: "draft", user: reviewer }),
+    )
+
+    expect(code).toBe("EDITION_WORKFLOW_REASON_REQUIRED")
+    expect(await statusOf(edition.id)).toBe("review")
+  })
+
+  it("Given a review edition, when a reviewer requests changes with a reason, then the audit trail records it", async () => {
+    const edition = await makeEdition()
+    await advanceToReview(edition.id)
+
+    expect(
+      await transitionEdition(payload, {
+        editionId: edition.id,
+        reason: "Please clarify the primary claim.",
+        target: "draft",
+        user: reviewer,
+      }),
+    ).toBe("draft")
+
+    expect((await auditOf(edition.id)).at(-1)).toMatchObject({
+      actor: expect.objectContaining({ role: "reviewer" }),
+      from: "review",
+      reason: "Please clarify the primary claim.",
+      to: "draft",
+    })
+  })
+
   it("Given a published edition, when a publisher archives it, then the live document is archived", async () => {
     const edition = await makeEdition()
     await advanceToCompiled(edition.id, "release-2026-08-18-archive")

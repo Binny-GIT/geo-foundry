@@ -25,7 +25,7 @@ pnpm ci:verify
 - **服务面**：`packages/runtime` 与 Site A/Site B SSR hosts。它们只读取 routing、current pointer、release manifest、页面 JSON 与 sitemap；不连接 CMS、PostgreSQL、Redis、BullMQ 或 LLM provider。
 - **包**：`packages/` 中的公开包仅发布 `dist/` 和 `package.json`，且必须通过已声明 export 使用；禁止深层源码导入。
 
-更详细的设计决定位于 [`docs/adr/`](docs/adr/)，外部消费者接入见 [`docs/package-integration.md`](docs/package-integration.md)。
+更详细的设计决定位于 [`docs/adr/`](docs/adr/)，管理员的登录、运营指挥台、站点工作区和版本工作流体验见 [`docs/ux/admin-operations-ux-spec.md`](docs/ux/admin-operations-ux-spec.md)，外部消费者接入见 [`docs/package-integration.md`](docs/package-integration.md)。
 
 ## 常用验证命令
 

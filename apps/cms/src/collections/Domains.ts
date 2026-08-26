@@ -8,6 +8,12 @@ import {
 
 import { collectionAccess } from "../access/functions"
 import { CMS_RESOURCE } from "../access/policy"
+import {
+  localized,
+  localizedFields,
+  localizedOption,
+  localizedValidationMessage,
+} from "./shared/localized-labels"
 import { tenantField } from "./shared/tenant-field"
 
 const normalizeHostnameHook: FieldHook = ({ value }) => {
@@ -15,9 +21,18 @@ const normalizeHostnameHook: FieldHook = ({ value }) => {
   return hostname.ok ? hostname.value.value : value
 }
 
-const validateHostnameField = (value: unknown): true | string => {
+export const validateHostnameField = (
+  value: unknown,
+  { req }: { req?: Parameters<typeof localizedValidationMessage>[0] },
+): true | string => {
   const hostname = normalizeSiteHost(value)
-  return hostname.ok ? true : "Hostname must be a valid dns hostname"
+  return hostname.ok
+    ? true
+    : localizedValidationMessage(
+        req,
+        "Hostname must be a valid DNS hostname",
+        "主机名必须是有效的 DNS 主机名",
+      )
 }
 
 const idOf = (reference: unknown): number | string | null =>
@@ -48,18 +63,29 @@ const ensureSiteTenantMatches: CollectionBeforeChangeHook = async ({ data, req }
 
 export const Domains = {
   slug: "domains",
+  labels: {
+    plural: localized("Domains", "域名"),
+    singular: localized("Domain", "域名"),
+  },
   admin: {
     defaultColumns: ["hostname", "status", "role", "site", "tenant", "updatedAt"],
-    group: "Sites & Domains",
+    group: localized("Sites & Domains", "站点与域名"),
     useAsTitle: "hostname",
   },
   access: collectionAccess(CMS_RESOURCE.DOMAINS),
   hooks: {
     beforeChange: [ensureSiteTenantMatches],
   },
-  fields: [
+  fields: localizedFields([
     {
       name: "hostname",
+      label: localized("Hostname", "主机名"),
+      admin: {
+        description: localized(
+          "A valid DNS hostname, without a protocol or path.",
+          "有效的 DNS 主机名，不含协议或路径。",
+        ),
+      },
       type: "text",
       required: true,
       unique: true,
@@ -78,16 +104,22 @@ export const Domains = {
     {
       name: "role",
       type: "select",
-      options: ["canonical", "alias"],
+      options: [
+        localizedOption("canonical", "Canonical", "规范域名"),
+        localizedOption("alias", "Alias", "别名"),
+      ],
       required: true,
       defaultValue: "canonical",
     },
     {
       name: "status",
       type: "select",
-      options: ["active", "disabled"],
+      options: [
+        localizedOption("active", "Active", "启用"),
+        localizedOption("disabled", "Disabled", "停用"),
+      ],
       required: true,
       defaultValue: "active",
     },
-  ],
+  ]),
 } satisfies CollectionConfig

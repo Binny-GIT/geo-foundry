@@ -2,6 +2,7 @@ import type { CollectionConfig } from "payload"
 
 import { collectionAccess } from "../access/functions"
 import { CMS_RESOURCE } from "../access/policy"
+import { localized, localizedFields } from "./shared/localized-labels"
 import { tenantField } from "./shared/tenant-field"
 
 /**
@@ -11,13 +12,17 @@ import { tenantField } from "./shared/tenant-field"
 export const Releases = {
   slug: "releases",
   timestamps: true,
+  labels: {
+    plural: localized("Releases", "发布版本"),
+    singular: localized("Release", "发布版本"),
+  },
   admin: {
     defaultColumns: ["releaseId", "state", "site", "tenant"],
-    group: "Quality & Release",
+    group: localized("Quality & Release", "质量与发布"),
     useAsTitle: "releaseId",
   },
   access: collectionAccess(CMS_RESOURCE.RELEASES),
-  fields: [
+  fields: localizedFields([
     { name: "releaseId", type: "text", required: true, unique: true },
     { name: "manifestSha256", type: "text", required: true },
     { name: "runtimeSiteId", type: "text", required: true, index: true },
@@ -65,5 +70,5 @@ export const Releases = {
       defaultValue: [],
       access: { create: () => false, update: () => false },
     },
-  ],
+  ]),
 } satisfies CollectionConfig

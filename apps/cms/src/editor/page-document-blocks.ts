@@ -1,5 +1,7 @@
 import type { Block, Field } from "payload"
 
+import { localized, localizedFields, localizedOption } from "../collections/shared/localized-labels"
+
 /**
  * A vendor-extension escape hatch carried through compilation
  * (packages/compiler/src/compile/blocks.ts). Almost no editor touches it, so
@@ -8,53 +10,75 @@ import type { Block, Field } from "payload"
  */
 const extensionsField = (): Field => ({
   admin: { initCollapsed: true },
-  fields: [{ name: "extensions", type: "json" }],
-  label: "Extensions (advanced)",
+  fields: localizedFields([{ name: "extensions", type: "json" }]),
+  label: localized("Extensions (advanced)", "扩展（高级）"),
   type: "collapsible",
 })
 
 export const PAGE_DOCUMENT_BLOCKS = [
   {
     slug: "paragraph",
-    labels: { plural: "Paragraphs", singular: "Paragraph" },
-    fields: [{ name: "text", type: "textarea", required: true }, extensionsField()],
+    labels: { plural: localized("Paragraphs", "段落"), singular: localized("Paragraph", "段落") },
+    fields: localizedFields([
+      { name: "text", type: "textarea", required: true },
+      extensionsField(),
+    ]),
   },
   {
     slug: "heading",
-    labels: { plural: "Headings", singular: "Heading" },
-    fields: [
-      { name: "level", type: "select", options: ["2", "3", "4", "5", "6"], required: true },
+    labels: { plural: localized("Headings", "标题"), singular: localized("Heading", "标题") },
+    fields: localizedFields([
+      {
+        name: "level",
+        type: "select",
+        options: [
+          localizedOption("2", "Heading 2", "二级标题"),
+          localizedOption("3", "Heading 3", "三级标题"),
+          localizedOption("4", "Heading 4", "四级标题"),
+          localizedOption("5", "Heading 5", "五级标题"),
+          localizedOption("6", "Heading 6", "六级标题"),
+        ],
+        required: true,
+      },
       { name: "text", type: "text", required: true },
       extensionsField(),
-    ],
+    ]),
   },
   {
     slug: "image",
-    labels: { plural: "Images", singular: "Image" },
-    fields: [
+    labels: { plural: localized("Images", "图片"), singular: localized("Image", "图片") },
+    fields: localizedFields([
       { name: "src", type: "text", required: true },
       { name: "alt", type: "text", required: true },
       { name: "caption", type: "text" },
       { name: "width", type: "number", min: 1 },
       { name: "height", type: "number", min: 1 },
       extensionsField(),
-    ],
+    ]),
   },
   {
     slug: "quote",
-    labels: { plural: "Quotes", singular: "Quote" },
-    fields: [
+    labels: { plural: localized("Quotes", "引语"), singular: localized("Quote", "引语") },
+    fields: localizedFields([
       { name: "text", type: "textarea", required: true },
       { name: "attribution", type: "text" },
       { name: "citeUrl", type: "text" },
       extensionsField(),
-    ],
+    ]),
   },
   {
     slug: "list",
-    labels: { plural: "Lists", singular: "List" },
-    fields: [
-      { name: "style", type: "select", options: ["ordered", "unordered"], required: true },
+    labels: { plural: localized("Lists", "列表"), singular: localized("List", "列表") },
+    fields: localizedFields([
+      {
+        name: "style",
+        type: "select",
+        options: [
+          localizedOption("ordered", "Ordered", "有序"),
+          localizedOption("unordered", "Unordered", "无序"),
+        ],
+        required: true,
+      },
       {
         name: "items",
         type: "array",
@@ -63,12 +87,12 @@ export const PAGE_DOCUMENT_BLOCKS = [
         fields: [{ name: "text", type: "text", required: true }],
       },
       extensionsField(),
-    ],
+    ]),
   },
   {
     slug: "table",
-    labels: { plural: "Tables", singular: "Table" },
-    fields: [
+    labels: { plural: localized("Tables", "表格"), singular: localized("Table", "表格") },
+    fields: localizedFields([
       {
         name: "columns",
         type: "array",
@@ -93,12 +117,12 @@ export const PAGE_DOCUMENT_BLOCKS = [
       },
       { name: "caption", type: "text" },
       extensionsField(),
-    ],
+    ]),
   },
   {
     slug: "faq",
-    labels: { plural: "FAQs", singular: "FAQ" },
-    fields: [
+    labels: { plural: localized("FAQs", "常见问题"), singular: localized("FAQ", "常见问题") },
+    fields: localizedFields([
       {
         name: "items",
         type: "array",
@@ -110,58 +134,66 @@ export const PAGE_DOCUMENT_BLOCKS = [
         ],
       },
       extensionsField(),
-    ],
+    ]),
   },
   {
     slug: "callout",
-    labels: { plural: "Callouts", singular: "Callout" },
-    fields: [
+    labels: { plural: localized("Callouts", "提示框"), singular: localized("Callout", "提示框") },
+    fields: localizedFields([
       {
         name: "tone",
         type: "select",
-        options: ["info", "success", "warning", "danger"],
+        options: [
+          localizedOption("info", "Information", "提示"),
+          localizedOption("success", "Success", "成功"),
+          localizedOption("warning", "Warning", "警告"),
+          localizedOption("danger", "Danger", "危险"),
+        ],
         required: true,
       },
       { name: "title", type: "text" },
       { name: "text", type: "textarea", required: true },
       extensionsField(),
-    ],
+    ]),
   },
   {
     slug: "code",
-    labels: { plural: "Code", singular: "Code" },
-    fields: [
+    labels: { plural: localized("Code", "代码"), singular: localized("Code", "代码") },
+    fields: localizedFields([
       { name: "language", type: "text", required: true },
       { name: "code", type: "textarea", required: true },
       { name: "caption", type: "text" },
       extensionsField(),
-    ],
+    ]),
   },
   {
     slug: "video",
-    labels: { plural: "Videos", singular: "Video" },
-    fields: [
+    labels: { plural: localized("Videos", "视频"), singular: localized("Video", "视频") },
+    fields: localizedFields([
       { name: "src", type: "text", required: true },
       { name: "title", type: "text", required: true },
       { name: "poster", type: "text" },
       { name: "transcript", type: "textarea" },
       extensionsField(),
-    ],
+    ]),
   },
   {
     slug: "embed",
-    labels: { plural: "Embeds", singular: "Embed" },
-    fields: [
+    labels: { plural: localized("Embeds", "嵌入内容"), singular: localized("Embed", "嵌入内容") },
+    fields: localizedFields([
       { name: "provider", type: "text", required: true },
       { name: "url", type: "text", required: true },
       { name: "title", type: "text", required: true },
       extensionsField(),
-    ],
+    ]),
   },
   {
     slug: "references",
-    labels: { plural: "References", singular: "References" },
-    fields: [
+    labels: {
+      plural: localized("References", "参考资料"),
+      singular: localized("References", "参考资料"),
+    },
+    fields: localizedFields([
       {
         name: "items",
         type: "array",
@@ -169,10 +201,10 @@ export const PAGE_DOCUMENT_BLOCKS = [
         required: true,
         fields: [
           { name: "citationId", type: "text", required: true },
-          { name: "label", type: "text", required: true },
+          { name: "label", label: localized("Label", "标签"), type: "text", required: true },
         ],
       },
       extensionsField(),
-    ],
+    ]),
   },
 ] satisfies Block[]

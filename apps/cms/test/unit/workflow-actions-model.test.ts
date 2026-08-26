@@ -4,6 +4,7 @@ import {
   isWorkflowStatus,
   WORKFLOW_TONE,
   workflowActionsFor,
+  workflowStatusLabel,
 } from "../../src/components/workflow/workflow-actions-model"
 
 describe("workflowActionsFor", () => {
@@ -38,17 +39,37 @@ describe("workflowActionsFor", () => {
       "退回修改",
     ])
     expect(workflowActionsFor("publisher", "compiled")).toEqual([
-      { label: "发布版本", tone: "primary", type: "publish-operation" },
+      { confirm: true, label: "发布版本", tone: "primary", type: "publish-operation" },
     ])
     expect(workflowActionsFor("publisher", "published").map((action) => action.label)).toEqual([
       "归档版本",
     ])
   })
 
+  it("marks consequential actions for confirmation and reviewer change requests for a reason", () => {
+    const reviewerActions = workflowActionsFor("reviewer", "review")
+    expect(reviewerActions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ confirm: true, label: "批准版本" }),
+        expect.objectContaining({ confirm: true, label: "退回修改", reasonRequired: true }),
+      ]),
+    )
+    expect(workflowActionsFor("editor", "draft")[0]).not.toHaveProperty("confirm")
+    expect(workflowActionsFor("editor", "published")[0]).toMatchObject({ confirm: true })
+    expect(workflowActionsFor("publisher", "published")[0]).toMatchObject({ confirm: true })
+  })
+
   it("does not expose editor transitions to other roles", () => {
     expect(workflowActionsFor("reviewer", "draft")).toEqual([])
     expect(workflowActionsFor("publisher", "generating")).toEqual([])
     expect(workflowActionsFor("tenant-admin", "draft")).toEqual([])
+  })
+})
+
+describe("workflowStatusLabel", () => {
+  it("uses Chinese by default and does not expose machine values as primary copy", () => {
+    expect(workflowStatusLabel("review")).toBe("审核中")
+    expect(workflowStatusLabel("compiled", "en")).toBe("Compiled")
   })
 })
 

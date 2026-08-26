@@ -22,11 +22,15 @@ import { cn } from "@/lib/utils"
 
 import { GeoIcon } from "../branding/GeoIcon"
 import {
+  AlertTriangleIcon,
   ChevronDownIcon,
+  GlobeIcon,
+  LayersIcon,
   LayoutGridIcon,
   LogOutIcon,
   MenuIcon,
   NAV_ICON_BY_SLUG,
+  PackageIcon,
   XIcon,
 } from "../icons"
 
@@ -104,6 +108,14 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
   const currentLang = UI_LANGUAGES.find((lang) => lang === i18n.language) ?? "zh"
   const isZH = currentLang === "zh"
   const roleLabel = isZH && role !== null ? (ZH_ROLE_LABEL[role] ?? role) : role
+  const canUseWorkQueue = ["editor", "reviewer", "publisher"].includes(role ?? "")
+  const canReadReleaseHistory = ["publisher", "tenant-admin", "super-admin"].includes(role ?? "")
+  const canUseTenantWorkspace = ["tenant-admin", "super-admin"].includes(role ?? "")
+  const canUseDiagnostics = role === "super-admin"
+  const workLabel = isZH ? "我的工作" : "My work"
+  const historyLabel = isZH ? "发布历史" : "Release history"
+  const tenantWorkspaceLabel = isZH ? "租户工作区" : "Tenant workspace"
+  const diagnosticsLabel = isZH ? "系统诊断" : "System diagnostics"
 
   const linkClassName = (isActive: boolean) =>
     cn(
@@ -182,6 +194,30 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
                   <LayoutGridIcon size={17} strokeWidth={1.8} />
                   <span className="truncate">{t("general:dashboard")}</span>
                 </Link>
+                {canUseWorkQueue && (
+                  <Link className={linkClassName(pathname === `${adminRoute}/work`)} href={`${adminRoute}/work`} prefetch={false}>
+                    <LayersIcon size={17} strokeWidth={1.8} />
+                    <span className="truncate">{workLabel}</span>
+                  </Link>
+                )}
+                {canReadReleaseHistory && (
+                  <Link className={linkClassName(pathname === `${adminRoute}/history/releases`)} href={`${adminRoute}/history/releases`} prefetch={false}>
+                    <PackageIcon size={17} strokeWidth={1.8} />
+                    <span className="truncate">{historyLabel}</span>
+                  </Link>
+                )}
+                {canUseTenantWorkspace && (
+                  <Link className={linkClassName(pathname === `${adminRoute}/tenant`)} href={`${adminRoute}/tenant`} prefetch={false}>
+                    <GlobeIcon size={17} strokeWidth={1.8} />
+                    <span className="truncate">{tenantWorkspaceLabel}</span>
+                  </Link>
+                )}
+                {canUseDiagnostics && (
+                  <Link className={linkClassName(pathname === `${adminRoute}/system/diagnostics`)} href={`${adminRoute}/system/diagnostics`} prefetch={false}>
+                    <AlertTriangleIcon size={17} strokeWidth={1.8} />
+                    <span className="truncate">{diagnosticsLabel}</span>
+                  </Link>
+                )}
               </div>
 
               {groups.map((group) => (
@@ -254,7 +290,7 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
             </Avatar>
             <div className="grid min-w-0 flex-1 gap-0.5">
               <strong className="truncate text-xs font-semibold text-white">
-                {email ?? "Account"}
+                {email ?? (isZH ? "账户" : "Account")}
               </strong>
               {roleLabel !== null && (
                 <span className="truncate text-[11px] text-white/50">{roleLabel}</span>

@@ -2,6 +2,7 @@ import type { CollectionConfig } from "payload"
 
 import { collectionAccess } from "../access/functions"
 import { CMS_RESOURCE } from "../access/policy"
+import { localized, localizedFields } from "./shared/localized-labels"
 import { tenantField } from "./shared/tenant-field"
 
 /**
@@ -14,13 +15,17 @@ import { tenantField } from "./shared/tenant-field"
 export const Operations = {
   slug: "operations",
   timestamps: true,
+  labels: {
+    plural: localized("Operations", "操作"),
+    singular: localized("Operation", "操作"),
+  },
   admin: {
     defaultColumns: ["operationType", "state", "attempt", "tenant"],
-    group: "Quality & Release",
+    group: localized("Quality & Release", "质量与发布"),
     useAsTitle: "operationId",
   },
   access: collectionAccess(CMS_RESOURCE.OPERATIONS),
-  fields: [
+  fields: localizedFields([
     {
       name: "operationId",
       type: "text",
@@ -60,7 +65,10 @@ export const Operations = {
       options: ["queued", "running", "succeeded", "failed", "cancelled"],
       required: true,
       defaultValue: "queued",
-      admin: { readOnly: true, description: "Owned by the operations-ledger service" },
+      admin: {
+        readOnly: true,
+        description: localized("Owned by the operations-ledger service.", "由操作台账服务管理。"),
+      },
       access: {
         create: () => false,
         update: () => false,
@@ -155,5 +163,5 @@ export const Operations = {
         update: () => false,
       },
     },
-  ],
+  ]),
 } satisfies CollectionConfig

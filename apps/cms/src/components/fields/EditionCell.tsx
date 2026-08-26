@@ -1,10 +1,22 @@
 "use client"
 
-import { useAuth } from "@payloadcms/ui"
+import { useAuth, useTranslation } from "@payloadcms/ui"
 import { useEffect, useState } from "react"
 import type { DefaultCellComponentProps } from "payload"
 
+import { uiLangOf } from "../i18n/ui-lang"
 import { editionHrefOf, editionReferenceOf } from "./edition-cell-model"
+
+const TEXT = {
+  en: {
+    loading: "Loading edition…",
+    unavailable: (id: string | number) => `Edition ${String(id)} unavailable`,
+  },
+  zh: {
+    loading: "正在加载内容版本…",
+    unavailable: (id: string | number) => `内容版本 ${String(id)} 不可用`,
+  },
+} as const
 
 type Resolution = "idle" | "loading" | "unavailable"
 
@@ -18,6 +30,8 @@ const editionTitleFromResponse = (value: unknown): string | null => {
 
 export const EditionCell = ({ cellData }: DefaultCellComponentProps) => {
   const { user } = useAuth()
+  const { i18n } = useTranslation()
+  const t = TEXT[uiLangOf(i18n.language)]
   const reference = editionReferenceOf(cellData)
   const [title, setTitle] = useState(reference.title)
   const [resolution, setResolution] = useState<Resolution>(
@@ -66,6 +80,6 @@ export const EditionCell = ({ cellData }: DefaultCellComponentProps) => {
 
   if (reference.id === null) return <span>—</span>
   if (title !== null) return <a href={editionHrefOf(reference.id)}>{title}</a>
-  if (resolution === "loading") return <span>Loading edition…</span>
-  return <span>{`Edition ${String(reference.id)} unavailable`}</span>
+  if (resolution === "loading") return <span>{t.loading}</span>
+  return <span>{t.unavailable(reference.id)}</span>
 }

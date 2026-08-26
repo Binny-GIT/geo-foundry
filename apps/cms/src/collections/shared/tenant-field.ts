@@ -2,6 +2,7 @@ import type { RelationshipField } from "payload"
 
 import { CMS_ROLE } from "../../access/roles"
 import { forceTenantFromSession } from "../../access/tenant-field"
+import { localized } from "./localized-labels"
 
 export type TenantFieldOptions = {
   readonly index?: boolean
@@ -25,6 +26,7 @@ export const tenantField = ({
   required = true,
 }: TenantFieldOptions = {}): RelationshipField => ({
   name: "tenant",
+  label: localized("Tenant", "租户"),
   type: "relationship",
   relationTo: "tenants",
   ...(required ? { required: true } : {}),

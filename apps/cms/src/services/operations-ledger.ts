@@ -469,6 +469,8 @@ export async function loadPublishOperationCreator(
 
 export type SubmitEditionPublishInput = {
   readonly editionId: number
+  /** Stored only on the initial authorized operation audit entry. */
+  readonly reason?: string
   readonly user: unknown
 }
 
@@ -550,6 +552,7 @@ export async function submitEditionPublishOperation(
       actor,
       at: ledgerClock.now().value,
       detail: { endpoint, requestHash },
+      ...(input.reason === undefined ? {} : { reason: input.reason }),
     }
     await payload.create({
       collection: "operations",

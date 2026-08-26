@@ -60,6 +60,36 @@ export default buildConfig({
         dashboard: {
           Component: "/components/dashboard/OperationsDashboard#OperationsDashboard",
         },
+        workQueue: {
+          Component: "/components/views/WorkQueue#WorkQueue",
+          exact: true,
+          path: "/work",
+        },
+        editionWorkspace: {
+          Component: "/components/views/EditionWorkspace#EditionWorkspace",
+          exact: true,
+          path: "/work/editions/:id",
+        },
+        operationDetail: {
+          Component: "/components/views/OperationDetail#OperationDetail",
+          exact: true,
+          path: "/work/operations/:id",
+        },
+        releaseHistory: {
+          Component: "/components/views/ReleaseHistory#ReleaseHistory",
+          exact: true,
+          path: "/history/releases",
+        },
+        tenantWorkspace: {
+          Component: "/components/views/TenantWorkspace#TenantWorkspace",
+          exact: true,
+          path: "/tenant",
+        },
+        systemDiagnostics: {
+          Component: "/components/views/SystemDiagnostics#SystemDiagnostics",
+          exact: true,
+          path: "/system/diagnostics",
+        },
       },
     },
     // 不依赖外部 Gravatar 服务（测试/生产网络不可达，导致管理端页面 console error 与请求超时）

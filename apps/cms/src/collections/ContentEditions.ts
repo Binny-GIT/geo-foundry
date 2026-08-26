@@ -5,6 +5,7 @@ import { CMS_RESOURCE } from "../access/policy"
 import { PAGE_DOCUMENT_BLOCKS } from "../editor/page-document-blocks"
 import { validateEditionBody } from "../editor/validate-body"
 import { canonicalize } from "../services/edition-input-hash"
+import { localized, localizedFields } from "./shared/localized-labels"
 import { tenantField } from "./shared/tenant-field"
 
 const idOf = (reference: unknown): number | string | null =>
@@ -153,9 +154,13 @@ const ensureTenantConsistency: CollectionBeforeChangeHook = async ({ data, req, 
 
 export const ContentEditions = {
   slug: "content-editions",
+  labels: {
+    plural: localized("Content editions", "内容版本"),
+    singular: localized("Content edition", "内容版本"),
+  },
   admin: {
     defaultColumns: ["title", "workflowStatus", "site", "creationOrigin", "updatedAt"],
-    group: "Content",
+    group: localized("Content", "内容"),
     useAsTitle: "title",
   },
   access: collectionAccess(CMS_RESOURCE.EDITIONS),
@@ -165,7 +170,7 @@ export const ContentEditions = {
   hooks: {
     beforeChange: [trackContentVersion, ensureTenantConsistency, ensureMediaReferences],
   },
-  fields: [
+  fields: localizedFields([
     {
       name: "workflowActions",
       type: "ui",
@@ -254,7 +259,13 @@ export const ContentEditions = {
       type: "select",
       options: ["draft", "generating", "review", "approved", "compiled", "published", "archived"],
       defaultValue: "draft",
-      admin: { readOnly: true, description: "Owned by the edition workflow service" },
+      admin: {
+        readOnly: true,
+        description: localized(
+          "Owned by the edition workflow service.",
+          "由内容版本工作流服务管理。",
+        ),
+      },
       access: {
         create: () => false,
         update: () => false,
@@ -289,5 +300,5 @@ export const ContentEditions = {
         update: () => false,
       },
     },
-  ],
+  ]),
 } satisfies CollectionConfig

@@ -2,6 +2,7 @@ import type { CollectionConfig } from "payload"
 
 import { collectionAccess } from "../access/functions"
 import { CMS_RESOURCE } from "../access/policy"
+import { localized, localizedFields } from "./shared/localized-labels"
 import { tenantField } from "./shared/tenant-field"
 
 /**
@@ -12,14 +13,18 @@ import { tenantField } from "./shared/tenant-field"
  */
 export const UrlRecords = {
   slug: "url-records",
+  labels: {
+    plural: localized("URL records", "URL 记录"),
+    singular: localized("URL record", "URL 记录"),
+  },
   admin: {
     defaultColumns: ["pathname", "locale", "state"],
-    group: "Content",
+    group: localized("Content", "内容"),
     useAsTitle: "pathname",
   },
   access: collectionAccess(CMS_RESOURCE.URL_RECORDS),
   indexes: [{ fields: ["site", "state"] }],
-  fields: [
+  fields: localizedFields([
     {
       name: "site",
       type: "relationship",
@@ -82,5 +87,5 @@ export const UrlRecords = {
         hidden: true,
       },
     },
-  ],
+  ]),
 } satisfies CollectionConfig

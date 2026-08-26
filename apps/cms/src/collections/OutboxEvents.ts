@@ -1,5 +1,7 @@
 import type { CollectionConfig } from "payload"
 
+import { localized, localizedFields } from "./shared/localized-labels"
+
 /**
  * Transactional outbox. Rows are appended by CMS services inside the same
  * database transaction as the workflow change they describe; a dispatcher
@@ -10,8 +12,13 @@ import type { CollectionConfig } from "payload"
 export const OutboxEvents = {
   slug: "outbox-events",
   timestamps: true,
+  labels: {
+    plural: localized("Outbox events", "发件箱事件"),
+    singular: localized("Outbox event", "发件箱事件"),
+  },
   admin: {
     defaultColumns: ["type", "aggregateId", "status", "attempts"],
+    group: localized("Diagnostics", "诊断"),
     useAsTitle: "eventId",
   },
   access: {
@@ -20,7 +27,7 @@ export const OutboxEvents = {
     update: () => false,
     delete: () => false,
   },
-  fields: [
+  fields: localizedFields([
     {
       name: "eventId",
       type: "text",
@@ -110,5 +117,5 @@ export const OutboxEvents = {
         update: () => false,
       },
     },
-  ],
+  ]),
 } satisfies CollectionConfig

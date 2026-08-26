@@ -26,8 +26,35 @@ export const WORKFLOW_TONE: Record<WorkflowStatus, Tone> = {
   review: "warning",
 }
 
+const STATUS_LABEL: Record<UiLang, Record<WorkflowStatus, string>> = {
+  en: {
+    approved: "Approved",
+    archived: "Archived",
+    compiled: "Compiled",
+    draft: "Draft",
+    generating: "Generating",
+    published: "Published",
+    review: "In review",
+  },
+  zh: {
+    approved: "已批准",
+    archived: "已归档",
+    compiled: "已编译",
+    draft: "草稿",
+    generating: "生成中",
+    published: "已发布",
+    review: "审核中",
+  },
+}
+
+/** Human-readable workflow state for custom admin surfaces. */
+export const workflowStatusLabel = (state: WorkflowStatus, language?: unknown): string =>
+  STATUS_LABEL[uiLangOf(language)][state]
+
 export type WorkflowAction = {
+  readonly confirm?: true
   readonly label: string
+  readonly reasonRequired?: true
   readonly tone: "primary" | "secondary"
   readonly target?: WorkflowStatus
   readonly type: "draft-from-published" | "publish-operation" | "transition"
@@ -43,7 +70,9 @@ export const isWorkflowStatus = (value: unknown): value is WorkflowStatus =>
   value === "archived"
 
 type ActionTemplate = {
+  readonly confirm?: true
   readonly en: string
+  readonly reasonRequired?: true
   readonly target?: WorkflowStatus
   readonly tone: "primary" | "secondary"
   readonly type: "draft-from-published" | "publish-operation" | "transition"
@@ -57,14 +86,14 @@ const ACTION_TEMPLATES: readonly ActionTemplate[] = [
   { en: "Submit for review", target: "review", tone: "primary", type: "transition", zh: "提交审核" },
   { en: "Return to draft", target: "draft", tone: "secondary", type: "transition", zh: "退回草稿" },
   // reviewer: review → approved / back to draft
-  { en: "Approve edition", target: "approved", tone: "primary", type: "transition", zh: "批准版本" },
-  { en: "Request changes", target: "draft", tone: "secondary", type: "transition", zh: "退回修改" },
+  { confirm: true, en: "Approve edition", target: "approved", tone: "primary", type: "transition", zh: "批准版本" },
+  { confirm: true, en: "Request changes", reasonRequired: true, target: "draft", tone: "secondary", type: "transition", zh: "退回修改" },
   // publisher: compiled → publish
-  { en: "Publish edition", tone: "primary", type: "publish-operation", zh: "发布版本" },
+  { confirm: true, en: "Publish edition", tone: "primary", type: "publish-operation", zh: "发布版本" },
   // publisher: published → archived
-  { en: "Archive edition", target: "archived", tone: "secondary", type: "transition", zh: "归档版本" },
+  { confirm: true, en: "Archive edition", target: "archived", tone: "secondary", type: "transition", zh: "归档版本" },
   // editor: published → new draft
-  { en: "Create next draft", tone: "primary", type: "draft-from-published", zh: "创建新草稿" },
+  { confirm: true, en: "Create next draft", tone: "primary", type: "draft-from-published", zh: "创建新草稿" },
 ]
 
 const TEMPLATE_KEYS: Record<string, readonly number[]> = {
@@ -88,7 +117,9 @@ export const workflowActionsFor = (
     const template = ACTION_TEMPLATES[key]
     if (template === undefined) continue
     actions.push({
+      ...(template.confirm === true ? { confirm: true } : {}),
       label: template[lang],
+      ...(template.reasonRequired === true ? { reasonRequired: true } : {}),
       ...(template.target !== undefined ? { target: template.target } : {}),
       tone: template.tone,
       type: template.type,
