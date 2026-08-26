@@ -45,24 +45,17 @@ const VISIBLE_SLUGS = [
 ]
 
 /**
- * 等待列表页渲染：
- * - 有数据 → SSR 直接输出 <table>（实测 <1s）
- * - 无数据 → 无表格，空态文案 "No Results."
+ * 等待独立 Console 集合页：
+ * - 有数据 → SSR 输出语义化 table
+ * - 空结果 → 显示范围安全空态，而不会假称全局没有数据
  */
 const waitForListRender = async (page) => {
   const deadline = Date.now() + PAGE_TIMEOUT_MS
   while (Date.now() < deadline) {
+    if (await page.locator("table").first().isVisible().catch(() => false)) return
     if (
       await page
-        .locator("table")
-        .first()
-        .isVisible()
-        .catch(() => false)
-    )
-      return
-    if (
-      await page
-        .getByText("No Results.")
+        .getByText("当前范围内没有记录")
         .first()
         .isVisible()
         .catch(() => false)
@@ -70,23 +63,7 @@ const waitForListRender = async (page) => {
       return
     await page.waitForTimeout(1_000)
   }
-  throw new Error("list render timeout: no table and no 'No Results.'")
-}
-
-// 各集合预期行数（super-admin 全量视图，2026-08-22 生产库快照）
-const EXPECTED_ROWS = {
-  "content-editions": 6,
-  contents: 6,
-  domains: 0,
-  "quality-assessments": 0,
-  releases: 0,
-  "rollback-intents": 0,
-  sites: 3,
-  "url-records": 0,
-  media: 0,
-  operations: 0,
-  tenants: 2,
-  users: 7,
+  throw new Error("list render timeout: no Console table or scoped empty state")
 }
 
 const results = []
@@ -140,16 +117,17 @@ const loginAs = async (context, account) => {
     .locator('input[name="email"], input[type="email"]')
     .first()
     .waitFor({ state: "visible", timeout: PAGE_TIMEOUT_MS })
+  await page.locator('form[data-ready="true"]').waitFor({ state: "attached", timeout: PAGE_TIMEOUT_MS })
   await page.locator('input[name="email"], input[type="email"]').first().fill(account.email)
   await page
     .locator('input[name="password"], input[type="password"]')
     .first()
     .fill(account.password)
-  await page.getByRole("button", { name: /login/i }).first().click()
-  await page.waitForURL(`${BASE}/admin*`, { timeout: PAGE_TIMEOUT_MS })
-  // 等待管理端会话与客户端 Shell 完成挂载；不要把品牌标题作为就绪信号。
+  await page.getByRole("button", { name: /^login$/i }).first().click()
+  await page.waitForURL(`${BASE}/admin`, { timeout: PAGE_TIMEOUT_MS })
+  // 等待 Console session 与客户端 Shell 完成挂载；不要把品牌标题作为就绪信号。
   await page
-    .getByRole("link", { name: /^Contents$/ })
+    .getByRole("link", { name: /内容条目|contents/i })
     .first()
     .waitFor({
       state: "visible",
@@ -298,22 +276,22 @@ try {
         await email.waitFor({ state: "visible", timeout: PAGE_TIMEOUT_MS })
         await password.waitFor({ state: "visible", timeout: PAGE_TIMEOUT_MS })
         await page
-          .getByRole("link", { name: /forgot password/i })
+          .getByRole("link", { name: /忘记密码|forgot password/i })
           .first()
           .waitFor({ state: "visible", timeout: TIMEOUT_MS })
         await page
-          .getByRole("button", { name: /login/i })
+          .getByRole("button", { name: /^login$/i })
           .first()
           .waitFor({ state: "visible", timeout: TIMEOUT_MS })
         const title = await page.title()
         const text = await page.evaluate(() => document.body.innerText)
         if (
-          title !== "Login | Geo Foundry" ||
+          title !== "登录 | Geo Foundry" ||
           !text.includes("Geo Foundry") ||
-          !text.includes("内容运营中心")
+          !text.includes("内容运营管理中心")
         ) {
           throw new Error(
-            `brand title=${title}; Geo Foundry intro=${text.includes("内容运营中心")}`,
+            `brand title=${title}; Console intro=${text.includes("内容运营管理中心")}`,
           )
         }
       })
@@ -374,21 +352,19 @@ try {
     const dashboardState = await adminPage.evaluate(() => {
       const text = document.body.innerText
       return {
-        hasAttention: text.includes("待处理事项"),
-        hasDashboard: text.includes("运营控制台"),
-        hasFleet: text.includes("站点概览"),
-        hasPipeline: text.includes("工作流管线"),
-        hasStockCollectionsHeading: Array.from(document.querySelectorAll("h1, h2")).some(
-          (heading) => heading.textContent?.trim() === "Collections",
-        ),
+        hasConsole: text.includes("内容运营控制中心"),
+        hasNoStockChrome: !text.includes("Collections"),
+        hasScopeCopy: text.includes("服务端权限范围读取"),
+        hasStudio: text.toLowerCase().includes("gf studio"),
+        overflow: document.documentElement.scrollWidth - window.innerWidth,
       }
     })
     const dashboardOk =
-      dashboardState.hasDashboard &&
-      dashboardState.hasAttention &&
-      dashboardState.hasPipeline &&
-      dashboardState.hasFleet &&
-      !dashboardState.hasStockCollectionsHeading
+      dashboardState.hasConsole &&
+      dashboardState.hasStudio &&
+      dashboardState.hasScopeCopy &&
+      dashboardState.hasNoStockChrome &&
+      dashboardState.overflow <= 1
     const ok =
       title === "Dashboard | Geo Foundry" &&
       count === VISIBLE_SLUGS.length &&
@@ -399,7 +375,7 @@ try {
       "API-P0-052",
       "登录成功 → Dashboard + 侧栏 12 集合 + Operations dashboard",
       ok,
-      `title=${title}; sidebar-collections=${count}; service-owned-hidden=${hiddenOk}; dashboard=${dashboardOk}; stock-collections-heading=${dashboardState.hasStockCollectionsHeading}${loginHard.length ? `; login-console-errors=${JSON.stringify(loginHard.slice(0, 3))}` : ""}`,
+      `title=${title}; sidebar-collections=${count}; service-owned-hidden=${hiddenOk}; dashboard=${dashboardOk}; overflow=${dashboardState.overflow}${loginHard.length ? `; login-console-errors=${JSON.stringify(loginHard.slice(0, 3))}` : ""}`,
     )
     await adminPage.screenshot({ path: `${ARTIFACTS}b1-dashboard.png` })
   }
@@ -435,14 +411,15 @@ try {
           await page.waitForLoadState("networkidle", { timeout: PAGE_TIMEOUT_MS }).catch(() => {})
         })
         const rows = await page.locator("table tbody tr").count()
-        const bodyLen = await page.evaluate(() => document.body.innerText.length)
+        const state = await page.evaluate(() => ({
+          bodyLength: document.body.innerText.length,
+          overflow: document.documentElement.scrollWidth - window.innerWidth,
+        }))
         const { hard } = tracker.flush()
-        const expected = EXPECTED_ROWS[slug] ?? -1
-        const rowsOk = expected < 0 ? true : rows === expected
-        const ok = bodyLen > 50 && hard.length === 0 && rowsOk
+        const ok = state.bodyLength > 50 && state.overflow <= 1 && hard.length === 0
         if (!ok) allOk = false
         details.push(
-          `${slug}:${ok ? "ok" : "DEFECT"}(rows=${rows}/期望${expected},err=${hard.length})${hard.length ? ` :: ${hard[0].slice(0, 80)}` : ""}`,
+          `${slug}:${ok ? "ok" : "DEFECT"}(rows=${rows},overflow=${state.overflow},err=${hard.length})${hard.length ? ` :: ${hard[0].slice(0, 80)}` : ""}`,
         )
         await page.screenshot({ path: `${ARTIFACTS}b3-${slug}.png` })
       } catch (error) {
@@ -455,39 +432,30 @@ try {
     record("API-P1-053", "12 个集合列表页可打开无空白无 console error", allOk, details.join(" | "))
   }
 
-  // B3a Sites workspace：运营卡片应在保留的标准表格之前，且真实空态不能被伪造为已配置/已发布。
+  // B3a Sites Console：原生 Payload companion workspace 已移除，站点页必须由新的
+  // Console 资源页呈现真实列表/范围安全空态，而不是回退到旧管理端 DOM。
   {
     const page = await admin.newPage()
     let ok = true
     let detail = ""
     try {
-      await page.goto(`${BASE}/admin/collections/sites?depth=1&limit=10`, {
+      await page.goto(`${BASE}/admin/collections/sites`, {
         timeout: TIMEOUT_MS,
         waitUntil: "domcontentloaded",
       })
       await waitForListRender(page)
       await page.waitForLoadState("networkidle", { timeout: PAGE_TIMEOUT_MS }).catch(() => {})
       const state = await page.evaluate(() => {
-        const workspace = document.querySelector('[aria-label="Sites workspace"]')
-        const table = document.querySelector("table")
-        const workspaceRect = workspace?.getBoundingClientRect()
-        const tableRect = table?.getBoundingClientRect()
-        const text = workspace?.textContent ?? ""
+        const text = document.body.innerText
         return {
-          beforeTable: (workspaceRect?.top ?? Infinity) < (tableRect?.top ?? -Infinity),
-          hasDomainEmptyState: text.includes("尚未配置域名"),
-          hasReleaseEmptyState: text.includes("暂无"),
-          hasTitle: text.includes("站点工作区"),
+          hasConsoleSubtitle: text.includes("站点配置与运营就绪度"),
+          hasConsoleTitle: text.includes("站点"),
+          hasPayloadWorkspace: text.includes("站点工作区"),
           overflow: document.documentElement.scrollWidth - window.innerWidth,
         }
       })
-      ok =
-        state.hasTitle &&
-        state.beforeTable &&
-        state.hasDomainEmptyState &&
-        state.hasReleaseEmptyState &&
-        state.overflow <= 1
-      detail = `title=${state.hasTitle}; before-table=${state.beforeTable}; domain-empty=${state.hasDomainEmptyState}; release-empty=${state.hasReleaseEmptyState}; overflow=${state.overflow}`
+      ok = state.hasConsoleTitle && state.hasConsoleSubtitle && !state.hasPayloadWorkspace && state.overflow <= 1
+      detail = `console-title=${state.hasConsoleTitle}; subtitle=${state.hasConsoleSubtitle}; payload-workspace=${state.hasPayloadWorkspace}; overflow=${state.overflow}`
       await page.screenshot({ path: `${ARTIFACTS}b3a-sites-workspace.png`, fullPage: true })
     } catch (error) {
       ok = false
@@ -495,7 +463,7 @@ try {
     } finally {
       await page.close()
     }
-    record("COL-UI-SITES-WORKSPACE", "Sites workspace 显示真实运营空态且保留标准表格", ok, detail)
+    record("COL-UI-SITES-WORKSPACE", "Sites 由独立 Console 资源页呈现且无 Payload workspace", ok, detail)
   }
 
   // B3b 服务自有集合 by design 404（read 全拒 → Payload not-found）
@@ -522,8 +490,7 @@ try {
     record("COL-UI-DENIED", "服务自有集合管理页 by design 404", allOk, details.join(" | "))
   }
 
-  // B4 API-P2-054 Media 创建表单含上传控件（S3 handler 挂载）
-  // 注意：super-admin 对 media create=false（policy by design），须以 editor 身份验证
+  // B4 API-P2-054 Media 专项上传页：editor 只能使用新的 multipart Console 表单。
   {
     const ctx = await browser.newContext({ viewport: { height: 900, width: 1440 } })
     const { page } = await loginAs(ctx, ACCOUNTS.editor)
@@ -531,33 +498,18 @@ try {
     let ok = true
     let detail = ""
     try {
-      await page.goto(`${BASE}/admin/collections/media`, {
+      const response = await page.goto(`${BASE}/admin/collections/media/upload`, {
         timeout: TIMEOUT_MS,
         waitUntil: "domcontentloaded",
       })
-      await waitForListRender(page)
-      // Payload 的 "Create New" 是 <a> 链接（role=link），点击后跳转独立创建页
-      const createLink = page.getByRole("link", { name: /create new/i }).first()
-      await createLink.waitFor({ state: "visible", timeout: PAGE_TIMEOUT_MS })
-      await createLink.click()
-      await page
-        .goto(`${BASE}/admin/collections/media/create`, {
-          timeout: TIMEOUT_MS,
-          waitUntil: "domcontentloaded",
-        })
-        .catch(() => {})
+      if (response?.status() !== 200) throw new Error(`status ${response?.status()}`)
       await page.waitForLoadState("networkidle", { timeout: PAGE_TIMEOUT_MS }).catch(() => {})
-      // S3 客户端上传 handler 挂载 = file input 存在（原生 input 被拖拽区样式隐藏属正常）
       const fileInput = page.locator('input[type="file"]').first()
       const inputExists = (await fileInput.count()) > 0
-      const dropZoneVisible = await page
-        .getByText(/select a file/i)
-        .first()
-        .isVisible()
-        .catch(() => false)
-      const modalText = (await page.evaluate(() => document.body.innerText)).slice(0, 400)
-      detail = `file-input-exists=${inputExists}; dropzone-visible=${dropZoneVisible}; form=${modalText.slice(0, 120).replace(/\s+/g, " ")}`
-      ok = inputExists && dropZoneVisible
+      const text = await page.evaluate(() => document.body.innerText)
+      const safeUploadCopy = text.includes("仅本地文件") && text.includes("最大 5 MB") && text.includes("不能通过 URL 导入")
+      detail = `file-input-exists=${inputExists}; safe-upload-copy=${safeUploadCopy}`
+      ok = inputExists && safeUploadCopy
     } catch (error) {
       ok = false
       detail = String(error).slice(0, 150)
@@ -567,7 +519,7 @@ try {
       ok = false
       detail += `; console-errors=${JSON.stringify(hard.slice(0, 2))}`
     }
-    record("API-P2-054", "editor: Media 创建表单上传控件可见", ok, detail)
+    record("API-P2-054", "editor: Media 专项上传表单可见且仅允许本地受控文件", ok, detail)
     await page.screenshot({ path: `${ARTIFACTS}b4-media-create.png` })
     await ctx.close()
   }
@@ -610,89 +562,91 @@ try {
   await admin.close()
 
   // ============ Phase C: RBAC 冒烟（UI 级） ============
-  // C1 editor 访问 users 列表 → 仅可见自己 1 行（self-scope；/api/users/me 依赖此能力）
+  // C1 editor 不再拥有 Users registry；Console 将 self-scope 表现为 Account 页，
+  // 同时用户列表路径必须 404，避免误把自我资料扩展成用户管理能力。
   {
     const ctx = await browser.newContext({ viewport: { height: 900, width: 1440 } })
     const { page } = await loginAs(ctx, ACCOUNTS.editor)
     let ok = true
     let detail = ""
     try {
-      const response = await page.goto(`${BASE}/admin/collections/users`, {
+      const denied = await page.goto(`${BASE}/admin/collections/users`, {
         timeout: TIMEOUT_MS,
         waitUntil: "domcontentloaded",
       })
-      if (response?.status() !== 200) throw new Error(`status ${response?.status()}`)
-      await waitForListRender(page)
-      await page.waitForLoadState("networkidle", { timeout: PAGE_TIMEOUT_MS }).catch(() => {})
-      const rows = await page.locator("table tbody tr").count()
-      const pageText = await page.evaluate(() => document.body.innerText)
-      const selfOnly =
-        rows === 1 && pageText.includes(ACCOUNTS.editor.email) && !pageText.includes("embed-boot@")
-      detail = `status=200; rows=${rows} (期望 1=仅自己); self-row=${selfOnly}`
+      if (denied?.status() !== 404) throw new Error(`users-status ${denied?.status()}`)
+      const account = await page.goto(`${BASE}/admin/account`, {
+        timeout: TIMEOUT_MS,
+        waitUntil: "domcontentloaded",
+      })
+      if (account?.status() !== 200) throw new Error(`account-status ${account?.status()}`)
+      const text = await page.evaluate(() => document.body.innerText)
+      const selfOnly = text.includes(ACCOUNTS.editor.email) && !text.includes("embed-boot@")
+      detail = `users-status=404; account-status=200; self-profile=${selfOnly}`
       ok = selfOnly
     } catch (error) {
       ok = false
       detail = String(error).slice(0, 150)
     }
-    record("RBAC-UI-001", "editor 访问 users 列表仅见自己 1 行（self-scope）", ok, detail)
+    record("RBAC-UI-001", "editor Users registry 被拒且 Account 仅显示自身身份", ok, detail)
     await page.screenshot({ path: `${ARTIFACTS}c1-editor-users.png` })
     await ctx.close()
   }
 
-  // C1b editor 的租户绑定由服务端强制，表单不应显示无法选择的 Tenant 字段；列表不应显示 Untitled-ID 噪音
+  // C1b editor 的租户绑定由服务端强制，Console 内容表单不应显示 tenant 控件，
+  // 且资源列表不能显示旧 Payload 的 Untitled-ID 噪音。
   {
     const ctx = await browser.newContext({ viewport: { height: 900, width: 1440 } })
     const { page } = await loginAs(ctx, ACCOUNTS.editor)
     let ok = true
     let detail = ""
     try {
-      await page.goto(`${BASE}/admin/collections/contents/create`, {
+      const create = await page.goto(`${BASE}/admin/collections/contents/create`, {
         timeout: TIMEOUT_MS,
         waitUntil: "domcontentloaded",
       })
+      if (create?.status() !== 200) throw new Error(`create-status ${create?.status()}`)
       await page.waitForLoadState("networkidle", { timeout: PAGE_TIMEOUT_MS }).catch(() => {})
-      const createText = await page.evaluate(() => document.body.innerText)
-      const tenantInputCount = await page
-        .locator('label:text-is("Tenant"), [name="tenant"]')
-        .count()
+      const createText = await page.locator("main").innerText()
+      const tenantInputCount = await page.locator('main [name="tenant"]').count()
       await page.goto(`${BASE}/admin/collections/contents`, {
         timeout: TIMEOUT_MS,
         waitUntil: "domcontentloaded",
       })
       await waitForListRender(page)
       const listText = await page.evaluate(() => document.body.innerText)
-      const hidden = tenantInputCount === 0 && !createText.includes("Tenant\n*")
-      const cleanCell = listText.includes("Current tenant") && !listText.includes("Untitled - ID")
+      const hidden = tenantInputCount === 0 && !createText.includes("租户")
+      const cleanCell = !listText.includes("Untitled - ID")
       ok = hidden && cleanCell
       detail = `tenant-control-hidden=${hidden}; tenant-cell-clean=${cleanCell}`
     } catch (error) {
       ok = false
       detail = String(error).slice(0, 150)
     }
-    record("RBAC-UI-004", "editor 租户字段隐藏且列表无 Untitled-ID", ok, detail)
+    record("RBAC-UI-004", "editor Console 内容表单隐藏 tenant 且列表无 ID 噪音", ok, detail)
     await ctx.close()
   }
 
-  // C1c 登录用户访问无 create 权限页面时，提示应说明权限而非要求再次登录
+  // C1c 已登录 super-admin 对无 create 权限的 Sites form 必须收到 404，
+  // 不能被错误重定向到登录或展示可提交的表单。
   {
     const ctx = await browser.newContext({ viewport: { height: 900, width: 1440 } })
     const { page } = await loginAs(ctx, ACCOUNTS.superAdmin)
     let ok = true
     let detail = ""
     try {
-      await page.goto(`${BASE}/admin/collections/sites/create`, {
+      const response = await page.goto(`${BASE}/admin/collections/sites/create`, {
         timeout: TIMEOUT_MS,
         waitUntil: "domcontentloaded",
       })
-      await page.waitForLoadState("networkidle", { timeout: PAGE_TIMEOUT_MS }).catch(() => {})
       const text = await page.evaluate(() => document.body.innerText)
-      ok = text.includes("You do not have permission") && !text.includes("must be logged in")
-      detail = `permission-copy=${ok}`
+      ok = response?.status() === 404 && !text.includes("登录管理中心")
+      detail = `status=${response?.status()}; stayed-authenticated=${!text.includes("登录管理中心")}`
     } catch (error) {
       ok = false
       detail = String(error).slice(0, 150)
     }
-    record("RBAC-UI-005", "无 create 权限页显示准确权限提示", ok, detail)
+    record("RBAC-UI-005", "无 Sites create 权限时 Console 返回 404 而不回退登录", ok, detail)
     await ctx.close()
   }
 

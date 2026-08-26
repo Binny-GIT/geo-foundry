@@ -2,7 +2,9 @@ import { RootPage, generatePageMetadata } from "@payloadcms/next/views"
 import config from "@payload-config"
 import type { Metadata } from "next"
 
-import { importMap } from "../importMap"
+import { requireEmergencySuperAdmin } from "@/console/lib/session.server"
+
+import { importMap } from "../../../../(payload)/admin/importMap"
 
 type PageArguments = {
   readonly params: Promise<{ readonly segments: string[] }>
@@ -12,7 +14,9 @@ type PageArguments = {
 export const generateMetadata = ({ params, searchParams }: PageArguments): Promise<Metadata> =>
   generatePageMetadata({ config, params, searchParams })
 
-const Page = ({ params, searchParams }: PageArguments) =>
-  RootPage({ config, params, searchParams, importMap })
+const Page = async ({ params, searchParams }: PageArguments) => {
+  await requireEmergencySuperAdmin()
+  return RootPage({ config, params, searchParams, importMap })
+}
 
 export default Page
