@@ -1,4 +1,4 @@
-import { APIError, type CollectionBeforeChangeHook, type CollectionConfig } from "payload"
+import { APIError, type CollectionBeforeChangeHook, type CollectionConfig, type Where } from "payload"
 
 import { claimsFromRequest, collectionAccess } from "../access/functions"
 import { CMS_RESOURCE, readScope } from "../access/policy"
@@ -27,6 +27,14 @@ const CONTENT_VERSION_FIELDS = [
 ] as const
 
 const contentModifiedAt = (): string => new Date().toISOString()
+
+const editionVersionReadScope = ({ req }: { readonly req: { readonly user: unknown } }): boolean | Where => {
+  const claims = claimsFromRequest(req)
+  const scope = readScope(claims, CMS_RESOURCE.EDITIONS)
+  if (scope === false || scope === true) return scope
+  if (claims === null || claims.tenantId === null) return false
+  return { "version.tenant": { equals: claims.tenantId } }
+}
 
 const contentFieldChanged = (
   data: Record<string, unknown>,
@@ -174,7 +182,7 @@ export const ContentEditions = {
   },
   access: {
     ...collectionAccess(CMS_RESOURCE.EDITIONS),
-    readVersions: ({ req }) => readScope(claimsFromRequest(req), CMS_RESOURCE.EDITIONS),
+    readVersions: editionVersionReadScope,
   },
   versions: {
     drafts: true,

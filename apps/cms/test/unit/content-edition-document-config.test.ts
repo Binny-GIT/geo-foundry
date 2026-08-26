@@ -15,6 +15,16 @@ describe("content edition document workspace config", () => {
     expect(editView).not.toHaveProperty("default")
   })
 
+  it("scopes version history through the version tenant path", () => {
+    const readVersions = ContentEditions.access.readVersions
+    if (readVersions === undefined) throw new Error("readVersions access is required")
+
+    expect(readVersions({ req: { user: { id: 4, role: "editor", tenant: { id: 7 } } } } as never)).toEqual({
+      "version.tenant": { equals: 7 },
+    })
+    expect(readVersions({ req: { user: { id: 5, role: "super-admin" } } } as never)).toBe(true)
+  })
+
   it("keeps preview data isolated from service-owned workflow fields", () => {
     const preview = previewDocumentOf({
       body: [{ blockType: "paragraph", text: "Preview only" }],
