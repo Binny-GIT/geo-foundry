@@ -116,6 +116,7 @@ if (command === "inspect") {
       for (const entry of records) {
         const document = await payload.findByID({
           collection,
+          ...(collection === "content-editions" ? { draft: true } : {}),
           depth: 0,
           id: entry.id,
           overrideAccess: true,
@@ -127,7 +128,7 @@ if (command === "inspect") {
           report.deletedRecords.push({ collection, id: entry.id, outcome: "already-absent" })
           continue
         }
-        if (!rowContainsMarker(document, entry.marker)) {
+        if (!rowContainsMarker(document, entry.marker) && !rowContainsMarker(document, runId)) {
           throw new Error(`ADMIN_UI_FIXTURE_MARKER_MISMATCH:${collection}:${entry.id}`)
         }
         await payload.delete({ collection, id: entry.id, overrideAccess: true })
