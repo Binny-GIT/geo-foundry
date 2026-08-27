@@ -14,6 +14,12 @@ const idOf = (reference: unknown): number | string | null =>
 const isRow = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
 
+const fieldValue = (
+  data: Record<string, unknown>,
+  originalDoc: Record<string, unknown> | undefined,
+  field: string,
+): unknown => (Object.hasOwn(data, field) ? data[field] : originalDoc?.[field])
+
 const MEDIA_SRC_PATTERN = /\/media\/tenants\/(\d+)\/([^/?#]+)(?:[?#]|$)/
 
 const CONTENT_VERSION_FIELDS = [
@@ -120,6 +126,25 @@ const ensureTenantConsistency: CollectionBeforeChangeHook = async ({ data, req, 
     }
   }
 
+  const ownerId = idOf(fieldValue(data, originalDoc as Record<string, unknown> | undefined, "owner"))
+  if (ownerId !== null) {
+    const owner = await req.payload.findByID({
+      collection: "users",
+      id: ownerId,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const ownerTenantId = idOf(owner.tenant)
+    const editionTenantId = idOf(fieldValue(data, originalDoc as Record<string, unknown> | undefined, "tenant"))
+    if (
+      ownerTenantId === null ||
+      editionTenantId === null ||
+      String(ownerTenantId) !== String(editionTenantId)
+    ) {
+      throw new APIError("CMS_EDITION_OWNER_TENANT_MISMATCH", 400)
+    }
+  }
+
   const siteId = idOf(data["site"])
   if (siteId !== null) {
     const site = await req.payload.findByID({
@@ -218,6 +243,34 @@ export const ContentEditions = {
       },
     },
     tenantField(),
+    {
+      name: "owner",
+      label: localized("Owner", "负责人"),
+      type: "relationship",
+      relationTo: "users",
+      index: true,
+    },
+    {
+      name: "priority",
+      type: "select",
+      options: ["low", "normal", "high", "urgent"],
+      defaultValue: "normal",
+      index: true,
+    },
+    {
+      name: "dueAt",
+      label: localized("Due at", "截止时间"),
+      type: "date",
+      index: true,
+    },
+    {
+      name: "editorialStatus",
+      label: localized("Editorial status", "编辑状态"),
+      type: "select",
+      options: ["unassigned", "assigned", "in-progress", "blocked"],
+      defaultValue: "unassigned",
+      index: true,
+    },
     {
       name: "angle",
       type: "text",

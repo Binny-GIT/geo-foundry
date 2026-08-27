@@ -217,43 +217,36 @@ export const ContentEditionEditorCanvas = ({ readOnly }: { readonly readOnly: bo
   )
 }
 
-const JsonField = ({
-  label,
+const StructuredRowsField = ({
+  kind,
   path,
   readOnly,
 }: {
-  readonly label: string
+  readonly kind: "citation" | "entity"
   readonly path: string
   readonly readOnly: boolean
 }) => {
   const { setValue, value } = useField<unknown>({ path })
-  const serialized = JSON.stringify(value ?? null, null, 2)
-  const [draft, setDraft] = useState(serialized)
-  const [error, setError] = useState<string | null>(null)
-  useEffect(() => {
-    setDraft(serialized)
-  }, [serialized])
+  const rows = rowsOf(value)
+  const label = kind === "citation" ? "引文" : "实体"
+  const replace = (next: readonly Record<string, unknown>[]) => setValue(cloneRows(next))
+  const update = (index: number, key: string, next: string) => {
+    const updated = cloneRows(rows)
+    updated[index] = { ...updated[index], [key]: next }
+    replace(updated)
+  }
+  const add = () =>
+    replace([
+      ...rows,
+      kind === "citation"
+        ? { id: `citation-${crypto.randomUUID().slice(0, 8)}`, title: "", url: "https://" }
+        : { id: `entity-${crypto.randomUUID().slice(0, 8)}`, name: "", type: "Organization" },
+    ])
   return (
-    <label className="block rounded-xl border border-[var(--theme-elevation-150)] bg-[var(--theme-elevation-50)] px-4 py-3 focus-within:border-[var(--gf-accent-400)] focus-within:ring-2 focus-within:ring-[var(--gf-accent-100)]">
-      <span className="block text-xs font-bold uppercase tracking-[0.06em] text-[var(--theme-elevation-600)]">{label}</span>
-      <textarea
-        aria-invalid={error !== null}
-        className="mt-2 min-h-28 w-full resize-y border-0 bg-transparent p-0 font-mono text-xs leading-5 text-[var(--theme-text)] outline-none"
-        onChange={(event) => {
-          const next = event.target.value
-          setDraft(next)
-          try {
-            setValue(next.trim().length === 0 ? null : JSON.parse(next))
-            setError(null)
-          } catch {
-            setError("请输入有效 JSON")
-          }
-        }}
-        readOnly={readOnly}
-        value={draft}
-      />
-      {error !== null && <span className="mt-1 block text-xs font-semibold text-[var(--theme-error-700)]">{error}</span>}
-    </label>
+    <section className="rounded-xl border border-[var(--theme-elevation-150)] bg-[var(--theme-elevation-50)] p-4">
+      <div className="flex items-center justify-between gap-3"><div><p className="m-0 text-xs font-bold uppercase tracking-[0.06em] text-[var(--theme-elevation-600)]">{label}</p><p className="m-0 mt-1 text-xs leading-5 text-[var(--theme-elevation-600)]">{kind === "citation" ? "使用标题和公开 URL 描述正文来源。" : "使用名称、类型和可选公开 URL 描述重要实体。"}</p></div>{!readOnly && <button className="rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-100)] px-3 py-2 text-sm font-bold text-[var(--theme-text)]" onClick={add} type="button">添加</button>}</div>
+      {rows.length === 0 ? <p className="m-0 mt-4 text-sm text-[var(--theme-elevation-600)]">暂未添加{label}。</p> : <div className="mt-4 grid gap-3">{rows.map((row, index) => <div className="grid gap-2 rounded-lg border border-[var(--theme-elevation-150)] bg-[var(--gf-surface)] p-3" key={String(row["id"] ?? index)}><div className="grid gap-2 sm:grid-cols-2"><input aria-label={`${label} ID`} className="min-h-10 rounded-md border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)]" onChange={(event) => update(index, "id", event.target.value)} readOnly={readOnly} value={typeof row["id"] === "string" ? row["id"] : ""} /><input aria-label={kind === "citation" ? "引文标题" : "实体名称"} className="min-h-10 rounded-md border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)]" onChange={(event) => update(index, kind === "citation" ? "title" : "name", event.target.value)} readOnly={readOnly} value={typeof row[kind === "citation" ? "title" : "name"] === "string" ? String(row[kind === "citation" ? "title" : "name"]) : ""} /></div><div className="grid gap-2 sm:grid-cols-2">{kind === "entity" && <input aria-label="实体类型" className="min-h-10 rounded-md border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)]" onChange={(event) => update(index, "type", event.target.value)} readOnly={readOnly} value={typeof row["type"] === "string" ? row["type"] : ""} />}{kind === "citation" && <input aria-label="发布者" className="min-h-10 rounded-md border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)]" onChange={(event) => update(index, "publisher", event.target.value)} readOnly={readOnly} value={typeof row["publisher"] === "string" ? row["publisher"] : ""} />}<input aria-label={`${label} URL`} className="min-h-10 rounded-md border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)]" onChange={(event) => update(index, "url", event.target.value)} placeholder="https://" readOnly={readOnly} value={typeof row["url"] === "string" ? row["url"] : ""} /></div>{!readOnly && <button className="justify-self-start text-xs font-bold text-[var(--gf-tone-danger-fg)] hover:underline" onClick={() => replace(rows.filter((_, rowIndex) => rowIndex !== index))} type="button">删除</button>}</div>)}</div>}
+    </section>
   )
 }
 
@@ -283,10 +276,6 @@ export const ContentEditionMetadataEditor = ({ readOnly }: { readonly readOnly: 
       <InlineTextField label="内容角度" path="angle" placeholder="内容角度" readOnly={readOnly} />
     </div>
     <SecondaryTopicsField readOnly={readOnly} />
-    <details className="rounded-xl border border-[var(--theme-elevation-150)] bg-[var(--theme-elevation-50)] p-4">
-      <summary className="cursor-pointer text-sm font-bold text-[var(--theme-text)]">高级文档数据</summary>
-      <p className="m-0 mt-2 text-xs leading-5 text-[var(--theme-elevation-600)]">引用与实体保留为结构化数据，保存时仍由现有 Payload 访问和字段校验处理。</p>
-      <div className="mt-4 grid gap-4"><JsonField label="引文" path="citations" readOnly={readOnly} /><JsonField label="实体" path="entities" readOnly={readOnly} /></div>
-    </details>
+    <div className="grid gap-4"><StructuredRowsField kind="citation" path="citations" readOnly={readOnly} /><StructuredRowsField kind="entity" path="entities" readOnly={readOnly} /></div>
   </section>
 )

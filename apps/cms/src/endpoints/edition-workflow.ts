@@ -119,11 +119,11 @@ export const transitionEditionEndpoint: Endpoint = {
 }
 
 /**
- * Publisher-authorized publish intent. This only records a real, idempotent
- * ledger operation under the requesting publisher's identity; it never
- * writes workflow state directly. The worker's reconciliation loop picks up
- * the operation, compiles/uploads the artifact, and the release registry
- * advances the edition to published only after a verified receipt.
+ * Publisher-authorized publish intent. This records a real, idempotent ledger
+ * operation under the requesting publisher's identity; it never writes
+ * workflow state directly. The Worker compiles approved editions when needed,
+ * uploads the immutable artifact, and the release registry advances the
+ * edition only after a verified receipt.
  */
 export const submitPublishOperationEndpoint: Endpoint = {
   handler: async (req) => {

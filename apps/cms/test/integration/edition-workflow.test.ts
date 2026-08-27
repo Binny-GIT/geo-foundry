@@ -58,8 +58,9 @@ describe("edition workflow gating integration", () => {
       },
       ...asUser(editor),
     })
-    return (await payload.create({
+    const edition = (await payload.create({
       collection: "content-editions",
+      draft: false,
       data: {
         content: content.id,
         site: site.id,
@@ -73,6 +74,29 @@ describe("edition workflow gating integration", () => {
       },
       ...asUser(editor),
     })) as ContentEdition
+    const intake = await payload.create({
+      collection: "intake-items",
+      draft: true,
+      data: {
+        channel: "manual",
+        duplicateStatus: "unique",
+        status: "ready",
+        tenant: tenant.id,
+        title: `Workflow source ${editionSeq}`,
+      },
+      ...asUser(editor),
+    })
+    await payload.create({
+      collection: "article-sources",
+      data: {
+        edition: edition.id,
+        intakeItem: intake.id,
+        role: "primary",
+        tenant: tenant.id,
+      },
+      ...asUser(editor),
+    })
+    return edition
   }
 
   const recordAssessmentFor = async (
@@ -208,6 +232,11 @@ describe("edition workflow gating integration", () => {
     for (const collection of [
       "outbox-events",
       "quality-assessments",
+      "review-comments",
+      "article-sources",
+      "source-snapshots",
+      "intake-items",
+      "connectors",
       "content-editions",
       "contents",
       "domains",
@@ -509,8 +538,8 @@ describe("edition workflow gating integration", () => {
     const superseding = (await payload.findByID({
       collection: "content-editions",
       id: edition.id,
-      draft: true,
       depth: 0,
+      draft: true,
       overrideAccess: true,
     })) as unknown as WorkflowEditionDoc
     expect(superseding.workflowStatus).toBe("draft")

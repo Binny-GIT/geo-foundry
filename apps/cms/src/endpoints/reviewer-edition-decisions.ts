@@ -74,6 +74,7 @@ const errorResponseOf = (error: unknown, requestId: string): Response => {
     }
     if (
       error.code === "EDITION_WORKFLOW_REVISION_CONFLICT" ||
+      error.code === "EDITION_WORKFLOW_SOURCE_REQUIRED" ||
       error.code === "EDITION_WORKFLOW_ASSESSMENT_REQUIRED" ||
       error.code === "EDITION_WORKFLOW_ASSESSMENT_NOT_PASSED" ||
       error.code === "EDITION_WORKFLOW_STALE_ASSESSMENT" ||

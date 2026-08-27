@@ -13,6 +13,7 @@ import {
   transitionEditionWithinTransaction,
 } from "./edition-workflow"
 import { operationRequestHashOf, operationUniqueKeyOf } from "./operations-ledger"
+import { createReviewComment } from "./review-comments"
 
 export class ReviewerEditionDecisionError extends Error {
   override readonly name = "ReviewerEditionDecisionError"
@@ -203,6 +204,19 @@ export async function submitReviewerEditionDecision(
         req,
       )
       const workflowStatus = parseWorkflowStatus(state)
+      if (input.target === "draft") {
+        await createReviewComment(
+          payload,
+          {
+            body: input.reason ?? "",
+            editionId: input.editionId,
+            kind: "request-changes",
+            user: input.user,
+            workflowRevision: input.expectedRevision + 1,
+          },
+          req,
+        )
+      }
       if (workflowStatus !== "approved" && workflowStatus !== "draft") {
         throw fail("REVIEWER_EDITION_STATE_INVALID", workflowStatus)
       }

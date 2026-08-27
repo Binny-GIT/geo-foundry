@@ -18,7 +18,9 @@ import { useState } from "react"
 
 import { ContentEditionEditorCanvas, ContentEditionMetadataEditor } from "../content-edition/ContentEditionEditorCanvas"
 import { ContentEditionPreview } from "../content-edition/ContentEditionPreview"
-import { ContentEditionRail, type VersionSelection } from "../content-edition/ContentEditionRail"
+import { ContentEditionContextRail } from "../content-edition/ContentEditionContextRail"
+import { ContentEditionControlRail } from "../content-edition/ContentEditionControlRail"
+import type { VersionSelection } from "../content-edition/ContentEditionRail"
 import { ContentEditionSetupFields } from "../content-edition/ContentEditionSetupFields"
 import { EyeIcon, PencilIcon } from "../icons"
 import { uiLangOf } from "../i18n/ui-lang"
@@ -116,7 +118,8 @@ const ContentEditionDocumentBody = ({ readOnly }: { readonly readOnly: boolean }
         </div>
       </header>
 
-      <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(300px,360px)]">
+      <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(240px,0.72fr)_minmax(0,1.55fr)_minmax(300px,0.86fr)]">
+        {id !== undefined && id !== null && <ContentEditionContextRail onSelectVersion={setSelectedVersion} selectedVersion={selectedVersion} />}
         <section className="min-w-0">
           {mode === "preview" ? (
             <div className="grid gap-4">
@@ -137,10 +140,11 @@ const ContentEditionDocumentBody = ({ readOnly }: { readonly readOnly: boolean }
                 </div>
               </div>
               <ContentEditionEditorCanvas readOnly={readOnly} />
+              <section className="grid gap-3"><p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">{t.preview}</p><ContentEditionPreview source={source} /></section>
             </div>
           )}
         </section>
-        <ContentEditionRail onSelectVersion={setSelectedVersion} selectedVersion={selectedVersion} />
+        <ContentEditionControlRail readOnly={readOnly} />
       </div>
     </main>
   )

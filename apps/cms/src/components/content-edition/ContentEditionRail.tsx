@@ -53,9 +53,11 @@ export type VersionSelection = EditionVersionHistoryItem | null
 export const ContentEditionRail = ({
   onSelectVersion,
   selectedVersion,
+  showWorkflow = true,
 }: {
   readonly onSelectVersion: (version: VersionSelection) => void
   readonly selectedVersion: VersionSelection
+  readonly showWorkflow?: boolean
 }) => {
   const { user } = useAuth()
   const { data, id, versionCount } = useDocumentInfo()
@@ -152,13 +154,13 @@ export const ContentEditionRail = ({
 
   return (
     <aside className="grid min-w-0 content-start gap-4">
-      <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]">
+      {showWorkflow && <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]">
         <div className="flex items-center gap-3">
           <IconBadge tone="accent"><LayersIcon size={18} /></IconBadge>
           <div><p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">{t.status}</p><strong className="mt-1 block text-sm text-[var(--theme-text)]">{isWorkflowStatus(workflowStatus) ? workflowStatusLabel(workflowStatus, i18n.language) : "—"}</strong></div>
         </div>
         <div className="mt-4"><WorkflowActions /></div>
-      </section>
+      </section>}
 
       <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]">
         <div className="flex items-center gap-3"><IconBadge tone="neutral"><CopyIcon size={18} /></IconBadge><div><p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">{t.history}</p><strong className="mt-1 block text-sm text-[var(--theme-text)]">{versionCount} {t.version}</strong></div></div>
