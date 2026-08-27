@@ -19,6 +19,7 @@ import * as migration_20260827_120000_wave3_intake_foundation from "./20260827_1
 import * as migration_20260827_130000_wave4_editorial_collaboration from "./20260827_130000_wave4_editorial_collaboration"
 import * as migration_20260827_140000_wave5_publication_plans from "./20260827_140000_wave5_publication_plans"
 import * as migration_20260827_150000_wave7_performance_snapshots from "./20260827_150000_wave7_performance_snapshots"
+import * as migration_20260828_010000_wave8_rss_polling from "./20260828_010000_wave8_rss_polling"
 
 export const migrations = [
   {
@@ -125,5 +126,10 @@ export const migrations = [
     up: migration_20260827_150000_wave7_performance_snapshots.up,
     down: migration_20260827_150000_wave7_performance_snapshots.down,
     name: "20260827_150000_wave7_performance_snapshots",
+  },
+  {
+    up: migration_20260828_010000_wave8_rss_polling.up,
+    down: migration_20260828_010000_wave8_rss_polling.down,
+    name: "20260828_010000_wave8_rss_polling",
   },
 ]

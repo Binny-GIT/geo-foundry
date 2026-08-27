@@ -55,6 +55,17 @@ export const requireEmergencySuperAdmin = async (): Promise<ConsoleSession> => {
   redirect("/admin")
 }
 
+/**
+ * The Payload subtree hosts the canonical three-pane edition workspace, so any
+ * authenticated session may enter; every collection operation inside still
+ * goes through the server-side RBAC matrix.
+ */
+export const requireEmergencySession = async (next = "/admin"): Promise<ConsoleSession> => {
+  const session = await getConsoleSession()
+  if (session !== null && session.role !== CMS_ROLE.CONTENT_SERVICE) return session
+  redirect(`/admin/login?next=${encodeURIComponent(next)}`)
+}
+
 export const canConsole = (
   session: ConsoleSession,
   resource: CmsResource,

@@ -121,5 +121,18 @@ export const Connectors = {
         ),
       },
     },
+    {
+      name: "lastPolledAt",
+      label: localized("Last polled at", "上次轮询时间"),
+      type: "date",
+      index: true,
+      admin: {
+        readOnly: true,
+        description: localized(
+          "Set by the scheduled RSS poller; not editable by hand.",
+          "由定时 RSS 轮询写入；不可手工编辑。",
+        ),
+      },
+    },
   ]),
 } satisfies CollectionConfig

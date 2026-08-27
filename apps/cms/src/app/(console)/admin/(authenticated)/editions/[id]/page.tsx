@@ -12,7 +12,7 @@ const LegacyEditionRoute = async ({ params }: LegacyEditionRouteProps) => {
   const session = await requireConsoleSession(`/admin/editions/${encodeURIComponent(id)}`)
   if (!canConsole(session, CMS_RESOURCE.EDITIONS, CMS_ACTION.READ)) notFound()
 
-  redirect(`/admin/collections/content-editions/${encodeURIComponent(id)}`)
+  redirect(`/admin/_emergency/collections/content-editions/${encodeURIComponent(id)}`)
 }
 
 export default LegacyEditionRoute

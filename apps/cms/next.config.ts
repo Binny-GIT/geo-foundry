@@ -10,6 +10,13 @@ const nextConfig = {
   turbopack: {
     root: path.resolve(dirname, "../.."),
   },
+  webpack: (config) => {
+    // BullMQ optionally imports @valkey/valkey-glide; the CMS uses the Redis
+    // driver only, so alias the optional module away instead of bundling it.
+    config.resolve = config.resolve ?? {}
+    config.resolve.alias = { ...config.resolve.alias, "@valkey/valkey-glide": false }
+    return config
+  },
 } satisfies NextConfig
 
 export default withPayload(nextConfig, { devBundleServerPackages: false })

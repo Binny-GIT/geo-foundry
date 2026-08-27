@@ -2,7 +2,7 @@ import { RootPage, generatePageMetadata } from "@payloadcms/next/views"
 import config from "@payload-config"
 import type { Metadata } from "next"
 
-import { requireEmergencySuperAdmin } from "@/console/lib/session.server"
+import { requireEmergencySession } from "@/console/lib/session.server"
 
 import { importMap } from "../../../../(payload)/admin/importMap"
 
@@ -15,7 +15,7 @@ export const generateMetadata = ({ params, searchParams }: PageArguments): Promi
   generatePageMetadata({ config, params, searchParams })
 
 const Page = async ({ params, searchParams }: PageArguments) => {
-  await requireEmergencySuperAdmin()
+  await requireEmergencySession("/admin/_emergency")
   return RootPage({ config, params, searchParams, importMap })
 }
 

@@ -300,6 +300,17 @@ deploy/smoke/smoke.sh
 - **验收**：typecheck 18/18、test 29 tasks、CMS unit 146、Worker unit 36、CMS/Worker 集成与 container-smoke 全过；本地 health/readiness、公网 health、双容器 digest=`sha256:175dc3eefde5f5b54afab76c2750c6902c6d591cfc49a6abcd558da4a6561e52`、Worker 日志无凭据/连接错误。部署命令必须 `--force-recreate --wait --wait-timeout 180`（tag 取 git sha，工作区改动不换 tag）。
 - **遗留**：AI Provider 保持 fake（真实 provider 需用户提供凭据后配置 `ai-api-key` 文件）；备份为手动（例行化待做）。
 
+## 运营域补全与工作台可达性修复（2026-08-28，镜像 `mk-dev-44262c6`，最终摘要 `sha256:968c0e6b...`）
+
+- **新增能力**：今日工作页展示表现更新建议（流量下滑 ≥30% 的已发布版本，一键创建刷新草稿）；RSS connector 定时轮询（每小时、单一 feed 父条目复用、子条目按规范化 URL 跳过已知项，`connectors.last_polled_at` 迁移 `20260828_010000_wave8_rss_polling` 已应用，状态 22/22）；稿件工作台左栏新增站点版本并列对比（标题/摘要/正文块）；发布计划页按日/周 UTC 分组列表。
+- **工作台可达性修复**：Payload `_emergency` 子树原先仅 super-admin 可入，导致普通角色完全无法打开三栏工作台（Console 详情页「打开内容工作台」按钮循环重定向）。现在 `_emergency` 允许任何已认证会话进入（集合操作仍逐项走服务端 RBAC），工作台入口统一指向 `/admin/_emergency/collections/content-editions/{id}`。
+- **水合修复**：工作台左栏日期改用固定 UTC 格式，消除服务端/浏览器时区不一致导致的 React #418。`_emergency` 其余页面仍存在 Payload 自身的 #418（含原生列表页），已计入浏览器测试无害清单。
+- **构建警告清零**：schema fixtures 从包 barrel 摘除（topLevelAwait 不再进入 CMS bundle）；`@valkey/valkey-glide` 以 webpack alias 排除。`pnpm build` 无警告。
+- **例行备份**：`/usr/local/sbin/geo-foundry-backup` + `/etc/cron.d/geo-foundry-backup`（每日 02:30 UTC，pg_dump -Fc，保留 14 天），首跑成功。
+- **浏览器 E2E**：`.test/browser-workspace-tests.mjs` 5/5 PASS（Today Work、稿源箱、发布计划分组、三栏工作台+站点版本、无硬错误；在 mk-dev 本机对 127.0.0.1:3090 运行，Chromium `--no-sandbox --no-proxy-server`）。
+- **定时发布生产端到端**：embed 租户真实创建内容→审核→批准→排期 90 秒→Worker 按期领取→publish-gate 成功→plan `succeeded`，release `rel-fc444a2de32d21f6566ca9da` 为 current，edition 548 published，Outbox pending 0。注意：站点需有 active canonical domain 才能发布（E2E 为 375 站补建 `e2e-scheduled-publish-375.test`）。脚本 `apps/cms/scripts/verify-scheduled-publish.mjs`。
+- **遗留**：AI Provider 仍为 fake（无 `ai-api-key` 凭据文件，`AI_PROVIDER` 未设置；提供真实 key 后配置 `AI_PROVIDER=openai-compatible` 即可）；Payload `_emergency` 原生页面的 React #418 属上游问题。
+
 ## 回滚
 
 1. `sudoedit /opt/geo-foundry/mk-dev.env` 将 `IMAGE_TAG` 改回上一 `mk-dev-<sha>`。

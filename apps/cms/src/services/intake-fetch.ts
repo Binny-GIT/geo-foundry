@@ -294,7 +294,11 @@ export type RssIntakeEntry = Readonly<{
   readonly title: string
 }>
 
-/** Turns a bounded RSS feed result into normal URL intake work owned by the same connector. */
+/**
+ * Turns a bounded RSS feed result into normal URL intake work owned by the same
+ * connector. Entries whose normalized URL already exists in the tenant are
+ * skipped entirely so scheduled re-polls never accumulate duplicate rows.
+ */
 export const createRssIntakeEntries = async (
   payload: Payload,
   input: { readonly entries: readonly RssIntakeEntry[]; readonly intakeItemId: IntakeId },
@@ -307,8 +311,35 @@ export const createRssIntakeEntries = async (
   requireService(user, tenantId)
   if (parent.channel !== "rss") throw new IntakeError("INTAKE_FETCH_CHANNEL_INVALID", String(parent.channel))
   const suggestedSiteId = idOf(parent.suggestedSite)
+  const bounded = input.entries.slice(0, 20)
+  const normalizedUrls = [
+    ...new Set(bounded.flatMap((entry) => normalizeIntakeUrl(entry.sourceUrl) ?? [])),
+  ]
+  const knownUrls = new Set(
+    normalizedUrls.length === 0
+      ? []
+      : (
+          await payload.find({
+            collection: "intake-items",
+            depth: 0,
+            limit: 100,
+            overrideAccess: true,
+            where: {
+              and: [
+                { tenant: { equals: tenantId } },
+                { normalizedUrl: { in: normalizedUrls } },
+              ],
+            },
+          })
+        ).docs.flatMap((row) => {
+          const value = (row as unknown as Record<string, unknown>)["normalizedUrl"]
+          return typeof value === "string" ? [value] : []
+        }),
+  )
   const created: IntakeId[] = []
-  for (const entry of input.entries.slice(0, 20)) {
+  for (const entry of bounded) {
+    const normalizedUrl = normalizeIntakeUrl(entry.sourceUrl)
+    if (normalizedUrl !== undefined && knownUrls.has(normalizedUrl)) continue
     const item = await createIntakeItem(
       payload,
       {
@@ -322,7 +353,10 @@ export const createRssIntakeEntries = async (
       },
       user,
     )
-    if (item.duplicates.length === 0) created.push(item.intakeItem.id)
+    if (item.duplicates.length === 0) {
+      created.push(item.intakeItem.id)
+      if (normalizedUrl !== undefined) knownUrls.add(normalizedUrl)
+    }
   }
   return created
 }

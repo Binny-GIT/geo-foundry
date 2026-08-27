@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import { ReleaseV1 } from "../src/index.js"
+import { releaseContractFixtures } from "../src/release/v1/fixtures.js"
 
 const hashes = {
   asset: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -266,7 +267,7 @@ describe("CurrentPointer 与回执 v1 严格契约", () => {
 
   it("验证发布、当前指针及发布/回滚回执固定字段", () => {
     // Given：一组规范发布契约夹具。
-    const fixtures = ReleaseV1.releaseContractFixtures
+    const fixtures = releaseContractFixtures
 
     // When：夹具通过各自的严格 schema。
     const parsed = [

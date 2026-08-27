@@ -11,6 +11,7 @@ import {
   type ConsoleResourceSlug,
 } from "@/console/lib/resources"
 import { findConsoleDocuments, requireConsolePayloadContext } from "@/console/lib/payload.server"
+import { PublicationPlansWorkspace } from "@/console/components/PublicationPlansWorkspace"
 import { canConsole } from "@/console/lib/session.server"
 
 const formatValue = (value: unknown, relationship = false): string => {
@@ -71,7 +72,7 @@ const columnLabel = (column: string): string => {
 
 type CollectionPageProps = {
   readonly params: Promise<{ readonly slug: string }>
-  readonly searchParams: Promise<{ readonly page?: string }>
+  readonly searchParams: Promise<{ readonly page?: string; readonly view?: string }>
 }
 
 const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPageProps) => {
@@ -119,7 +120,7 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
               className="gf-console-focus inline-flex h-10 items-center rounded-xl bg-[var(--console-accent)] px-3.5 text-sm font-semibold text-white no-underline transition-colors hover:bg-[var(--console-accent-hover)]"
               href={
                 slug === "content-editions"
-                  ? "/admin/editions/new"
+                  ? "/admin/_emergency/collections/content-editions/create"
                   : `${consoleRoute.collection(slug as ConsoleResourceSlug)}/create`
               }
             >
@@ -145,6 +146,12 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
         </div>
       </header>
 
+      {slug === "publication-plans" ? (
+        <PublicationPlansWorkspace
+          context={context}
+          view={query.view === "week" ? "week" : "day"}
+        />
+      ) : (
       <section className="gf-console-card overflow-hidden">
         <div className="flex flex-col gap-3 border-b border-[var(--console-border)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -250,6 +257,7 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
           </div>
         </footer>
       </section>
+      )}
     </div>
   )
 }

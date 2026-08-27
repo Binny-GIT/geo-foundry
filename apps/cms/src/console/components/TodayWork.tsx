@@ -1,7 +1,8 @@
 import Link from "next/link"
 
-import { AlertTriangleIcon, CheckCircleIcon, LayersIcon, PencilIcon, SearchIcon } from "@/components/icons"
+import { AlertTriangleIcon, CheckCircleIcon, LayersIcon, PencilIcon, RotateCcwIcon, SearchIcon } from "@/components/icons"
 import { consoleRoute } from "@/console/lib/resources"
+import { PerformanceSuggestions, type PerformanceSuggestion } from "@/console/components/PerformanceSuggestions"
 
 type WorkRecord = Readonly<Record<string, unknown>>
 
@@ -10,6 +11,7 @@ type TodayWorkProps = {
   readonly ownedEditions: readonly WorkRecord[]
   readonly publisherEditions: readonly WorkRecord[]
   readonly reviewEditions: readonly WorkRecord[]
+  readonly suggestions: readonly PerformanceSuggestion[]
 }
 
 const dateLabel = (value: unknown): string => {
@@ -83,7 +85,7 @@ const WorkSection = ({ children, description, title, Icon }: { readonly children
   </section>
 )
 
-export const TodayWork = ({ failedOperations, ownedEditions, publisherEditions, reviewEditions }: TodayWorkProps) => (
+export const TodayWork = ({ failedOperations, ownedEditions, publisherEditions, reviewEditions, suggestions }: TodayWorkProps) => (
   <div className="grid gap-6">
     <header>
       <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">Daily queue</p>
@@ -92,6 +94,11 @@ export const TodayWork = ({ failedOperations, ownedEditions, publisherEditions, 
     </header>
 
     <div className="grid gap-5 xl:grid-cols-2">
+      {suggestions.length > 0 && (
+        <WorkSection description="Published editions whose recent traffic dropped well below the prior observation." Icon={RotateCcwIcon} title="Update suggestions">
+          <PerformanceSuggestions suggestions={suggestions} />
+        </WorkSection>
+      )}
       <WorkSection description="Content editions currently assigned to you." Icon={PencilIcon} title="My editions">
         {queue(ownedEditions, "No owned editions need attention right now.")}
       </WorkSection>

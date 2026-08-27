@@ -70,6 +70,20 @@ const assessmentDto = (value: unknown) => {
   }
 }
 
+const variantDto = (value: unknown) => {
+  const variant = record(value)
+  const site = record(variant["site"])
+  return {
+    body: Array.isArray(variant["body"]) ? variant["body"] : [],
+    id: idOf(variant["id"]),
+    site: { id: idOf(site["id"]), name: text(site["name"]) },
+    summary: text(variant["summary"]),
+    title: text(variant["title"]),
+    updatedAt: text(variant["updatedAt"]),
+    workflowStatus: text(variant["workflowStatus"]),
+  }
+}
+
 /**
  * Browser-safe workspace context. Every collection query runs through Payload
  * access control under the current session, so related sources, comments and
@@ -95,7 +109,9 @@ export const editionWorkspaceContextEndpoint: Endpoint = {
     if (edition === undefined) return response(404, { error: { code: "EDITION_WORKSPACE_NOT_FOUND" } })
     const tenantId = idOf(record(edition)["tenant"])
 
-    const [sources, comments, assessments, users] = await Promise.all([
+    const contentId = idOf(record(edition)["content"])
+
+    const [sources, comments, assessments, users, variants] = await Promise.all([
       req.payload.find({
         collection: "article-sources",
         depth: 1,
@@ -133,6 +149,23 @@ export const editionWorkspaceContextEndpoint: Endpoint = {
             sort: "email",
             where: { tenant: { equals: tenantId } },
           }),
+      contentId === null
+        ? Promise.resolve({ docs: [] as unknown[] })
+        : req.payload.find({
+            collection: "content-editions",
+            depth: 1,
+            draft: true,
+            limit: 20,
+            overrideAccess: false,
+            sort: "-updatedAt",
+            user: req.user,
+            where: {
+              and: [
+                { content: { equals: contentId } },
+                { id: { not_equals: editionId } },
+              ],
+            },
+          }),
     ])
 
     const siteId = idOf(record(edition)["site"])
@@ -158,6 +191,7 @@ export const editionWorkspaceContextEndpoint: Endpoint = {
       },
       quality: assessmentDto(assessments.docs[0]),
       sources: sources.docs.map(sourceDto),
+      variants: variants.docs.map(variantDto),
     })
   },
   method: "get",
