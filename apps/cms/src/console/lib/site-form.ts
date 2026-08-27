@@ -2,10 +2,12 @@ export type SiteStatus = "active" | "disabled"
 
 type SiteContentStrategy = {
   readonly contentAngles: readonly string[]
+  readonly cta: string
   readonly expertise: readonly string[]
   readonly language: string
   readonly positioning: string
   readonly preferredTopics: readonly string[]
+  readonly prohibitedExpressions: readonly string[]
   readonly prohibitedTopics: readonly string[]
   readonly targetAudience: readonly string[]
   readonly tone: string
@@ -37,10 +39,12 @@ export type SiteFormValues = {
 export type SiteMutationPayload = {
   readonly contentStrategy: {
     readonly contentAngles: string[]
+    readonly cta: string | null
     readonly expertise: string[]
     readonly language: string | null
     readonly positioning: string | null
     readonly preferredTopics: string[]
+    readonly prohibitedExpressions: string[]
     readonly prohibitedTopics: string[]
     readonly targetAudience: string[]
     readonly tone: string | null
@@ -70,10 +74,12 @@ type RecordLike = Record<string, unknown>
 
 type ContentStrategyDocument = {
   readonly contentAngles?: unknown
+  readonly cta?: unknown
   readonly expertise?: unknown
   readonly language?: unknown
   readonly positioning?: unknown
   readonly preferredTopics?: unknown
+  readonly prohibitedExpressions?: unknown
   readonly prohibitedTopics?: unknown
   readonly targetAudience?: unknown
   readonly tone?: unknown
@@ -112,10 +118,12 @@ const DEFAULT_QUALITY_THRESHOLDS: SiteQualityThresholds = {
 
 const emptyContentStrategy = (): SiteContentStrategy => ({
   contentAngles: [],
+  cta: "",
   expertise: [],
   language: "",
   positioning: "",
   preferredTopics: [],
+  prohibitedExpressions: [],
   prohibitedTopics: [],
   targetAudience: [],
   tone: "",
@@ -183,10 +191,12 @@ export const siteFormValuesFromDocument = (
   return {
     contentStrategy: {
       contentAngles: stringArray(contentStrategy.contentAngles),
+      cta: stringValue(contentStrategy.cta),
       expertise: stringArray(contentStrategy.expertise),
       language: stringValue(contentStrategy["language"]),
       positioning: stringValue(contentStrategy["positioning"]),
       preferredTopics: stringArray(contentStrategy.preferredTopics),
+      prohibitedExpressions: stringArray(contentStrategy.prohibitedExpressions),
       prohibitedTopics: stringArray(contentStrategy.prohibitedTopics),
       targetAudience: stringArray(contentStrategy.targetAudience),
       tone: stringValue(contentStrategy.tone),
@@ -289,10 +299,12 @@ export const siteMutationPayload = (values: SiteFormValues): SiteFormResult => {
     data: {
       contentStrategy: {
         contentAngles: listValues(values.contentStrategy.contentAngles),
+        cta: optionalText(values.contentStrategy.cta),
         expertise: listValues(values.contentStrategy.expertise),
         language: optionalText(values.contentStrategy.language),
         positioning: optionalText(values.contentStrategy.positioning),
         preferredTopics: listValues(values.contentStrategy.preferredTopics),
+        prohibitedExpressions: listValues(values.contentStrategy.prohibitedExpressions),
         prohibitedTopics: listValues(values.contentStrategy.prohibitedTopics),
         targetAudience: listValues(values.contentStrategy.targetAudience),
         tone: optionalText(values.contentStrategy.tone),

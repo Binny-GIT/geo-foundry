@@ -57,8 +57,9 @@ describe("publisher-authorized release publication", () => {
       },
       ...asUser(editor),
     })
-    return (await payload.create({
+    const edition = (await payload.create({
       collection: "content-editions",
+      draft: true,
       data: {
         angle: `release-publish-angle-${editionSeq}`,
         body: validBody,
@@ -72,6 +73,29 @@ describe("publisher-authorized release publication", () => {
       },
       ...asUser(editor),
     })) as ContentEdition
+    const intake = await payload.create({
+      collection: "intake-items",
+      draft: true,
+      data: {
+        channel: "manual",
+        duplicateStatus: "unique",
+        status: "ready",
+        tenant: tenant.id,
+        title: `Release publish source ${editionSeq}`,
+      },
+      ...asUser(editor),
+    })
+    await payload.create({
+      collection: "article-sources",
+      data: {
+        edition: edition.id,
+        intakeItem: intake.id,
+        role: "primary",
+        tenant: tenant.id,
+      },
+      ...asUser(editor),
+    })
+    return edition
   }
 
   const recordAssessmentFor = async (editionId: number): Promise<void> => {
@@ -247,6 +271,11 @@ describe("publisher-authorized release publication", () => {
       "idempotency-records",
       "operations",
       "quality-assessments",
+      "review-comments",
+      "article-sources",
+      "source-snapshots",
+      "intake-items",
+      "connectors",
       "content-editions",
       "contents",
       "domains",
@@ -279,14 +308,30 @@ describe("publisher-authorized release publication", () => {
     expect(code).toBe("EDITION_WORKFLOW_TENANT_MISMATCH")
   })
 
-  it("rejects a publish operation request for an edition that is not yet compiled", async () => {
+  it("creates one publish operation for an approved edition and assigns its deterministic release identity", async () => {
+    const edition = await makeEdition(site)
+    await transitionEdition(payload, { editionId: edition.id, target: "generating", user: editor })
+    await transitionEdition(payload, { editionId: edition.id, target: "review", user: editor })
+    await recordAssessmentFor(edition.id)
+    await transitionEdition(payload, { editionId: edition.id, target: "approved", user: reviewer })
+
+    const submitted = await submitEditionPublishOperation(payload, {
+      editionId: edition.id,
+      user: publisher,
+    })
+    expect(submitted.created).toBe(true)
+    expect(submitted.state).toBe("queued")
+    expect(submitted.releaseId).toMatch(/^rel-[0-9a-f]{24}$/)
+  })
+
+  it("rejects a publish operation request for an edition that is not approved", async () => {
     const edition = await makeEdition(site)
     await transitionEdition(payload, { editionId: edition.id, target: "generating", user: editor })
 
     const code = await failureCodeOf(() =>
       submitEditionPublishOperation(payload, { editionId: edition.id, user: publisher }),
     )
-    expect(code).toBe("EDITION_WORKFLOW_NOT_COMPILED")
+    expect(code).toBe("EDITION_WORKFLOW_NOT_APPROVED")
   })
 
   it("creates one idempotent publish operation per compiled release and replays identical resubmits", async () => {
@@ -415,7 +460,7 @@ describe("publisher-authorized release publication", () => {
       "release-publish-authorization-guard",
     )
     const impersonated = await submitOperation(payload, {
-      endpoint: "/v1/publish",
+      endpoint: `/editions/${edition.id}/publish`,
       idempotencyKey: `release-publish-authorization-guard-${edition.id}`,
       operationType: "publish",
       requestPayload: { body: { editionId: edition.id } },

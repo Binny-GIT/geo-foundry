@@ -188,6 +188,7 @@ export const setupEmbeddingsWorld = async (): Promise<EmbeddingWorld> => {
     })
     const edition = (await payload.create({
       collection: "content-editions",
+      draft: true,
       data: {
         angle: `embedding-angle-${editionSeq}`,
         body: [

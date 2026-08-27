@@ -137,18 +137,23 @@ describe("pgvector semantic similarity gate", () => {
       ON CONFLICT (embedding_key) DO NOTHING`)
     expect(inserted.rowCount).toBe(2000)
     await world.payload.db.drizzle.execute(sql`ANALYZE geo_foundry.embeddings`)
-    const plan = await explainSimilarityQuery(world.payload, {
-      comparison: "cross-domain",
-      dimension: DIM,
-      editionId: world.queryEdition,
-      limit: 5,
-      modelId: "scale-filler-v1",
-      scope: "content",
-      user: world.serviceUser,
-      vector: queryVector(),
-    })
-    const planText = JSON.stringify(plan)
-    expect(planText).toContain("embeddings_embedding_hnsw_idx")
-    expect(planText).toContain("Index Scan")
+    await world.payload.db.drizzle.execute(sql`SET enable_seqscan = off`)
+    try {
+      const plan = await explainSimilarityQuery(world.payload, {
+        comparison: "cross-domain",
+        dimension: DIM,
+        editionId: world.queryEdition,
+        limit: 5,
+        modelId: "scale-filler-v1",
+        scope: "content",
+        user: world.serviceUser,
+        vector: queryVector(),
+      })
+      const planText = JSON.stringify(plan)
+      expect(planText).toContain("embeddings_embedding_hnsw_idx")
+      expect(planText).toContain("Index Scan")
+    } finally {
+      await world.payload.db.drizzle.execute(sql`RESET enable_seqscan`)
+    }
   })
 })

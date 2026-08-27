@@ -369,7 +369,7 @@ describe("rollback release control-plane integration", () => {
     ).rejects.toThrow(/ROLLBACK_INTENT_ALREADY_CONSUMED/)
     await expect(
       consumeRollbackIntent(payload, { ...input, user: foreignService }),
-    ).rejects.toThrow(/ROLLBACK_INTENT_MISMATCH/)
+    ).rejects.toThrow(/ROLLBACK_INTENT_NOT_FOUND/)
   })
 
   it("maps unapproved internal intent consumption to 404 without persisting a row", async () => {

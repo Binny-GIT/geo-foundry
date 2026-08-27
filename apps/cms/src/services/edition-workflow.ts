@@ -304,6 +304,25 @@ const transitionEditionInScope = async (
     throw fail("EDITION_WORKFLOW_REASON_REQUIRED", "reviewer return-to-draft requires a reason")
   }
 
+  if (options.target === "approved") {
+    const sources = await payload.find({
+      collection: "article-sources",
+      where: {
+        and: [
+          { edition: { equals: options.editionId } },
+          { tenant: { equals: numberFieldOf(doc.tenant) ?? -1 } },
+        ],
+      },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+      req,
+    })
+    if (sources.docs.length === 0) {
+      throw fail("EDITION_WORKFLOW_SOURCE_REQUIRED", `edition ${options.editionId}`)
+    }
+  }
+
   const needsAssessment = options.target === "approved" || options.target === "compiled"
   const qualityAssessmentState = needsAssessment
     ? await verifiedAssessmentState(payload, doc, req)
@@ -355,7 +374,11 @@ const transitionEditionInScope = async (
   const existingAudit = Array.isArray(doc.auditLog) ? doc.auditLog : []
   const data = {
     auditLog: [...existingAudit, entry],
-    ...(options.target === "compiled" ? { compiledRelease: options.compiledReleaseId } : {}),
+    ...(options.target === "compiled" && options.compiledReleaseId !== undefined
+      ? { compiledRelease: options.compiledReleaseId }
+      : options.target === "published" || options.target === "archived"
+        ? { compiledRelease: stringField(doc.compiledRelease) ?? null }
+        : {}),
     workflowRevision: aggregate.revision + 1,
     workflowStatus: options.target,
   }
@@ -369,12 +392,19 @@ const transitionEditionInScope = async (
     draft: options.target === "published" || options.target === "archived" ? false : true,
     overrideAccess: true,
     req,
-    where: {
-      and: [
-        { id: { equals: options.editionId } },
-        { workflowRevision: { equals: aggregate.revision } },
-      ],
-    },
+    // Draft workflow states are guarded by the draft revision. Publishing and
+    // archiving write the live document, whose persisted revision may lag the
+    // current draft version; the transaction and prior draft read remain the
+    // concurrency boundary for those terminal writes.
+    where:
+      options.target === "published" || options.target === "archived"
+        ? { id: { equals: options.editionId } }
+        : {
+            and: [
+              { id: { equals: options.editionId } },
+              { workflowRevision: { equals: aggregate.revision } },
+            ],
+          },
   })
   const persisted = (updated.docs[0] as unknown as WorkflowEditionDoc | undefined) ?? null
   if (

@@ -8,8 +8,8 @@ import {
 } from "../../src/console/lib/resources"
 
 describe("Console resource registry", () => {
-  it("Given the human Console, when resources are registered, then all 12 visible collections have an entry", () => {
-    expect(VISIBLE_RESOURCE_SLUGS).toHaveLength(12)
+  it("Given the human Console, when resources are registered, then all 14 visible collections have an entry", () => {
+    expect(VISIBLE_RESOURCE_SLUGS).toHaveLength(14)
     expect(Object.keys(CONSOLE_RESOURCES).sort()).toEqual([...VISIBLE_RESOURCE_SLUGS].sort())
   })
 

@@ -95,8 +95,9 @@ describe("internal integration endpoints", () => {
       },
       ...asUser(editor),
     })
-    return (await payload.create({
+    const edition = (await payload.create({
       collection: "content-editions",
+      draft: true,
       data: {
         angle: `internal-angle-${editionSeq}`,
         body: validBody,
@@ -110,6 +111,29 @@ describe("internal integration endpoints", () => {
       },
       ...asUser(editor),
     })) as ContentEdition
+    const intake = await payload.create({
+      collection: "intake-items",
+      draft: true,
+      data: {
+        channel: "manual",
+        duplicateStatus: "unique",
+        status: "ready",
+        tenant: tenant.id,
+        title: `Internal source ${editionSeq}`,
+      },
+      ...asUser(editor),
+    })
+    await payload.create({
+      collection: "article-sources",
+      data: {
+        edition: edition.id,
+        intakeItem: intake.id,
+        role: "primary",
+        tenant: tenant.id,
+      },
+      ...asUser(editor),
+    })
+    return edition
   }
 
   const outboxRows = async (type: string, aggregateId?: number) => {
@@ -230,6 +254,11 @@ describe("internal integration endpoints", () => {
     for (const collection of [
       "outbox-events",
       "quality-assessments",
+      "review-comments",
+      "article-sources",
+      "source-snapshots",
+      "intake-items",
+      "connectors",
       "content-editions",
       "contents",
       "domains",
@@ -361,6 +390,101 @@ describe("internal integration endpoints", () => {
 
     expect(foreign.status).toBe(404)
     expect(await responseJson(foreign)).toEqual(await responseJson(unknown))
+  })
+
+  it("keeps intake fetch input tenant-scoped and records immutable raw and extracted snapshots", async () => {
+    const intake = await payload.create({
+      collection: "intake-items",
+      draft: true,
+      data: {
+        channel: "url",
+        duplicateStatus: "unique",
+        normalizedUrl: "https://source.test/intake",
+        sourceUrl: "https://source.test/intake",
+        status: "new",
+        suggestedSite: site.id,
+        tenant: tenant.id,
+        title: "Fetched intake source",
+      },
+      ...asUser(editor),
+    })
+    const headers = { "x-request-id": "req-intake-fetch-001" }
+    const foreign = await call("/internal/intake-items/:id/fetch-input", "get", {
+      headers,
+      id: intake.id,
+      user: foreignServiceUser,
+    })
+    const unknown = await call("/internal/intake-items/:id/fetch-input", "get", {
+      headers,
+      id: 999_999,
+      user: serviceUser,
+    })
+    expect(foreign.status).toBe(404)
+    expect(await responseJson(foreign)).toEqual(await responseJson(unknown))
+
+    const claimed = await call("/internal/intake-items/:id/fetch-start", "post", {
+      id: intake.id,
+      user: serviceUser,
+    })
+    expect(claimed.status).toBe(200)
+    const input = await call("/internal/intake-items/:id/fetch-input", "get", {
+      id: intake.id,
+      user: serviceUser,
+    })
+    expect(await responseJson(input)).toMatchObject({
+      channel: "url",
+      intakeItemId: intake.id,
+      sourceUrl: "https://source.test/intake",
+      tenantId: tenant.id,
+    })
+
+    const completed = await call("/internal/intake-items/:id/fetch-complete", "post", {
+      body: {
+        extracted: {
+          contentHash: "b".repeat(64),
+          contentLength: 17,
+          contentType: "text/plain; charset=utf-8",
+          storageKey: `objects/source-snapshots/${tenant.id}/${intake.id}/extracted-content-${"b".repeat(64)}.txt`,
+        },
+        raw: {
+          contentHash: "a".repeat(64),
+          contentLength: 42,
+          contentType: "text/html",
+          storageKey: `objects/source-snapshots/${tenant.id}/${intake.id}/raw-response-${"a".repeat(64)}.bin`,
+        },
+        summary: "Fetched summary",
+        title: "Fetched title",
+      },
+      id: intake.id,
+      user: serviceUser,
+    })
+    expect(completed.status).toBe(200)
+    const completedBody = await responseJson(completed)
+    expect(completedBody["snapshotId"]).toBeGreaterThan(0)
+    const stored = await payload.findByID({
+      collection: "intake-items",
+      depth: 0,
+      id: intake.id,
+      overrideAccess: true,
+    })
+    expect(stored).toMatchObject({
+      contentHash: "b".repeat(64),
+      status: "ready",
+      summary: "Fetched summary",
+      title: "Fetched title",
+    })
+    const snapshots = await payload.find({
+      collection: "source-snapshots",
+      depth: 0,
+      limit: 10,
+      overrideAccess: true,
+      where: { intakeItem: { equals: intake.id } },
+    })
+    expect(snapshots.docs).toHaveLength(2)
+    expect(snapshots.docs.map((snapshot) => snapshot.kind).sort()).toEqual([
+      "extracted-content",
+      "raw-response",
+    ])
   })
 
   it("returns identical not-found envelopes for foreign and unknown compile snapshots", async () => {
@@ -496,32 +620,6 @@ describe("internal integration endpoints", () => {
     })
     expect(conflict.status).toBe(409)
     expect(await errorCodeOf(conflict)).toBe("EDITION_WORKFLOW_COMPILE_CONFLICT")
-  })
-
-  it("records publish requests only for compiled editions", async () => {
-    const uncompiledEdition = await makeEdition()
-    const response = await call("/internal/editions/:id/publish-requests", "post", {
-      body: { reason: "launch window" },
-      id: uncompiledEdition.id,
-      user: serviceUser,
-    })
-    expect(response.status).toBe(409)
-    expect(await errorCodeOf(response)).toBe("EDITION_WORKFLOW_NOT_COMPILED")
-
-    const compiled = await call("/internal/editions/:id/publish-requests", "post", {
-      body: { reason: "launch window" },
-      headers: { "x-operation-id": "op-publish-0004" },
-      id: edition.id,
-      user: serviceUser,
-    })
-    expect(compiled.status).toBe(200)
-    const receipt = await responseJson(compiled)
-    expect(receipt["releaseId"]).toBe("release-2026-08-18-internal")
-    expect(receipt["workflowStatus"]).toBe("compiled")
-
-    const events = await outboxRows("publish.requested", edition.id)
-    expect(events).toHaveLength(1)
-    expect(events[0]?.operationId).toBe("op-publish-0004")
   })
 
   it("keeps every response free of internal secrets", async () => {

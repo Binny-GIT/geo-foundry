@@ -1,7 +1,8 @@
-import { readFileSync } from "node:fs"
 import { parseQueuePrefix, DEFAULT_QUEUE_PREFIX } from "@geo/domain"
 import { Queue } from "bullmq"
 import type { Payload } from "payload"
+
+import { optionalCmsCredential } from "../config/credentials"
 
 export const OUTBOX_QUEUE_NAME = "outbox"
 export const OUTBOX_REDIS_PREFIX = DEFAULT_QUEUE_PREFIX
@@ -16,30 +17,11 @@ export type OutboxRedisOptions = {
   readonly username?: string
 }
 
-const optionalValue = (
-  direct: string | undefined,
-  file: string | undefined,
-): string | undefined => {
-  if (direct !== undefined && direct.length > 0) {
-    return direct
-  }
-  if (file !== undefined && file.length > 0) {
-    return readFileSync(file, "utf8").trim()
-  }
-  return undefined
-}
-
 export const parseOutboxRedisOptions = (
   env: Record<string, string | undefined>,
 ): OutboxRedisOptions => {
-  const password = optionalValue(
-    env["GEO_FOUNDRY_REDIS_PASSWORD"],
-    env["GEO_FOUNDRY_REDIS_PASSWORD_FILE"],
-  )
-  const username = optionalValue(
-    env["GEO_FOUNDRY_REDIS_USERNAME"],
-    env["GEO_FOUNDRY_REDIS_USERNAME_FILE"],
-  )
+  const password = optionalCmsCredential(env, "GEO_FOUNDRY_REDIS_PASSWORD")
+  const username = optionalCmsCredential(env, "GEO_FOUNDRY_REDIS_USERNAME")
   return {
     db: Number(env["GEO_FOUNDRY_REDIS_DATABASE"] ?? "0") || 0,
     host: env["GEO_FOUNDRY_REDIS_HOST"] ?? "127.0.0.1",

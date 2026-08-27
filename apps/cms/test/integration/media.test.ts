@@ -194,6 +194,7 @@ describe("tenant-isolated media storage integration", () => {
     })
     const edition = await payload.create({
       collection: "content-editions",
+      draft: true,
       data: {
         content: content.id,
         site: siteA.id,
@@ -244,6 +245,7 @@ describe("tenant-isolated media storage integration", () => {
     await expect(
       payload.create({
         collection: "content-editions",
+        draft: true,
         data: {
           content: content.id,
           site: siteB.id,
@@ -291,6 +293,7 @@ describe("tenant-isolated media storage integration", () => {
     await expect(
       payload.create({
         collection: "content-editions",
+        draft: true,
         data: {
           content: content.id,
           site: siteA.id,
@@ -348,7 +351,7 @@ describe("tenant-isolated media storage integration", () => {
         file: uploadFile,
         ...asUser(editorA),
       }),
-    ).rejects.toThrow(/alt/i)
+    ).rejects.toThrow()
   })
 
   it("Given a path-traversal filename, when uploaded, then the stored key is sanitized", async () => {

@@ -15,6 +15,10 @@ import * as migration_20260820_090000_task30_releases from "./20260820_090000_ta
 import * as migration_20260822_093000_content_modified_at from "./20260822_093000_content_modified_at"
 import * as migration_20260826_074307_reviewer_edition_decisions from "./20260826_074307_reviewer_edition_decisions"
 import * as migration_20260826_100744_edition_draft_restore from "./20260826_100744_edition_draft_restore"
+import * as migration_20260827_120000_wave3_intake_foundation from "./20260827_120000_wave3_intake_foundation"
+import * as migration_20260827_130000_wave4_editorial_collaboration from "./20260827_130000_wave4_editorial_collaboration"
+import * as migration_20260827_140000_wave5_publication_plans from "./20260827_140000_wave5_publication_plans"
+import * as migration_20260827_150000_wave7_performance_snapshots from "./20260827_150000_wave7_performance_snapshots"
 
 export const migrations = [
   {
@@ -101,5 +105,25 @@ export const migrations = [
     up: migration_20260826_100744_edition_draft_restore.up,
     down: migration_20260826_100744_edition_draft_restore.down,
     name: "20260826_100744_edition_draft_restore",
+  },
+  {
+    up: migration_20260827_120000_wave3_intake_foundation.up,
+    down: migration_20260827_120000_wave3_intake_foundation.down,
+    name: "20260827_120000_wave3_intake_foundation",
+  },
+  {
+    up: migration_20260827_130000_wave4_editorial_collaboration.up,
+    down: migration_20260827_130000_wave4_editorial_collaboration.down,
+    name: "20260827_130000_wave4_editorial_collaboration",
+  },
+  {
+    up: migration_20260827_140000_wave5_publication_plans.up,
+    down: migration_20260827_140000_wave5_publication_plans.down,
+    name: "20260827_140000_wave5_publication_plans",
+  },
+  {
+    up: migration_20260827_150000_wave7_performance_snapshots.up,
+    down: migration_20260827_150000_wave7_performance_snapshots.down,
+    name: "20260827_150000_wave7_performance_snapshots",
   },
 ]

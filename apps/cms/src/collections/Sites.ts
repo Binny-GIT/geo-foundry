@@ -127,10 +127,21 @@ export const Sites = {
           hasMany: true,
         },
         {
+          name: "prohibitedExpressions",
+          label: localized("Prohibited expressions", "禁止表达"),
+          type: "text",
+          hasMany: true,
+        },
+        {
           name: "contentAngles",
           label: localized("Content angles", "内容角度"),
           type: "text",
           hasMany: true,
+        },
+        {
+          name: "cta",
+          label: localized("Primary CTA", "主要行动号召"),
+          type: "text",
         },
       ],
     },

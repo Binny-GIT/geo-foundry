@@ -24,5 +24,6 @@ describe("admin navigation contract", () => {
     expect(config).not.toContain('path: "/tenant"')
     expect(config).not.toContain('path: "/system/diagnostics"')
     expect(config).toContain('path: "/work"')
+    expect(config).toContain('path: "/work/editions/:id"')
   })
 })

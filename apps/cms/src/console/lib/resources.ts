@@ -24,6 +24,8 @@ export const VISIBLE_RESOURCE_SLUGS = [
   "quality-assessments",
   "releases",
   "rollback-intents",
+  "publication-plans",
+  "performance-snapshots",
   "operations",
 ] as const
 
@@ -137,6 +139,26 @@ export const CONSOLE_RESOURCES: Readonly<Record<ConsoleResourceSlug, ConsoleReso
     relationshipColumns: ["site", "tenant"],
     resource: CMS_RESOURCE.RELEASES,
     subtitle: { en: "Immutable release registry", zh: "不可变发布版本台账" },
+  },
+  "performance-snapshots": {
+    apiSlug: "performance-snapshots",
+    defaultColumns: ["site", "edition", "source", "observedAt", "visits", "updatedAt"],
+    group: "release",
+    icon: LayersIcon,
+    label: { en: "Performance Snapshots", zh: "表现快照" },
+    relationshipColumns: ["edition", "site", "tenant"],
+    resource: CMS_RESOURCE.PERFORMANCE_SNAPSHOTS,
+    subtitle: { en: "Imported observations and deterministic refresh signals", zh: "导入观测与确定性更新信号" },
+  },
+  "publication-plans": {
+    apiSlug: "publication-plans",
+    defaultColumns: ["edition", "site", "scheduledFor", "timezone", "status", "updatedAt"],
+    group: "release",
+    icon: SendIcon,
+    label: { en: "Publication Plans", zh: "发布计划" },
+    relationshipColumns: ["edition", "site", "tenant"],
+    resource: CMS_RESOURCE.PUBLICATION_PLANS,
+    subtitle: { en: "UTC schedules and publisher-authorized release execution", zh: "UTC 排期与发布者授权执行" },
   },
   "rollback-intents": {
     apiSlug: "rollback-intents",

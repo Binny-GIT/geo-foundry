@@ -161,8 +161,10 @@ describe("tenant access control integration", () => {
     ).rejects.toThrow()
   })
 
-  it("Given an editor, when reading users is attempted, then reads are denied by policy", async () => {
-    await expect(payload.find({ collection: "users", ...asUser(tenantAEditor) })).rejects.toThrow()
+  it("Given an editor, when reading users is attempted, then only the editor profile is visible", async () => {
+    const visible = await payload.find({ collection: "users", ...asUser(tenantAEditor) })
+    expect(visible.docs).toHaveLength(1)
+    expect(visible.docs[0]?.id).toBe(tenantAEditor.id)
   })
 
   it("Given a reviewer, when creating users is attempted, then creation is denied", async () => {

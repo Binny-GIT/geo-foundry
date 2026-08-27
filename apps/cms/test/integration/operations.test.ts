@@ -54,7 +54,7 @@ const operationOf = async (response: Response): Promise<Record<string, unknown>>
   (await jsonOf(response))["operation"] as Record<string, unknown>
 
 const submitBody = (overrides: Record<string, unknown> = {}) => ({
-  endpoint: "/v1/generate",
+  endpoint: "/internal/operations/generate",
   idempotencyKey: "key-0001-abcd",
   operationType: "generate",
   requestPayload: { angle: "technical", topic: "ai-support" },
@@ -222,6 +222,17 @@ describe("operations and idempotency ledger integration", () => {
       overrideAccess: true,
     })
     expect(count.totalDocs).toBe(1)
+  })
+
+  it("rejects publish operations submitted through the service-only generic endpoint", async () => {
+    const response = await submit(
+      submitBody({
+        endpoint: "/editions/1/publish",
+        operationType: "publish",
+      }),
+    )
+    expect(response.status).toBe(400)
+    expect(await errorCodeOf(response)).toBe("OPERATIONS_INPUT_INVALID")
   })
 
   it("rejects a reused idempotency key with a different body", async () => {

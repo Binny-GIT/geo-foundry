@@ -7,10 +7,12 @@ describe("Console Site form mapping", () => {
     const values = siteFormValuesFromDocument({
       contentStrategy: {
         contentAngles: ["Practical guidance"],
+        cta: "Book a consultation",
         expertise: ["Content operations"],
         language: "English",
         positioning: "Trusted operator",
         preferredTopics: ["Governance"],
+        prohibitedExpressions: ["Guaranteed outcome"],
         prohibitedTopics: ["Medical advice"],
         targetAudience: ["Operations leaders"],
         tone: "Clear",
@@ -35,10 +37,12 @@ describe("Console Site form mapping", () => {
     expect(values).toEqual({
       contentStrategy: {
         contentAngles: ["Practical guidance"],
+        cta: "Book a consultation",
         expertise: ["Content operations"],
         language: "English",
         positioning: "Trusted operator",
         preferredTopics: ["Governance"],
+        prohibitedExpressions: ["Guaranteed outcome"],
         prohibitedTopics: ["Medical advice"],
         targetAudience: ["Operations leaders"],
         tone: "Clear",
@@ -65,10 +69,12 @@ describe("Console Site form mapping", () => {
     const result = siteMutationPayload({
       contentStrategy: {
         contentAngles: [" guidance ", ""],
+        cta: " Book a consultation ",
         expertise: ["operations"],
         language: " English ",
         positioning: " Trusted operator ",
         preferredTopics: [" governance "],
+        prohibitedExpressions: [" guaranteed result "],
         prohibitedTopics: [" medical "],
         targetAudience: [" leaders "],
         tone: " Clear ",

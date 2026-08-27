@@ -17,10 +17,11 @@ type StringListField =
   | "contentAngles"
   | "expertise"
   | "preferredTopics"
+  | "prohibitedExpressions"
   | "prohibitedTopics"
   | "targetAudience"
 
-type TextField = "language" | "positioning" | "tone"
+type TextField = "cta" | "language" | "positioning" | "tone"
 
 type ThresholdField =
   | "crossDomainBlock"
@@ -247,6 +248,18 @@ export const ConsoleSiteForm = ({
             value={form.contentStrategy.language}
           />
         </label>
+        <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
+          主要行动号召
+          <input
+            className={inputClass}
+            onChange={(event) => updateContentText("cta", event.target.value)}
+            placeholder="例如：预约咨询"
+            value={form.contentStrategy.cta}
+          />
+          <small className="font-normal leading-5 text-[var(--console-ink-muted)]">
+            内容在需要引导下一步时使用的主要行动号召。
+          </small>
+        </label>
         <div className="grid gap-5 lg:grid-cols-2">
           <ListField
             description="每行一个目标受众。"
@@ -271,6 +284,12 @@ export const ConsoleSiteForm = ({
             label="禁止主题"
             onChange={(value) => updateContentList("prohibitedTopics", value)}
             value={form.contentStrategy.prohibitedTopics}
+          />
+          <ListField
+            description="每行一个不能使用的措辞或表达。"
+            label="禁止表达"
+            onChange={(value) => updateContentList("prohibitedExpressions", value)}
+            value={form.contentStrategy.prohibitedExpressions}
           />
           <ListField
             description="每行一个内容角度。"

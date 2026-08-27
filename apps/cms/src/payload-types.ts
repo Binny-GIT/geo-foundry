@@ -71,6 +71,11 @@ export interface Config {
     users: User;
     sites: Site;
     domains: Domain;
+    connectors: Connector;
+    'intake-items': IntakeItem;
+    'source-snapshots': SourceSnapshot;
+    'article-sources': ArticleSource;
+    'review-comments': ReviewComment;
     contents: Content;
     'content-editions': ContentEdition;
     'edition-draft-restore-idempotency': EditionDraftRestoreIdempotency;
@@ -79,6 +84,8 @@ export interface Config {
     'quality-assessments': QualityAssessment;
     releases: Release;
     'rollback-intents': RollbackIntent;
+    'publication-plans': PublicationPlan;
+    'performance-snapshots': PerformanceSnapshot;
     'outbox-events': OutboxEvent;
     operations: Operation;
     'idempotency-records': IdempotencyRecord;
@@ -94,6 +101,11 @@ export interface Config {
     users: UsersSelect<false> | UsersSelect<true>;
     sites: SitesSelect<false> | SitesSelect<true>;
     domains: DomainsSelect<false> | DomainsSelect<true>;
+    connectors: ConnectorsSelect<false> | ConnectorsSelect<true>;
+    'intake-items': IntakeItemsSelect<false> | IntakeItemsSelect<true>;
+    'source-snapshots': SourceSnapshotsSelect<false> | SourceSnapshotsSelect<true>;
+    'article-sources': ArticleSourcesSelect<false> | ArticleSourcesSelect<true>;
+    'review-comments': ReviewCommentsSelect<false> | ReviewCommentsSelect<true>;
     contents: ContentsSelect<false> | ContentsSelect<true>;
     'content-editions': ContentEditionsSelect<false> | ContentEditionsSelect<true>;
     'edition-draft-restore-idempotency': EditionDraftRestoreIdempotencySelect<false> | EditionDraftRestoreIdempotencySelect<true>;
@@ -102,6 +114,8 @@ export interface Config {
     'quality-assessments': QualityAssessmentsSelect<false> | QualityAssessmentsSelect<true>;
     releases: ReleasesSelect<false> | ReleasesSelect<true>;
     'rollback-intents': RollbackIntentsSelect<false> | RollbackIntentsSelect<true>;
+    'publication-plans': PublicationPlansSelect<false> | PublicationPlansSelect<true>;
+    'performance-snapshots': PerformanceSnapshotsSelect<false> | PerformanceSnapshotsSelect<true>;
     'outbox-events': OutboxEventsSelect<false> | OutboxEventsSelect<true>;
     operations: OperationsSelect<false> | OperationsSelect<true>;
     'idempotency-records': IdempotencyRecordsSelect<false> | IdempotencyRecordsSelect<true>;
@@ -210,7 +224,9 @@ export interface Site {
     expertise?: string[] | null;
     preferredTopics?: string[] | null;
     prohibitedTopics?: string[] | null;
+    prohibitedExpressions?: string[] | null;
     contentAngles?: string[] | null;
+    cta?: string | null;
   };
   qualityThresholds?: {
     crossDomainBlock?: number | null;
@@ -245,14 +261,68 @@ export interface Domain {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "contents".
+ * via the `definition` "connectors".
  */
-export interface Content {
+export interface Connector {
   id: number;
-  topic: string;
-  intent: string;
+  name: string;
+  type: 'manual' | 'url' | 'webhook' | 'rss';
+  status: 'active' | 'disabled';
+  site: number | Site;
   tenant?: (number | null) | Tenant;
-  createdBy: 'ai' | 'human' | 'hybrid';
+  /**
+   * URL or provider endpoint; do not include credentials.
+   */
+  sourceEndpoint?: string | null;
+  /**
+   * Reference to externally managed secret material. Secret values are never stored here.
+   */
+  secretReference?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "intake-items".
+ */
+export interface IntakeItem {
+  id: number;
+  connector?: (number | null) | Connector;
+  tenant?: (number | null) | Tenant;
+  channel: 'manual' | 'url' | 'webhook' | 'rss';
+  title: string;
+  summary?: string | null;
+  sourceUrl?: string | null;
+  normalizedUrl?: string | null;
+  status: 'new' | 'fetching' | 'ready' | 'failed' | 'ignored' | 'duplicate' | 'adopted' | 'merged';
+  duplicateStatus: 'unknown' | 'unique' | 'suspected' | 'duplicate';
+  contentHash?: string | null;
+  snapshot?: (number | null) | SourceSnapshot;
+  duplicateOf?: (number | null) | IntakeItem;
+  mergedInto?: (number | null) | IntakeItem;
+  suggestedSite?: (number | null) | Site;
+  assignedTo?: (number | null) | User;
+  receivedAt: string;
+  adoptedEdition?: (number | null) | ContentEdition;
+  failureCode?: string | null;
+  failureReason?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "source-snapshots".
+ */
+export interface SourceSnapshot {
+  id: number;
+  intakeItem: number | IntakeItem;
+  tenant?: (number | null) | Tenant;
+  kind: 'raw-response' | 'extracted-content';
+  storageKey: string;
+  contentHash: string;
+  contentType?: string | null;
+  contentLength?: number | null;
+  capturedAt: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -265,6 +335,10 @@ export interface ContentEdition {
   content: number | Content;
   site: number | Site;
   tenant?: (number | null) | Tenant;
+  owner?: (number | null) | User;
+  priority?: ('low' | 'normal' | 'high' | 'urgent') | null;
+  dueAt?: string | null;
+  editorialStatus?: ('unassigned' | 'assigned' | 'in-progress' | 'blocked') | null;
   angle: string;
   title: string;
   summary: string;
@@ -532,6 +606,48 @@ export interface ContentEdition {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contents".
+ */
+export interface Content {
+  id: number;
+  topic: string;
+  intent: string;
+  tenant?: (number | null) | Tenant;
+  createdBy: 'ai' | 'human' | 'hybrid';
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "article-sources".
+ */
+export interface ArticleSource {
+  id: number;
+  edition: number | ContentEdition;
+  intakeItem: number | IntakeItem;
+  tenant?: (number | null) | Tenant;
+  role: 'primary' | 'supporting';
+  note?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "review-comments".
+ */
+export interface ReviewComment {
+  id: number;
+  edition: number | ContentEdition;
+  tenant?: (number | null) | Tenant;
+  author: number | User;
+  kind: 'comment' | 'request-changes';
+  body: string;
+  workflowRevision?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "edition-draft-restore-idempotency".
  */
 export interface EditionDraftRestoreIdempotency {
@@ -710,6 +826,50 @@ export interface RollbackIntent {
     | null;
   operationId?: string | null;
   consumedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "publication-plans".
+ */
+export interface PublicationPlan {
+  id: number;
+  planId: string;
+  tenant?: (number | null) | Tenant;
+  site: number | Site;
+  edition: number | ContentEdition;
+  requestedBy: number | User;
+  scheduledFor: string;
+  timezone: string;
+  status: 'pending' | 'running' | 'succeeded' | 'failed' | 'cancelled';
+  operationId?: string | null;
+  claimedAt?: string | null;
+  claimedBy?: string | null;
+  attempts: number;
+  lastError?: string | null;
+  publishedAt?: string | null;
+  releaseId?: string | null;
+  revision: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "performance-snapshots".
+ */
+export interface PerformanceSnapshot {
+  id: number;
+  importHash: string;
+  tenant?: (number | null) | Tenant;
+  site: number | Site;
+  edition?: (number | null) | ContentEdition;
+  url: string;
+  source: string;
+  observedAt: string;
+  visits?: number | null;
+  engagement?: number | null;
+  conversions?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -903,6 +1063,26 @@ export interface PayloadLockedDocument {
         value: number | Domain;
       } | null)
     | ({
+        relationTo: 'connectors';
+        value: number | Connector;
+      } | null)
+    | ({
+        relationTo: 'intake-items';
+        value: number | IntakeItem;
+      } | null)
+    | ({
+        relationTo: 'source-snapshots';
+        value: number | SourceSnapshot;
+      } | null)
+    | ({
+        relationTo: 'article-sources';
+        value: number | ArticleSource;
+      } | null)
+    | ({
+        relationTo: 'review-comments';
+        value: number | ReviewComment;
+      } | null)
+    | ({
         relationTo: 'contents';
         value: number | Content;
       } | null)
@@ -933,6 +1113,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'rollback-intents';
         value: number | RollbackIntent;
+      } | null)
+    | ({
+        relationTo: 'publication-plans';
+        value: number | PublicationPlan;
+      } | null)
+    | ({
+        relationTo: 'performance-snapshots';
+        value: number | PerformanceSnapshot;
       } | null)
     | ({
         relationTo: 'outbox-events';
@@ -1048,7 +1236,9 @@ export interface SitesSelect<T extends boolean = true> {
         expertise?: T;
         preferredTopics?: T;
         prohibitedTopics?: T;
+        prohibitedExpressions?: T;
         contentAngles?: T;
+        cta?: T;
       };
   qualityThresholds?:
     | T
@@ -1083,6 +1273,91 @@ export interface DomainsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "connectors_select".
+ */
+export interface ConnectorsSelect<T extends boolean = true> {
+  name?: T;
+  type?: T;
+  status?: T;
+  site?: T;
+  tenant?: T;
+  sourceEndpoint?: T;
+  secretReference?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "intake-items_select".
+ */
+export interface IntakeItemsSelect<T extends boolean = true> {
+  connector?: T;
+  tenant?: T;
+  channel?: T;
+  title?: T;
+  summary?: T;
+  sourceUrl?: T;
+  normalizedUrl?: T;
+  status?: T;
+  duplicateStatus?: T;
+  contentHash?: T;
+  snapshot?: T;
+  duplicateOf?: T;
+  mergedInto?: T;
+  suggestedSite?: T;
+  assignedTo?: T;
+  receivedAt?: T;
+  adoptedEdition?: T;
+  failureCode?: T;
+  failureReason?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "source-snapshots_select".
+ */
+export interface SourceSnapshotsSelect<T extends boolean = true> {
+  intakeItem?: T;
+  tenant?: T;
+  kind?: T;
+  storageKey?: T;
+  contentHash?: T;
+  contentType?: T;
+  contentLength?: T;
+  capturedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "article-sources_select".
+ */
+export interface ArticleSourcesSelect<T extends boolean = true> {
+  edition?: T;
+  intakeItem?: T;
+  tenant?: T;
+  role?: T;
+  note?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "review-comments_select".
+ */
+export interface ReviewCommentsSelect<T extends boolean = true> {
+  edition?: T;
+  tenant?: T;
+  author?: T;
+  kind?: T;
+  body?: T;
+  workflowRevision?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "contents_select".
  */
 export interface ContentsSelect<T extends boolean = true> {
@@ -1101,6 +1376,10 @@ export interface ContentEditionsSelect<T extends boolean = true> {
   content?: T;
   site?: T;
   tenant?: T;
+  owner?: T;
+  priority?: T;
+  dueAt?: T;
+  editorialStatus?: T;
   angle?: T;
   title?: T;
   summary?: T;
@@ -1387,6 +1666,48 @@ export interface RollbackIntentsSelect<T extends boolean = true> {
   approvedBy?: T;
   operationId?: T;
   consumedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "publication-plans_select".
+ */
+export interface PublicationPlansSelect<T extends boolean = true> {
+  planId?: T;
+  tenant?: T;
+  site?: T;
+  edition?: T;
+  requestedBy?: T;
+  scheduledFor?: T;
+  timezone?: T;
+  status?: T;
+  operationId?: T;
+  claimedAt?: T;
+  claimedBy?: T;
+  attempts?: T;
+  lastError?: T;
+  publishedAt?: T;
+  releaseId?: T;
+  revision?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "performance-snapshots_select".
+ */
+export interface PerformanceSnapshotsSelect<T extends boolean = true> {
+  importHash?: T;
+  tenant?: T;
+  site?: T;
+  edition?: T;
+  url?: T;
+  source?: T;
+  observedAt?: T;
+  visits?: T;
+  engagement?: T;
+  conversions?: T;
   updatedAt?: T;
   createdAt?: T;
 }

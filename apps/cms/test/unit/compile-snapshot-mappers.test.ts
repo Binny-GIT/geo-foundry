@@ -46,6 +46,7 @@ describe("compile snapshot route mapping", () => {
     })
 
     expect(edition?.modifiedAt).toBe("2026-08-21T00:00:00.000Z")
+    expect(edition?.status).toBe("published")
   })
 
   it("clamps a creation hook timestamp to the persisted publish timestamp", () => {

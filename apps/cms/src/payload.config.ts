@@ -8,19 +8,26 @@ import { en as enLanguage, enTranslations } from "@payloadcms/translations/langu
 import { zh as zhLanguage, zhTranslations } from "@payloadcms/translations/languages/zh"
 import { buildConfig } from "payload"
 
+import { ArticleSources } from "./collections/ArticleSources"
+import { Connectors } from "./collections/Connectors"
 import { ContentEditions } from "./collections/ContentEditions"
 import { EditionDraftRestoreIdempotency } from "./collections/EditionDraftRestoreIdempotency"
 import { Contents } from "./collections/Contents"
 import { Domains } from "./collections/Domains"
 import { IdempotencyRecords } from "./collections/IdempotencyRecords"
+import { IntakeItems } from "./collections/IntakeItems"
 import { ReviewerEditionDecisionIdempotency } from "./collections/ReviewerEditionDecisionIdempotency"
+import { ReviewComments } from "./collections/ReviewComments"
 import { Media } from "./collections/Media"
 import { Operations } from "./collections/Operations"
+import { PublicationPlans } from "./collections/PublicationPlans"
+import { PerformanceSnapshots } from "./collections/PerformanceSnapshots"
 import { OutboxEvents } from "./collections/OutboxEvents"
 import { QualityAssessments } from "./collections/QualityAssessments"
 import { Releases } from "./collections/Releases"
 import { RollbackIntents } from "./collections/RollbackIntents"
 import { Sites } from "./collections/Sites"
+import { SourceSnapshots } from "./collections/SourceSnapshots"
 import { Tenants } from "./collections/Tenants"
 import { UrlRecords } from "./collections/UrlRecords"
 import { Users } from "./collections/Users"
@@ -40,7 +47,20 @@ import {
   editionVersionHistoryEndpoint,
   restoreEditionDraftEndpoint,
 } from "./endpoints/edition-version-history"
+import { editionWorkspaceContextEndpoint } from "./endpoints/edition-workspace-context"
+import { addArticleSourceEndpoint } from "./endpoints/article-sources"
+import {
+  adoptIntakeItemEndpoint,
+  createIntakeItemEndpoint,
+  ignoreIntakeItemEndpoint,
+  mergeIntakeItemEndpoint,
+} from "./endpoints/intake"
+import { retryIntakeItemEndpoint } from "./endpoints/intake-retry"
+import { createSiteVariantEndpoint } from "./endpoints/site-variants"
+import { acceptPerformanceSuggestionEndpoint, importPerformanceSnapshotsEndpoint, performanceSuggestionsEndpoint } from "./endpoints/performance-snapshots"
+import { cancelPublicationPlanEndpoint, createPublicationPlanEndpoint } from "./endpoints/publication-plans"
 import { allInternalEndpoints } from "./endpoints/internal/index"
+import { createReviewCommentEndpoint } from "./endpoints/review-comments"
 import { createRollbackIntentEndpoint } from "./endpoints/rollback-intents"
 import { renameUrlRecordEndpoint } from "./endpoints/url-records"
 
@@ -100,6 +120,11 @@ export default buildConfig({
     Users,
     Sites,
     Domains,
+    Connectors,
+    IntakeItems,
+    SourceSnapshots,
+    ArticleSources,
+    ReviewComments,
     Contents,
     ContentEditions,
     EditionDraftRestoreIdempotency,
@@ -108,6 +133,8 @@ export default buildConfig({
     QualityAssessments,
     Releases,
     RollbackIntents,
+    PublicationPlans,
+    PerformanceSnapshots,
     OutboxEvents,
     Operations,
     IdempotencyRecords,
@@ -156,7 +183,21 @@ export default buildConfig({
     reviewerRequestChangesEditionEndpoint,
     editionVersionHistoryEndpoint,
     restoreEditionDraftEndpoint,
+    editionWorkspaceContextEndpoint,
     renameUrlRecordEndpoint,
+    createIntakeItemEndpoint,
+    ignoreIntakeItemEndpoint,
+    mergeIntakeItemEndpoint,
+    retryIntakeItemEndpoint,
+    adoptIntakeItemEndpoint,
+    addArticleSourceEndpoint,
+    createReviewCommentEndpoint,
+    createSiteVariantEndpoint,
+    importPerformanceSnapshotsEndpoint,
+    performanceSuggestionsEndpoint,
+    acceptPerformanceSuggestionEndpoint,
+    createPublicationPlanEndpoint,
+    cancelPublicationPlanEndpoint,
     ...allInternalEndpoints,
   ],
   db: postgresAdapter(

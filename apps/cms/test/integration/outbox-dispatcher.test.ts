@@ -21,7 +21,8 @@ const validBody = [
   { blockType: "paragraph" as const, text: "Outbox dispatcher paragraph." },
 ]
 
-const QUEUE_KEY = `${OUTBOX_REDIS_PREFIX}:${OUTBOX_QUEUE_NAME}`
+const TEST_PREFIX = `geo-foundry:cms-outbox-${process.pid}`
+const QUEUE_KEY = `${TEST_PREFIX}:${OUTBOX_QUEUE_NAME}`
 
 describe("outbox dispatcher integration", () => {
   let payload: Payload
@@ -48,6 +49,7 @@ describe("outbox dispatcher integration", () => {
     })
     const edition = await payload.create({
       collection: "content-editions",
+      draft: true,
       data: {
         angle: `outbox-angle-${editionSeq}`,
         body: validBody,
@@ -158,7 +160,7 @@ describe("outbox dispatcher integration", () => {
       ...asUser(tenantAdmin),
     })
 
-    queue = createOutboxQueue(parseOutboxRedisOptions(process.env))
+    queue = createOutboxQueue(parseOutboxRedisOptions(process.env), TEST_PREFIX)
     await queue.drain()
     await queue.obliterate({ force: true })
   })

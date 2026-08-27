@@ -7,9 +7,12 @@ import { useEffect, useState } from "react"
 import { GeoIcon } from "@/components/branding/GeoIcon"
 import {
   ChevronDownIcon,
+  GlobeIcon,
+  LayersIcon,
   LayoutGridIcon,
   LogOutIcon,
   MenuIcon,
+  SearchIcon,
   XIcon,
 } from "@/components/icons"
 import {
@@ -21,6 +24,7 @@ import {
 import { cn } from "@/lib/utils"
 
 export type ConsoleNavigation = {
+  readonly canReadInbox: boolean
   readonly resources: readonly ConsoleResourceSlug[]
   readonly session: {
     readonly email: string
@@ -103,10 +107,55 @@ export const ConsoleShell = ({ children, navigation }: React.PropsWithChildren<{
             <LayoutGridIcon size={18} />
             控制中心
           </Link>
+          <section className="mt-6">
+            <h2 className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/38">
+              日常运营
+            </h2>
+            <div className="grid gap-1">
+              <Link
+                className={linkClass(pathname === "/admin/work" || pathname.startsWith("/admin/work/"))}
+                href="/admin/work"
+                onClick={() => setMenuOpen(false)}
+              >
+                <LayoutGridIcon size={18} />
+                今日工作
+              </Link>
+              {navigation.canReadInbox && (
+                <Link
+                  className={linkClass(pathname === "/admin/inbox" || pathname.startsWith("/admin/inbox?"))}
+                  href="/admin/inbox"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <LayersIcon size={18} />
+                  稿源箱
+                </Link>
+              )}
+              <Link
+                className={linkClass(pathname === consoleRoute.collection("content-editions"))}
+                href={consoleRoute.collection("content-editions")}
+                onClick={() => setMenuOpen(false)}
+              >
+                <SearchIcon size={18} />
+                内容库
+              </Link>
+              <Link
+                className={linkClass(pathname === consoleRoute.collection("sites"))}
+                href={consoleRoute.collection("sites")}
+                onClick={() => setMenuOpen(false)}
+              >
+                <GlobeIcon size={18} />
+                品牌与站点
+              </Link>
+            </div>
+          </section>
           {CONSOLE_GROUPS.map((group) => {
             const entries = navigation.resources
               .map((slug) => CONSOLE_RESOURCES[slug])
-              .filter((resource) => resource.group === group.key)
+              .filter(
+                (resource) =>
+                  resource.group === group.key &&
+                  !["content-editions", "sites"].includes(resource.apiSlug),
+              )
             if (entries.length === 0) return null
             return (
               <section className="mt-6" key={group.key}>
