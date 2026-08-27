@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { workerOptionsOf } from "../../src/runtime/worker-runtime.js"
+import { createWorkerRuntime, workerOptionsOf } from "../../src/runtime/worker-runtime.js"
 
 const config = (overrides: Record<string, unknown> = {}) =>
   ({
@@ -32,6 +32,10 @@ describe("Worker runtime recovery options", () => {
       maxStalledCount: 0,
       stalledInterval: 250,
     })
+  })
+
+  it("rejects a missing workload processor", () => {
+    expect(() => createWorkerRuntime(config())).toThrow("WORKER_PROCESSOR_MISSING:compile")
   })
 
   it("rejects invalid recovery settings", () => {

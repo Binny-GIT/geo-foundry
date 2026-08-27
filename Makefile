@@ -32,11 +32,15 @@ image-build:
 	@deploy/image-build-mkdev.sh
 
 container-smoke:
-	@$(COMPOSE_VERIFY) config -q
-	@$(COMPOSE_VERIFY) up -d --no-build --wait --wait-timeout 120
-	@curl -4 -s -m 20 http://127.0.0.1:3090/api/health | grep -q '"status":"alive"'
-	@$(COMPOSE_VERIFY) down
-	@echo "container smoke passed"
+	@set -eu; \
+	deploy/image-build-mkdev.sh mk-dev-verify; \
+	credentials_dir=$$(mktemp -d /tmp/geo-foundry-verify-credentials-XXXXXXXX); \
+	trap 'GEO_FOUNDRY_CREDENTIALS_DIR="$$credentials_dir" $(COMPOSE_VERIFY) down >/dev/null 2>&1 || true; deploy/smoke/prepare-verify-credentials.sh cleanup "$$credentials_dir"' EXIT; \
+	deploy/smoke/prepare-verify-credentials.sh create "$$credentials_dir"; \
+	GEO_FOUNDRY_CREDENTIALS_DIR="$$credentials_dir" $(COMPOSE_VERIFY) config -q; \
+	GEO_FOUNDRY_CREDENTIALS_DIR="$$credentials_dir" $(COMPOSE_VERIFY) up -d --no-build --wait --wait-timeout 120; \
+	curl -4 -s -m 20 http://127.0.0.1:3090/api/health | grep -q '"status":"alive"'; \
+	echo "container smoke passed"
 
 deploy-mk-dev:
 	@$(COMPOSE_MK_DEV) config -q

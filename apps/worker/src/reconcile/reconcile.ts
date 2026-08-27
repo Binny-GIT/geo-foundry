@@ -53,6 +53,7 @@ export const reconcileNonTerminalOperations = async (
         operationId: operation.operationId,
         operationType: flowTypeOf(operation),
         payload: { body: (operation.requestPayload["body"] ?? {}) as Record<string, unknown> },
+        tenantId: operation.tenantId,
       })
       enqueued.push(operation.operationId)
     } catch (error) {

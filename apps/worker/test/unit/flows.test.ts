@@ -8,7 +8,7 @@ import { reconcileNonTerminalOperations } from "../../src/reconcile/reconcile.js
 const operation = (overrides: Partial<OperationSnapshot> = {}): OperationSnapshot => ({
   attempt: 1,
   currentStage: null,
-  endpoint: "/v1/generate",
+  endpoint: "/internal/operations/generate",
   error: null,
   operationId: "11111111-2222-3333-4444-555555555555",
   operationType: "generate",
@@ -35,6 +35,7 @@ describe("operation flows", () => {
       operationId: "11111111-2222-3333-4444-555555555555",
       operationType: "generate",
       payload: { body: {} },
+      tenantId: 7,
     })
     expect(flow.name).toBe("generation")
     expect(flow.queueName).toBe("content-generation")
@@ -47,6 +48,7 @@ describe("operation flows", () => {
       operationId: "11111111-2222-3333-4444-555555555555",
       operationType: "publish",
       payload: { body: { editionId: 12 } },
+      tenantId: 7,
     })
     expect(flow.name).toBe("publish-gate")
     expect(flow.queueName).toBe("content-publish")
@@ -59,6 +61,7 @@ describe("operation flows", () => {
       operationId: "11111111-2222-3333-4444-555555555555",
       operationType: "evaluate",
       payload: {},
+      tenantId: 7,
     })
     expect(flow.name).toBe("evaluation")
     expect(flow.children).toBeUndefined()
@@ -69,6 +72,7 @@ describe("operation flows", () => {
       operationId: "11111111-2222-3333-4444-555555555555",
       operationType: "rollback",
       payload: {},
+      tenantId: 7,
     })
     expect(flow.name).toBe("rollback-gate")
     expect(flow.queueName).toBe("content-publish")
@@ -92,7 +96,7 @@ describe("outbox processor", () => {
 
   it("enqueues one stable embedding job per draft-written event", async () => {
     const result = await processor({
-      data: { aggregateId: 42, eventId: "evt-1" },
+      data: { aggregateId: 42, eventId: "evt-1", tenantId: 7 },
       name: "edition.draft-written",
       queueName: "outbox",
     })
@@ -100,7 +104,7 @@ describe("outbox processor", () => {
     expect(added).toHaveLength(1)
     expect(added[0]?.jobId).toBe("embed-ed-42")
     await processor({
-      data: { aggregateId: 42, eventId: "evt-2" },
+      data: { aggregateId: 42, eventId: "evt-2", tenantId: 7 },
       name: "edition.draft-written",
       queueName: "outbox",
     })

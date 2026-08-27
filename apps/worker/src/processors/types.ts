@@ -22,7 +22,6 @@ export type ProcessorContext = {
     | "recordCompileResult"
     | "recordPublishedRelease"
     | "recordRollbackReceipt"
-    | "requestPublish"
     | "startOperationStage"
     | "storeEmbedding"
     | "submitOperation"
@@ -39,6 +38,7 @@ export type ProcessorOutcome =
 export type WorkJobData = {
   readonly operationId: string
   readonly payload?: Record<string, unknown>
+  readonly tenantId?: number
 }
 
 /** Terminal processor failure: never retried, recorded on the ledger. */

@@ -1,9 +1,9 @@
-import { readFileSync } from "node:fs"
 import { rollbackRequestSchema } from "@geo/content-client"
 import { type LLMProvider, sha256Hex } from "@geo/content-pipeline"
 import { RollbackError, rollbackRelease, StalePointerEtagError } from "@geo/publisher"
 import { AuditActorSchema, CanonicalTimestampSchema } from "@geo/schema/release/v1"
 
+import { workerCredentialOf } from "../config/credentials.js"
 import { operationProcessor } from "./operation-processor.js"
 import {
   compileAndPlanRelease,
@@ -90,7 +90,7 @@ export const createRollbackGateProcessor = (context: ProcessorContext) =>
           targetReleaseId: parsed.data.targetReleaseId,
         })
         const store = createWorkerArtifactStore(
-          parseWorkerS3Options(process.env, (path) => readFileSync(path, "utf8").trim()),
+          parseWorkerS3Options(process.env, (name) => workerCredentialOf(process.env, name)),
         )
         try {
           const receipt = await rollbackRelease({
@@ -148,7 +148,7 @@ export const createPublishGateProcessor = (context: ProcessorContext) =>
           { operationId: job.data.operationId },
         )
         const store = createWorkerArtifactStore(
-          parseWorkerS3Options(process.env, (path) => readFileSync(path, "utf8").trim()),
+          parseWorkerS3Options(process.env, (name) => workerCredentialOf(process.env, name)),
         )
         try {
           const receipt = await publishPlannedRelease(context, {

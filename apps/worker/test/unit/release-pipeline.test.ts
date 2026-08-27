@@ -196,7 +196,7 @@ const plannedRelease = async (): Promise<PlannedSiteRelease> => {
       schemaVersion: 1,
     },
     siteId: "site-a",
-    sourceVersionIds: ["edition-1-rev-1"],
+    sourceVersionIds: [`edition-1-input-${"a".repeat(64)}`],
   }
   const plan = planRelease(buildInput)
   const verifiedManifest = await verifyManifest(plan.manifest)

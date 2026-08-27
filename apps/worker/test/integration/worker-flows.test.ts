@@ -4,6 +4,7 @@ import { createClient } from "redis"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 
 import { parseWorkerRedisOptions } from "../../src/config/redis.js"
+import { dispatchDuePublicationPlansToQueue } from "../../src/publication-plans-dispatch.js"
 import { enqueueOperationFlow } from "../../src/queues/flows.js"
 import { reconcileNonTerminalOperations } from "../../src/reconcile/reconcile.js"
 import { createWorkerRuntime } from "../../src/runtime/worker-runtime.js"
@@ -17,7 +18,7 @@ const OP_ID = "11111111-2222-3333-4444-555555555555"
 const snapshot = (overrides: Partial<OperationSnapshot> = {}): OperationSnapshot => ({
   attempt: 1,
   currentStage: null,
-  endpoint: "/v1/generate",
+  endpoint: "/internal/operations/generate",
   error: null,
   operationId: OP_ID,
   operationType: "generate",
@@ -114,6 +115,7 @@ describe("worker flow integration (shared Redis)", () => {
         },
         embedding: async () => ({ stored: [] }),
         evaluation: async () => ({ decision: "passed" }),
+        intake: async () => ({ state: "ready" }),
         generation: async (job: Job) => {
           execution.push(`generation:${job.id ?? ""}`)
           generationAttempts += 1
@@ -147,6 +149,43 @@ describe("worker flow integration (shared Redis)", () => {
     }
   })
 
+  it("queues a CMS-claimed due plan once with its deterministic publish job ID", async () => {
+    const operationId = "88888888-9999-aaaa-bbbb-cccccccccccc"
+    let dispatchCalls = 0
+    const client = {
+      dispatchDuePublicationPlans: async () => {
+        dispatchCalls += 1
+        return dispatchCalls === 1 ? [{ operationId, planId: "plan-due-1" }] : []
+      },
+      getOperation: async (id: string) => snapshot({
+        operationId: id,
+        operationType: "publish",
+        requestPayload: { body: { editionId: 12 } },
+      }),
+    }
+    const first = await dispatchDuePublicationPlansToQueue({
+      client,
+      logger: () => {},
+      now: "2026-08-27T12:00:00.000Z",
+      producer,
+      workerId: "worker-plan-test",
+    })
+    expect(first).toEqual([{ operationId, planId: "plan-due-1" }])
+    const job = await runtime.queues.publish.getJob(`op-${operationId}-publish-gate`)
+    expect(job).not.toBeNull()
+    await waitFor(async () => (await job?.getState()) === "completed")
+
+    const replay = await dispatchDuePublicationPlansToQueue({
+      client,
+      logger: () => {},
+      now: "2026-08-27T12:00:01.000Z",
+      producer,
+      workerId: "worker-plan-test",
+    })
+    expect(replay).toEqual([])
+    expect(execution.filter((entry) => entry === `publish:op-${operationId}-publish-gate`)).toHaveLength(1)
+  })
+
   it("runs one deterministic terminal generation stage per operation", async () => {
     await enqueueOperationFlow(producer, {
       operationId: OP_ID,
@@ -156,7 +195,9 @@ describe("worker flow integration (shared Redis)", () => {
     const generationJob = await runtime.queues.generation.getJob(`op-${OP_ID}-generation`)
     expect(generationJob).not.toBeNull()
     await waitFor(async () => (await generationJob?.getState()) === "completed")
-    expect(execution).toEqual([`generation:op-${OP_ID}-generation`])
+    expect(execution.filter((entry) => entry === `generation:op-${OP_ID}-generation`)).toEqual([
+      `generation:op-${OP_ID}-generation`,
+    ])
     expect(await runtime.queues.publish.getJob(`op-${OP_ID}-publish-gate`)).toBeUndefined()
   })
 
@@ -189,6 +230,7 @@ describe("worker flow integration (shared Redis)", () => {
         compile: async () => ({}),
         embedding: async () => ({}),
         evaluation: async () => ({}),
+        intake: async () => ({}),
         generation: async () => {
           if (sideEffects === 0) {
             sideEffects += 1
@@ -312,6 +354,7 @@ describe("worker flow integration (shared Redis)", () => {
         compile: async () => ({}),
         embedding: async () => ({}),
         evaluation: async () => ({}),
+        intake: async () => ({}),
         generation: async () => {
           notifyLocked?.()
           await new Promise(() => {})
@@ -346,6 +389,7 @@ describe("worker flow integration (shared Redis)", () => {
           compile: async () => ({}),
           embedding: async () => ({}),
           evaluation: async () => ({}),
+          intake: async () => ({}),
           generation: async () => {
             recoveredSideEffects += 1
           },
@@ -381,6 +425,7 @@ describe("worker flow integration (shared Redis)", () => {
         compile: async () => ({}),
         embedding: async () => ({}),
         evaluation: async () => ({}),
+        intake: async () => ({}),
         generation: async () => {
           await new Promise((resolve) => setTimeout(resolve, 600))
           execution.push("drained-generation")

@@ -19,5 +19,6 @@ check() {
 }
 
 check "${LOCAL_BASE}/api/health" '"status":"alive"'
+check "${LOCAL_BASE}/api/readiness" '"status":"ready"'
 check "${PUBLIC_BASE}/api/health" '"status":"alive"'
 echo "smoke passed"

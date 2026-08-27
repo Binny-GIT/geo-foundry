@@ -4,13 +4,14 @@ import type { FlowJob, FlowProducer, JobsOptions } from "bullmq"
 /** Queue namespace shared with the CMS outbox dispatcher. */
 export const QUEUE_PREFIX = DEFAULT_QUEUE_PREFIX
 
-export type WorkQueueName = "compile" | "embedding" | "evaluation" | "generation" | "publish"
+export type WorkQueueName = "compile" | "embedding" | "evaluation" | "generation" | "intake" | "publish"
 
 export const QUEUE_NAME: Readonly<Record<WorkQueueName | "outbox", string>> = {
   compile: "content-compile",
   embedding: "content-embedding",
   evaluation: "content-evaluation",
   generation: "content-generation",
+  intake: "content-intake",
   outbox: "outbox",
   publish: "content-publish",
 }
@@ -33,6 +34,7 @@ export type OperationFlowInput = {
   readonly operationId: string
   readonly operationType: "evaluate" | "generate" | "publish" | "rollback"
   readonly payload: Record<string, unknown>
+  readonly tenantId: number
 }
 
 /**
@@ -52,9 +54,10 @@ const stageJob = (
   operationId: string,
   stage: string,
   payload: Record<string, unknown>,
+  tenantId: number,
 ): FlowJob => ({
   name: stage,
-  data: { operationId, ...payload },
+  data: { operationId, tenantId, ...payload },
   opts: { ...workJobOptions(), jobId: operationStageJobId(operationId, stage) },
   queueName: queue,
 })
@@ -68,13 +71,13 @@ export const operationFlowOf = (input: OperationFlowInput): FlowJob => {
   const payload = { payload: input.payload }
   switch (input.operationType) {
     case "evaluate":
-      return stageJob(QUEUE_NAME.evaluation, input.operationId, "evaluation", payload)
+      return stageJob(QUEUE_NAME.evaluation, input.operationId, "evaluation", payload, input.tenantId)
     case "generate":
-      return stageJob(QUEUE_NAME.generation, input.operationId, "generation", payload)
+      return stageJob(QUEUE_NAME.generation, input.operationId, "generation", payload, input.tenantId)
     case "publish":
-      return stageJob(QUEUE_NAME.publish, input.operationId, "publish-gate", payload)
+      return stageJob(QUEUE_NAME.publish, input.operationId, "publish-gate", payload, input.tenantId)
     case "rollback":
-      return stageJob(QUEUE_NAME.publish, input.operationId, "rollback-gate", payload)
+      return stageJob(QUEUE_NAME.publish, input.operationId, "rollback-gate", payload, input.tenantId)
     default:
       throw new OperationFlowError(`unsupported operation type ${input.operationType}`)
   }

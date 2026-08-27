@@ -52,33 +52,25 @@ export type WorkerS3Options = {
 
 export const parseWorkerS3Options = (
   env: Record<string, string | undefined>,
-  readSecret: (path: string) => string,
+  credential: (name: string) => string,
 ): WorkerS3Options => {
-  const directOrFile = (direct: string | undefined, file: string | undefined): string => {
-    if (direct !== undefined && direct.length > 0) {
-      return direct
-    }
-    if (file !== undefined && file.length > 0) {
-      return readSecret(file)
-    }
-    return ""
-  }
+  const accessKeyId = credential("GEO_FOUNDRY_S3_ACCESS_KEY")
+  const secretAccessKey = credential("GEO_FOUNDRY_S3_SECRET_KEY")
   const options: WorkerS3Options = {
-    accessKeyId: directOrFile(
-      env["GEO_FOUNDRY_S3_ACCESS_KEY"],
-      env["GEO_FOUNDRY_S3_ACCESS_KEY_FILE"],
-    ),
+    accessKeyId,
     bucket: env["GEO_FOUNDRY_S3_BUCKET"] ?? "geo-foundry",
     endpointHost: env["GEO_FOUNDRY_S3_ENDPOINT"] ?? "127.0.0.1",
     endpointPort: Number(env["GEO_FOUNDRY_S3_PORT"] ?? "9000") || 9000,
     keyPrefix: env["GEO_FOUNDRY_S3_KEY_PREFIX"] ?? "objects",
-    secretAccessKey: directOrFile(
-      env["GEO_FOUNDRY_S3_SECRET_KEY"],
-      env["GEO_FOUNDRY_S3_SECRET_KEY_FILE"],
-    ),
+    secretAccessKey,
     useSSL: env["GEO_FOUNDRY_S3_USE_SSL"] === "true",
   }
-  if (options.accessKeyId.length === 0 || options.secretAccessKey.length === 0) {
+  if (
+    options.accessKeyId.length === 0 ||
+    options.accessKeyId === "unset" ||
+    options.secretAccessKey.length === 0 ||
+    options.secretAccessKey === "unset"
+  ) {
     throw new TerminalJobError(
       "RELEASE_S3_ENV_INVALID",
       "GEO_FOUNDRY_S3_ACCESS_KEY/SECRET_KEY required",
@@ -164,7 +156,7 @@ export const compileAndPlanRelease = async (
     releaseId,
     routingManifest,
     siteId: siteKey,
-    sourceVersionIds: [`edition-${input.editionId}-rev-${edition.workflowRevision}`],
+    sourceVersionIds: [`edition-${input.editionId}-input-${edition.inputHash}`],
   }
   const plan = await planRelease(buildInput)
   const stagingRoot = await mkdtemp(join(tmpdir(), `geo-release-${releaseId}-`))

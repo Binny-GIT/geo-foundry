@@ -1,11 +1,13 @@
-import { readFileSync, statSync } from "node:fs"
-
 import { ContentServiceClient } from "@geo/content-client"
-import { createFakeProvider } from "@geo/content-pipeline"
-import { parseQueuePrefix } from "@geo/domain"
-import { FlowProducer } from "bullmq"
+import { intakeJobIdOf, parseQueuePrefix } from "@geo/domain"
+import { FlowProducer, Queue } from "bullmq"
 
+import { createWorkerAiProvider } from "./config/ai-provider.js"
+import { workerCredentialOf } from "./config/credentials.js"
+import { loadTenantKeyring, runForTenant, tenantClientProxy } from "./config/tenant-keyring.js"
 import { parseWorkerRedisOptions } from "./config/redis.js"
+import { createSnapshotStore } from "./intake/snapshot-store.js"
+import { createIntakeProcessor } from "./processors/intake.js"
 import { createOutboxProcessor } from "./processors/outbox.js"
 import {
   createEvaluationProcessor,
@@ -17,97 +19,136 @@ import {
   createPublishGateProcessor,
   createRollbackGateProcessor,
 } from "./processors/triggers.js"
+import { parseWorkerS3Options } from "./processors/release-pipeline.js"
 import type { WorkerLogEvent } from "./processors/types.js"
-import { QUEUE_NAME } from "./queues/flows.js"
+import { dispatchDuePublicationPlansToQueue } from "./publication-plans-dispatch.js"
+import { QUEUE_NAME, workJobOptions } from "./queues/flows.js"
 import { reconcileNonTerminalOperations } from "./reconcile/reconcile.js"
 import { createWorkerRuntime } from "./runtime/worker-runtime.js"
 
-/**
- * Worker daemon entry: consumes the shared-service Redis queues with the
- * fake provider (deterministic, CI-safe). Switching to the OpenAI-compatible
- * provider is an env decision in a later deployment todo; nothing here
- * auto-selects providers after a failed paid submission.
- */
-const credentialOf = (name: string): string => {
-  const direct = process.env[name]
-  if (direct !== undefined && direct.trim().length > 0) {
-    return direct.trim()
-  }
-  const path = process.env[`${name}_FILE`]
-  if (path === undefined || path.trim().length === 0) {
-    return "unset"
-  }
-  const ownerId = process.getuid?.()
-  const metadata = statSync(path)
-  if (ownerId === undefined || (metadata.mode & 0o077) !== 0 || metadata.uid !== ownerId) {
-    throw new Error(`WORKER_CREDENTIAL_FILE_INSECURE:${name}_FILE`)
-  }
-  const credential = readFileSync(path, "utf8").trim()
-  if (credential.length === 0) {
-    throw new Error(`WORKER_CREDENTIAL_FILE_EMPTY:${name}_FILE`)
-  }
-  return credential
-}
-
+/** Worker daemon entry for deterministic queues and explicitly configured AI providers. */
 export const main = async (): Promise<void> => {
   const logger = (event: WorkerLogEvent) =>
     console.log(JSON.stringify({ at: new Date().toISOString(), ...event }))
-  const client = new ContentServiceClient({
-    apiKey: credentialOf("CONTENT_SERVICE_API_KEY"),
-    baseUrl: process.env["CMS_BASE_URL"] ?? "http://127.0.0.1:3090",
-  })
-  const provider = createFakeProvider()
+  const credential = (name: string): string => workerCredentialOf(process.env, name)
+  const tenantKeyring = loadTenantKeyring(process.env)
+  const client = tenantClientProxy(
+    tenantKeyring,
+    process.env["CMS_BASE_URL"] ?? "http://127.0.0.1:3090",
+  )
+  const provider = createWorkerAiProvider(process.env, credential, (event) =>
+    logger({
+      code: `worker.ai.${event.type}`,
+      detail: {
+        ...(event.code === undefined ? {} : { code: event.code }),
+        ...(event.latencyMs === undefined ? {} : { latencyMs: event.latencyMs }),
+        method: event.method,
+        model: event.model,
+        providerId: event.providerId,
+        requestId: event.requestId,
+        status: event.status,
+      },
+      jobId: null,
+      queue: QUEUE_NAME.generation,
+    }),
+  )
   const context = { client, logger }
   const publish = createPublishGateProcessor(context)
   const rollback = createRollbackGateProcessor(context)
+  const connection = parseWorkerRedisOptions(process.env)
+  const queuePrefix = parseQueuePrefix(process.env["GEO_FOUNDRY_WORKER_QUEUE_PREFIX"])
+  const intakeQueue = new Queue(QUEUE_NAME.intake, {
+    connection,
+    defaultJobOptions: workJobOptions(),
+    prefix: queuePrefix,
+  })
+  const snapshots = createSnapshotStore(parseWorkerS3Options(process.env, credential))
   const processors = {
     compile: createCompileTriggerProcessor(context),
     embedding: createEmbeddingProcessor(context, provider),
     evaluation: createEvaluationProcessor(context, provider),
     generation: createGenerationProcessor(context, provider),
+    intake: createIntakeProcessor({
+      client,
+      enqueue: async ({ intakeItemId, tenantId }) => {
+        await intakeQueue.add(
+          "fetch",
+          { intakeItemId, tenantId },
+          { ...workJobOptions(), jobId: intakeJobIdOf(intakeItemId) },
+        )
+      },
+      logger,
+      snapshots,
+    }),
     publish: async (job: Parameters<typeof publish>[0]) =>
       job.name === "rollback-gate" ? rollback(job) : publish(job),
   }
-  const connection = parseWorkerRedisOptions(process.env)
-  const queuePrefix = parseQueuePrefix(process.env["GEO_FOUNDRY_WORKER_QUEUE_PREFIX"])
   const runtime = createWorkerRuntime({
     connection,
     context,
     logger,
+    outboxProcessor: (queues) =>
+      createOutboxProcessor({ embeddingQueue: queues.embedding, logger }),
     processors,
     prefix: queuePrefix,
   })
-
-  const outboxQueue = runtime.queues.embedding
-  const outboxWorkerProcessor = createOutboxProcessor({ embeddingQueue: outboxQueue, logger })
-  void outboxWorkerProcessor
   const producer = new FlowProducer({ connection, prefix: queuePrefix })
   let reconciling = false
+  let dispatchingPublicationPlans = false
+  const dispatchPublicationPlans = async () => {
+    if (dispatchingPublicationPlans) return
+    dispatchingPublicationPlans = true
+    try {
+      for (const tenantId of tenantKeyring.keys()) {
+        await runForTenant(tenantId, async () =>
+          dispatchDuePublicationPlansToQueue({
+            client,
+            logger,
+            now: new Date().toISOString(),
+            producer,
+            workerId: `worker-${process.pid}`,
+          }),
+        )
+      }
+    } finally {
+      dispatchingPublicationPlans = false
+    }
+  }
   const reconcile = async () => {
     if (reconciling) {
       return
     }
     reconciling = true
     try {
-      const report = await reconcileNonTerminalOperations(client, producer)
-      logger({
-        code: "worker.reconciled",
-        detail: { enqueued: report.enqueued.length, failures: report.failures.length },
-        jobId: null,
-        queue: QUEUE_NAME.generation,
-      })
+      for (const tenantId of tenantKeyring.keys()) {
+        const report = await runForTenant(tenantId, async () =>
+          reconcileNonTerminalOperations(client, producer),
+        )
+        if (report.enqueued.length > 0 || report.failures.length > 0) {
+          logger({
+            code: "worker.reconciled",
+            detail: { enqueued: report.enqueued.length, failures: report.failures.length, tenantId },
+            jobId: null,
+            queue: QUEUE_NAME.generation,
+          })
+        }
+      }
     } finally {
       reconciling = false
     }
   }
   await reconcile()
+  await dispatchPublicationPlans()
   await runtime.start()
   const reconciliationTimer = setInterval(() => {
     void reconcile()
+    void dispatchPublicationPlans()
   }, 1_000)
   const shutdown = async () => {
     clearInterval(reconciliationTimer)
     await runtime.close()
+    await intakeQueue.close()
+    snapshots.close()
     await producer.close()
     process.exit(0)
   }

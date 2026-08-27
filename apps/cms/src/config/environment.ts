@@ -5,6 +5,7 @@ import {
   parseCmsSharedServicesEnvironment,
   SharedServicesEnvironmentError,
 } from "../../../../config/shared-services.schema"
+import { requireCmsCredential, CmsCredentialFileError } from "./credentials"
 import { assertNever } from "../shared/assert-never"
 
 export const CMS_BUCKET = "geo-foundry"
@@ -84,19 +85,47 @@ const serviceEnvironment = (
   environment: Record<string, string | undefined>,
   mode: "runtime" | "integration-test" | "fault-test",
 ): CmsEnvironment => {
+  let normalized: Record<string, string | undefined>
   let sharedServices: CmsSharedServicesEnvironment
   try {
-    sharedServices = parseCmsSharedServicesEnvironment(environment)
+    normalized = {
+      ...environment,
+      GEO_FOUNDRY_PG_PASSWORD: requireCmsCredential(environment, "GEO_FOUNDRY_PG_PASSWORD"),
+      GEO_FOUNDRY_PG_USER: requireCmsCredential(environment, "GEO_FOUNDRY_PG_USER"),
+      GEO_FOUNDRY_S3_ACCESS_KEY: requireCmsCredential(environment, "GEO_FOUNDRY_S3_ACCESS_KEY"),
+      GEO_FOUNDRY_S3_SECRET_KEY: requireCmsCredential(environment, "GEO_FOUNDRY_S3_SECRET_KEY"),
+    }
+    sharedServices = parseCmsSharedServicesEnvironment(normalized)
   } catch (error) {
     if (error instanceof SharedServicesEnvironmentError) {
+      throw new CmsEnvironmentError(error.variables)
+    }
+    if (error instanceof CmsCredentialFileError) {
       throw new CmsEnvironmentError(error.variables)
     }
     throw error
   }
 
-  const payloadSecret = payloadSecretSchema.safeParse(environment["PAYLOAD_SECRET"])
+  let payloadSecretValue: string
+  try {
+    payloadSecretValue = requireCmsCredential(
+      environment,
+      "PAYLOAD_SECRET",
+      "GEO_FOUNDRY_CMS_SECRET_FILE",
+    )
+  } catch (error) {
+    if (error instanceof CmsCredentialFileError) {
+      throw new CmsEnvironmentError(error.variables)
+    }
+    throw error
+  }
+  const payloadSecret = payloadSecretSchema.safeParse(payloadSecretValue)
   if (!payloadSecret.success) {
-    throw new CmsEnvironmentError(["PAYLOAD_SECRET"])
+    throw new CmsEnvironmentError([
+      environment["GEO_FOUNDRY_CREDENTIAL_MODE"] === "file"
+        ? "GEO_FOUNDRY_CMS_SECRET_FILE"
+        : "PAYLOAD_SECRET",
+    ])
   }
 
   const runId = mode === "fault-test" ? environment["GEO_FOUNDRY_FAULT_RUN_ID"] : undefined

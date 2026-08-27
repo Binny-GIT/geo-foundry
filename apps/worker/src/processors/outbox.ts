@@ -40,9 +40,16 @@ export const createOutboxProcessor = (options: {
       })
     const editionId = job.data.aggregateId
     if (job.name === "edition.draft-written" && Number.isInteger(editionId)) {
+      if (!Number.isInteger(job.data.tenantId) || (job.data.tenantId ?? 0) <= 0) {
+        throw new Error("WORKER_OUTBOX_TENANT_REQUIRED")
+      }
       await embeddingQueue.add(
         "embedding",
-        { operationId: `edition-${editionId}`, payload: { editionId } },
+        {
+          operationId: `edition-${editionId}`,
+          payload: { editionId },
+          ...(job.data.tenantId === undefined ? {} : { tenantId: job.data.tenantId }),
+        },
         {
           attempts: 3,
           backoff: { delay: 2000, type: "exponential" },
