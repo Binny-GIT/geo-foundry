@@ -16,7 +16,7 @@ GEO_FOUNDRY_S3_ACCESS_KEY_FILE=/approved/path/s3-access-key
 GEO_FOUNDRY_S3_SECRET_KEY_FILE=/approved/path/s3-secret-key
 ```
 
-另提供非秘密连接配置（host、port、database、schema、TLS/path-style 开关）。不要将值写入 `.env`、shell history、仓库或 evidence。
+另提供非秘密连接配置（host、port、database、schema、TLS/path-style 开关）。不要将值写入 `.env`、shell history、仓库或测试报告。共享服务的临时 manifest 与锁默认写入 `temp/shared-services/`；在 CI 中通过 `GEO_FOUNDRY_SHARED_SERVICES_STATE_DIR` 指向 runner 临时目录。
 
 ## 检查与清理
 

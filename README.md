@@ -1,14 +1,53 @@
 # Geo Foundry
 
-Geo Foundry 是一个受治理的 Node.js 24 ESM monorepo：控制面管理租户、编辑版本、异步操作与发布审计；服务面只从不可变对象存储解析并渲染已发布的站点内容。
+Geo Foundry 是 Xllent AI、Dianordic、NKMed 等自有品牌共用的**内容运营后台**。
 
-## Toolchain
+各种来源的文章统一进入这里，由运营人员完成筛选、编辑、来源核对、品牌改写、审核、排期和发布，用于品牌的电子化推广。
 
-- Node.js `24.18.0`（支持范围见根 `package.json`）
-- pnpm `11.22.0`
-- Turborepo `2.10.10`
-- TypeScript `5.9.3`
-- Biome `2.5.8`
+```text
+稿源进入 → 筛选 → 编辑 → 来源核对 → 品牌版本 → 审核 → 排期 → 发布 → 更新
+```
+
+已发布的网站只读取不可变的发布产物，因此后台故障时站点仍可正常访问。
+
+## 文档
+
+| 文档 | 内容 |
+| --- | --- |
+| [产品说明](docs/product.md) | 产品定位、用户、业务流程、界面信息架构、范围 |
+| [架构说明](docs/architecture.md) | 技术栈、模块边界、数据模型、明确不采用的技术 |
+| [开发计划](docs/development-plan.md) | 阶段划分与验收标准 |
+| [运行手册](docs/operations.md) | 部署、迁移、发布、回滚、任务恢复、事故处理 |
+| [架构决策记录](docs/adr/) | 关键决策及其理由 |
+
+产品方向以 [`docs/product.md`](docs/product.md) 为准。上游《多站点 AI GEO 内容发布平台 PRD》是需求输入，不是实现合同。
+
+## 技术栈
+
+- Node.js 24、pnpm、TypeScript、Turborepo、Biome
+- Next.js 16 App Router、React 19、Tailwind CSS 4、Radix UI
+- Payload 3.88 作为后端底座：数据、认证、权限、租户范围、媒体、版本、迁移
+- PostgreSQL 作为唯一事实源
+- BullMQ 与共享 Redis 执行后台任务
+- S3 兼容对象存储保存媒体、稿源快照与发布产物
+- Lexical 编辑结构化正文，Zod 做运行时校验
+
+选型取舍与明确不采用的技术见[架构说明](docs/architecture.md)。
+
+## 目录结构
+
+```text
+apps/cms          控制台与控制面接口
+apps/worker       后台任务
+packages/         内部包：schema、domain、compiler、publisher、runtime、render、quality-rules 等
+examples/         多站点隔离测试用的示例站点，不是产品的一部分
+deploy/           容器编排
+docs/             产品与架构文档
+```
+
+`packages/` 下的包都是内部包，不对外发布。
+
+## 本地开发
 
 ```sh
 corepack enable
@@ -17,35 +56,24 @@ pnpm verify:toolchain
 pnpm ci:verify
 ```
 
-`pnpm ci:verify` 是不需要 PostgreSQL、Redis、RustFS、CMS 凭据或浏览器服务的公共验证入口。它关闭 Turbo remote cache，执行格式、lint、类型、单元/合同、双进程编译确定性、rollback smoke、构建、包边界检查和经 receipt 绑定的 evidence 验证。
+`pnpm ci:verify` 是不需要数据库、Redis、对象存储或浏览器服务的公共验证入口。
 
-## 架构边界
-
-- **控制面**：`apps/cms`、`apps/content-service`、`apps/worker`。负责认证、租户范围、编辑状态机、幂等 operation ledger、质量证据、发布和回滚请求。
-- **服务面**：`packages/runtime` 与 Site A/Site B SSR hosts。它们只读取 routing、current pointer、release manifest、页面 JSON 与 sitemap；不连接 CMS、PostgreSQL、Redis、BullMQ 或 LLM provider。
-- **包**：`packages/` 中的公开包仅发布 `dist/` 和 `package.json`，且必须通过已声明 export 使用；禁止深层源码导入。
-
-更详细的设计决定位于 [`docs/adr/`](docs/adr/)，管理员的登录、运营指挥台、站点工作区和版本工作流体验见 [`docs/ux/admin-operations-ux-spec.md`](docs/ux/admin-operations-ux-spec.md)，外部消费者接入见 [`docs/package-integration.md`](docs/package-integration.md)。
-
-## 常用验证命令
+## 常用命令
 
 | 目的 | 命令 |
 | --- | --- |
-| 格式、lint、类型、测试与公开 API | `pnpm check` |
-| 不需要共享服务的 CI gate | `pnpm ci:verify` |
-| 故障合同与 fail-closed 回归 | `pnpm test:faults:contracts` |
-| 共享服务连通性与 namespace 所有权检查 | `pnpm shared:check -- --run-id <lowercase-run-id>` |
-| 有界清理同一 namespace | `pnpm shared:cleanup -- --run-id <same-run-id>` |
-| 固定双站点 MVP seed / scenario | `pnpm mvp:seed`、`pnpm mvp:run` |
-| 生产构建的双站点浏览器验收 | `pnpm test:e2e` |
-| opt-in 真实故障矩阵 | `GEO_FOUNDRY_FAULTS_ENABLED=true pnpm test:faults` |
-| 包边界与 tarball consumer smoke | `pnpm packages:validate`、`pnpm packages:pack-smoke` |
+| 格式、lint、类型与测试 | `pnpm check` |
+| 不需要共享服务的验证 | `pnpm ci:verify` |
+| 发布与回滚契约回归 | `pnpm test:faults:contracts` |
+| 共享服务连通性检查 | `pnpm shared:check -- --run-id <run-id>` |
+| 清理本次运行的命名空间 | `pnpm shared:cleanup -- --run-id <run-id>` |
+| 多站点浏览器验收 | `pnpm test:e2e` |
 
-`test:e2e` 和 `test:faults` 只应在批准的共享服务环境运行。它们要求 loopback endpoint、owner-only 的 `*_FILE` 凭据引用和本次 run 专属 namespace；公共 CI 不运行这些命令。
+需要共享服务的命令只在批准环境执行，公共 CI 不运行它们。
 
-## 凭据与共享服务
+## 凭据
 
-仓库、镜像、日志、evidence 与文档都不得包含凭据值。只传递 owner-only 文件路径，例如：
+仓库、镜像、日志和文档都不得包含凭据值。只传递属主专用的文件路径：
 
 ```text
 GEO_FOUNDRY_PG_USER_FILE=/approved/path/pg-user
@@ -55,10 +83,12 @@ GEO_FOUNDRY_S3_ACCESS_KEY_FILE=/approved/path/s3-access-key
 GEO_FOUNDRY_S3_SECRET_KEY_FILE=/approved/path/s3-secret-key
 ```
 
-`pnpm shared:check` 与 `pnpm shared:cleanup` 使用既有 secure runner：它验证文件属于当前用户且没有 group/other 权限，然后仅将值注入子进程。每个 run ID 只能操作自己的 PostgreSQL probe table、Redis key、S3 `objects/<run-id>/` 对象和 manifest；禁止 `FLUSHDB`、bucket-wide list 与共享服务重配。
+安全包装器会校验文件属主与权限后才把值注入子进程。每次运行只能操作自己的命名空间，禁止 `FLUSHDB`、全桶列举和重配共享服务。
 
-操作步骤与事故处置请参阅 [`docs/runbooks/`](docs/runbooks/)。
+详见[运行手册](docs/operations.md)。
 
-## PRD 输入
+## 历史文档
 
-上游提供的 PRD 应保存为 `mydocs/260817-geo-foundry-PRD.md`。`mydocs/` 是本地、受控输入目录并被 Git 忽略，因此不要复制、改写或在提交中伪造其内容；实现与验收约束由本仓库的开发计划和 ADR 交叉引用。
+- `.omo/plans/geo-foundry-development-plan.md` 是 2026-08-18 的实施计划，面向旧的产品方向，仅作存档，不再是现行合同。
+- `my-deploy/mk-dev.md` 是部署与验证的历史记录，不作为架构依据。
+- 上游 PRD 若存在，保存在被 Git 忽略的 `mydocs/`，不要复制或改写其内容。

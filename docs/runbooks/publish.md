@@ -3,16 +3,16 @@
 ## 前置条件
 
 - Edition 已通过质量 gate，并由 reviewer/publisher 按状态机推进。
-- 调用方拥有 tenant 范围内的操作权限。
-- 请求具有稳定、唯一的 `Idempotency-Key`；重试同一请求必须复用该 key。
+- 调用方是该 tenant 范围内的 publisher。
+- 相同 compiled release 或 approved workflow revision 的重复提交会重放同一操作；不需要服务身份伪造 publisher 授权。
 - Worker、控制面与共享对象存储在批准环境中可用。
 
 ## 提交与轮询
 
-向 Content Service 提交 `POST /v1/publish`。成功创建返回 `202` 和 operation 的 `Location`；相同 idempotency key 且相同 body 返回原操作的 `200` replay。轮询：
+由 tenant 范围内的 publisher 向 CMS 提交 `POST /api/editions/<edition-id>/publish-operations`。成功创建返回 `202`；同一已编译 release 或同一 approved workflow revision 的重复操作返回原操作的 `200` replay。Worker 以受限 `content-service` 身份轮询并执行：
 
 ```text
-GET /v1/operations/<operation-id>
+GET /api/internal/operations/<operation-id>
 ```
 
 不要把 `202` 当作已发布。只有 terminal succeeded operation 与 publish receipt 才表示完成。

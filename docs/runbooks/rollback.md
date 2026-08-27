@@ -6,10 +6,10 @@
 
 ## 提交与轮询
 
-向 Content Service 提交 `POST /v1/rollback`，请求必须带稳定 `Idempotency-Key` 和对 current/target release 的预期标识。轮询：
+以 tenant-scoped 的 `content-service` 服务身份向 CMS 控制面提交 `POST /api/internal/operations/rollback`，请求必须带稳定 `Idempotency-Key` 和对 current/target release 的预期标识。轮询：
 
 ```text
-GET /v1/operations/<operation-id>
+GET /api/internal/operations/<operation-id>
 ```
 
 同一 key/同一 payload replay 原 operation；同 key/不同 payload 返回冲突。不要通过新建 release 来模拟 rollback。

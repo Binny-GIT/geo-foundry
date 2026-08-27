@@ -23,6 +23,6 @@
 
 把 foreign access、403 响应形状、请求 ID 与无密钥日志保留为 evidence。不要用 super-admin 或 `overrideAccess` 绕过来“验证”生产数据；先确认服务层 tenant guard 与 session claim。
 
-## Evidence 或 CI 失败
+## 测试报告或 CI 失败
 
-保留失败 attempt，运行 `pnpm evidence:verify` 诊断完整性。公共 CI 的 failure artifact 仅包含无密钥 evidence；protected artifact 仍需最小访问权限。修复根因后使用新的 evidence attempt 重跑。
+保留失败运行的原生 JUnit、JSON、HTML、Playwright trace 与 fault matrix 报告。公共 CI 只依赖命令退出状态；受保护报告保留在 runner 临时目录并以最小权限上传。修复根因后使用新的临时报告目录重跑，绝不把凭据、`.env`、本地 volume 或运行时机密写入报告。

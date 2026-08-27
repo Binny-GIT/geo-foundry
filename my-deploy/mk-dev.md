@@ -287,6 +287,19 @@ deploy/smoke/smoke.sh
 
 **重要部署纪律**：本轮第一次部署的 Console 镜像随后被另一轮工作将 `/opt/geo-foundry/mk-dev.env` 的 `IMAGE_TAG` 切到 `mk-dev-a40fd52` 覆盖，导致公网重新出现 Payload 原生集合页。不是 CDN 缓存。最终以已提交的 `f524ae0` 生成唯一镜像 `mk-dev-f524ae0`，将 `IMAGE_TAG` 显式切到该 tag 后 compose recreate，并用 `docker inspect geo-foundry-cms-mk-dev` 确认实际 digest 为 `sha256:621517639d5aa8485c81bd868e764368c81c55a8b8b9d76aa72784505249b580` 才执行验收。后续并行部署前必须确认当前 target branch/IMAGE_TAG，避免无意覆盖 Console。
 
+## 内容运营域全量交付与 FILE-only 凭据迁移（2026-08-27，镜像 `mk-dev-44262c6`，最终摘要 `sha256:175dc3ee...`）
+
+按 2026-08-27 版 `docs/development-plan.md` 完成 Wave 3–7 交付，并首次以 FILE-only 凭据方式同镜像部署 CMS 与 Worker：
+
+- **数据库**：迁移前完成 owner-only 备份并恢复到一次性验证库校验（64 表/17 迁移记录一致后删除验证库）。随后应用 `20260827_120000_wave3_intake_foundation`、`20260827_130000_wave4_editorial_collaboration`、`20260827_140000_wave5_publication_plans`、`20260827_150000_wave7_performance_snapshots`，状态 21/21。
+- **FILE-only 凭据**：`/opt/geo-foundry/credentials/` 目录 `1001:1001/0700`、七个凭据文件 `1001:1001/0600`，Compose 以只读 bind mount 挂载到 `/run/geo-foundry/credentials` 并只传 `*_FILE` 路径；`mk-dev.env` 删除全部直接 secret 行，仅保留 `GEO_FOUNDRY_CREDENTIALS_DIR` 路径。首次初始化用 `deploy/provision-mk-dev-credentials.sh`（失败自动清理、拒绝覆盖既有目录）。
+- **每租户 Worker 授权**：`content-service-keyring.json` 内含 3 个 tenant 各自的 Payload API key（`users API-Key` 头），Worker 按 BullMQ job/operation 的 `tenantId` 经 AsyncLocalStorage 选择 client，不跨租户探测。生成脚本 `apps/cms/scripts/provision-worker-keyring.mjs`（经 super-admin 正常权限更新 service 身份，key 只写入文件不落日志）。注意：重跑 provisioning 会轮换全部 tenant key。
+- **Worker 同镜像部署**：`deploy/compose.yaml` 定义 worker 服务（mk-dev overlay 启用，verify 栈 profile 关闭），Worker healthcheck 显式禁用（进程型角色无 HTTP 探针）。镜像打包脚本修复 pnpm deploy 的 workspace symlink 与无 TTY 模块清理问题。
+- **CMS Outbox 投递**：`apps/cms/src/instrumentation.ts` 每秒将 pending Outbox 行以稳定 job ID 投递到 Redis，Worker 消费。部署后原 19 条 pending 收敛为 0。
+- **发布计划竞态修复**：并发 dispatch 不再把其他 Worker 刚 claim、尚未绑定 operation 的计划误判为崩溃恢复（30s claim lease）。
+- **验收**：typecheck 18/18、test 29 tasks、CMS unit 146、Worker unit 36、CMS/Worker 集成与 container-smoke 全过；本地 health/readiness、公网 health、双容器 digest=`sha256:175dc3eefde5f5b54afab76c2750c6902c6d591cfc49a6abcd558da4a6561e52`、Worker 日志无凭据/连接错误。部署命令必须 `--force-recreate --wait --wait-timeout 180`（tag 取 git sha，工作区改动不换 tag）。
+- **遗留**：AI Provider 保持 fake（真实 provider 需用户提供凭据后配置 `ai-api-key` 文件）；备份为手动（例行化待做）。
+
 ## 回滚
 
 1. `sudoedit /opt/geo-foundry/mk-dev.env` 将 `IMAGE_TAG` 改回上一 `mk-dev-<sha>`。

@@ -1,13 +1,15 @@
-# Geo Foundry 运行手册
+# 运行手册（已合并）
 
-| 场景 | Runbook |
+各篇运行手册已合并为一份：[运行手册](../operations.md)。
+
+| 场景 | 位置 |
 | --- | --- |
-| 已有 PostgreSQL/Redis/RustFS 的 namespace 检查和 cleanup | [共享服务](shared-services.md) |
-| 已提交 CMS schema migration 的状态和应用 | [Migration](migrations.md) |
-| 发布 immutable release | [Publish](publish.md) |
-| 通过 pointer CAS 回滚 | [Rollback](rollback.md) |
-| Redis/BullMQ 丢失后的 ledger reconciliation | [Reconciliation](reconciliation.md) |
-| evidence manifest/receipt 收集与验证 | [Evidence](evidence.md) |
-| 服务面、CAS、Worker、租户或 CI 故障分流 | [Incidents](incidents.md) |
+| 部署与镜像回滚 | [运行手册 · 部署](../operations.md#3-部署) |
+| 数据库迁移 | [运行手册 · 数据库迁移](../operations.md#4-数据库迁移) |
+| 发布不可变版本 | [运行手册 · 发布](../operations.md#5-发布) |
+| 回滚到历史版本 | [运行手册 · 回滚](../operations.md#6-回滚) |
+| 任务恢复 | [运行手册 · 任务恢复](../operations.md#7-任务恢复) |
+| 共享服务与命名空间 | [运行手册 · 共享服务](../operations.md#2-共享服务) |
+| 事故处理 | [运行手册 · 事故处理](../operations.md#8-事故处理) |
 
-所有命令都假设使用批准的 secure runner 和 owner-only `*_FILE` 凭据引用。不要将任何凭据值、临时 env、evidence 或 `.zcode` 状态加入 Git。
+本目录下的单篇文件保留为历史记录，新内容请写入 `docs/operations.md`。
