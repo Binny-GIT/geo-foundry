@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 
-import { CMS_ACTION } from "@/access/policy"
+import { CMS_ACTION, CMS_RESOURCE } from "@/access/policy"
 import { ConsoleShell } from "@/console/components/ConsoleShell"
 import {
   CONSOLE_RESOURCES,
@@ -32,6 +32,7 @@ const AuthenticatedConsoleLayout = async ({ children }: AuthenticatedLayoutProps
   return (
     <ConsoleShell
       navigation={{
+        canReadInbox: canConsole(session, CMS_RESOURCE.INTAKE_ITEMS, CMS_ACTION.READ),
         resources,
         session: {
           email: session.email,
