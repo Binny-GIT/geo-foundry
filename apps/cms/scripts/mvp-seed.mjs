@@ -194,6 +194,45 @@ for (const edition of scenario.editions) {
     `content-editions:${edition.angle}`,
   )
   report.editionIds[edition.key] = created.id
+  const intake = await findOrCreateAs(
+    asEditor,
+    "intake-items",
+    {
+      and: [
+        { tenant: { equals: report.tenantId } },
+        { title: { equals: `Source for ${edition.angle}` } },
+      ],
+    },
+    {
+      channel: "manual",
+      duplicateStatus: "unique",
+      receivedAt: "2026-08-27T00:00:00.000Z",
+      status: "ready",
+      suggestedSite: report.siteIds[edition.siteKey],
+      summary: `Traceable source for ${edition.angle}`,
+      tenant: report.tenantId,
+      title: `Source for ${edition.angle}`,
+    },
+    `intake-items:${edition.angle}`,
+  )
+  await findOrCreateAs(
+    asEditor,
+    "article-sources",
+    {
+      and: [
+        { edition: { equals: created.id } },
+        { intakeItem: { equals: intake.id } },
+      ],
+    },
+    {
+      edition: created.id,
+      intakeItem: intake.id,
+      note: "MVP scenario source",
+      role: "primary",
+      tenant: report.tenantId,
+    },
+    `article-sources:${edition.angle}`,
+  )
   const existingUrl = await findOne("url-records", {
     and: [
       { content: { equals: content.id } },

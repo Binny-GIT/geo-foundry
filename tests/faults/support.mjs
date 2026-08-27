@@ -17,7 +17,7 @@ export const faultEvidenceDirectoryOf = async (workspaceRoot) => {
   const configured =
     process.env.GEO_FOUNDRY_FAULT_EVIDENCE_DIR ??
     process.env.GEO_FOUNDRY_EVIDENCE_DIR ??
-    resolve(workspaceRoot, ".omo/evidence/task-39-geo-foundry-development-plan")
+    resolve(workspaceRoot, "temp/faults")
   const directory = resolve(configured)
   const forbidden = [
     workspaceRoot,

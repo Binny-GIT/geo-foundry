@@ -6,16 +6,24 @@ import {
   completeOperationStage,
   getOperation,
   listNonTerminalOperations,
+  operationRequestHashOf,
   startOperationStage,
   submitOperation,
+  type OperationType,
 } from "../../services/operations-ledger"
 import {
   cancelOperationBodySchema,
   completeOperationStageBodySchema,
+  evaluateOperationBodySchema,
+  generateOperationBodySchema,
+  rollbackOperationBodySchema,
   startOperationStageBodySchema,
   submitOperationBodySchema,
   type CancelOperationBody,
   type CompleteOperationStageBody,
+  type EvaluateOperationBody,
+  type GenerateOperationBody,
+  type RollbackOperationBody,
   type StartOperationStageBody,
   type SubmitOperationBody,
 } from "./contracts"
@@ -29,9 +37,90 @@ const publicOperationIdOf = (req: PayloadRequest): string => {
   return raw
 }
 
+type ContentOperationBody =
+  | EvaluateOperationBody
+  | GenerateOperationBody
+  | RollbackOperationBody
+
+const INTERNAL_OPERATION_ENDPOINT_BY_TYPE: Readonly<
+  Record<Exclude<OperationType, "publish">, string>
+> = {
+  evaluate: "/internal/operations/evaluate",
+  generate: "/internal/operations/generate",
+  rollback: "/internal/operations/rollback",
+}
+
+const submitContentOperation = async (
+  req: PayloadRequest,
+  ctx: { readonly requestId: string },
+  body: ContentOperationBody,
+  operationType: Exclude<OperationType, "publish">,
+): Promise<Response> => {
+  const idempotencyKey = req.headers?.get("idempotency-key")
+  if (idempotencyKey === null || idempotencyKey === undefined) {
+    throw new OperationsLedgerError("OPERATIONS_INPUT_INVALID", "missing idempotency key")
+  }
+  const requestPayload = {
+    body,
+    requestHash: operationRequestHashOf(body),
+  }
+  const outcome = await submitOperation(req.payload, {
+    endpoint: INTERNAL_OPERATION_ENDPOINT_BY_TYPE[operationType],
+    idempotencyKey,
+    operationType,
+    requestPayload,
+    user: req.user,
+  })
+  const response = internalJsonResponse(
+    outcome.created ? 202 : 200,
+    { created: outcome.created, operation: outcome.operation },
+    ctx.requestId,
+    null,
+  )
+  if (!outcome.created) {
+    return response
+  }
+  const headers = new Headers(response.headers)
+  headers.set("location", `/internal/operations/${outcome.operation.operationId}`)
+  return new Response(response.body, { headers, status: response.status })
+}
+
+const handleGenerateOperation = withInternalGuards(
+  {
+    bodySchema: generateOperationBodySchema,
+    operation: "generateOperation",
+    requiresIdempotencyKey: true,
+  },
+  (req, ctx, body: GenerateOperationBody) => submitContentOperation(req, ctx, body, "generate"),
+)
+
+const handleEvaluateOperation = withInternalGuards(
+  {
+    bodySchema: evaluateOperationBodySchema,
+    operation: "evaluateOperation",
+    requiresIdempotencyKey: true,
+  },
+  (req, ctx, body: EvaluateOperationBody) => submitContentOperation(req, ctx, body, "evaluate"),
+)
+
+const handleRollbackOperation = withInternalGuards(
+  {
+    bodySchema: rollbackOperationBodySchema,
+    operation: "rollbackOperation",
+    requiresIdempotencyKey: true,
+  },
+  (req, ctx, body: RollbackOperationBody) => submitContentOperation(req, ctx, body, "rollback"),
+)
+
 const handleSubmitOperation = withInternalGuards(
   { bodySchema: submitOperationBodySchema, operation: "submitOperation" },
   async (req, ctx, body: SubmitOperationBody) => {
+    if (body.operationType === "publish") {
+      throw new OperationsLedgerError(
+        "OPERATIONS_INPUT_INVALID",
+        "publisher identity must submit publish operations",
+      )
+    }
     const outcome = await submitOperation(req.payload, {
       endpoint: body.endpoint,
       idempotencyKey: body.idempotencyKey,
@@ -110,8 +199,11 @@ const handleListNonTerminal = withInternalGuards(
 export const operationHandlerByOperation: Record<string, typeof handleGetOperation> = {
   cancelOperation: handleCancelOperation,
   completeOperationStage: handleCompleteStage,
+  evaluateOperation: handleEvaluateOperation,
+  generateOperation: handleGenerateOperation,
   getOperation: handleGetOperation,
   listNonTerminalOperations: handleListNonTerminal,
+  rollbackOperation: handleRollbackOperation,
   startOperationStage: handleStartStage,
   submitOperation: handleSubmitOperation,
 }

@@ -137,6 +137,9 @@ export const operationRequestHashOf = (requestPayload: unknown): string =>
 
 const sha256Text = (input: string): string => createHash("sha256").update(input).digest("hex")
 
+const releaseIdForOperation = (operationId: string): string =>
+  `rel-${createHash("sha256").update(operationId).digest("hex").slice(0, 24)}`
+
 const ledgerClock: Clock = {
   now: () => {
     const instant = parseInstant(new Date().toISOString())
@@ -173,6 +176,21 @@ const loadRecordByUniqueKey = async (
     req,
   })
   return (found.docs[0] as unknown as IdempotencyRecordDoc) ?? null
+}
+
+const waitFor = (milliseconds: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, milliseconds))
+
+const loadCommittedIdempotencyRecord = async (
+  payload: Payload,
+  uniqueKey: string,
+): Promise<IdempotencyRecordDoc | null> => {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const record = await loadRecordByUniqueKey(payload, uniqueKey)
+    if (record !== null) return record
+    await waitFor(25)
+  }
+  return null
 }
 
 const loadOperationByPublicId = async (
@@ -291,6 +309,13 @@ export type SubmitOperationOutcome = {
   readonly operation: OperationSnapshot
 }
 
+type InFlightSubmission = Readonly<{
+  readonly requestHash: string
+  readonly result: Promise<SubmitOperationOutcome>
+}>
+
+const inFlightSubmissions = new Map<string, InFlightSubmission>()
+
 const replayOutcome = async (
   payload: Payload,
   record: IdempotencyRecordDoc,
@@ -312,7 +337,7 @@ const replayOutcome = async (
  * loser rolls back, re-reads, and replays the winner; a different request
  * fingerprint under the same key is rejected with 409 semantics.
  */
-export async function submitOperation(
+async function submitOperationUnserialized(
   payload: Payload,
   input: SubmitOperationInput,
 ): Promise<SubmitOperationOutcome> {
@@ -416,7 +441,7 @@ export async function submitOperation(
     })
   } catch (error) {
     if (isUniqueViolation(error)) {
-      const winner = await loadRecordByUniqueKey(payload, uniqueKey)
+      const winner = await loadCommittedIdempotencyRecord(payload, uniqueKey)
       if (winner === null) {
         throw error
       }
@@ -429,6 +454,41 @@ export async function submitOperation(
       return replayOutcome(payload, winner)
     }
     throw error
+  }
+}
+
+export async function submitOperation(
+  payload: Payload,
+  input: SubmitOperationInput,
+): Promise<SubmitOperationOutcome> {
+  const claims = requireServiceIdentity(input.user)
+  if (claims.tenantId === null) {
+    throw fail("OPERATIONS_INPUT_INVALID", "service identity must be tenant-bound")
+  }
+  const tenantId = Number(claims.tenantId)
+  const requestHash = operationRequestHashOf(input.requestPayload)
+  const uniqueKey = operationUniqueKeyOf(tenantId, input.endpoint, input.idempotencyKey)
+  const existing = inFlightSubmissions.get(uniqueKey)
+  if (existing !== undefined) {
+    if (existing.requestHash !== requestHash) {
+      throw fail(
+        "IDEMPOTENCY_KEY_REUSED",
+        `key ${input.idempotencyKey} already bound to a different request body`,
+      )
+    }
+    const winner = await existing.result
+    return { created: false, operation: winner.operation }
+  }
+
+  const result = submitOperationUnserialized(payload, input)
+  const submission: InFlightSubmission = { requestHash, result }
+  inFlightSubmissions.set(uniqueKey, submission)
+  try {
+    return await result
+  } finally {
+    if (inFlightSubmissions.get(uniqueKey) === submission) {
+      inFlightSubmissions.delete(uniqueKey)
+    }
   }
 }
 
@@ -482,10 +542,9 @@ export type SubmitEditionPublishOutcome = {
 }
 
 /**
- * Publisher-authorized publish intent for one compiled edition. The
- * idempotency key is derived from the exact compiled release, so re-clicking
- * the same publish action replays the same operation instead of creating a
- * new one, and a later compile of a new release opens a genuinely new key.
+ * Publisher-authorized publish intent for one approved or compiled edition.
+ * A compiled edition keys the request by its immutable release; an approved
+ * edition keys it by workflow revision and lets the Worker create that release.
  * Creation alone never mutates workflow state; the release registry advances
  * the edition only after a real, CAS-verified artifact upload is recorded.
  */
@@ -503,13 +562,13 @@ export async function submitEditionPublishOperation(
       )
     }
     const status = parseWorkflowStatus(doc.workflowStatus)
-    const releaseId =
+    const compiledRelease =
       typeof doc.compiledRelease === "string" && doc.compiledRelease.length > 0
         ? doc.compiledRelease
         : null
-    if (status !== "compiled" || releaseId === null) {
+    if (status !== "approved" && (status !== "compiled" || compiledRelease === null)) {
       throw new EditionWorkflowError(
-        "EDITION_WORKFLOW_NOT_COMPILED",
+        "EDITION_WORKFLOW_NOT_APPROVED",
         `edition ${input.editionId} is ${status}`,
       )
     }
@@ -517,7 +576,10 @@ export async function submitEditionPublishOperation(
     const tenantId = numberField(doc.tenant) ?? -1
     const siteId = numberField(doc.site)
     const endpoint = `/editions/${input.editionId}/publish`
-    const idempotencyKey = `publish-edition-${input.editionId}-${releaseId}`
+    const idempotencyKey =
+      compiledRelease === null
+        ? `publish-edition-${input.editionId}-revision-${numberField(doc.workflowRevision) ?? 0}`
+        : `publish-edition-${input.editionId}-${compiledRelease}`
     const uniqueKey = operationUniqueKeyOf(tenantId, endpoint, idempotencyKey)
     const requestPayload = { body: { editionId: input.editionId } }
     const requestHash = operationRequestHashOf(requestPayload)
@@ -534,7 +596,7 @@ export async function submitEditionPublishOperation(
       return {
         created: false,
         operationId: existing.operationId,
-        releaseId,
+        releaseId: compiledRelease ?? releaseIdForOperation(existing.operationId),
         state: parseState(operation.state),
       }
     }
@@ -547,6 +609,7 @@ export async function submitEditionPublishOperation(
       )
     }
     const operationId = crypto.randomUUID()
+    const releaseId = compiledRelease ?? releaseIdForOperation(operationId)
     const entry: LedgerAuditEntry = {
       action: "operation.created",
       actor,

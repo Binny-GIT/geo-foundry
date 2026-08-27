@@ -5,7 +5,6 @@ import { storeEditionEmbedding } from "../../services/embedding-store"
 import {
   readEditionInput,
   recordCompileResult,
-  requestPublish,
   writeGeneratedDraft,
 } from "../../services/edition-integration"
 import { EditionWorkflowError, recordAssessment } from "../../services/edition-workflow"
@@ -14,13 +13,11 @@ import {
   compileResultBodySchema,
   draftVersionBodySchema,
   embeddingStoreBodySchema,
-  publishRequestBodySchema,
   similarityQueryBodySchema,
   type AssessmentBody,
   type CompileResultBody,
   type DraftVersionBody,
   type EmbeddingStoreBody,
-  type PublishRequestBody,
   type SimilarityQueryBody,
 } from "./contracts"
 import { internalJsonResponse, withInternalGuards } from "./guards"
@@ -102,20 +99,6 @@ const handleRecordCompileResult = withInternalGuards(
   },
 )
 
-const handleRequestPublish = withInternalGuards(
-  { bodySchema: publishRequestBodySchema, operation: "requestPublish" },
-  async (req, ctx, body: PublishRequestBody) => {
-    const receipt = await requestPublish(req.payload, {
-      editionId: editionIdOf(req),
-      ...(ctx.operationId === null ? {} : { operationId: ctx.operationId }),
-      ...(body.reason === undefined ? {} : { reason: body.reason }),
-      requestId: ctx.requestId,
-      user: req.user,
-    })
-    return internalJsonResponse(200, receipt, ctx.requestId, null)
-  },
-)
-
 const handleStoreEmbedding = withInternalGuards(
   { bodySchema: embeddingStoreBodySchema, operation: "storeEmbedding" },
   async (req, ctx, body: EmbeddingStoreBody) => {
@@ -154,7 +137,6 @@ export const editionHandlerByOperation: Record<string, typeof handleGetEditionIn
   findSimilarEditions: handleFindSimilarEditions,
   recordAssessment: handleRecordAssessment,
   recordCompileResult: handleRecordCompileResult,
-  requestPublish: handleRequestPublish,
   storeEmbedding: handleStoreEmbedding,
   writeDraftVersion: handleWriteDraftVersion,
 }

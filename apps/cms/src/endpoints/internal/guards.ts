@@ -3,16 +3,19 @@ import type { ZodType } from "zod"
 
 import { resolveSessionClaims, type SessionClaims } from "../../access/session"
 import { EditionWorkflowError } from "../../services/edition-workflow"
+import { IntakeError } from "../../services/intake"
 import { EmbeddingStoreError } from "../../services/embedding-store"
 import { OperationsLedgerError } from "../../services/operations-ledger"
 import { ReleaseRegistryError } from "../../services/release-registry"
 import { RollbackIntentError } from "../../services/rollback-intents"
-import { OPERATION_ID_PATTERN, REQUEST_ID_PATTERN } from "./contracts"
+import { IDEMPOTENCY_KEY_PATTERN, OPERATION_ID_PATTERN, REQUEST_ID_PATTERN } from "./contracts"
 
 export const INTERNAL_ERROR_CODE = {
   BODY_INVALID: "INTERNAL_BODY_INVALID",
   BODY_TOO_LARGE: "INTERNAL_BODY_TOO_LARGE",
   FORBIDDEN: "INTERNAL_FORBIDDEN",
+  IDEMPOTENCY_KEY_INVALID: "INTERNAL_IDEMPOTENCY_KEY_INVALID",
+  IDEMPOTENCY_KEY_REQUIRED: "INTERNAL_IDEMPOTENCY_KEY_REQUIRED",
   INTERNAL: "INTERNAL_ERROR",
   OPERATION_ID_INVALID: "INTERNAL_OPERATION_ID_INVALID",
   RATE_LIMITED: "INTERNAL_RATE_LIMITED",
@@ -266,6 +269,32 @@ const releaseRegistryErrorToResponse = (
   )
 }
 
+const INTAKE_STATUS_BY_CODE: Readonly<Record<string, number>> = {
+  INTAKE_CONNECTOR_INVALID: 400,
+  INTAKE_CONNECTOR_REQUIRED: 400,
+  INTAKE_FETCH_CHANNEL_INVALID: 400,
+  INTAKE_FETCH_STATE_INVALID: 409,
+  INTAKE_ITEM_NOT_FOUND: 404,
+  INTAKE_ITEM_TENANT_INVALID: 500,
+  INTAKE_SERVICE_REQUIRED: 403,
+  INTAKE_SNAPSHOT_CONFLICT: 409,
+  INTAKE_SNAPSHOT_INVALID: 500,
+  INTAKE_SOURCE_URL_REQUIRED: 400,
+  INTAKE_TENANT_MISMATCH: 404,
+}
+
+const intakeErrorToResponse = (
+  error: IntakeError,
+  requestId: string,
+  allowOrigin: string | null,
+): Response => {
+  if (error.code === "INTAKE_ITEM_NOT_FOUND" || error.code === "INTAKE_TENANT_MISMATCH") {
+    return internalErrorResponse(404, "INTAKE_ITEM_NOT_FOUND", "intake item not found", requestId, allowOrigin)
+  }
+  const status = INTAKE_STATUS_BY_CODE[error.code] ?? 400
+  return internalErrorResponse(status, error.code, error.detail ?? error.code, requestId, allowOrigin)
+}
+
 const EMBEDDING_STATUS_BY_CODE: Readonly<Record<string, number>> = {
   EMBEDDING_DIMENSION_MISMATCH: 400,
   EMBEDDING_EDITION_NOT_FOUND: 404,
@@ -315,6 +344,7 @@ export type GuardedHandler<TBody> = (
 export type GuardOptions<TBody> = {
   readonly bodySchema: ZodType<TBody> | null
   readonly operation: string
+  readonly requiresIdempotencyKey?: boolean
 }
 
 /**
@@ -384,6 +414,28 @@ export const withInternalGuards =
       )
     }
 
+    if (options.requiresIdempotencyKey) {
+      const idempotencyKey = req.headers?.get("idempotency-key") ?? null
+      if (idempotencyKey === null || idempotencyKey.length === 0) {
+        return internalErrorResponse(
+          400,
+          INTERNAL_ERROR_CODE.IDEMPOTENCY_KEY_REQUIRED,
+          "Idempotency-Key header is required",
+          requestId,
+          allowOrigin,
+        )
+      }
+      if (!IDEMPOTENCY_KEY_PATTERN.test(idempotencyKey)) {
+        return internalErrorResponse(
+          400,
+          INTERNAL_ERROR_CODE.IDEMPOTENCY_KEY_INVALID,
+          "Idempotency-Key must match [A-Za-z0-9._-]{8,128}",
+          requestId,
+          allowOrigin,
+        )
+      }
+    }
+
     const headerOperationId = req.headers?.get("x-operation-id") ?? null
     if (headerOperationId !== null && !OPERATION_ID_PATTERN.test(headerOperationId)) {
       return internalErrorResponse(
@@ -421,7 +473,7 @@ export const withInternalGuards =
           allowOrigin,
         )
       }
-      if (raw.length > config.maxBodyBytes) {
+      if (Buffer.byteLength(raw, "utf8") > config.maxBodyBytes) {
         return internalErrorResponse(
           413,
           INTERNAL_ERROR_CODE.BODY_TOO_LARGE,
@@ -499,6 +551,9 @@ export const withInternalGuards =
       }
       if (error instanceof ReleaseRegistryError) {
         return releaseRegistryErrorToResponse(error, requestId, allowOrigin)
+      }
+      if (error instanceof IntakeError) {
+        return intakeErrorToResponse(error, requestId, allowOrigin)
       }
       if (error instanceof EmbeddingStoreError) {
         return embeddingErrorToResponse(error, requestId, allowOrigin)

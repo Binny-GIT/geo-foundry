@@ -10,11 +10,16 @@ export type InternalOperationDescriptor = {
 
 export const INTERNAL_OPERATIONS: readonly InternalOperationDescriptor[] = [
   { method: "get", operationId: "getEditionInput", path: INTERNAL_PATHS.input },
+  { method: "post", operationId: "dispatchDuePublicationPlans", path: INTERNAL_PATHS.publicationPlansDispatchDue },
+  { method: "get", operationId: "getIntakeFetchInput", path: INTERNAL_PATHS.intakeFetchInput },
+  { method: "post", operationId: "claimIntakeFetch", path: INTERNAL_PATHS.intakeFetchStart },
+  { method: "post", operationId: "completeIntakeFetch", path: INTERNAL_PATHS.intakeFetchComplete },
+  { method: "post", operationId: "failIntakeFetch", path: INTERNAL_PATHS.intakeFetchFailed },
+  { method: "post", operationId: "createRssEntries", path: INTERNAL_PATHS.intakeRssEntries },
   { method: "get", operationId: "getCompileSnapshot", path: INTERNAL_PATHS.compileSnapshot },
   { method: "post", operationId: "writeDraftVersion", path: INTERNAL_PATHS.versions },
   { method: "post", operationId: "recordAssessment", path: INTERNAL_PATHS.assessments },
   { method: "post", operationId: "recordCompileResult", path: INTERNAL_PATHS.compileResults },
-  { method: "post", operationId: "requestPublish", path: INTERNAL_PATHS.publishRequests },
   {
     method: "post",
     operationId: "consumeRollbackIntent",
@@ -32,6 +37,21 @@ export const INTERNAL_OPERATIONS: readonly InternalOperationDescriptor[] = [
   },
   { method: "post", operationId: "storeEmbedding", path: INTERNAL_PATHS.embeddings },
   { method: "post", operationId: "findSimilarEditions", path: INTERNAL_PATHS.similarity },
+  {
+    method: "post",
+    operationId: "generateOperation",
+    path: INTERNAL_PATHS.operationGenerate,
+  },
+  {
+    method: "post",
+    operationId: "evaluateOperation",
+    path: INTERNAL_PATHS.operationEvaluate,
+  },
+  {
+    method: "post",
+    operationId: "rollbackOperation",
+    path: INTERNAL_PATHS.operationRollback,
+  },
   { method: "post", operationId: "submitOperation", path: INTERNAL_PATHS.operationSubmit },
   {
     method: "get",

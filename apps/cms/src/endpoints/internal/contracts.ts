@@ -5,7 +5,12 @@ export const INTERNAL_PATHS = {
   compileSnapshot: "/internal/sites/:id/compile-snapshot",
   embeddings: "/internal/editions/:id/embeddings",
   input: "/internal/editions/:id/input",
-  publishRequests: "/internal/editions/:id/publish-requests",
+  intakeFetchComplete: "/internal/intake-items/:id/fetch-complete",
+  intakeFetchFailed: "/internal/intake-items/:id/fetch-failed",
+  intakeFetchInput: "/internal/intake-items/:id/fetch-input",
+  intakeFetchStart: "/internal/intake-items/:id/fetch-start",
+  intakeRssEntries: "/internal/intake-items/:id/rss-entries",
+  publicationPlansDispatchDue: "/internal/publication-plans/dispatch-due",
   consumeRollbackIntent: "/internal/rollback-intents/consume",
   recordPublishedRelease: "/internal/sites/:id/releases/published",
   recordRollbackReceipt: "/internal/releases/rollback-receipt",
@@ -13,7 +18,10 @@ export const INTERNAL_PATHS = {
   similarity: "/internal/editions/:id/similarity",
   versions: "/internal/editions/:id/versions",
   operationCancel: "/internal/operations/:operationId/cancel",
+  operationEvaluate: "/internal/operations/evaluate",
+  operationGenerate: "/internal/operations/generate",
   operationGet: "/internal/operations/:operationId",
+  operationRollback: "/internal/operations/rollback",
   operationStageComplete: "/internal/operations/:operationId/stages/complete",
   operationStageStart: "/internal/operations/:operationId/stages/start",
   operationSubmit: "/internal/operations/submit",
@@ -64,12 +72,6 @@ export const compileResultBodySchema = z
   })
   .strict()
 
-export const publishRequestBodySchema = z
-  .object({
-    reason: z.string().min(1).max(500).optional(),
-  })
-  .strict()
-
 export const consumeRollbackIntentBodySchema = z
   .object({
     expectedCurrentManifestSha256: z.string().regex(SHA256_PATTERN),
@@ -94,11 +96,141 @@ export type ConsumeRollbackIntentBody = z.infer<typeof consumeRollbackIntentBody
 export type DraftVersionBody = z.infer<typeof draftVersionBodySchema>
 export type AssessmentBody = z.infer<typeof assessmentBodySchema>
 export type CompileResultBody = z.infer<typeof compileResultBodySchema>
-export type PublishRequestBody = z.infer<typeof publishRequestBodySchema>
 export type ReleaseReceiptBody = z.infer<typeof releaseReceiptBodySchema>
+
+const intakeSnapshotSchema = z
+  .object({
+    contentHash: z.string().regex(SHA256_PATTERN),
+    contentLength: z.number().int().min(0).max(10_000_000),
+    contentType: z.string().min(1).max(200),
+    storageKey: z.string().min(1).max(1_000),
+  })
+  .strict()
+
+export const intakeFetchCompleteBodySchema = z
+  .object({
+    extracted: intakeSnapshotSchema,
+    raw: intakeSnapshotSchema,
+    summary: z.string().min(1).max(20_000),
+    title: z.string().min(1).max(1_000),
+  })
+  .strict()
+
+export const intakeFetchFailedBodySchema = z
+  .object({
+    code: z.string().min(1).max(120),
+    reason: z.string().min(1).max(500),
+  })
+  .strict()
+
+export const intakeRssEntriesBodySchema = z
+  .object({
+    entries: z
+      .array(
+        z
+          .object({
+            sourceUrl: z.string().url().max(4_000),
+            summary: z.string().min(1).max(20_000).optional(),
+            title: z.string().min(1).max(1_000),
+          })
+          .strict(),
+      )
+      .max(20),
+  })
+  .strict()
+
+export type IntakeFetchCompleteBody = z.infer<typeof intakeFetchCompleteBodySchema>
+export type IntakeFetchFailedBody = z.infer<typeof intakeFetchFailedBodySchema>
+export type IntakeRssEntriesBody = z.infer<typeof intakeRssEntriesBodySchema>
+
+export const dispatchDuePublicationPlansBodySchema = z
+  .object({
+    now: z.string().datetime({ offset: true }),
+    workerId: z.string().min(1).max(128),
+  })
+  .strict()
+
+export type DispatchDuePublicationPlansBody = z.infer<typeof dispatchDuePublicationPlansBodySchema>
 
 export const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9._-]{8,128}$/
 export const OPERATION_STAGE_NAME_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/
+
+const siteStrategySchema = z
+  .object({
+    locale: z.string().min(2).max(35),
+    name: z.string().min(1).max(100),
+    tone: z.string().min(1).max(100).optional(),
+  })
+  .strict()
+
+const briefSourceSchema = z
+  .object({
+    id: z.string().min(1).max(100),
+    snippet: z.string().min(1).max(2000),
+    title: z.string().min(1).max(200),
+    url: z.string().url().max(2000).optional(),
+  })
+  .strict()
+
+/**
+ * Content-operation submission bodies deliberately mirror the operator-facing
+ * content-service contract. Keeping these at the CMS boundary lets the ledger
+ * own validation, canonical request identity, and service-identity checks.
+ */
+export const generateOperationBodySchema = z
+  .object({
+    brief: z
+      .object({
+        constraints: z.array(z.string().min(1).max(300)).max(20).optional(),
+        intent: z.string().min(1).max(500),
+        sources: z.array(briefSourceSchema).min(1).max(20),
+        topic: z.string().min(1).max(300),
+      })
+      .strict(),
+    contentId: z.number().int().positive(),
+    targets: z
+      .array(
+        z
+          .object({
+            angle: z.string().min(1).max(200),
+            editionId: z.number().int().positive(),
+            siteStrategy: siteStrategySchema,
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(5),
+  })
+  .strict()
+
+export const evaluateOperationBodySchema = z
+  .object({
+    editionId: z.number().int().positive(),
+    thresholds: z
+      .object({
+        dimensionMin: z.number().min(0).max(100),
+        overallMin: z.number().min(0).max(100),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict()
+
+export const rollbackOperationBodySchema = z
+  .object({
+    expectedCurrentManifestSha256: z.string().regex(SHA256_PATTERN),
+    expectedCurrentReleaseId: z.string().regex(RELEASE_ID_PATTERN),
+    expectedManifestSha256: z.string().regex(SHA256_PATTERN),
+    rollbackIntentId: z.string().uuid(),
+    reason: z.string().min(1).max(500).optional(),
+    siteId: z.string().regex(/^[a-z0-9]+(?:[-_][a-z0-9]+)*$/),
+    targetReleaseId: z.string().regex(RELEASE_ID_PATTERN),
+  })
+  .strict()
+
+export type GenerateOperationBody = z.infer<typeof generateOperationBodySchema>
+export type EvaluateOperationBody = z.infer<typeof evaluateOperationBodySchema>
+export type RollbackOperationBody = z.infer<typeof rollbackOperationBodySchema>
 
 export const submitOperationBodySchema = z
   .object({

@@ -124,7 +124,7 @@ export const mapEdition = (input: EditionMappingInput): CompileEdition | null =>
     modifiedAt,
     publishedAt,
     siteId: input.siteKey,
-    status: textOf(edition["workflowStatus"]) as CompileEdition["status"],
+    status: "published",
     summary: textOf(edition["summary"]) || textOf(edition["title"]),
     tags: secondaryTopics.map(slugify),
     title: textOf(edition["title"]),

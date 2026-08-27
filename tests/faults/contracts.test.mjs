@@ -117,6 +117,8 @@ test("Todo 39 control-plane recovery only uses run-owned databases, queues, and 
   assert.match(supervisor, /GEO_FOUNDRY_CMS_CONFIG_MODE: "fault-test"/)
   assert.match(supervisor, /GEO_FOUNDRY_WORKER_QUEUE_PREFIX: queuePrefix/)
   assert.match(supervisor, /CONTENT_SERVICE_API_KEY_FILE/)
+  assert.match(supervisor, /\/publish-operations/)
+  assert.doesNotMatch(supervisor, /@geo\/content-service|CONTENT_SERVICE_OPERATOR_API_KEY_FILE|\/internal\/operations\/publish|\/v1\/publish/)
   assert.match(supervisor, /scanIterator\(\{\s+MATCH: `\$\{input\.queuePrefix\}:\*`/s)
   assert.match(supervisor, /ContinuationToken: token/)
   assert.match(supervisor, /fault-database\.mjs",\s+"cleanup"/s)

@@ -149,7 +149,15 @@ const json = async (response, label, expected = [200]) => {
   return body
 }
 
-const cmsRequest = async (cmsUrl, token, path, method = "GET", body, requestId) =>
+const cmsRequest = async (
+  cmsUrl,
+  token,
+  path,
+  method = "GET",
+  body,
+  requestId,
+  expected = [200],
+) =>
   json(
     await fetch(`${cmsUrl}/api${path}`, {
       body: body === undefined ? undefined : JSON.stringify(body),
@@ -161,6 +169,7 @@ const cmsRequest = async (cmsUrl, token, path, method = "GET", body, requestId) 
       method,
     }),
     `cms:${method}:${path}`,
+    expected,
   )
 
 const cmsRawRequest = (cmsUrl, token, path, requestId) =>
@@ -183,18 +192,19 @@ const login = async (cmsUrl, email, password) => {
   return body.token
 }
 
-const serviceRequest = async (serviceUrl, operatorKey, path, body, idempotencyKey) =>
+const internalOperationRequest = async (cmsUrl, serviceToken, path, body, idempotencyKey) =>
   json(
-    await fetch(`${serviceUrl}${path}`, {
+    await fetch(`${cmsUrl}/api${path}`, {
       body: JSON.stringify(body),
       headers: {
-        authorization: `Bearer ${operatorKey}`,
+        authorization: `Bearer ${serviceToken}`,
         "content-type": "application/json",
         "idempotency-key": idempotencyKey,
+        "x-request-id": `fault-operation-${crypto.randomUUID()}`,
       },
       method: "POST",
     }),
-    `content-service:${path}`,
+    `cms:${path}`,
     [200, 202],
   )
 
@@ -377,9 +387,7 @@ export const runControlPlaneFaultRecovery = async (input) => {
   const temporaryDirectory = await mkdtemp(join(tmpdir(), `geo-foundry-fault-${runId}-`))
   await chmod(temporaryDirectory, 0o700)
   const passwordPath = await writeEphemeralSecret(temporaryDirectory, "cms-password")
-  const operatorKeyPath = await writeEphemeralSecret(temporaryDirectory, "operator-key")
   const cmsServiceTokenPath = join(temporaryDirectory, "cms-service-token")
-  const operatorKey = (await readFile(operatorKeyPath, "utf8")).trim()
   const endpoint = `http://127.0.0.1:${input.s3Port}`
   const environment = {
     ...process.env,
@@ -417,7 +425,6 @@ export const runControlPlaneFaultRecovery = async (input) => {
   })
   const unlock = await acquireProjectLock(runId)
   let cms
-  let contentService
   let worker
   let relay
   let blockedEvent
@@ -541,38 +548,25 @@ export const runControlPlaneFaultRecovery = async (input) => {
     )
     await transition(cmsUrl, reviewerToken, seed.editionId, "approved")
 
-    const contentServicePort = await reservePort()
-    const serviceUrl = `http://127.0.0.1:${contentServicePort}`
-    contentService = await startChild({
-      argumentsList: ["--filter", "@geo/content-service", "start"],
-      command: "pnpm",
-      cwd: root,
-      directory,
-      environment: {
-        ...environment,
-        CMS_BASE_URL: cmsUrl,
-        CONTENT_SERVICE_API_KEY_FILE: cmsServiceTokenPath,
-        CONTENT_SERVICE_HOST: "127.0.0.1",
-        CONTENT_SERVICE_OPERATOR_API_KEY_FILE: operatorKeyPath,
-        CONTENT_SERVICE_PORT: String(contentServicePort),
-      },
-      name: "content-service",
-    })
-    await waitForHttp(`${serviceUrl}/healthz`, "FAULT_CONTROL_CONTENT_SERVICE_READY_TIMEOUT")
     const idempotencyKey = `fault-publish-${runId.slice("todo39-".length)}`
-    const firstSubmit = await serviceRequest(
-      serviceUrl,
-      operatorKey,
-      "/v1/publish",
-      { editionId: seed.editionId, reason: "post-CAS registry crash recovery" },
+    const publishBody = { reason: "post-CAS registry crash recovery" }
+    const firstSubmit = await cmsRequest(
+      cmsUrl,
+      publisherToken,
+      `/editions/${seed.editionId}/publish-operations`,
+      "POST",
+      publishBody,
       idempotencyKey,
+      [200, 202],
     )
-    const replaySubmit = await serviceRequest(
-      serviceUrl,
-      operatorKey,
-      "/v1/publish",
-      { editionId: seed.editionId, reason: "post-CAS registry crash recovery" },
+    const replaySubmit = await cmsRequest(
+      cmsUrl,
+      publisherToken,
+      `/editions/${seed.editionId}/publish-operations`,
+      "POST",
+      publishBody,
       idempotencyKey,
+      [200, 202],
     )
     const operationId = firstSubmit.operation?.operationId
     if (typeof operationId !== "string" || replaySubmit.operation?.operationId !== operationId) {
@@ -635,10 +629,14 @@ export const runControlPlaneFaultRecovery = async (input) => {
     })
     let completedOperation
     await waitFor(async () => {
-      const response = await fetch(`${serviceUrl}/v1/operations/${operationId}`, {
-        headers: { authorization: `Bearer ${operatorKey}` },
-      })
-      const body = await json(response, "content-service-operation")
+      const body = await cmsRequest(
+        cmsUrl,
+        serviceToken,
+        `/internal/operations/${operationId}`,
+        "GET",
+        undefined,
+        `fault-operation-poll-${crypto.randomUUID()}`,
+      )
       completedOperation = body.operation
       return completedOperation?.state === "succeeded"
     }, "FAULT_CONTROL_OPERATION_RECOVERY_TIMEOUT")
@@ -680,7 +678,6 @@ export const runControlPlaneFaultRecovery = async (input) => {
   } finally {
     try {
       await stopChild(worker)
-      await stopChild(contentService)
       await stopChild(cms)
       if (relay !== undefined) {
         await relay.close()

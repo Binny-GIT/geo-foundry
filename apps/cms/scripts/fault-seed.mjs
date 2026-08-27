@@ -142,6 +142,31 @@ try {
     },
     ...asEditor,
   })
+  const intake = await payload.create({
+    collection: "intake-items",
+    data: {
+      channel: "manual",
+      duplicateStatus: "unique",
+      receivedAt: "2026-08-27T00:00:00.000Z",
+      status: "ready",
+      suggestedSite: site.id,
+      summary: "Run-owned source for control-plane recovery validation.",
+      tenant: tenant.id,
+      title: `Fault recovery source ${suffix}`,
+    },
+    ...asEditor,
+  })
+  await payload.create({
+    collection: "article-sources",
+    data: {
+      edition: edition.id,
+      intakeItem: intake.id,
+      note: "Fault recovery source chain",
+      role: "primary",
+      tenant: tenant.id,
+    },
+    ...asEditor,
+  })
   const urlRecordId = await reserveUrlRecord(payload, {
     contentId: content.id,
     locale: "en-US",
