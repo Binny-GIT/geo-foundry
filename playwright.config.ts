@@ -2,7 +2,7 @@ import { resolve } from "node:path"
 import { defineConfig, devices } from "@playwright/test"
 
 const readEnvironment = (name: string): string | undefined => process.env[name]
-const evidenceDirectory = readEnvironment("GEO_FOUNDRY_EVIDENCE_DIR") ?? ".omo/evidence/task-38"
+const evidenceDirectory = readEnvironment("GEO_FOUNDRY_EVIDENCE_DIR") ?? "temp/e2e"
 const hostResolverRules =
   "MAP site-a.test 127.0.0.1,MAP www.site-a.test 127.0.0.1,MAP site-b.test 127.0.0.1,MAP www.site-b.test 127.0.0.1,EXCLUDE localhost"
 

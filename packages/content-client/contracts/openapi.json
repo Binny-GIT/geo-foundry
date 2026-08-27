@@ -79,6 +79,312 @@
         ]
       }
     },
+    "/internal/publication-plans/dispatch-due": {
+      "post": {
+        "operationId": "dispatchDuePublicationPlans",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EditionId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed or schema-invalid body"
+          },
+          "401": {
+            "description": "Missing or invalid service identity"
+          },
+          "403": {
+            "description": "Non-service identity or tenant mismatch"
+          },
+          "404": {
+            "description": "Unknown edition"
+          },
+          "409": {
+            "description": "Workflow state conflict"
+          },
+          "413": {
+            "description": "Body exceeds the configured size limit"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        },
+        "security": [
+          {
+            "serviceApiKey": []
+          }
+        ],
+        "tags": [
+          "internal-editions"
+        ]
+      }
+    },
+    "/internal/intake-items/{id}/fetch-input": {
+      "get": {
+        "operationId": "getIntakeFetchInput",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EditionId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed or schema-invalid body"
+          },
+          "401": {
+            "description": "Missing or invalid service identity"
+          },
+          "403": {
+            "description": "Non-service identity or tenant mismatch"
+          },
+          "404": {
+            "description": "Unknown edition"
+          },
+          "409": {
+            "description": "Workflow state conflict"
+          },
+          "413": {
+            "description": "Body exceeds the configured size limit"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        },
+        "security": [
+          {
+            "serviceApiKey": []
+          }
+        ],
+        "tags": [
+          "internal-editions"
+        ]
+      }
+    },
+    "/internal/intake-items/{id}/fetch-start": {
+      "post": {
+        "operationId": "claimIntakeFetch",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EditionId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed or schema-invalid body"
+          },
+          "401": {
+            "description": "Missing or invalid service identity"
+          },
+          "403": {
+            "description": "Non-service identity or tenant mismatch"
+          },
+          "404": {
+            "description": "Unknown edition"
+          },
+          "409": {
+            "description": "Workflow state conflict"
+          },
+          "413": {
+            "description": "Body exceeds the configured size limit"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        },
+        "security": [
+          {
+            "serviceApiKey": []
+          }
+        ],
+        "tags": [
+          "internal-editions"
+        ]
+      }
+    },
+    "/internal/intake-items/{id}/fetch-complete": {
+      "post": {
+        "operationId": "completeIntakeFetch",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EditionId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed or schema-invalid body"
+          },
+          "401": {
+            "description": "Missing or invalid service identity"
+          },
+          "403": {
+            "description": "Non-service identity or tenant mismatch"
+          },
+          "404": {
+            "description": "Unknown edition"
+          },
+          "409": {
+            "description": "Workflow state conflict"
+          },
+          "413": {
+            "description": "Body exceeds the configured size limit"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        },
+        "security": [
+          {
+            "serviceApiKey": []
+          }
+        ],
+        "tags": [
+          "internal-editions"
+        ]
+      }
+    },
+    "/internal/intake-items/{id}/fetch-failed": {
+      "post": {
+        "operationId": "failIntakeFetch",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EditionId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed or schema-invalid body"
+          },
+          "401": {
+            "description": "Missing or invalid service identity"
+          },
+          "403": {
+            "description": "Non-service identity or tenant mismatch"
+          },
+          "404": {
+            "description": "Unknown edition"
+          },
+          "409": {
+            "description": "Workflow state conflict"
+          },
+          "413": {
+            "description": "Body exceeds the configured size limit"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        },
+        "security": [
+          {
+            "serviceApiKey": []
+          }
+        ],
+        "tags": [
+          "internal-editions"
+        ]
+      }
+    },
+    "/internal/intake-items/{id}/rss-entries": {
+      "post": {
+        "operationId": "createRssEntries",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EditionId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed or schema-invalid body"
+          },
+          "401": {
+            "description": "Missing or invalid service identity"
+          },
+          "403": {
+            "description": "Non-service identity or tenant mismatch"
+          },
+          "404": {
+            "description": "Unknown edition"
+          },
+          "409": {
+            "description": "Workflow state conflict"
+          },
+          "413": {
+            "description": "Body exceeds the configured size limit"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        },
+        "security": [
+          {
+            "serviceApiKey": []
+          }
+        ],
+        "tags": [
+          "internal-editions"
+        ]
+      }
+    },
     "/internal/sites/{id}/compile-snapshot": {
       "get": {
         "operationId": "getCompileSnapshot",
@@ -235,57 +541,6 @@
     "/internal/editions/{id}/compile-results": {
       "post": {
         "operationId": "recordCompileResult",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/EditionId"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Malformed or schema-invalid body"
-          },
-          "401": {
-            "description": "Missing or invalid service identity"
-          },
-          "403": {
-            "description": "Non-service identity or tenant mismatch"
-          },
-          "404": {
-            "description": "Unknown edition"
-          },
-          "409": {
-            "description": "Workflow state conflict"
-          },
-          "413": {
-            "description": "Body exceeds the configured size limit"
-          },
-          "429": {
-            "description": "Rate limit exceeded"
-          }
-        },
-        "security": [
-          {
-            "serviceApiKey": []
-          }
-        ],
-        "tags": [
-          "internal-editions"
-        ]
-      }
-    },
-    "/internal/editions/{id}/publish-requests": {
-      "post": {
-        "operationId": "requestPublish",
         "parameters": [
           {
             "$ref": "#/components/parameters/EditionId"
@@ -541,6 +796,159 @@
     "/internal/editions/{id}/similarity": {
       "post": {
         "operationId": "findSimilarEditions",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EditionId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed or schema-invalid body"
+          },
+          "401": {
+            "description": "Missing or invalid service identity"
+          },
+          "403": {
+            "description": "Non-service identity or tenant mismatch"
+          },
+          "404": {
+            "description": "Unknown edition"
+          },
+          "409": {
+            "description": "Workflow state conflict"
+          },
+          "413": {
+            "description": "Body exceeds the configured size limit"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        },
+        "security": [
+          {
+            "serviceApiKey": []
+          }
+        ],
+        "tags": [
+          "internal-editions"
+        ]
+      }
+    },
+    "/internal/operations/generate": {
+      "post": {
+        "operationId": "generateOperation",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EditionId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed or schema-invalid body"
+          },
+          "401": {
+            "description": "Missing or invalid service identity"
+          },
+          "403": {
+            "description": "Non-service identity or tenant mismatch"
+          },
+          "404": {
+            "description": "Unknown edition"
+          },
+          "409": {
+            "description": "Workflow state conflict"
+          },
+          "413": {
+            "description": "Body exceeds the configured size limit"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        },
+        "security": [
+          {
+            "serviceApiKey": []
+          }
+        ],
+        "tags": [
+          "internal-editions"
+        ]
+      }
+    },
+    "/internal/operations/evaluate": {
+      "post": {
+        "operationId": "evaluateOperation",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EditionId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed or schema-invalid body"
+          },
+          "401": {
+            "description": "Missing or invalid service identity"
+          },
+          "403": {
+            "description": "Non-service identity or tenant mismatch"
+          },
+          "404": {
+            "description": "Unknown edition"
+          },
+          "409": {
+            "description": "Workflow state conflict"
+          },
+          "413": {
+            "description": "Body exceeds the configured size limit"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        },
+        "security": [
+          {
+            "serviceApiKey": []
+          }
+        ],
+        "tags": [
+          "internal-editions"
+        ]
+      }
+    },
+    "/internal/operations/rollback": {
+      "post": {
+        "operationId": "rollbackOperation",
         "parameters": [
           {
             "$ref": "#/components/parameters/EditionId"

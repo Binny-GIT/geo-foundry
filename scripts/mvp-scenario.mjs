@@ -146,23 +146,35 @@ const cms = async (cmsUrl, token, path, method = "GET", body) => {
   return json(response, `${method}:${path}`)
 }
 
-const service = async (serviceUrl, operatorKey, path, method = "GET", body, idempotencyKey) => {
-  const response = await fetch(`${serviceUrl}${path}`, {
+const internalOperation = async (
+  cmsUrl,
+  contentServiceApiKey,
+  path,
+  method = "GET",
+  body,
+  idempotencyKey,
+) => {
+  const response = await fetch(`${cmsUrl}/api${path}`, {
     body: body === undefined ? undefined : JSON.stringify(body),
     headers: {
-      authorization: `Bearer ${operatorKey}`,
+      authorization: `Bearer ${contentServiceApiKey}`,
       ...(body === undefined ? {} : { "content-type": "application/json" }),
       ...(idempotencyKey === undefined ? {} : { "idempotency-key": idempotencyKey }),
+      "x-request-id": `mvp-${crypto.randomUUID()}`,
     },
     method,
   })
   return json(response, `${method}:${path}`)
 }
 
-const poll = async (serviceUrl, operatorKey, operationId) => {
+const poll = async (cmsUrl, contentServiceApiKey, operationId) => {
   const deadline = Date.now() + 120_000
   while (Date.now() < deadline) {
-    const body = await service(serviceUrl, operatorKey, `/v1/operations/${operationId}`)
+    const body = await internalOperation(
+      cmsUrl,
+      contentServiceApiKey,
+      `/internal/operations/${operationId}`,
+    )
     const operation = body.operation
     if (terminalStates.has(operation.state)) return operation
     await new Promise((resolveDelay) => setTimeout(resolveDelay, 300))
@@ -185,17 +197,17 @@ const assertPassed = (operation, step) => {
 }
 
 const operation = async (input) => {
-  const first = await service(
-    input.serviceUrl,
-    input.operatorKey,
+  const first = await internalOperation(
+    input.cmsUrl,
+    input.contentServiceApiKey,
     input.path,
     "POST",
     input.body,
     input.key,
   )
-  const replay = await service(
-    input.serviceUrl,
-    input.operatorKey,
+  const replay = await internalOperation(
+    input.cmsUrl,
+    input.contentServiceApiKey,
     input.path,
     "POST",
     input.body,
@@ -203,7 +215,7 @@ const operation = async (input) => {
   )
   if (first.operation.operationId !== replay.operation.operationId)
     fail(`MVP_IDEMPOTENCY_REPLAY_MISMATCH:${input.step}`)
-  const result = await poll(input.serviceUrl, input.operatorKey, first.operation.operationId)
+  const result = await poll(input.cmsUrl, input.contentServiceApiKey, first.operation.operationId)
   input.record.steps.push({
     idempotencyReplay: true,
     operationId: result.operationId,
@@ -228,7 +240,6 @@ const runScenario = async (recordDirectory) => {
     fail("MVP_RECORD_DIRECTORY_FORBIDDEN")
   await mkdir(recordDirectory, { recursive: true, mode: 0o700 })
   const password = await securePassword()
-  await secureFile("GEO_FOUNDRY_REDIS_PASSWORD_FILE", "MVP_SCENARIO_REDIS_PASSWORD_FILE")
   for (const workspace of [
     "@geo/schema",
     "@geo/domain",
@@ -238,16 +249,13 @@ const runScenario = async (recordDirectory) => {
     "@geo/content-client",
     "@geo/content-pipeline",
     "@geo/cms",
-    "@geo/content-service",
     "@geo/worker",
   ]) {
     await run("pnpm", ["--filter", workspace, "build"])
   }
 
   const cmsPort = await reservePort()
-  const servicePort = await reservePort()
   const cmsUrl = `http://127.0.0.1:${cmsPort}`
-  const serviceUrl = `http://127.0.0.1:${servicePort}`
   const objectPrefix = `objects/mvp/${createHash("sha256")
     .update(recordDirectory)
     .digest("hex")
@@ -287,24 +295,6 @@ const runScenario = async (recordDirectory) => {
     )
     if (urlA === undefined) fail("MVP_SEED_URL_LOOKUP_FAILED")
 
-    const operatorKey = crypto.randomUUID()
-    started.push(
-      await start(
-        "content-service",
-        "pnpm",
-        ["--filter", "@geo/content-service", "start"],
-        {
-          ...baseEnvironment,
-          CMS_BASE_URL: cmsUrl,
-          CONTENT_SERVICE_API_KEY: tokens.contentService,
-          CONTENT_SERVICE_HOST: "127.0.0.1",
-          CONTENT_SERVICE_OPERATOR_API_KEY: operatorKey,
-          CONTENT_SERVICE_PORT: String(servicePort),
-        },
-        recordDirectory,
-      ),
-    )
-    await waitFor(`${serviceUrl}/healthz`)
     started.push(
       await start(
         "worker",
@@ -349,9 +339,9 @@ const runScenario = async (recordDirectory) => {
     }
     assertSucceeded(
       await operation({
-        serviceUrl,
-        operatorKey,
-        path: "/v1/generate",
+        cmsUrl,
+        contentServiceApiKey: tokens.contentService,
+        path: "/internal/operations/generate",
         body: generateBody,
         key: scenario.idempotencyKeys.generate,
         record,
@@ -360,9 +350,9 @@ const runScenario = async (recordDirectory) => {
       "generate",
     )
     const failedA = await operation({
-      serviceUrl,
-      operatorKey,
-      path: "/v1/evaluate",
+      cmsUrl,
+      contentServiceApiKey: tokens.contentService,
+      path: "/internal/operations/evaluate",
       body: { editionId: editionA.id, thresholds: scenario.quality.failingThresholds },
       key: scenario.idempotencyKeys.evaluateFailA,
       record,
@@ -372,9 +362,9 @@ const runScenario = async (recordDirectory) => {
       fail("MVP_EXPECTED_QUALITY_FAILURE")
     assertPassed(
       await operation({
-        serviceUrl,
-        operatorKey,
-        path: "/v1/evaluate",
+        cmsUrl,
+        contentServiceApiKey: tokens.contentService,
+        path: "/internal/operations/evaluate",
         body: { editionId: editionB.id, thresholds: scenario.quality.passingThresholds },
         key: scenario.idempotencyKeys.evaluateB,
         record,
@@ -389,9 +379,9 @@ const runScenario = async (recordDirectory) => {
     await transition(tokens.editor, editionA.id, "generating")
     assertSucceeded(
       await operation({
-        serviceUrl,
-        operatorKey,
-        path: "/v1/generate",
+        cmsUrl,
+        contentServiceApiKey: tokens.contentService,
+        path: "/internal/operations/generate",
         body: { ...generateBody, targets: [generateBody.targets[0]] },
         key: scenario.idempotencyKeys.generateRevisionA,
         record,
@@ -401,9 +391,9 @@ const runScenario = async (recordDirectory) => {
     )
     assertPassed(
       await operation({
-        serviceUrl,
-        operatorKey,
-        path: "/v1/evaluate",
+        cmsUrl,
+        contentServiceApiKey: tokens.contentService,
+        path: "/internal/operations/evaluate",
         body: { editionId: editionA.id, thresholds: scenario.quality.passingThresholds },
         key: scenario.idempotencyKeys.evaluatePassA,
         record,
@@ -416,25 +406,43 @@ const runScenario = async (recordDirectory) => {
     await transition(tokens.reviewer, editionA.id, "approved")
     await transition(tokens.reviewer, editionB.id, "approved")
 
-    const publish = async (edition, key, step) => {
-      const published = await operation({
-        serviceUrl,
-        operatorKey,
-        path: "/v1/publish",
-        body: { editionId: edition.id, reason: step },
-        key,
-        record,
-        step,
-      })
+    const publish = async (edition, step) => {
+      const first = await cms(
+        cmsUrl,
+        tokens.publisher,
+        `/editions/${edition.id}/publish-operations`,
+        "POST",
+        { reason: step },
+      )
+      const replay = await cms(
+        cmsUrl,
+        tokens.publisher,
+        `/editions/${edition.id}/publish-operations`,
+        "POST",
+        { reason: step },
+      )
+      const operationId = first.operation?.operationId
+      if (typeof operationId !== "string" || replay.operation?.operationId !== operationId) {
+        fail(`MVP_IDEMPOTENCY_REPLAY_MISMATCH:${step}`)
+      }
+      const published = await poll(cmsUrl, tokens.contentService, operationId)
       assertSucceeded(published, step)
       const releaseId = published.result?.releaseId
       if (typeof releaseId !== "string") fail(`MVP_RELEASE_ID_MISSING:${step}`)
-      await transition(tokens.publisher, edition.id, "compiled", { compiledReleaseId: releaseId })
-      await transition(tokens.publisher, edition.id, "published", { reason: step })
+      record.steps.push({
+        idempotencyReplay: true,
+        operationId,
+        state: published.state,
+        step,
+      })
+      await writeFile(
+        resolve(record.directory, "timeline.json"),
+        `${JSON.stringify(record.steps, null, 2)}\n`,
+      )
       return releaseId
     }
-    const releaseA1 = await publish(editionA, scenario.idempotencyKeys.publishV1A, "publish-a-v1")
-    const releaseB1 = await publish(editionB, scenario.idempotencyKeys.publishV1B, "publish-b-v1")
+    const releaseA1 = await publish(editionA, "publish-a-v1")
+    const releaseB1 = await publish(editionB, "publish-b-v1")
     await cms(cmsUrl, tokens.editor, `/editions/${editionA.id}/draft-from-published`, "POST", {
       reason: "v2 URL update",
     })
@@ -451,9 +459,9 @@ const runScenario = async (recordDirectory) => {
     await transition(tokens.editor, editionA.id, "generating")
     assertSucceeded(
       await operation({
-        serviceUrl,
-        operatorKey,
-        path: "/v1/generate",
+        cmsUrl,
+        contentServiceApiKey: tokens.contentService,
+        path: "/internal/operations/generate",
         body: { ...generateBody, targets: [generateBody.targets[0]] },
         key: scenario.idempotencyKeys.generateV2A,
         record,
@@ -463,9 +471,9 @@ const runScenario = async (recordDirectory) => {
     )
     assertPassed(
       await operation({
-        serviceUrl,
-        operatorKey,
-        path: "/v1/evaluate",
+        cmsUrl,
+        contentServiceApiKey: tokens.contentService,
+        path: "/internal/operations/evaluate",
         body: { editionId: editionA.id, thresholds: scenario.quality.passingThresholds },
         key: scenario.idempotencyKeys.evaluateV2A,
         record,
@@ -475,7 +483,7 @@ const runScenario = async (recordDirectory) => {
     )
     await transition(tokens.editor, editionA.id, "review")
     await transition(tokens.reviewer, editionA.id, "approved")
-    const releaseA2 = await publish(editionA, scenario.idempotencyKeys.publishV2A, "publish-a-v2")
+    const releaseA2 = await publish(editionA, "publish-a-v2")
     const releases = await list(cmsUrl, tokens.publisher, "releases")
     const from = releases.find((release) => release.releaseId === releaseA2)
     const target = releases.find((release) => release.releaseId === releaseA1)
@@ -490,9 +498,9 @@ const runScenario = async (recordDirectory) => {
     })
     assertSucceeded(
       await operation({
-        serviceUrl,
-        operatorKey,
-        path: "/v1/rollback",
+        cmsUrl,
+        contentServiceApiKey: tokens.contentService,
+        path: "/internal/operations/rollback",
         body: {
           siteId: intent.runtimeSiteId,
           rollbackIntentId: intent.intentId,

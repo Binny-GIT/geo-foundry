@@ -12,3 +12,4 @@ allowBuilds:
   unrs-resolver: true
 minimumReleaseAgeExclude:
   - '@aws-sdk/client-s3@3.1112.0'
+  - fast-xml-parser@5.11.1

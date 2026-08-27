@@ -6,6 +6,36 @@
       "path": "/internal/editions/{id}/input"
     },
     {
+      "method": "post",
+      "operationId": "dispatchDuePublicationPlans",
+      "path": "/internal/publication-plans/dispatch-due"
+    },
+    {
+      "method": "get",
+      "operationId": "getIntakeFetchInput",
+      "path": "/internal/intake-items/{id}/fetch-input"
+    },
+    {
+      "method": "post",
+      "operationId": "claimIntakeFetch",
+      "path": "/internal/intake-items/{id}/fetch-start"
+    },
+    {
+      "method": "post",
+      "operationId": "completeIntakeFetch",
+      "path": "/internal/intake-items/{id}/fetch-complete"
+    },
+    {
+      "method": "post",
+      "operationId": "failIntakeFetch",
+      "path": "/internal/intake-items/{id}/fetch-failed"
+    },
+    {
+      "method": "post",
+      "operationId": "createRssEntries",
+      "path": "/internal/intake-items/{id}/rss-entries"
+    },
+    {
       "method": "get",
       "operationId": "getCompileSnapshot",
       "path": "/internal/sites/{id}/compile-snapshot"
@@ -24,11 +54,6 @@
       "method": "post",
       "operationId": "recordCompileResult",
       "path": "/internal/editions/{id}/compile-results"
-    },
-    {
-      "method": "post",
-      "operationId": "requestPublish",
-      "path": "/internal/editions/{id}/publish-requests"
     },
     {
       "method": "post",
@@ -54,6 +79,21 @@
       "method": "post",
       "operationId": "findSimilarEditions",
       "path": "/internal/editions/{id}/similarity"
+    },
+    {
+      "method": "post",
+      "operationId": "generateOperation",
+      "path": "/internal/operations/generate"
+    },
+    {
+      "method": "post",
+      "operationId": "evaluateOperation",
+      "path": "/internal/operations/evaluate"
+    },
+    {
+      "method": "post",
+      "operationId": "rollbackOperation",
+      "path": "/internal/operations/rollback"
     },
     {
       "method": "post",

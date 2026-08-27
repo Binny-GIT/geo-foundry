@@ -47,15 +47,6 @@ jobs:
       - name: Verify non-secret CI gates
         run: pnpm ci:verify
 
-      - name: Upload non-secret evidence on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: public-evidence-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .omo/evidence/ci-${{ github.run_id }}-${{ github.run_attempt }}
-          if-no-files-found: warn
-          retention-days: 7
-
   shared-services:
     name: Protected shared-service validation
     if: >-
@@ -79,7 +70,8 @@ jobs:
       GEO_FOUNDRY_S3_PORT: "9000"
       GEO_FOUNDRY_S3_USE_SSL: "false"
       GEO_FOUNDRY_S3_FORCE_PATH_STYLE: "true"
-      GEO_FOUNDRY_EVIDENCE_DIR: .omo/evidence/task-40-geo-foundry-development-plan/${{ github.run_id }}-${{ github.run_attempt }}
+      GEO_FOUNDRY_EVIDENCE_DIR: ${{ runner.temp }}/geo-foundry-reports/${{ github.run_id }}-${{ github.run_attempt }}
+      GEO_FOUNDRY_SHARED_SERVICES_STATE_DIR: ${{ runner.temp }}/geo-foundry-shared-services
     steps:
       - uses: actions/checkout@v4
         with:
@@ -142,11 +134,11 @@ jobs:
         if: always()
         run: rm -rf "$RUNNER_TEMP/geo-foundry-credentials"
 
-      - name: Upload protected evidence
+      - name: Upload protected test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: protected-evidence-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .omo/evidence/task-40-geo-foundry-development-plan/${{ github.run_id }}-${{ github.run_attempt }}
+          name: protected-test-reports-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/geo-foundry-reports/${{ github.run_id }}-${{ github.run_attempt }}
           if-no-files-found: warn
           retention-days: 7

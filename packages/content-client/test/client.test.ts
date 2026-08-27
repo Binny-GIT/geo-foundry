@@ -61,7 +61,7 @@ describe("content service client", () => {
     expect(captured).toHaveLength(1)
     expect(captured[0]?.url).toBe("http://cms.test/api/internal/editions/12/versions")
     expect(captured[0]?.method).toBe("POST")
-    expect(captured[0]?.headers.authorization).toBe("Bearer service-api-key")
+    expect(captured[0]?.headers.authorization).toBe("users API-Key service-api-key")
     expect(captured[0]?.headers["x-request-id"]).toBe("req-0001-abcd")
     expect(captured[0]?.headers["x-operation-id"]).toBe("op-0001")
     expect(JSON.parse(captured[0]?.body ?? "{}")).toEqual({ title: "Generated" })
@@ -85,7 +85,9 @@ describe("content service client", () => {
         captured,
       ),
     )
-    const failure = await instance.requestPublish(12).catch((error: unknown) => error)
+    const failure = await instance
+      .writeDraftVersion(12, { title: "Generated" })
+      .catch((error: unknown) => error)
     expect(failure).toBeInstanceOf(ContentClientError)
     expect((failure as ContentClientError).code).toBe("EDITION_WORKFLOW_TENANT_MISMATCH")
     expect((failure as ContentClientError).status).toBe(403)
@@ -95,8 +97,56 @@ describe("content service client", () => {
   it("fails closed on schema-mismatched success payloads", async () => {
     const captured: CapturedRequest[] = []
     const instance = client(fakeFetch({ body: { unexpected: true } }, captured))
-    const failure = await instance.requestPublish(12).catch((error: unknown) => error)
+    const failure = await instance
+      .writeDraftVersion(12, { title: "Generated" })
+      .catch((error: unknown) => error)
     expect((failure as ContentClientError).code).toBe("CLIENT_RESPONSE_SCHEMA_MISMATCH")
+  })
+})
+
+describe("content service client: intake", () => {
+  it("uses the tenant-scoped intake fetch endpoints", async () => {
+    const captured: CapturedRequest[] = []
+    const instance = client(
+      fakeFetch(
+        {
+          body: {
+            channel: "url",
+            intakeItemId: 12,
+            sourceUrl: "https://source.test/article",
+            tenantId: 7,
+          },
+        },
+        captured,
+      ),
+    )
+    await expect(instance.getIntakeFetchInput(12)).resolves.toMatchObject({ intakeItemId: 12 })
+    expect(captured[0]?.url).toBe("http://cms.test/api/internal/intake-items/12/fetch-input")
+    expect(captured[0]?.method).toBe("GET")
+  })
+
+  it("validates and sends immutable snapshot metadata", async () => {
+    const captured: CapturedRequest[] = []
+    const instance = client(fakeFetch({ body: { intakeItemId: 12, snapshotId: 5 } }, captured))
+    await expect(
+      instance.completeIntakeFetch(12, {
+        extracted: {
+          contentHash: SHA,
+          contentLength: 12,
+          contentType: "text/plain; charset=utf-8",
+          storageKey: "objects/source-snapshots/7/12/extracted-content.txt",
+        },
+        raw: {
+          contentHash: "b".repeat(64),
+          contentLength: 24,
+          contentType: "text/html",
+          storageKey: "objects/source-snapshots/7/12/raw-response.bin",
+        },
+        summary: "Extracted summary",
+        title: "Extracted title",
+      }),
+    ).resolves.toEqual({ intakeItemId: 12, snapshotId: 5 })
+    expect(captured[0]?.url).toBe("http://cms.test/api/internal/intake-items/12/fetch-complete")
   })
 })
 

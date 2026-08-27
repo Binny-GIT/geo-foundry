@@ -1,7 +1,7 @@
 {
   "name": "@geo/domain",
   "version": "0.0.0",
-  "private": false,
+  "private": true,
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -11,10 +11,6 @@
     },
     "./package.json": "./package.json"
   },
-  "files": [
-    "dist",
-    "package.json"
-  ],
   "scripts": {
     "build": "tsc --project tsconfig.build.json",
     "dev": "tsc --project tsconfig.build.json --watch",

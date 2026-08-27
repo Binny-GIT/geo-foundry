@@ -43,10 +43,6 @@ export const recordCompileResultRequestSchema = z.object({
   totalBytes: z.number().int().min(0).max(10_000_000_000),
 })
 
-export const requestPublishRequestSchema = z.object({
-  reason: z.string().min(1).max(500).optional(),
-})
-
 export const consumeRollbackIntentRequestSchema = z
   .object({
     expectedCurrentManifestSha256: sha256Schema,
@@ -68,6 +64,65 @@ export const recordReleaseReceiptRequestSchema = z.object({
 })
 
 export const recordReleaseReceiptSchema = z.object({ recorded: z.literal(true) })
+
+export const dispatchDuePublicationPlansRequestSchema = z.object({
+  now: z.string().datetime({ offset: true }),
+  workerId: z.string().min(1).max(128),
+})
+
+export const dispatchDuePublicationPlansResponseSchema = z.object({
+  plans: z.array(z.object({ operationId: z.string().min(1), planId: z.string().min(1) })),
+})
+
+export const intakeClaimReceiptSchema = z.object({ claimed: z.literal(true) })
+
+export const intakeFetchInputSchema = z.object({
+  channel: z.enum(["rss", "url"]),
+  connectorId: z.number().int().positive().optional(),
+  intakeItemId: z.number().int().positive(),
+  sourceUrl: z.string().url().max(4_000),
+  tenantId: z.number().int().positive(),
+})
+
+const intakeSnapshotSchema = z.object({
+  contentHash: sha256Schema,
+  contentLength: z.number().int().min(0).max(10_000_000),
+  contentType: z.string().min(1).max(200),
+  storageKey: z.string().min(1).max(1_000),
+})
+
+export const completeIntakeFetchRequestSchema = z.object({
+  extracted: intakeSnapshotSchema,
+  raw: intakeSnapshotSchema,
+  summary: z.string().min(1).max(20_000),
+  title: z.string().min(1).max(1_000),
+})
+
+export const intakeFetchReceiptSchema = z.object({
+  intakeItemId: z.number().int().positive(),
+  snapshotId: z.number().int().positive(),
+})
+
+export const failIntakeFetchRequestSchema = z.object({
+  code: z.string().min(1).max(120),
+  reason: z.string().min(1).max(500),
+})
+
+export const intakeFailureReceiptSchema = z.object({ failed: z.literal(true) })
+
+export const createRssEntriesRequestSchema = z.object({
+  entries: z
+    .array(
+      z.object({
+        sourceUrl: z.string().url().max(4_000),
+        summary: z.string().min(1).max(20_000).optional(),
+        title: z.string().min(1).max(1_000),
+      }),
+    )
+    .max(20),
+})
+
+export const rssEntriesReceiptSchema = z.object({ intakeItemIds: z.array(z.number().int().positive()) })
 
 export const editionInputSchema = z.object({
   compiledRelease: z.string().min(1).nullable(),
@@ -103,11 +158,6 @@ export const compileResultReceiptSchema = z.object({
   workflowStatus: workflowStatusSchema,
 })
 
-export const publishRequestSchema = z.object({
-  editionId: z.number().int().positive(),
-  reason: z.string().min(1).max(500).optional(),
-})
-
 export const rollbackRequestSchema = z
   .object({
     expectedCurrentManifestSha256: sha256Schema,
@@ -120,8 +170,6 @@ export const rollbackRequestSchema = z
   })
   .strict()
 
-export const publishRequestReceiptSchema = compileResultReceiptSchema
-
 export const operationStateSchema = z.enum([
   "queued",
   "running",
@@ -131,6 +179,8 @@ export const operationStateSchema = z.enum([
 ])
 
 export const operationTypeSchema = z.enum(["generate", "evaluate", "publish", "rollback"])
+
+export const idempotencyKeySchema = z.string().regex(/^[A-Za-z0-9._-]{8,128}$/)
 
 export const compileSnapshotSchema = z.object({
   editions: z.array(z.record(z.string(), z.unknown())),
@@ -161,7 +211,7 @@ export const operationSnapshotSchema = z.object({
 export const submitOperationRequestSchema = z
   .object({
     endpoint: z.string().min(1).max(200),
-    idempotencyKey: z.string().regex(/^[A-Za-z0-9._-]{8,128}$/),
+    idempotencyKey: idempotencyKeySchema,
     operationType: operationTypeSchema,
     requestPayload: z.record(z.string(), z.unknown()),
     siteId: z.number().int().positive().optional(),
@@ -254,16 +304,18 @@ export type WorkflowStatus = z.infer<typeof workflowStatusSchema>
 export type WriteDraftVersionRequest = z.input<typeof writeDraftVersionRequestSchema>
 export type RecordAssessmentRequest = z.input<typeof recordAssessmentRequestSchema>
 export type RecordCompileResultRequest = z.input<typeof recordCompileResultRequestSchema>
-export type RequestPublishRequest = z.input<typeof requestPublishRequestSchema>
 export type ConsumeRollbackIntentRequest = z.input<typeof consumeRollbackIntentRequestSchema>
 export type RecordReleaseReceiptRequest = z.input<typeof recordReleaseReceiptRequestSchema>
+export type DispatchDuePublicationPlansRequest = z.input<typeof dispatchDuePublicationPlansRequestSchema>
+export type IntakeFetchInput = z.infer<typeof intakeFetchInputSchema>
+export type CompleteIntakeFetchRequest = z.input<typeof completeIntakeFetchRequestSchema>
+export type FailIntakeFetchRequest = z.input<typeof failIntakeFetchRequestSchema>
+export type CreateRssEntriesRequest = z.input<typeof createRssEntriesRequestSchema>
 export type EditionInput = z.infer<typeof editionInputSchema>
 export type CompileSnapshot = z.infer<typeof compileSnapshotSchema>
 export type DraftWriteReceipt = z.infer<typeof draftWriteReceiptSchema>
 export type AssessmentReceipt = z.infer<typeof assessmentReceiptSchema>
 export type CompileResultReceipt = z.infer<typeof compileResultReceiptSchema>
-export type PublishRequestReceipt = z.infer<typeof publishRequestReceiptSchema>
-export type PublishRequest = z.input<typeof publishRequestSchema>
 export type RollbackRequest = z.input<typeof rollbackRequestSchema>
 export type OperationState = z.infer<typeof operationStateSchema>
 export type OperationType = z.infer<typeof operationTypeSchema>

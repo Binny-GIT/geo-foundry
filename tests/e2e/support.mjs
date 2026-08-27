@@ -45,7 +45,7 @@ const secureFile = async (name) => {
 }
 
 const evidenceDirectoryOf = async () => {
-  const configured = process.env.GEO_FOUNDRY_EVIDENCE_DIR ?? resolve(root, ".omo/evidence/task-38")
+  const configured = process.env.GEO_FOUNDRY_EVIDENCE_DIR ?? resolve(root, "temp/e2e")
   const directory = resolve(configured)
   if (directory === root || directory.startsWith(resolve(root, ".zcode"))) {
     throw new Error("E2E_EVIDENCE_DIRECTORY_FORBIDDEN")
@@ -459,7 +459,7 @@ export const statePathOf = (evidenceDirectory) => join(evidenceDirectory, "e2e-s
 
 export const readE2eState = async () => {
   const evidenceDirectory =
-    process.env.GEO_FOUNDRY_EVIDENCE_DIR ?? resolve(root, ".omo/evidence/task-38")
+    process.env.GEO_FOUNDRY_EVIDENCE_DIR ?? resolve(root, "temp/e2e")
   const path = process.env.GEO_FOUNDRY_E2E_STATE_FILE ?? statePathOf(resolve(evidenceDirectory))
   return JSON.parse(await readFile(path, "utf8"))
 }

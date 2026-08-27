@@ -25,7 +25,6 @@ test("Given the governed repository When its toolchain configuration is inspecte
   assert.equal(packageJson.devDependencies.turbo, "2.10.10")
   assert.equal(packageJson.devDependencies.typescript, "5.9.3")
   assert.equal(packageJson.devDependencies["@biomejs/biome"], "2.5.8")
-  assert.equal(packageJson.devDependencies["@microsoft/api-extractor"], "7.58.12")
 
   for (const script of [
     "format",
@@ -39,12 +38,8 @@ test("Given the governed repository When its toolchain configuration is inspecte
     "ci:verify",
     "test:ci-contracts",
     "build",
-    "api:check",
     "check",
     "dev",
-    "packages:pack-smoke:task6:npm",
-    "packages:pack-smoke:task6:pnpm",
-    "test:task6:coverage",
   ]) {
     assert.equal(typeof packageJson.scripts[script], "string")
   }

@@ -1,4 +1,5 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises"
+import { dirname, join, resolve } from "node:path"
 import { z } from "zod"
 
 export const PROJECT_NAME = "geo-foundry"
@@ -102,13 +103,16 @@ export const createManifest = (runId) => ({
   resources: resourcesForRun(runId),
 })
 
+const stateDirectory = () =>
+  resolve(process.env.GEO_FOUNDRY_SHARED_SERVICES_STATE_DIR ?? "temp/shared-services")
+
 export const manifestPathForRun = (runId) =>
-  new URL(`../../.omo/evidence/task-2/manifests/${assertRunId(runId)}.json`, import.meta.url)
+  join(stateDirectory(), "manifests", `${assertRunId(runId)}.json`)
 
 export const writeManifest = async (manifest) => {
   const parsed = manifestSchema.parse(manifest)
   const path = manifestPathForRun(parsed.runId)
-  await mkdir(new URL(".", path), { recursive: true })
+  await mkdir(dirname(path), { recursive: true })
   await writeFile(path, `${JSON.stringify(parsed, null, 2)}\n`, { encoding: "utf8", mode: 0o600 })
   return path
 }

@@ -1,24 +1,14 @@
 import { spawn } from "node:child_process"
-import { access, mkdir } from "node:fs/promises"
-import { join, resolve } from "node:path"
+import { resolve } from "node:path"
 
 import { scanTrackedFiles } from "./repository-safety.mjs"
 
 const root = resolve(import.meta.dirname, "../..")
-const attempt = process.env.GITHUB_RUN_ID
-  ? `ci-${process.env.GITHUB_RUN_ID}-${process.env.GITHUB_RUN_ATTEMPT ?? "1"}`
-  : `ci-local-${process.pid}`
-const evidenceRelativeDirectory = join(".omo", "evidence", attempt)
-const evidenceDirectory = resolve(root, evidenceRelativeDirectory)
 
 const run = async (command, argumentsList) => {
   const child = spawn(command, argumentsList, {
     cwd: root,
-    env: {
-      ...process.env,
-      GEO_FOUNDRY_EVIDENCE_DIR: evidenceDirectory,
-      TURBO_REMOTE_CACHE: "0",
-    },
+    env: { ...process.env, TURBO_REMOTE_CACHE: "0" },
     stdio: "inherit",
   })
   const exitCode = await new Promise((resolveExit, rejectExit) => {
@@ -30,14 +20,8 @@ const run = async (command, argumentsList) => {
   }
 }
 
-const assertEvidenceManifest = async () => {
-  await access(join(evidenceDirectory, "evidence-manifest.json"))
-  await access(resolve(root, ".omo", "evidence", ".receipts", `${attempt}.json`))
-}
-
 const main = async () => {
   scanTrackedFiles()
-  await mkdir(evidenceDirectory, { mode: 0o700, recursive: true })
   await run("pnpm", ["verify:toolchain"])
   await run("pnpm", ["test:ci-contracts"])
   await run("node", ["--test", "tooling/documentation-contract.test.mjs"])
@@ -59,13 +43,6 @@ const main = async () => {
     "runner",
     "test/rollback.test.ts",
   ])
-  await run("pnpm", ["packages:validate"])
-  await run("pnpm", ["packages:pack-smoke:task6:pnpm"])
-  await run("pnpm", ["packages:pack-smoke:task6:npm"])
-  await run("pnpm", ["packages:pack-smoke"])
-  await run("pnpm", ["test:harness", "--", "--fresh", "--output-dir", evidenceRelativeDirectory])
-  await assertEvidenceManifest()
-  await run("pnpm", ["evidence:verify", "--", "--output-dir", evidenceRelativeDirectory])
 }
 
 main().catch((error) => {

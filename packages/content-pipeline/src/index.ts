@@ -56,7 +56,11 @@ export {
   ProviderError,
   PROVIDER_ERROR_CODE,
 } from "./providers/errors.js"
-export { createOpenAICompatibleProvider } from "./providers/openai-compatible.js"
+export {
+  AI_PROVIDER_ID,
+  createOpenAICompatibleProvider,
+  parseAiProviderEnvironment,
+} from "./providers/openai-compatible.js"
 export type { LLMProvider, ProviderEvent, ProviderEventSink } from "./providers/types.js"
 export type {
   EmbeddingRequest,

@@ -16,25 +16,43 @@ import {
   consumeRollbackIntentRequestSchema,
   type DraftWriteReceipt,
   draftWriteReceiptSchema,
+  type DispatchDuePublicationPlansRequest,
+  dispatchDuePublicationPlansRequestSchema,
+  dispatchDuePublicationPlansResponseSchema,
+  type CompleteIntakeFetchRequest,
+  completeIntakeFetchRequestSchema,
+  type CreateRssEntriesRequest,
+  createRssEntriesRequestSchema,
   type EditionInput,
   type EmbeddingReceipt,
+  type FailIntakeFetchRequest,
+  failIntakeFetchRequestSchema,
+  intakeClaimReceiptSchema,
+  intakeFailureReceiptSchema,
+  type IntakeFetchInput,
+  intakeFetchInputSchema,
+  intakeFetchReceiptSchema,
+  rssEntriesReceiptSchema,
   editionInputSchema,
   embeddingReceiptSchema,
+  type EvaluateRequest,
+  evaluateRequestSchema,
+  type GenerateRequest,
+  generateRequestSchema,
+  idempotencyKeySchema,
   internalErrorSchema,
   nonTerminalOperationsResponseSchema,
   type OperationSnapshot,
   operationResponseSchema,
-  type PublishRequestReceipt,
-  publishRequestReceiptSchema,
   type RecordAssessmentRequest,
   type RecordCompileResultRequest,
   type RecordReleaseReceiptRequest,
-  type RequestPublishRequest,
   recordAssessmentRequestSchema,
   recordCompileResultRequestSchema,
   recordReleaseReceiptRequestSchema,
   recordReleaseReceiptSchema,
-  requestPublishRequestSchema,
+  type RollbackRequest,
+  rollbackRequestSchema,
   type SimilarityMatch,
   type SimilarityQueryRequest,
   type StartOperationStageRequest,
@@ -70,8 +88,13 @@ export type ContentClientConfig = {
 }
 
 export type CallOptions = {
+  readonly idempotencyKey?: string
   readonly operationId?: string
   readonly requestId?: string
+}
+
+type IdempotentCallOptions = CallOptions & {
+  readonly idempotencyKey: string
 }
 
 export class ContentServiceClient {
@@ -79,6 +102,88 @@ export class ContentServiceClient {
 
   constructor(config: ContentClientConfig) {
     this.#config = config
+  }
+
+  async dispatchDuePublicationPlans(
+    request: DispatchDuePublicationPlansRequest,
+    options: CallOptions = {},
+  ): Promise<readonly { operationId: string; planId: string }[]> {
+    const response = await this.#call(
+      "POST",
+      "/internal/publication-plans/dispatch-due",
+      dispatchDuePublicationPlansRequestSchema,
+      request,
+      dispatchDuePublicationPlansResponseSchema,
+      options,
+    )
+    return response.plans
+  }
+
+  async claimIntakeFetch(intakeItemId: number, options: CallOptions = {}): Promise<void> {
+    await this.#call(
+      "POST",
+      `/internal/intake-items/${intakeItemId}/fetch-start`,
+      null,
+      null,
+      intakeClaimReceiptSchema,
+      options,
+    )
+  }
+
+  async getIntakeFetchInput(intakeItemId: number): Promise<IntakeFetchInput> {
+    return this.#call(
+      "GET",
+      `/internal/intake-items/${intakeItemId}/fetch-input`,
+      null,
+      null,
+      intakeFetchInputSchema,
+    )
+  }
+
+  async completeIntakeFetch(
+    intakeItemId: number,
+    request: CompleteIntakeFetchRequest,
+    options: CallOptions = {},
+  ): Promise<{ readonly intakeItemId: number; readonly snapshotId: number }> {
+    return this.#call(
+      "POST",
+      `/internal/intake-items/${intakeItemId}/fetch-complete`,
+      completeIntakeFetchRequestSchema,
+      request,
+      intakeFetchReceiptSchema,
+      options,
+    )
+  }
+
+  async failIntakeFetch(
+    intakeItemId: number,
+    request: FailIntakeFetchRequest,
+    options: CallOptions = {},
+  ): Promise<void> {
+    await this.#call(
+      "POST",
+      `/internal/intake-items/${intakeItemId}/fetch-failed`,
+      failIntakeFetchRequestSchema,
+      request,
+      intakeFailureReceiptSchema,
+      options,
+    )
+  }
+
+  async createRssEntries(
+    intakeItemId: number,
+    request: CreateRssEntriesRequest,
+    options: CallOptions = {},
+  ): Promise<readonly number[]> {
+    const response = await this.#call(
+      "POST",
+      `/internal/intake-items/${intakeItemId}/rss-entries`,
+      createRssEntriesRequestSchema,
+      request,
+      rssEntriesReceiptSchema,
+      options,
+    )
+    return response.intakeItemIds
   }
 
   async getEditionInput(editionId: number): Promise<EditionInput> {
@@ -189,17 +294,44 @@ export class ContentServiceClient {
     )
   }
 
-  async requestPublish(
-    editionId: number,
-    request: RequestPublishRequest = {},
-    options: CallOptions = {},
-  ): Promise<PublishRequestReceipt> {
+  async generateOperation(
+    request: GenerateRequest,
+    options: IdempotentCallOptions,
+  ): Promise<{ created: boolean; operation: OperationSnapshot }> {
     return this.#call(
       "POST",
-      `/internal/editions/${editionId}/publish-requests`,
-      requestPublishRequestSchema,
+      "/internal/operations/generate",
+      generateRequestSchema,
       request,
-      publishRequestReceiptSchema,
+      submitOperationResponseSchema,
+      options,
+    )
+  }
+
+  async evaluateOperation(
+    request: EvaluateRequest,
+    options: IdempotentCallOptions,
+  ): Promise<{ created: boolean; operation: OperationSnapshot }> {
+    return this.#call(
+      "POST",
+      "/internal/operations/evaluate",
+      evaluateRequestSchema,
+      request,
+      submitOperationResponseSchema,
+      options,
+    )
+  }
+
+  async rollbackOperation(
+    request: RollbackRequest,
+    options: IdempotentCallOptions,
+  ): Promise<{ created: boolean; operation: OperationSnapshot }> {
+    return this.#call(
+      "POST",
+      "/internal/operations/rollback",
+      rollbackRequestSchema,
+      request,
+      submitOperationResponseSchema,
       options,
     )
   }
@@ -332,7 +464,7 @@ export class ContentServiceClient {
     responseSchema: z.ZodType<TResponse>,
     options: CallOptions = {},
   ): Promise<TResponse> {
-    const headers = new Headers({ authorization: `Bearer ${this.#config.apiKey}` })
+    const headers = new Headers({ authorization: `users API-Key ${this.#config.apiKey}` })
     let body: string | null = null
     if (requestSchema !== null) {
       const validatedRequest = requestSchema.safeParse(request)
@@ -351,6 +483,20 @@ export class ContentServiceClient {
     }
     const requestId = options.requestId ?? crypto.randomUUID()
     headers.set("x-request-id", requestId)
+    if (options.idempotencyKey !== undefined) {
+      const validatedIdempotencyKey = idempotencyKeySchema.safeParse(options.idempotencyKey)
+      if (!validatedIdempotencyKey.success) {
+        throw new ContentClientError(
+          "CLIENT_REQUEST_INVALID",
+          0,
+          null,
+          validatedIdempotencyKey.error.issues
+            .map((issue) => `${issue.path.map(String).join(".")}: ${issue.message}`)
+            .join("; "),
+        )
+      }
+      headers.set("idempotency-key", validatedIdempotencyKey.data)
+    }
     if (options.operationId !== undefined) {
       headers.set("x-operation-id", options.operationId)
     }

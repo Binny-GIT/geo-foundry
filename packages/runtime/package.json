@@ -1,13 +1,9 @@
 {
   "name": "@geo/runtime",
   "version": "0.0.0",
-  "private": false,
+  "private": true,
   "type": "module",
   "sideEffects": false,
-  "files": [
-    "dist",
-    "package.json"
-  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

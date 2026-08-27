@@ -21,7 +21,7 @@ const run = async () => {
       `${JSON.stringify({
         status: "cleaned",
         runId,
-        manifest: manifestPathForRun(runId).pathname,
+        manifest: manifestPathForRun(runId),
         resources: manifest.resources,
         s3,
       })}\n`,

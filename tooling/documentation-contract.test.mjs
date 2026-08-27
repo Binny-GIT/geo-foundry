@@ -20,7 +20,6 @@ const documents = [
   "docs/runbooks/publish.md",
   "docs/runbooks/rollback.md",
   "docs/runbooks/reconciliation.md",
-  "docs/runbooks/evidence.md",
   "docs/runbooks/incidents.md",
 ]
 
@@ -33,9 +32,10 @@ test("Given Todo 40 documentation When checked Then architecture, package, and o
   )
   const readme = contents[0] ?? ""
   assert.match(readme, /pnpm ci:verify/)
-  assert.match(readme, /mydocs\/260817-geo-foundry-PRD\.md/)
-  assert.match(readme, /owner-only/)
-  assert.match(readme, /docs\/ux\/admin-operations-ux-spec\.md/)
+  assert.match(readme, /被 Git 忽略的 `mydocs\//)
+  assert.match(readme, /属主专用/)
+  assert.match(readme, /docs\/product\.md/)
+  assert.match(readme, /docs\/operations\.md/)
   const adminOperationsUx = contents[2] ?? ""
   assert.match(adminOperationsUx, /运营指挥台/)
   assert.match(adminOperationsUx, /overrideAccess=false/)
@@ -43,10 +43,9 @@ test("Given Todo 40 documentation When checked Then architecture, package, and o
 })
 
 test("Given operator runbooks When inspected Then they route sensitive actions through bounded approved commands", async () => {
-  const [sharedServices, migrations, evidence, incidents] = await Promise.all([
+  const [sharedServices, migrations, incidents] = await Promise.all([
     readText("docs/runbooks/shared-services.md"),
     readText("docs/runbooks/migrations.md"),
-    readText("docs/runbooks/evidence.md"),
     readText("docs/runbooks/incidents.md"),
   ])
 
@@ -54,7 +53,7 @@ test("Given operator runbooks When inspected Then they route sensitive actions t
   assert.match(sharedServices, /pnpm shared:cleanup/)
   assert.match(sharedServices, /FLUSHDB/)
   assert.match(migrations, /db:migrate/)
-  assert.match(evidence, /pnpm evidence:verify/)
+  assert.match(incidents, /测试报告/)
   assert.match(incidents, /不要/)
-  assert.doesNotMatch(sharedServices + migrations + evidence + incidents, /AKIA[A-Z0-9]{16}/)
+  assert.doesNotMatch(sharedServices + migrations + incidents, /AKIA[A-Z0-9]{16}/)
 })

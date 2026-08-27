@@ -56,21 +56,14 @@ export async function validateManifest(
   const violations: PackageBoundaryViolation[] = []
   const exports = context.manifest["exports"]
   if (
-    context.manifest["private"] !== false ||
+    context.manifest["private"] !== true ||
     context.manifest["type"] !== "module" ||
     context.manifest["main"] !== undefined ||
     !isJsonObject(exports)
   ) {
     violations.push({
       code: PACKAGE_BOUNDARY_VIOLATION_CODE.ESM_MANIFEST_INVALID,
-      message: "Public packages must be ESM-only with an explicit exports object and no main field",
-      packageName: context.name,
-    })
-  }
-  if (JSON.stringify(readStringArray(context.manifest["files"])) !== '["dist","package.json"]') {
-    violations.push({
-      code: PACKAGE_BOUNDARY_VIOLATION_CODE.FILES_ALLOWLIST_INVALID,
-      message: 'Published files must be exactly ["dist", "package.json"]',
+      message: "Internal packages must be ESM-only with an explicit exports object and no main field",
       packageName: context.name,
     })
   }
