@@ -1,11 +1,13 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { useMemo, useState, useTransition } from "react"
+import { useEffect, useMemo, useState, useTransition } from "react"
 
 import { AlertTriangleIcon, CheckCircleIcon, EyeIcon, LayersIcon } from "@/components/icons"
 
 type IntakeItem = Readonly<Record<string, unknown>>
+
+type SiteOption = Readonly<{ readonly id: number | string; readonly name?: string }>
 
 type IntakeInboxProps = {
   readonly canManage: boolean
@@ -31,7 +33,30 @@ export const IntakeInbox = ({ canManage, initialChannel, initialItems, initialSt
   const [selectedId, setSelectedId] = useState<string>(() => String(initialItems[0]?.["id"] ?? ""))
   const [mergeTarget, setMergeTarget] = useState("")
   const [notice, setNotice] = useState<string | null>(null)
+  const [sites, setSites] = useState<readonly SiteOption[]>([])
+  const [importError, setImportError] = useState<string | null>(null)
+  const [importing, setImporting] = useState(false)
   const selected = useMemo(() => initialItems.find((item) => String(item["id"]) === selectedId) ?? initialItems[0] ?? null, [initialItems, selectedId])
+
+  useEffect(() => {
+    if (!canManage) return
+    let active = true
+    void fetch("/api/sites?depth=0&limit=100&sort=name", { credentials: "same-origin" })
+      .then(async (response) => {
+        if (!response.ok) return []
+        const payload = (await response.json()) as { readonly docs?: readonly SiteOption[] }
+        return payload.docs ?? []
+      })
+      .then((docs) => {
+        if (active) setSites(docs)
+      })
+      .catch(() => {
+        if (active) setSites([])
+      })
+    return () => {
+      active = false
+    }
+  }, [canManage])
 
   const setFilter = (key: "channel" | "status", value: string) => {
     const params = new URLSearchParams()
@@ -40,6 +65,40 @@ export const IntakeInbox = ({ canManage, initialChannel, initialItems, initialSt
     if (nextChannel) params.set("channel", nextChannel)
     if (nextStatus) params.set("status", nextStatus)
     startTransition(() => router.replace(`/admin/inbox${params.size > 0 ? `?${params.toString()}` : ""}`))
+  }
+
+  const importUrl = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setImportError(null)
+    setImporting(true)
+    const form = new FormData(event.currentTarget)
+    const title = String(form.get("title") ?? "").trim()
+    const sourceUrl = String(form.get("sourceUrl") ?? "").trim()
+    const suggestedSiteId = String(form.get("suggestedSiteId") ?? "").trim()
+    try {
+      const response = await fetch("/api/intake-operations", {
+        body: JSON.stringify({
+          channel: "url",
+          sourceUrl,
+          suggestedSiteId: Number(suggestedSiteId),
+          title,
+        }),
+        credentials: "same-origin",
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      })
+      if (!response.ok) {
+        setImportError("无法导入该 URL。请确认它是公开可访问的网页并检查填写内容。")
+        return
+      }
+      setNotice("URL 已导入，正在抓取正文。")
+      event.currentTarget.reset()
+      startTransition(() => router.refresh())
+    } catch {
+      setImportError("暂时无法连接到服务，请稍后重试。")
+    } finally {
+      setImporting(false)
+    }
   }
 
   const operate = async (action: "ignore" | "adopt" | "merge" | "retry") => {
@@ -89,6 +148,67 @@ export const IntakeInbox = ({ canManage, initialChannel, initialItems, initialSt
           <label className="grid gap-1 text-xs font-semibold text-[var(--console-ink-muted)]">Status<select className="gf-console-focus h-10 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] px-3 text-sm text-[var(--console-ink)]" disabled={isPending} onChange={(event) => setFilter("status", event.target.value)} value={initialStatus}>{STATUSES.map((status) => <option key={status} value={status}>{status || "All statuses"}</option>)}</select></label>
         </div>
       </header>
+
+      {canManage && (
+        <form
+          className="gf-console-card grid gap-4 p-5 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)_minmax(180px,0.7fr)_auto] sm:items-end"
+          onSubmit={importUrl}
+        >
+          <div className="sm:col-span-full">
+            <p className="m-0 text-sm font-semibold text-[var(--console-ink)]">导入公开 URL</p>
+            <p className="m-0 pt-1 text-xs leading-5 text-[var(--console-ink-muted)]">URL 会先进入稿源箱并由后台安全抓取；确认后再采用为内容版本。</p>
+          </div>
+          <label className="grid gap-1.5 text-sm font-medium text-[var(--console-ink)]">
+            稿源标题
+            <input
+              className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-base text-[var(--console-ink)] outline-none"
+              name="title"
+              placeholder="例如：官方产品更新"
+              required
+            />
+          </label>
+          <label className="grid gap-1.5 text-sm font-medium text-[var(--console-ink)]">
+            公开 URL
+            <input
+              autoCapitalize="none"
+              className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-base text-[var(--console-ink)] outline-none"
+              inputMode="url"
+              name="sourceUrl"
+              placeholder="https://example.com/article"
+              required
+              type="url"
+            />
+          </label>
+          <label className="grid gap-1.5 text-sm font-medium text-[var(--console-ink)]">
+            目标站点
+            <select
+              className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-base text-[var(--console-ink)] outline-none disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={sites.length === 0 || importing}
+              name="suggestedSiteId"
+              required
+            >
+              <option value="">{sites.length === 0 ? "没有可关联的站点" : "请选择站点"}</option>
+              {sites.map((site) => (
+                <option key={String(site.id)} value={String(site.id)}>
+                  {site.name ?? "受限站点"}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            className="gf-console-focus inline-flex h-11 items-center justify-center rounded-xl bg-[var(--console-accent)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--console-accent-hover)] disabled:cursor-wait disabled:opacity-60"
+            disabled={importing || sites.length === 0}
+            type="submit"
+          >
+            {importing ? "正在导入…" : "导入 URL"}
+          </button>
+          {importError !== null && (
+            <p className="sm:col-span-full m-0 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm leading-6 text-rose-700" role="alert">
+              {importError}
+            </p>
+          )}
+        </form>
+      )}
 
       <section className="gf-console-card grid min-h-[520px] overflow-hidden lg:grid-cols-[minmax(340px,0.95fr)_minmax(420px,1.35fr)]">
         <div className="border-b border-[var(--console-border)] lg:border-r lg:border-b-0">

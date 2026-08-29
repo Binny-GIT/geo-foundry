@@ -42,6 +42,7 @@ const findSite = async (tenantId) => {
   return found.docs[0] ?? fail("no active site in tenant")
 }
 
+let exitCode = 0
 try {
   const editor = await findUser("embed-editor@geo-foundry.test")
   const tenantAdmin = await findUser("embed-tenant-admin@geo-foundry.test")
@@ -184,6 +185,17 @@ try {
     overrideAccess: true,
     where: { and: [{ site: { equals: site.id } }, { state: { in: ["current", "published"] } }] },
   })
+  const urls = await payload.find({
+    collection: "url-records",
+    depth: 0,
+    limit: 2,
+    overrideAccess: true,
+    where: { and: [{ content: { equals: content.id } }, { site: { equals: site.id } }] },
+  })
+  const url = urls.docs[0]
+  if (urls.docs.length !== 1 || url?.state !== "active" || typeof url.canonicalUrl !== "string") {
+    fail("published edition URL was not activated")
+  }
   console.log(JSON.stringify({
     code: "E2E_SUCCEEDED",
     editionStatus: finalEdition.workflowStatus,
@@ -191,7 +203,15 @@ try {
     planId: plan.planId,
     releaseId: terminal.releaseId,
     releasesVisible: releases.docs.length,
+    urlState: url.state,
   }))
+  await transitionEdition(payload, { editionId, target: "archived", user: publisher })
+  console.log(JSON.stringify({ code: "E2E_EDITION_ARCHIVED", editionId }))
+} catch (error) {
+  exitCode = 1
+  console.error(JSON.stringify({ code: "E2E_SCHEDULED_PUBLISH_FAILED", message: String(error) }))
 } finally {
-  process.exit(0)
+  void payload.destroy()
 }
+
+process.exit(exitCode)

@@ -21,4 +21,14 @@ check() {
 check "${LOCAL_BASE}/api/health" '"status":"alive"'
 check "${LOCAL_BASE}/api/readiness" '"status":"ready"'
 check "${PUBLIC_BASE}/api/health" '"status":"alive"'
+
+cms_image="$(sudo -n docker inspect --format '{{.Image}}' geo-foundry-cms-mk-dev)"
+worker_image="$(sudo -n docker inspect --format '{{.Image}}' geo-foundry-worker-mk-dev)"
+worker_state="$(sudo -n docker inspect --format '{{.State.Status}}' geo-foundry-worker-mk-dev)"
+if [[ "$worker_state" != "running" || "$cms_image" != "$worker_image" ]]; then
+  echo "smoke failed: worker state=${worker_state}; image-match=$([[ "$cms_image" == "$worker_image" ]] && echo yes || echo no)" >&2
+  exit 1
+fi
+printf 'ok: worker running with CMS image digest\n'
+bash "$(dirname "$0")/worker-smoke.sh"
 echo "smoke passed"

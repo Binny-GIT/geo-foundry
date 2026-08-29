@@ -71,6 +71,14 @@ export const isPublicAddress = (address: string): boolean => {
   }
 }
 
+type PinnedAddress = { readonly address: string; readonly family: 4 | 6 }
+
+export function pinnedLookupResult(resolved: PinnedAddress, all: true): PinnedAddress[]
+export function pinnedLookupResult(resolved: PinnedAddress, all: false): PinnedAddress
+export function pinnedLookupResult(resolved: PinnedAddress, all: boolean): PinnedAddress | PinnedAddress[] {
+  return all ? [{ ...resolved }] : resolved
+}
+
 const validateUrl = (value: string): URL => {
   if (value.length === 0 || value.length > 4_000) throw fail("INTAKE_URL_INVALID")
   let url: URL
@@ -148,7 +156,13 @@ const requestOnce = async (url: URL): Promise<{ body: Uint8Array; headers: impor
       url,
       {
         headers: { accept: "text/html,application/rss+xml,application/atom+xml,text/xml,application/xml,text/plain;q=0.8,*/*;q=0.1", "user-agent": USER_AGENT },
-        lookup: (_hostname, _options, callback) => callback(null, resolved.address, resolved.family),
+        lookup: (_hostname, options, callback) => {
+          if (options.all === true) {
+            callback(null, pinnedLookupResult(resolved, true))
+            return
+          }
+          callback(null, resolved.address, resolved.family)
+        },
         servername: url.protocol === "https:" ? url.hostname : undefined,
         timeout: REQUEST_TIMEOUT_MS,
       },

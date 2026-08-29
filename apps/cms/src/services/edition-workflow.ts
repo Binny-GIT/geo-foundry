@@ -23,6 +23,7 @@ import {
   type TransactionScope,
 } from "../outbox/outbox"
 import { type EditionContentSnapshot, hashEditionContent } from "./edition-input-hash"
+import { reserveEditionUrl } from "./edition-url-lifecycle"
 
 export class EditionWorkflowError extends Error {
   override readonly name = "EditionWorkflowError"
@@ -327,6 +328,9 @@ const transitionEditionInScope = async (
   const qualityAssessmentState = needsAssessment
     ? await verifiedAssessmentState(payload, doc, req)
     : null
+  if (options.target === "approved") {
+    await reserveEditionUrl(payload, doc, req)
+  }
 
   if (options.target === "compiled" && stringField(options.compiledReleaseId) === null) {
     throw fail("EDITION_WORKFLOW_RELEASE_REQUIRED", "compile intent requires artifact metadata")

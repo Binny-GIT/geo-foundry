@@ -4,23 +4,15 @@ import Script from "next/script"
 import type { ReactNode } from "react"
 import type { ServerFunctionClient } from "payload"
 
-import { importMap } from "../../../../(payload)/admin/importMap"
+import { importMap } from "../../../(payload)/admin/importMap"
 import config from "@payload-config"
 
-import "../../../../(payload)/admin-theme.css"
-import "../../../../(payload)/admin-tailwind.css"
-
-type EmergencyLayoutProps = {
-  readonly children: ReactNode
-}
+import "../../../(payload)/admin-theme.css"
+import "../../../(payload)/admin-tailwind.css"
 
 const serverFunction: ServerFunctionClient = async (arguments_) => {
   "use server"
-  return handleServerFunctions({
-    ...arguments_,
-    config,
-    importMap,
-  })
+  return handleServerFunctions({ ...arguments_, config, importMap })
 }
 
 const PayloadLanguageBootstrap = () => (
@@ -29,7 +21,7 @@ const PayloadLanguageBootstrap = () => (
   </Script>
 )
 
-const EmergencyLayout = ({ children }: EmergencyLayoutProps) => (
+const WorkspaceLayout = ({ children }: { readonly children: ReactNode }) => (
   <>
     <PayloadLanguageBootstrap />
     <RootLayout config={config} importMap={importMap} serverFunction={serverFunction}>
@@ -38,4 +30,4 @@ const EmergencyLayout = ({ children }: EmergencyLayoutProps) => (
   </>
 )
 
-export default EmergencyLayout
+export default WorkspaceLayout

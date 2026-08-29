@@ -174,6 +174,7 @@ describe("publication plans", () => {
       "source-snapshots",
       "intake-items",
       "connectors",
+      "url-records",
       "content-editions",
       "contents",
       "domains",

@@ -66,7 +66,7 @@ docker compose --env-file /opt/geo-foundry/mk-dev.env \
 
 ### Worker
 
-Worker 与 Web 使用同一镜像，通过启动命令区分角色。CMS 的 Node instrumentation 每秒将 PostgreSQL Outbox 中的 pending 行投递到 Redis；PostgreSQL 仍是事实源，稳定 job ID 保证重复投递安全。mk-dev 覆盖层启用 Worker profile；它必须与 CMS 一同重建，并从同一个只读 owner-only 凭据目录读取 Redis、RustFS 与（若启用）AI Provider key。内部 CMS 调用使用 `content-service-keyring.json`：每个 tenant 对应独立的 `content-service` API key，Worker 按 BullMQ job/ledger 中的 tenant ID 选择 key，绝不将写请求跨 tenant 试探。部署后检查 `geo-foundry-worker-mk-dev` 正常运行，并确认日志中没有 credential、Redis、CMS 或 RustFS 连接失败。
+Worker 与 Web 使用同一镜像，通过启动命令区分角色。CMS 的 Node instrumentation 每秒将 PostgreSQL Outbox 中的 pending 行投递到 Redis；PostgreSQL 仍是事实源，稳定 job ID 保证重复投递安全。mk-dev 覆盖层启用 Worker profile；它必须与 CMS 一同重建，并从同一个只读 owner-only 凭据目录读取 Redis、RustFS 与（若启用）AI Provider key。内部 CMS 调用使用 `content-service-keyring.json`：每个 tenant 对应独立的 `content-service` API key，Worker 按 BullMQ job/ledger 中的 tenant ID 选择 key，绝不将写请求跨 tenant 试探。部署后检查 `geo-foundry-worker-mk-dev` 正常运行，并确认日志中没有 credential、Redis、CMS 或 RustFS 连接失败。`deploy/smoke/smoke.sh` 会进一步执行 `worker-smoke.sh`：从实际 Worker 容器验证 owner-only keyring/Redis 文件可读取、keyring 结构有效、Redis PING 与 CMS health 成功；它不创建 job、不读取或输出凭据值。可运行 `deploy/smoke/runtime-status.sh` 做只读基线检查：它验证 CMS Docker health/restart、CMS/Worker 镜像摘要一致、本机/公网 health、Outbox 与未终结 operation 的年龄、失败发布计划、活跃 RSS connector 轮询时效与备份新鲜度；脚本不读取或输出凭据值。
 
 ## 4. 数据库迁移
 
@@ -148,7 +148,7 @@ mk-dev 的迁移在宿主机执行，容器只负责服务。迁移后无需重�
 
 数据库中的任务记录是事实源，Redis 与 BullMQ 不是。
 
-Worker 启动时和运行期间会读取未终结的任务，按稳定任务 ID 重新入队。相同任务 ID 会被去重，因此重复恢复不会产生重复副作用；已终结的任务不会重新入队。
+Worker 启动时立即读取未终结任务，并每五分钟执行一次低频兜底恢复；到期发布计划仍每秒轮询。恢复按稳定任务 ID 重新入队，相同任务 ID 会被去重，因此重复恢复不会产生重复副作用；已终结任务不会重新入队。
 
 处理步骤：
 
@@ -205,7 +205,7 @@ AI_API_KEY_FILE=/approved/path/ai-api-key
 - **对象存储**：发布产物和稿源快照不可覆盖，删除策略必须保守。
 - **凭据文件**：单独离线保管，不随仓库或镜像分发。
 
-恢复演练至少覆盖：数据库恢复后控制台可登录、已发布站点仍可访问、未终结任务可恢复。
+恢复演练至少覆盖：数据库恢复后控制台可登录、已发布站点仍可访问、未终结任务可恢复。mk-dev 上执行 `make verify-backup-restore` 会恢复最新 owner-only dump 到一次性验证数据库、检查表和 migration 记录后自动删除验证库；`make runtime-status` 则执行不含写操作的运行基线检查。
 
 ## 11. 已知问题
 

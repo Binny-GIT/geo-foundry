@@ -237,6 +237,7 @@ describe("edition workflow gating integration", () => {
       "source-snapshots",
       "intake-items",
       "connectors",
+      "url-records",
       "content-editions",
       "contents",
       "domains",

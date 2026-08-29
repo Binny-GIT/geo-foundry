@@ -85,8 +85,9 @@ const localDateValue = (value: unknown): string => {
   if (typeof value !== "string") return ""
   const date = new Date(value)
   if (Number.isNaN(date.valueOf())) return ""
-  const offset = date.getTimezoneOffset() * 60_000
-  return new Date(date.valueOf() - offset).toISOString().slice(0, 16)
+  // `datetime-local` has no timezone; render UTC deterministically so server
+  // and browser hydration do not differ by the viewer's local offset.
+  return date.toISOString().slice(0, 16)
 }
 
 export const ContentEditionControlRail = ({ readOnly }: { readonly readOnly: boolean }) => {

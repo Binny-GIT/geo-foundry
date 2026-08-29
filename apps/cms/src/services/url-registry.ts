@@ -20,13 +20,11 @@ import {
   type PayloadRequest,
 } from "payload"
 
+import type { TransactionScope } from "../outbox/outbox"
 import { UrlRegistryError } from "./url-registry-errors"
 import { buildSiteRegistry, toUrlRecordRow, type UrlRecordRow } from "./url-registry-snapshot"
 
 const fail = (code: string, detail: string): UrlRegistryError => new UrlRegistryError(code, detail)
-
-type TransactionId = NonNullable<PayloadRequest["transactionID"]>
-type TransactionScope = { readonly transactionID: TransactionId } | Record<string, never>
 
 const txOf = (req: PayloadRequest): TransactionScope => {
   const transactionID = req.transactionID
@@ -76,13 +74,18 @@ export const runUrlRegistryOperation = async <T>(
   payload: Payload,
   siteId: number,
   operation: (registry: UrlRegistry, req: TransactionScope) => Promise<T>,
+  scope?: TransactionScope,
 ): Promise<T> => {
+  if (scope !== undefined) {
+    const rows = await rowsOfSite(payload, siteId, scope)
+    return operation(buildSiteRegistry(rows), scope)
+  }
   const req = await createLocalReq({}, payload)
   const ownsTransaction = await initTransaction(req)
   try {
-    const rows = await rowsOfSite(payload, siteId, txOf(req))
-    const registry = buildSiteRegistry(rows)
-    const result = await operation(registry, txOf(req))
+    const transactionScope = txOf(req)
+    const rows = await rowsOfSite(payload, siteId, transactionScope)
+    const result = await operation(buildSiteRegistry(rows), transactionScope)
     if (ownsTransaction) {
       await commitTransaction(req)
     }
@@ -103,7 +106,11 @@ export type ReserveInput = {
   readonly pathname: string
 }
 
-export const reserveUrlRecord = async (payload: Payload, input: ReserveInput): Promise<number> =>
+export const reserveUrlRecord = async (
+  payload: Payload,
+  input: ReserveInput,
+  scope?: TransactionScope,
+): Promise<number> =>
   runUrlRegistryOperation(payload, input.siteId, async (registry, req) => {
     const parsedUrlId = parseUrlId(crypto.randomUUID())
     const siteId = parseSiteId(String(input.siteId))
@@ -140,14 +147,19 @@ export const reserveUrlRecord = async (payload: Payload, input: ReserveInput): P
       req,
     })
     return created.id
-  })
+  }, scope)
 
-const rowOfRecord = async (payload: Payload, recordId: number): Promise<UrlRecordRow> => {
+const rowOfRecord = async (
+  payload: Payload,
+  recordId: number,
+  scope: TransactionScope = {},
+): Promise<UrlRecordRow> => {
   const doc = await payload.findByID({
     collection: "url-records",
     id: recordId,
     depth: 0,
     overrideAccess: true,
+    req: scope,
   })
   return toUrlRecordRow({
     canonicalUrl: doc.canonicalUrl,
@@ -168,8 +180,9 @@ export const activateUrlRecord = async (
   payload: Payload,
   recordId: number,
   hostname: string,
+  scope?: TransactionScope,
 ): Promise<void> => {
-  const row = await rowOfRecord(payload, recordId)
+  const row = await rowOfRecord(payload, recordId, scope)
   await runUrlRegistryOperation(payload, row.site, async (registry, req) => {
     const urlId = parseUrlId(String(recordId))
     if (!urlId.ok) {
@@ -195,7 +208,7 @@ export const activateUrlRecord = async (
       overrideAccess: true,
       req,
     })
-  })
+  }, scope)
 }
 
 export const retainActiveUrl = async (

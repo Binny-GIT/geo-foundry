@@ -26,6 +26,8 @@ import { QUEUE_NAME, workJobOptions } from "./queues/flows.js"
 import { reconcileNonTerminalOperations } from "./reconcile/reconcile.js"
 import { createWorkerRuntime } from "./runtime/worker-runtime.js"
 
+const RECONCILIATION_INTERVAL_MS = 5 * 60 * 1_000
+
 /** Worker daemon entry for deterministic queues and explicitly configured AI providers. */
 export const main = async (): Promise<void> => {
   const logger = (event: WorkerLogEvent) =>
@@ -142,10 +144,13 @@ export const main = async (): Promise<void> => {
   await runtime.start()
   const reconciliationTimer = setInterval(() => {
     void reconcile()
+  }, RECONCILIATION_INTERVAL_MS)
+  const publicationPlanTimer = setInterval(() => {
     void dispatchPublicationPlans()
   }, 1_000)
   const shutdown = async () => {
     clearInterval(reconciliationTimer)
+    clearInterval(publicationPlanTimer)
     await runtime.close()
     await intakeQueue.close()
     snapshots.close()

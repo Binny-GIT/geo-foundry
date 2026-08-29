@@ -16,12 +16,33 @@ describe("content edition unified workspace", () => {
     expect(document).toContain("ContentEditionPreview")
   })
 
-  it("keeps the legacy Console edition route as a canonical workspace redirect", async () => {
-    const route = await sourceOf("src/app/(console)/admin/(authenticated)/editions/[id]/page.tsx")
+  it("uses a narrow Payload bridge and keeps emergency fallback super-admin-only", async () => {
+    const [legacyRoute, bridge, createBridge, emergency, workspaceLayout, emergencyLayout] = await Promise.all([
+      sourceOf("src/app/(console)/admin/(authenticated)/editions/[id]/page.tsx"),
+      sourceOf("src/app/(workspace)/admin/workspace/editions/[id]/page.tsx"),
+      sourceOf("src/app/(workspace)/admin/workspace/editions/new/page.tsx"),
+      sourceOf("src/app/(console)/admin/%5Femergency/[[...segments]]/page.tsx"),
+      sourceOf("src/app/(workspace)/admin/workspace/layout.tsx"),
+      sourceOf("src/app/(console)/admin/%5Femergency/[[...segments]]/layout.tsx"),
+    ])
 
-    expect(route).toContain("/admin/collections/content-editions/")
-    expect(route).toContain("redirect(")
-    expect(route).not.toContain("ContentEditionStudio")
+    expect(legacyRoute).toContain("/admin/workspace/editions/")
+    expect(legacyRoute).toContain("redirect(")
+    expect(legacyRoute).not.toContain("ContentEditionStudio")
+    expect(bridge).toContain('segments: ["collections", "content-editions", id]')
+    expect(bridge).toContain("requireConsoleSession")
+    expect(bridge).toContain("CMS_ACTION.READ")
+    expect(bridge).toContain('export const dynamic = "force-dynamic"')
+    expect(createBridge).toContain('segments: ["collections", "content-editions", "create"]')
+    expect(createBridge).toContain("CMS_ACTION.CREATE")
+    expect(createBridge).toContain('export const dynamic = "force-dynamic"')
+    expect(emergency).toContain("requireEmergencySuperAdmin")
+    expect(emergency).not.toContain("requireEmergencySession")
+    for (const layout of [workspaceLayout, emergencyLayout]) {
+      expect(layout).toContain('strategy="beforeInteractive"')
+      expect(layout).toContain("payload-lng=zh")
+      expect(layout).toContain("startsWith('payload-lng=')")
+    }
   })
 
   it("binds workspace metadata and review controls to form-backed fields", async () => {

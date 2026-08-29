@@ -26,7 +26,7 @@ MK_DEV_ENV ?= /opt/geo-foundry/mk-dev.env
 COMPOSE_MK_DEV := docker compose --env-file $(MK_DEV_ENV) -f deploy/compose.yaml -f deploy/compose.mk-dev.yaml
 COMPOSE_VERIFY := docker compose --env-file deploy/smoke/verify.env -f deploy/compose.yaml -f deploy/compose.verify.yaml
 
-.PHONY: image-build container-smoke deploy-mk-dev rollback-mk-dev
+.PHONY: image-build container-smoke deploy-mk-dev rollback-mk-dev runtime-status verify-backup-restore worker-smoke
 
 image-build:
 	@deploy/image-build-mkdev.sh
@@ -51,3 +51,12 @@ rollback-mk-dev:
 	@$(COMPOSE_MK_DEV) config -q
 	@$(COMPOSE_MK_DEV) up -d --no-build --wait --wait-timeout 120
 	@deploy/smoke/smoke.sh
+
+runtime-status:
+	@deploy/smoke/runtime-status.sh
+
+worker-smoke:
+	@deploy/smoke/worker-smoke.sh
+
+verify-backup-restore:
+	@deploy/smoke/verify-backup-restore.sh

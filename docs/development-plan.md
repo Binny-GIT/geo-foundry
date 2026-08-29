@@ -106,7 +106,7 @@
 
 - 在 compose 中用同一镜像新增 Worker 服务，命令切换为 worker 角色，并通过 owner-only 凭据文件引用获得 CMS、Redis、对象存储与 AI Provider 配置。
 - 新增 `publication-plans`：目标站点、计划 UTC instant、创建时的 IANA 时区快照、状态和关联 operation。
-- Worker 使用现有的一秒 reconciliation 循环领取到期计划；CMS 以 PostgreSQL revision 条件更新原子 claim，Redis delayed job 不作为计划事实源。
+- Worker 每秒轮询到期计划；操作账本 reconciliation 仅在启动时及低频兜底恢复时执行。CMS 以 PostgreSQL revision 条件更新原子 claim，Redis delayed job 不作为计划事实源。
 - 到点后复用既有 publisher 授权、编译、校验、上传与指针切换链路；发布计划页提供按日或按周列表。
 - 发布失败可见、可重试，保留失败原因；取消与 Worker 恢复不得产生重复发布。
 - 站点管理增加品牌档案字段。

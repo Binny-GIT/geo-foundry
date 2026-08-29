@@ -259,6 +259,7 @@ describe("internal integration endpoints", () => {
       "source-snapshots",
       "intake-items",
       "connectors",
+      "url-records",
       "content-editions",
       "contents",
       "domains",

@@ -303,13 +303,15 @@ deploy/smoke/smoke.sh
 ## 运营域补全与工作台可达性修复（2026-08-28，镜像 `mk-dev-44262c6`，最终摘要 `sha256:968c0e6b...`）
 
 - **新增能力**：今日工作页展示表现更新建议（流量下滑 ≥30% 的已发布版本，一键创建刷新草稿）；RSS connector 定时轮询（每小时、单一 feed 父条目复用、子条目按规范化 URL 跳过已知项，`connectors.last_polled_at` 迁移 `20260828_010000_wave8_rss_polling` 已应用，状态 22/22）；稿件工作台左栏新增站点版本并列对比（标题/摘要/正文块）；发布计划页按日/周 UTC 分组列表。
-- **工作台可达性修复**：Payload `_emergency` 子树原先仅 super-admin 可入，导致普通角色完全无法打开三栏工作台（Console 详情页「打开内容工作台」按钮循环重定向）。现在 `_emergency` 允许任何已认证会话进入（集合操作仍逐项走服务端 RBAC），工作台入口统一指向 `/admin/_emergency/collections/content-editions/{id}`。
-- **水合修复**：工作台左栏日期改用固定 UTC 格式，消除服务端/浏览器时区不一致导致的 React #418。`_emergency` 其余页面仍存在 Payload 自身的 #418（含原生列表页），已计入浏览器测试无害清单。
+- **工作台可达性与路由边界修复**：`_emergency` 恢复为 `requireEmergencySuperAdmin()` 限制的原生 Payload 应急树。内容版本只经固定 bridge 开放：`/admin/workspace/editions/:id`（当前租户且具 `editions:read`）和 `/admin/workspace/editions/new`（具 `editions:create`）；bridge 只传递 `collections/content-editions/:id` 或 `create`，不接受任意 Payload segments。
+- **水合修复**：工作台日期固定 UTC；workspace 与 emergency 的 `RootLayout` 在交互前仅于 cookie 缺失时写入 `payload-lng=zh`，使 Payload SSR fallback 与浏览器首次 i18n 初始化一致。无预置语言 cookie 的 Chromium bridge 回归已确认 React #418 为零；该错误不再列入浏览器测试无害清单。
 - **构建警告清零**：schema fixtures 从包 barrel 摘除（topLevelAwait 不再进入 CMS bundle）；`@valkey/valkey-glide` 以 webpack alias 排除。`pnpm build` 无警告。
 - **例行备份**：`/usr/local/sbin/geo-foundry-backup` + `/etc/cron.d/geo-foundry-backup`（每日 02:30 UTC，pg_dump -Fc，保留 14 天），首跑成功。
-- **浏览器 E2E**：`.test/browser-workspace-tests.mjs` 5/5 PASS（Today Work、稿源箱、发布计划分组、三栏工作台+站点版本、无硬错误；在 mk-dev 本机对 127.0.0.1:3090 运行，Chromium `--no-sandbox --no-proxy-server`）。
+- **浏览器 E2E**：`.test/browser-workspace-tests.mjs` 7/7 PASS（Today Work、稿源箱、发布计划分组、editor 三栏 bridge+站点版本、editor emergency 拒绝、super-admin emergency fallback、无硬错误；在 mk-dev 本机对 127.0.0.1:3090 运行，Chromium `--no-sandbox --no-proxy-server`）。
 - **定时发布生产端到端**：embed 租户真实创建内容→审核→批准→排期 90 秒→Worker 按期领取→publish-gate 成功→plan `succeeded`，release `rel-fc444a2de32d21f6566ca9da` 为 current，edition 548 published，Outbox pending 0。注意：站点需有 active canonical domain 才能发布（E2E 为 375 站补建 `e2e-scheduled-publish-375.test`）。脚本 `apps/cms/scripts/verify-scheduled-publish.mjs`。
-- **遗留**：AI Provider 仍为 fake（无 `ai-api-key` 凭据文件，`AI_PROVIDER` 未设置；提供真实 key 后配置 `AI_PROVIDER=openai-compatible` 即可）；Payload `_emergency` 原生页面的 React #418 属上游问题。
+- **URL 生命周期与发布计划并发（2026-08-28）**：稿件在 reviewer 通过时于同一事务 reserve URL，已验证的 publish receipt 与 release registry 写入同一事务中将其 activate；后续草稿复用 active URL，rename 继续生成 redirect，rollback 仅切 release pointer。publication plan 的 lease claim 由 PostgreSQL `UPDATE … WHERE revision/status … RETURNING` 仲裁，避免 Payload ORM 并发返回语义导致重复 enqueue。
+- **RSS 真实运行验证（2026-08-28）**：Worker 的安全 DNS pinning 适配 Node 24 `lookup({ all: true })` 回调协议，仍对每跳拒绝 loopback/私网/metadata/非默认端口。`verify-rss-polling.mjs` 使用受控的公开 XML feed，真实确认 feed parent ready、创建 20 条 URL 子稿源，并在 finally 禁用验证 connector；一次 NASA feed 因私网地址解析被拒绝，验证了 SSRF fail-closed 路径。
+- **遗留**：AI Provider 仍为 fake（无 `ai-api-key` 凭据文件，`AI_PROVIDER` 未设置；提供真实 key 后配置 `AI_PROVIDER=openai-compatible` 即可）。
 
 ## 回滚
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import { extractArticle, extractRssEntries } from "../../src/intake/extract.js"
-import { isPublicAddress } from "../../src/intake/safe-fetch.js"
+import { isPublicAddress, pinnedLookupResult } from "../../src/intake/safe-fetch.js"
 import { snapshotStorageKeyOf } from "../../src/intake/snapshot-store.js"
 
 describe("intake SSRF boundaries", () => {
@@ -22,6 +22,14 @@ describe("intake SSRF boundaries", () => {
     }
     expect(isPublicAddress("8.8.8.8")).toBe(true)
     expect(isPublicAddress("2606:4700:4700::1111")).toBe(true)
+  })
+})
+
+describe("intake pinned DNS lookup", () => {
+  it("returns the Node all-address shape without releasing the verified address", () => {
+    const resolved = { address: "8.8.8.8", family: 4 as const }
+    expect(pinnedLookupResult(resolved, false)).toEqual(resolved)
+    expect(pinnedLookupResult(resolved, true)).toEqual([resolved])
   })
 })
 

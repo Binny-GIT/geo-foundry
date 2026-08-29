@@ -1,4 +1,5 @@
 import { validateTimezone } from "@geo/domain"
+import { sql } from "@payloadcms/db-postgres"
 import type { Payload } from "payload"
 
 import { resolveSessionClaims } from "../access/session"
@@ -64,6 +65,38 @@ const updatePlan = async (
     },
   })
   return updated.docs.length === 1
+}
+
+const claimPlan = async (
+  payload: Payload,
+  plan: Record<string, unknown>,
+  input: {
+    readonly incrementAttempts: boolean
+    readonly now: string
+    readonly targetStatus: "running"
+    readonly workerId: string
+  },
+): Promise<boolean> => {
+  const id = numberOf(plan["id"])
+  if (id === null) return false
+  const revision = revisionOf(plan["revision"])
+  const status = typeof plan["status"] === "string" ? plan["status"] : ""
+  if (status !== "pending" && status !== "running") return false
+  const claimed = await payload.db.drizzle.execute(sql`
+    UPDATE "geo_foundry"."publication_plans"
+    SET
+      "attempts" = "attempts" + ${input.incrementAttempts ? 1 : 0},
+      "claimed_at" = ${input.now}::timestamp(3) with time zone,
+      "claimed_by" = ${input.workerId},
+      "status" = ${input.targetStatus}::"geo_foundry"."enum_publication_plans_status",
+      "revision" = "revision" + 1,
+      "updated_at" = now()
+    WHERE "id" = ${id}
+      AND "revision" = ${revision}
+      AND "status" = ${status}::"geo_foundry"."enum_publication_plans_status"
+    RETURNING "id"
+  `)
+  return claimed.rows.length === 1
 }
 
 export const createPublicationPlan = async (
@@ -200,6 +233,22 @@ const settleRunningPlans = async (
   }
 }
 
+const operationAttachedToPlan = async (
+  payload: Payload,
+  planId: string,
+): Promise<DuePublicationPlan | null> => {
+  const found = await payload.find({
+    collection: "publication-plans",
+    depth: 0,
+    limit: 1,
+    overrideAccess: true,
+    where: { planId: { equals: planId } },
+  })
+  const current = docOf(found.docs[0])
+  const operationId = typeof current["operationId"] === "string" ? current["operationId"] : null
+  return operationId === null ? null : { operationId, planId }
+}
+
 const attachPublishOperation = async (
   payload: Payload,
   plan: Record<string, unknown>,
@@ -210,6 +259,8 @@ const attachPublishOperation = async (
   if (requestedById === null || editionId === null || planId === null) {
     return null
   }
+  const existing = await operationAttachedToPlan(payload, planId)
+  if (existing !== null) return existing
   const publisher = await payload
     .findByID({ collection: "users", depth: 0, id: requestedById, overrideAccess: true })
     .catch(() => null)
@@ -224,8 +275,11 @@ const attachPublishOperation = async (
       user: publisher,
     })
     const attached = await updatePlan(payload, plan, { operationId: outcome.operationId }, "running")
-    return attached ? { operationId: outcome.operationId, planId } : null
+    if (attached) return { operationId: outcome.operationId, planId }
+    return operationAttachedToPlan(payload, planId)
   } catch (error) {
+    const attached = await operationAttachedToPlan(payload, planId)
+    if (attached !== null) return attached
     const code = error instanceof Error ? error.message : "PUBLICATION_PLAN_OPERATION_FAILED"
     await updatePlan(payload, plan, { lastError: code.slice(0, 500), status: "failed" }, "running")
     return null
@@ -263,16 +317,29 @@ export const dispatchDuePublicationPlans = async (
     overrideAccess: true,
     where: { and: [{ status: { equals: "running" } }, { tenant: { equals: tenantId } }] },
   })
-  const resumed = await Promise.all(
-    runningWithoutOperation.docs
-      .map(docOf)
-      .filter(
-        (plan) =>
-          typeof plan["operationId"] !== "string" &&
-          resumableClaim(plan, now),
-      )
-      .map(async (plan) => attachPublishOperation(payload, plan)),
-  )
+  const resumed: DuePublicationPlan[] = []
+  for (const raw of runningWithoutOperation.docs) {
+    const plan = docOf(raw)
+    if (typeof plan["operationId"] === "string" || !resumableClaim(plan, now)) continue
+    const claimed = await claimPlan(payload, plan, {
+      incrementAttempts: false,
+      now,
+      targetStatus: "running",
+      workerId: input.workerId,
+    })
+    if (!claimed) continue
+    const refreshed = await payload.find({
+      collection: "publication-plans",
+      depth: 0,
+      limit: 1,
+      overrideAccess: true,
+      where: { planId: { equals: plan["planId"] } },
+    })
+    const current = docOf(refreshed.docs[0])
+    if (current["claimedBy"] !== input.workerId) continue
+    const attached = await attachPublishOperation(payload, current)
+    if (attached !== null) resumed.push(attached)
+  }
 
   const due = await payload.find({
     collection: "publication-plans",
@@ -291,17 +358,12 @@ export const dispatchDuePublicationPlans = async (
   const claimed: DuePublicationPlan[] = []
   for (const raw of due.docs) {
     const plan = docOf(raw)
-    const claim = await updatePlan(
-      payload,
-      plan,
-      {
-        attempts: (typeof plan["attempts"] === "number" ? plan["attempts"] : 0) + 1,
-        claimedAt: now,
-        claimedBy: input.workerId,
-        status: "running",
-      },
-      "pending",
-    )
+    const claim = await claimPlan(payload, plan, {
+      incrementAttempts: true,
+      now,
+      targetStatus: "running",
+      workerId: input.workerId,
+    })
     if (!claim) continue
     const refreshed = await payload.find({
       collection: "publication-plans",
@@ -310,8 +372,12 @@ export const dispatchDuePublicationPlans = async (
       overrideAccess: true,
       where: { planId: { equals: plan["planId"] } },
     })
-    const attached = await attachPublishOperation(payload, docOf(refreshed.docs[0]))
+    const current = docOf(refreshed.docs[0])
+    // The database claim is the arbiter. Re-read before returning work so only
+    // the final lease owner enqueues the operation.
+    if (current["claimedBy"] !== input.workerId) continue
+    const attached = await attachPublishOperation(payload, current)
     if (attached !== null) claimed.push(attached)
   }
-  return [...resumed.filter((plan): plan is DuePublicationPlan => plan !== null), ...claimed]
+  return [...resumed, ...claimed]
 }

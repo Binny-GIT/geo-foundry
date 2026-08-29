@@ -262,6 +262,17 @@ describe("publisher-authorized release publication", () => {
       },
       ...asUser(tenantAdmin),
     })
+    await payload.create({
+      collection: "domains",
+      data: {
+        hostname: "release-publish.test",
+        role: "canonical",
+        site: site.id,
+        status: "active",
+        tenant: tenant.id,
+      },
+      ...asUser(tenantAdmin),
+    })
   })
 
   afterAll(async () => {
@@ -276,6 +287,7 @@ describe("publisher-authorized release publication", () => {
       "source-snapshots",
       "intake-items",
       "connectors",
+      "url-records",
       "content-editions",
       "contents",
       "domains",
@@ -314,6 +326,15 @@ describe("publisher-authorized release publication", () => {
     await transitionEdition(payload, { editionId: edition.id, target: "review", user: editor })
     await recordAssessmentFor(edition.id)
     await transitionEdition(payload, { editionId: edition.id, target: "approved", user: reviewer })
+    const reserved = await payload.find({
+      collection: "url-records",
+      depth: 0,
+      limit: 10,
+      overrideAccess: true,
+      where: { content: { equals: edition.content } },
+    })
+    expect(reserved.docs).toHaveLength(1)
+    expect(reserved.docs[0]).toMatchObject({ site: site.id, state: "reserved" })
 
     const submitted = await submitEditionPublishOperation(payload, {
       editionId: edition.id,
@@ -394,6 +415,18 @@ describe("publisher-authorized release publication", () => {
     expect(publishedEntry?.actor.role).toBe("publisher")
     expect(publishedEntry?.actor.userId).toBe(String(publisher.id))
     expect(publishedEntry?.actor.kind).toBe("user")
+    const activeUrls = await payload.find({
+      collection: "url-records",
+      depth: 0,
+      limit: 10,
+      overrideAccess: true,
+      where: { content: { equals: edition.content } },
+    })
+    expect(activeUrls.docs).toHaveLength(1)
+    expect(activeUrls.docs[0]).toMatchObject({ state: "active" })
+    expect(activeUrls.docs[0]?.canonicalUrl).toMatch(
+      /^https:\/\/release-publish\.test\/en-US\/articles\/release-publish-edition-\d+$/,
+    )
 
     const revisionAfterFirst = Number(live.workflowRevision)
 
@@ -407,6 +440,15 @@ describe("publisher-authorized release publication", () => {
     const afterReplay = await loadWorkflowEdition(payload, edition.id)
     expect(afterReplay.workflowStatus).toBe("published")
     expect(Number(afterReplay.workflowRevision)).toBe(revisionAfterFirst)
+    const urlsAfterReplay = await payload.find({
+      collection: "url-records",
+      depth: 0,
+      limit: 10,
+      overrideAccess: true,
+      where: { content: { equals: edition.content } },
+    })
+    expect(urlsAfterReplay.docs).toHaveLength(1)
+    expect(urlsAfterReplay.docs[0]).toMatchObject({ state: "active" })
   })
 
   it("rejects a publish receipt whose release does not match the edition's compiled evidence", async () => {

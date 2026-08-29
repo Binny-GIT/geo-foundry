@@ -120,7 +120,7 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
               className="gf-console-focus inline-flex h-10 items-center rounded-xl bg-[var(--console-accent)] px-3.5 text-sm font-semibold text-white no-underline transition-colors hover:bg-[var(--console-accent-hover)]"
               href={
                 slug === "content-editions"
-                  ? "/admin/_emergency/collections/content-editions/create"
+                  ? "/admin/workspace/editions/new"
                   : `${consoleRoute.collection(slug as ConsoleResourceSlug)}/create`
               }
             >

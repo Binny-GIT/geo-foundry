@@ -13,6 +13,7 @@ import {
   transitionEditionWithinTransaction,
 } from "./edition-workflow"
 import { loadPublishOperationCreator } from "./operations-ledger"
+import { activatePublishedEditionUrl } from "./edition-url-lifecycle"
 import {
   assertReleaseIdentity,
   assertTenant,
@@ -167,6 +168,7 @@ const markCurrent = async (
         { editionId: input.editionId, operationId: input.operationId, receipt, site },
         req,
       )
+      await activatePublishedEditionUrl(payload, input.editionId, site.id, req)
     }
   })
 }

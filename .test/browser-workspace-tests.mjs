@@ -46,11 +46,8 @@ const retry = async (action) => {
 }
 
 const attachErrorTracking = (page, sink) => {
-  // React #418 is a Payload-internal hydration mismatch present on every
-  // /admin/_emergency page (including stock Payload list views); the page
-  // still renders and functions. Tracked as harmless until Payload fixes it.
   const harmless = (text) =>
-    /favicon|gravatar|net::ERR_CONNECTION_(REFUSED|TIMED_OUT)|Minified React error #418/i.test(text)
+    /favicon|gravatar|net::ERR_CONNECTION_(REFUSED|TIMED_OUT)/i.test(text)
   page.on("pageerror", (error) => {
     if (!harmless(String(error))) sink.push(String(error))
   })
@@ -113,6 +110,10 @@ const run = async () => {
       await editorPage.goto(`${BASE}/admin/inbox`, { timeout: TIMEOUT, waitUntil: "domcontentloaded" })
       await editorPage.getByRole("heading", { level: 1, name: "Inbox" }).waitFor({ timeout: TIMEOUT })
       await editorPage.getByText(/visible items/i).waitFor({ timeout: TIMEOUT })
+      await editorPage.getByText("导入公开 URL").waitFor({ timeout: TIMEOUT })
+      await editorPage.locator('input[name="title"]').first().waitFor({ timeout: TIMEOUT })
+      await editorPage.locator('input[name="sourceUrl"]').first().waitFor({ timeout: TIMEOUT })
+      await editorPage.locator('select[name="suggestedSiteId"]').first().waitFor({ timeout: TIMEOUT })
     })
     record(
       "WS-UI-002",
@@ -136,13 +137,11 @@ const run = async () => {
     )
     await editorPage.screenshot({ path: resolve(ARTIFACTS, "ws3-publication-plans.png") })
 
-    const adminContext = await browser.newContext({ viewport: { height: 900, width: 1440 } })
-    const adminPage = await loginAs(adminContext, accounts.superAdmin, adminErrors)
     let workspaceUrl = null
     await retry(async () => {
-      await adminPage.goto(`${BASE}/admin/collections/content-editions`, { timeout: TIMEOUT, waitUntil: "domcontentloaded" })
-      await adminPage.waitForLoadState("networkidle", { timeout: TIMEOUT }).catch(() => {})
-      const firstRow = adminPage.locator("table tbody tr a").first()
+      await editorPage.goto(`${BASE}/admin/collections/content-editions`, { timeout: TIMEOUT, waitUntil: "domcontentloaded" })
+      await editorPage.waitForLoadState("networkidle", { timeout: TIMEOUT }).catch(() => {})
+      const firstRow = editorPage.locator("table tbody tr a").first()
       await firstRow.waitFor({ timeout: TIMEOUT })
       workspaceUrl = await firstRow.getAttribute("href")
     })
@@ -150,18 +149,18 @@ const run = async () => {
       record("WS-UI-004", "Edition workspace three-pane layout", false, "no content-editions row found to open")
     } else {
       const editionId = workspaceUrl.split("/").filter(Boolean).pop()
-      const workspacePath = `/admin/_emergency/collections/content-editions/${editionId}`
+      const workspacePath = `/admin/workspace/editions/${editionId}`
       await retry(async () => {
-        await adminPage.goto(`${BASE}${workspacePath}`, { timeout: TIMEOUT, waitUntil: "domcontentloaded" })
-        await adminPage
+        await editorPage.goto(`${BASE}${workspacePath}`, { timeout: TIMEOUT, waitUntil: "domcontentloaded" })
+        await editorPage
           .locator('aside[aria-label*="Sources, comments"], aside[aria-label*="来源、评论"]')
           .first()
           .waitFor({ timeout: TIMEOUT })
-        await adminPage
+        await editorPage
           .locator('aside[aria-label*="Editorial controls"], aside[aria-label*="任务控制"]')
           .first()
           .waitFor({ timeout: TIMEOUT })
-        await adminPage
+        await editorPage
           .getByText(/Site variants|站点版本/)
           .first()
           .waitFor({ timeout: TIMEOUT })
@@ -172,13 +171,45 @@ const run = async () => {
         true,
         `${workspacePath} renders context rail, control rail, and site variants section`,
       )
-      await adminPage.screenshot({ path: resolve(ARTIFACTS, "ws4-edition-workspace.png") })
+      await editorPage.screenshot({ path: resolve(ARTIFACTS, "ws4-edition-workspace.png") })
     }
+
+    await retry(async () => {
+      await editorPage.goto(`${BASE}/admin/_emergency/collections/users`, {
+        timeout: TIMEOUT,
+        waitUntil: "domcontentloaded",
+      })
+      await editorPage.waitForURL(/\/admin(?:$|\?)/, { timeout: TIMEOUT })
+      const body = await editorPage.textContent("body")
+      if (/Users|用户/.test(body ?? "")) throw new Error("editor reached Payload Users page")
+    })
+    record(
+      "WS-UI-005",
+      "Editor cannot enter Payload emergency fallback",
+      true,
+      "/admin/_emergency/collections/users redirects the editor back to Console",
+    )
+
+    const adminContext = await browser.newContext({ viewport: { height: 900, width: 1440 } })
+    const adminPage = await loginAs(adminContext, accounts.superAdmin, adminErrors)
+    await retry(async () => {
+      await adminPage.goto(`${BASE}/admin/_emergency/collections/content-editions`, {
+        timeout: TIMEOUT,
+        waitUntil: "domcontentloaded",
+      })
+      await adminPage.locator("table").first().waitFor({ timeout: TIMEOUT })
+    })
+    record(
+      "WS-UI-006",
+      "Super-admin retains Payload emergency fallback",
+      true,
+      "/admin/_emergency/collections/content-editions renders the protected native fallback",
+    )
 
     const hardEditorErrors = editorErrors.length
     const hardAdminErrors = adminErrors.length
     record(
-      "WS-UI-005",
+      "WS-UI-007",
       "No hard console errors on workspace pages",
       hardEditorErrors === 0 && hardAdminErrors === 0,
       `editor console errors: ${hardEditorErrors}, super-admin console errors: ${hardAdminErrors}`,

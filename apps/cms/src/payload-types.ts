@@ -278,6 +278,10 @@ export interface Connector {
    * Reference to externally managed secret material. Secret values are never stored here.
    */
   secretReference?: string | null;
+  /**
+   * Set by the scheduled RSS poller; not editable by hand.
+   */
+  lastPolledAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1283,6 +1287,7 @@ export interface ConnectorsSelect<T extends boolean = true> {
   tenant?: T;
   sourceEndpoint?: T;
   secretReference?: T;
+  lastPolledAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

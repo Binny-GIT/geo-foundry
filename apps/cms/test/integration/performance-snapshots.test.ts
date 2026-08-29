@@ -66,6 +66,7 @@ describe("performance snapshots", () => {
         "geo_foundry"."performance_snapshots",
         "geo_foundry"."article_sources",
         "geo_foundry"."intake_items",
+        "geo_foundry"."url_records",
         "geo_foundry"."content_editions",
         "geo_foundry"."contents",
         "geo_foundry"."sites",

@@ -128,7 +128,7 @@ const ConsoleDocumentPage = async ({ params }: ConsoleDocumentPageProps) => {
           {slug === "content-editions" && (
             <Link
               className="gf-console-focus inline-flex h-10 items-center rounded-xl bg-[var(--console-accent)] px-3.5 text-sm font-semibold text-white no-underline transition-colors hover:bg-[var(--console-accent-hover)]"
-              href={`/admin/_emergency/collections/content-editions/${encodeURIComponent(id)}`}
+              href={`/admin/workspace/editions/${encodeURIComponent(id)}`}
             >
               打开内容工作台
             </Link>
