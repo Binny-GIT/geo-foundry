@@ -12,6 +12,7 @@ MAX_RESTART_COUNT="${MAX_RESTART_COUNT:-3}"
 MAX_OUTBOX_AGE_MINUTES="${MAX_OUTBOX_AGE_MINUTES:-15}"
 MAX_OPERATION_AGE_MINUTES="${MAX_OPERATION_AGE_MINUTES:-30}"
 RSS_MAX_AGE_HOURS="${RSS_MAX_AGE_HOURS:-2}"
+RECENT_PUBLICATION_FAILURE_MINUTES="${RECENT_PUBLICATION_FAILURE_MINUTES:-30}"
 
 require_running() {
   local container="$1"
@@ -79,6 +80,12 @@ publication_failed_e2e="$(query_scalar "
   WHERE plan.status = 'failed'
     AND edition.title LIKE 'Scheduled publish E2E %';
 ")"
+publication_failed_recent="$(query_scalar "
+  SELECT count(*)
+  FROM geo_foundry.publication_plans
+  WHERE status = 'failed'
+    AND updated_at >= now() - interval '${RECENT_PUBLICATION_FAILURE_MINUTES} minutes';
+")"
 rss_stale="$(query_scalar "SELECT count(*) FROM geo_foundry.connectors WHERE type = 'rss' AND status = 'active' AND (last_polled_at IS NULL OR last_polled_at < now() - interval '${RSS_MAX_AGE_HOURS} hours');")"
 printf 'OUTBOX_PENDING=%s\n' "$outbox_pending"
 printf 'OUTBOX_OLDEST_AGE_MINUTES=%s\n' "$outbox_oldest_age_minutes"
@@ -86,6 +93,7 @@ printf 'OPERATIONS_NONTERMINAL=%s\n' "$operation_nonterminal"
 printf 'OPERATIONS_OLDEST_AGE_MINUTES=%s\n' "$operation_oldest_age_minutes"
 printf 'PUBLICATION_PLANS_FAILED=%s\n' "$publication_failed"
 printf 'PUBLICATION_PLANS_FAILED_E2E=%s\n' "$publication_failed_e2e"
+printf 'PUBLICATION_PLANS_FAILED_RECENT=%s\n' "$publication_failed_recent"
 printf 'RSS_ACTIVE_STALE=%s\n' "$rss_stale"
 
 latest_backup="$(sudo -n find "$BACKUP_DIRECTORY" -maxdepth 1 -type f -name '*.dump' -printf '%T@|%s|%p\n' 2>/dev/null | sort -rn | head -n 1)"
@@ -115,7 +123,7 @@ if (( outbox_oldest_age_minutes > MAX_OUTBOX_AGE_MINUTES || operation_oldest_age
   exit 1
 fi
 
-if [[ "$outbox_pending" != "0" || "$publication_failed" != "0" || "$rss_stale" != "0" ]]; then
+if [[ "$outbox_pending" != "0" || "$publication_failed_recent" != "0" || "$rss_stale" != "0" ]]; then
   printf 'RUNTIME_STATUS_ATTENTION_REQUIRED\n' >&2
   exit 1
 fi
