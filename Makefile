@@ -44,22 +44,22 @@ container-smoke:
 
 deploy-mk-dev:
 	@$(COMPOSE_MK_DEV) config -q
-	@$(COMPOSE_MK_DEV) up -d --no-build --wait --wait-timeout 120
-	@deploy/smoke/smoke.sh
+	@$(COMPOSE_MK_DEV) up -d --no-build --force-recreate --wait --wait-timeout 180
+	@bash deploy/smoke/smoke.sh
 
 rollback-mk-dev:
 	@$(COMPOSE_MK_DEV) config -q
-	@$(COMPOSE_MK_DEV) up -d --no-build --wait --wait-timeout 120
-	@deploy/smoke/smoke.sh
+	@$(COMPOSE_MK_DEV) up -d --no-build --force-recreate --wait --wait-timeout 180
+	@bash deploy/smoke/smoke.sh
 
 runtime-status:
-	@deploy/smoke/runtime-status.sh
+	@bash deploy/smoke/runtime-status.sh
 
 worker-smoke:
-	@deploy/smoke/worker-smoke.sh
+	@bash deploy/smoke/worker-smoke.sh
 
 worker-business-smoke:
-	@deploy/smoke/worker-business-smoke.sh
+	@bash deploy/smoke/worker-business-smoke.sh
 
 verify-backup-restore:
-	@deploy/smoke/verify-backup-restore.sh
+	@bash deploy/smoke/verify-backup-restore.sh
