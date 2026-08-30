@@ -889,8 +889,10 @@ export interface OutboxEvent {
     | 'edition.draft-written'
     | 'assessment.recorded'
     | 'edition.compile-recorded'
-    | 'publish.requested';
-  aggregateType: 'edition';
+    | 'evaluation.requested'
+    | 'publish.requested'
+    | 'rollback.requested';
+  aggregateType: 'edition' | 'site';
   aggregateId: number;
   tenant: number | Tenant;
   eventPayload:

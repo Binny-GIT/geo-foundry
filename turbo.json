@@ -54,6 +54,7 @@
     },
     "typecheck": {
       "cache": false,
+      "dependsOn": ["^build"],
       "outputs": []
     }
   }

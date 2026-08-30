@@ -63,6 +63,7 @@ import { allInternalEndpoints } from "./endpoints/internal/index"
 import { createReviewCommentEndpoint } from "./endpoints/review-comments"
 import { createRollbackIntentEndpoint } from "./endpoints/rollback-intents"
 import { renameUrlRecordEndpoint } from "./endpoints/url-records"
+import { submitEditorEvaluationEndpoint } from "./endpoints/editor-evaluation"
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 const environment = parseCmsEnvironment(process.env)
@@ -198,6 +199,7 @@ export default buildConfig({
     acceptPerformanceSuggestionEndpoint,
     createPublicationPlanEndpoint,
     cancelPublicationPlanEndpoint,
+    submitEditorEvaluationEndpoint,
     ...allInternalEndpoints,
   ],
   db: postgresAdapter(

@@ -137,18 +137,20 @@ const run = async () => {
     )
     await editorPage.screenshot({ path: resolve(ARTIFACTS, "ws3-publication-plans.png") })
 
-    let workspaceUrl = null
+    let editionId = null
     await retry(async () => {
       await editorPage.goto(`${BASE}/admin/collections/content-editions`, { timeout: TIMEOUT, waitUntil: "domcontentloaded" })
-      await editorPage.waitForLoadState("networkidle", { timeout: TIMEOUT }).catch(() => {})
-      const firstRow = editorPage.locator("table tbody tr a").first()
-      await firstRow.waitFor({ timeout: TIMEOUT })
-      workspaceUrl = await firstRow.getAttribute("href")
+      editionId = await editorPage.evaluate(async () => {
+        const response = await fetch("/api/content-editions?depth=0&limit=20&sort=-updatedAt&where[workflowStatus][equals]=draft")
+        if (!response.ok) throw new Error(`draft edition query ${response.status}`)
+        const payload = (await response.json())
+        const candidate = payload.docs?.find((edition) => Number.isInteger(edition?.id))
+        return candidate?.id === undefined ? null : String(candidate.id)
+      })
     })
-    if (workspaceUrl === null || workspaceUrl.length === 0) {
-      record("WS-UI-004", "Edition workspace three-pane layout", false, "no content-editions row found to open")
+    if (editionId === null || editionId.length === 0) {
+      record("WS-UI-004", "Edition workspace three-pane layout", false, "no draft content-edition found to open")
     } else {
-      const editionId = workspaceUrl.split("/").filter(Boolean).pop()
       const workspacePath = `/admin/workspace/editions/${editionId}`
       await retry(async () => {
         await editorPage.goto(`${BASE}${workspacePath}`, { timeout: TIMEOUT, waitUntil: "domcontentloaded" })
@@ -171,6 +173,30 @@ const run = async () => {
         true,
         `${workspacePath} renders context rail, control rail, and site variants section`,
       )
+      const evaluationButton = editorPage.getByRole("button", { name: /Run quality check|运行质量检查/ })
+      await evaluationButton.waitFor({ timeout: TIMEOUT })
+      const [evaluation] = await Promise.all([
+        editorPage.waitForResponse(
+          (response) =>
+            response.request().method() === "POST" &&
+            response.url().includes(`/api/workspaces/editor/editions/${editionId}/evaluation-operations`),
+          { timeout: TIMEOUT },
+        ),
+        evaluationButton.click(),
+      ])
+      const evaluationBody = await evaluation.json()
+      if (
+        (evaluation.status() !== 202 && evaluation.status() !== 200) ||
+        evaluationBody.operation?.operationType !== "evaluate"
+      ) {
+        throw new Error(`quality evaluation submission failed: ${evaluation.status()}`)
+      }
+      record(
+        "WS-UI-005",
+        "Editor submits a worker-owned quality evaluation",
+        true,
+        `${workspacePath} creates a queued evaluate operation through the session endpoint`,
+      )
       await editorPage.screenshot({ path: resolve(ARTIFACTS, "ws4-edition-workspace.png") })
     }
 
@@ -184,7 +210,7 @@ const run = async () => {
       if (/Users|用户/.test(body ?? "")) throw new Error("editor reached Payload Users page")
     })
     record(
-      "WS-UI-005",
+      "WS-UI-006",
       "Editor cannot enter Payload emergency fallback",
       true,
       "/admin/_emergency/collections/users redirects the editor back to Console",
@@ -200,7 +226,7 @@ const run = async () => {
       await adminPage.locator("table").first().waitFor({ timeout: TIMEOUT })
     })
     record(
-      "WS-UI-006",
+      "WS-UI-007",
       "Super-admin retains Payload emergency fallback",
       true,
       "/admin/_emergency/collections/content-editions renders the protected native fallback",
@@ -209,7 +235,7 @@ const run = async () => {
     const hardEditorErrors = editorErrors.length
     const hardAdminErrors = adminErrors.length
     record(
-      "WS-UI-007",
+      "WS-UI-008",
       "No hard console errors on workspace pages",
       hardEditorErrors === 0 && hardAdminErrors === 0,
       `editor console errors: ${hardEditorErrors}, super-admin console errors: ${hardAdminErrors}`,

@@ -83,15 +83,29 @@ describe("operation flows", () => {
 
 describe("outbox processor", () => {
   const logs: string[] = []
-  const added: { jobId?: string; name: string; data: unknown }[] = []
+  const embeddingAdded: { jobId?: string; name: string; data: unknown }[] = []
+  const evaluationAdded: { jobId?: string; name: string; data: unknown }[] = []
+  const publishAdded: { jobId?: string; name: string; data: unknown }[] = []
   const processor = createOutboxProcessor({
     embeddingQueue: {
       add: (async (name: string, data: unknown, opts: { jobId?: string }) => {
-        added.push({ data, jobId: opts?.jobId, name })
+        embeddingAdded.push({ data, jobId: opts?.jobId, name })
+        return {} as never
+      }) as never,
+    },
+    evaluationQueue: {
+      add: (async (name: string, data: unknown, opts: { jobId?: string }) => {
+        evaluationAdded.push({ data, jobId: opts?.jobId, name })
         return {} as never
       }) as never,
     },
     logger: (event) => logs.push(event.code),
+    publishQueue: {
+      add: (async (name: string, data: unknown, opts: { jobId?: string }) => {
+        publishAdded.push({ data, jobId: opts?.jobId, name })
+        return {} as never
+      }) as never,
+    },
   })
 
   it("enqueues one stable embedding job per draft-written event", async () => {
@@ -101,20 +115,91 @@ describe("outbox processor", () => {
       queueName: "outbox",
     })
     expect(result).toEqual({ action: "embedding-enqueued", editionId: 42 })
-    expect(added).toHaveLength(1)
-    expect(added[0]?.jobId).toBe("embed-ed-42")
+    expect(embeddingAdded).toHaveLength(1)
+    expect(embeddingAdded[0]?.jobId).toBe("embed-ed-42")
     await processor({
       data: { aggregateId: 42, eventId: "evt-2", tenantId: 7 },
       name: "edition.draft-written",
       queueName: "outbox",
     })
-    expect(added).toHaveLength(2)
-    expect(added[1]?.jobId).toBe("embed-ed-42")
+    expect(embeddingAdded).toHaveLength(2)
+    expect(embeddingAdded[1]?.jobId).toBe("embed-ed-42")
+  })
+
+  it("enqueues one stable evaluation job for an editor evaluation intent", async () => {
+    const result = await processor({
+      data: {
+        aggregateId: 42,
+        eventId: "evt-3",
+        eventPayload: { thresholds: { dimensionMin: 75, overallMin: 80 } },
+        operationId: "11111111-2222-3333-4444-555555555555",
+        tenantId: 7,
+      },
+      name: "evaluation.requested",
+      queueName: "outbox",
+    })
+    expect(result).toEqual({
+      action: "evaluation-enqueued",
+      editionId: 42,
+      operationId: "11111111-2222-3333-4444-555555555555",
+    })
+    expect(evaluationAdded).toHaveLength(1)
+    expect(evaluationAdded[0]).toMatchObject({
+      data: {
+        operationId: "11111111-2222-3333-4444-555555555555",
+        payload: { body: { editionId: 42, thresholds: { dimensionMin: 75, overallMin: 80 } } },
+        tenantId: 7,
+      },
+      jobId: "op-11111111-2222-3333-4444-555555555555-evaluation",
+      name: "evaluation",
+    })
+  })
+
+  it("enqueues one stable rollback gate for a publisher-approved rollback request", async () => {
+    const result = await processor({
+      data: {
+        eventId: "evt-4",
+        eventPayload: {
+          body: {
+            expectedCurrentManifestSha256: "a".repeat(64),
+            expectedCurrentReleaseId: "release-current",
+            expectedManifestSha256: "b".repeat(64),
+            rollbackIntentId: "11111111-2222-4333-8444-555555555555",
+            siteId: "site-7",
+            targetReleaseId: "release-target",
+          },
+        },
+        operationId: "11111111-2222-3333-4444-555555555555",
+        tenantId: 7,
+      },
+      name: "rollback.requested",
+      queueName: "outbox",
+    })
+    expect(result).toEqual({
+      action: "rollback-enqueued",
+      operationId: "11111111-2222-3333-4444-555555555555",
+    })
+    expect(publishAdded).toMatchObject([
+      {
+        data: {
+          operationId: "11111111-2222-3333-4444-555555555555",
+          payload: {
+            body: {
+              rollbackIntentId: "11111111-2222-4333-8444-555555555555",
+              siteId: "site-7",
+            },
+          },
+          tenantId: 7,
+        },
+        jobId: "op-11111111-2222-3333-4444-555555555555-rollback-gate",
+        name: "rollback-gate",
+      },
+    ])
   })
 
   it("observes informational events without enqueueing", async () => {
     const result = await processor({
-      data: { eventId: "evt-3" },
+      data: { eventId: "evt-4" },
       name: "assessment.recorded",
       queueName: "outbox",
     })

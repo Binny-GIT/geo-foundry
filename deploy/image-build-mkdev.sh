@@ -20,13 +20,17 @@ FULL_IMAGE="${IMAGE_NAME}:${IMAGE_TAG}"
 cleanup() {
   docker rm -f "${PKG_CONTAINER}" >/dev/null 2>&1 || true
   rm -rf "${WORKER_PACKAGE}"
+  cd "${PROJECT_DIR}"
+  CI=true pnpm install --frozen-lockfile >/dev/null || true
 }
 trap cleanup EXIT
 
-echo "=== Step 1/4: host build (workspace deps + CMS standalone + worker) ==="
+ echo "=== Step 1/4: host build (workspace deps + CMS standalone + worker) ==="
 cd "${PROJECT_DIR}"
 export NEXT_TELEMETRY_DISABLED=1
+CI=true pnpm install --frozen-lockfile
 pnpm --filter @geo/cms... build
+
 pnpm --filter @geo/worker... build
 pnpm --filter @geo/cms build
 npm_config_confirmModulesPurge=false pnpm deploy --legacy --filter @geo/worker --prod "${WORKER_PACKAGE}"

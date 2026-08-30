@@ -178,7 +178,7 @@ v1（仅覆盖 `--theme-success-*` 色阶+按钮/聚焦色）用户反馈"看不
 
 本轮脚本（`.test/admin-service-compile-loop.mjs`、`admin-publisher-publish-loop.mjs`、`admin-service-publish-loop.mjs`、`admin-published-verification-loop.mjs`、`admin-operations-verification-loop.mjs`、`admin-second-edition-{create,approve,compile,publish}-loop.mjs`、`admin-rollback-{intent-create,consume,verification}-loop.mjs`）在公网真实驱动了两条 Edition（542、543）分别走完 `approved→compiled→published`，并对 Edition 543 的真实第二条 release 执行了真实 Rollback Intent 创建 + CAS 回滚 + 下游页面复核，全部通过合法受保护路径完成，零硬控制台错误、零横向溢出。
 
-发现的 UI/流程缺口（如实记录，不在本次范围内伪造数据）：URL Records 无任何生产创建路径；`/api/rollback-operations/intents` 无对应后台按钮入口。
+历史 UI/流程缺口已关闭：稿源箱现已提供公开 URL 导入表单，URL Record 仍由 approval/publish 生命周期系统管理；publisher 现可通过 `/admin/collections/rollback-intents/create` 提交回滚意图。实际 pointer CAS 消费继续由受保护 Worker 流程执行，不由浏览器直接切换。
 
 ### Kimi 真实浏览器复验补全（同日，最终镜像 `sha256:676b679f...`）
 

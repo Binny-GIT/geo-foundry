@@ -18,7 +18,12 @@ const emit = (code: string, detail: Record<string, unknown>) =>
   console.error(JSON.stringify({ code, detail }))
 
 export const register = async (): Promise<void> => {
-  if (process.env["NEXT_RUNTIME"] !== "nodejs") return
+  if (
+    process.env["NEXT_RUNTIME"] !== "nodejs" ||
+    process.env["GEO_FOUNDRY_CMS_DISABLE_BACKGROUND_RUNTIME"] === "true"
+  ) {
+    return
+  }
   const globalRuntime = globalThis as GlobalWithRuntime
   if (globalRuntime[RUNTIME] !== undefined) return
 

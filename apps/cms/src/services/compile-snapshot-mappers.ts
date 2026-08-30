@@ -66,6 +66,22 @@ export const deriveRoutes = (
   return { activeUrlByContent, redirects }
 }
 
+const citationsOf = (
+  value: unknown,
+  editionId: number,
+): NonNullable<CompileEdition["citations"]> =>
+  Array.isArray(value)
+    ? value.flatMap((citation, index) => {
+        if (typeof citation !== "object" || citation === null) return []
+        const row = citation as Doc
+        const url = textOf(row["url"])
+        const title = textOf(row["title"]) || textOf(row["label"]) || url
+        if (url.length === 0 || title.length === 0) return []
+        const id = textOf(row["id"]) || `citation-${editionId}-${index + 1}`
+        return [{ id, title, url }]
+      })
+    : []
+
 export type EditionMappingInput = {
   readonly assessment: { state: string; inputHash: string } | undefined
   readonly authorId: string
@@ -114,9 +130,7 @@ export const mapEdition = (input: EditionMappingInput): CompileEdition | null =>
         }),
     body: Array.isArray(edition["body"]) ? (edition["body"] as unknown[]) : [],
     categories: primaryTopic.length === 0 ? [] : [slugify(primaryTopic)],
-    citations: Array.isArray(edition["citations"])
-      ? (edition["citations"] as NonNullable<CompileEdition["citations"]>)
-      : [],
+    citations: citationsOf(edition["citations"], editionId),
     contentId,
     editionId,
     entities: Array.isArray(edition["entities"]) ? (edition["entities"] as unknown[]) : [],

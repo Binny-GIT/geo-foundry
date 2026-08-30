@@ -15,8 +15,13 @@ import {
 } from "@geo/domain"
 import type { Payload } from "payload"
 
-import type { SessionClaims } from "../access/session"
-import { runOutboxScopedTransaction, type TransactionScope } from "../outbox/outbox"
+import { resolveSessionClaims, type SessionClaims } from "../access/session"
+import {
+  appendOutboxEvent,
+  OUTBOX_EVENT,
+  runOutboxScopedTransaction,
+  type TransactionScope,
+} from "../outbox/outbox"
 import { canonicalize } from "./edition-input-hash"
 import {
   assertEditionTenantScope,
@@ -525,6 +530,156 @@ export async function loadPublishOperationCreator(
     throw fail("OPERATION_STATE_INVALID", `operation ${operationId} has no creator actor`)
   }
   return { actor: created.actor, operationType: parseOperationType(doc.operationType) }
+}
+
+const evaluationThresholdsSchema = {
+  dimensionMin: (value: unknown): boolean => typeof value === "number" && value >= 0 && value <= 100,
+  overallMin: (value: unknown): boolean => typeof value === "number" && value >= 0 && value <= 100,
+}
+
+const normalizedEvaluationThresholds = (
+  thresholds: { readonly dimensionMin: number; readonly overallMin: number } | undefined,
+): { readonly dimensionMin: number; readonly overallMin: number } | undefined => {
+  if (thresholds === undefined) return undefined
+  if (!evaluationThresholdsSchema.dimensionMin(thresholds.dimensionMin) || !evaluationThresholdsSchema.overallMin(thresholds.overallMin)) {
+    throw fail("EVALUATION_THRESHOLDS_INVALID", "thresholds")
+  }
+  return { dimensionMin: thresholds.dimensionMin, overallMin: thresholds.overallMin }
+}
+
+export type SubmitEditionEvaluationInput = {
+  readonly editionId: number
+  readonly idempotencyKey: string
+  readonly requestId: string
+  readonly thresholds?: { readonly dimensionMin: number; readonly overallMin: number }
+  readonly user: unknown
+}
+
+export type SubmitEditionEvaluationOutcome = {
+  readonly created: boolean
+  readonly operation: OperationSnapshot
+}
+
+export async function submitEditionEvaluationOperation(
+  payload: Payload,
+  input: SubmitEditionEvaluationInput,
+): Promise<SubmitEditionEvaluationOutcome> {
+  return runOutboxScopedTransaction(payload, async (req) => {
+    const doc = await loadWorkflowEdition(payload, input.editionId, req, true)
+    const claims = assertEditionTenantScope(input.user, doc)
+    if (claims.kind !== "user" || claims.role !== "editor") {
+      throw new EditionWorkflowError(
+        "EDITION_WORKFLOW_EDITOR_REQUIRED",
+        `role ${claims.role} cannot submit an evaluation operation`,
+      )
+    }
+    const workflowStatus = parseWorkflowStatus(doc.workflowStatus)
+    if (workflowStatus !== "draft" && workflowStatus !== "generating" && workflowStatus !== "review") {
+      throw new EditionWorkflowError(
+        "EDITION_WORKFLOW_EVALUATION_NOT_ALLOWED",
+        `edition ${input.editionId} is ${workflowStatus}`,
+      )
+    }
+    const tenantId = numberField(doc.tenant) ?? -1
+    const siteId = numberField(doc.site)
+    const endpoint = `/workspaces/editor/editions/${input.editionId}/evaluation/revision-${numberField(doc.workflowRevision) ?? 0}`
+    const thresholds = normalizedEvaluationThresholds(input.thresholds)
+    const requestPayload = {
+      body: {
+        editionId: input.editionId,
+        ...(thresholds === undefined ? {} : { thresholds }),
+      },
+    }
+    const requestHash = operationRequestHashOf(requestPayload)
+    const uniqueKey = operationUniqueKeyOf(tenantId, endpoint, input.idempotencyKey)
+    const existing = await loadRecordByUniqueKey(payload, uniqueKey, req)
+    if (existing !== null) {
+      if (existing.requestHash !== requestHash) {
+        throw fail("IDEMPOTENCY_KEY_REUSED", `edition ${input.editionId} evaluation key already bound to a different request`)
+      }
+      return {
+        created: false,
+        operation: snapshotOf(await loadOperationByPublicId(payload, existing.operationId, req)),
+      }
+    }
+    const actor = serializedActorOf(input.user)
+    if (actor === null) {
+      throw new EditionWorkflowError("EDITION_WORKFLOW_ACTOR_INVALID", "session has no serializable actor")
+    }
+    const operationId = crypto.randomUUID()
+    const entry: LedgerAuditEntry = {
+      action: "operation.created",
+      actor,
+      at: ledgerClock.now().value,
+      detail: { endpoint, requestHash },
+    }
+    await payload.create({
+      collection: "operations",
+      data: {
+        auditLog: [entry],
+        attempt: 1,
+        endpoint,
+        error: null,
+        idempotencyKeyHash: sha256Text(input.idempotencyKey),
+        operationId,
+        operationType: "evaluate",
+        requestPayload,
+        revision: 0,
+        result: null,
+        ...(siteId === null ? {} : { site: siteId }),
+        state: "queued",
+        targetIds: { editionId: input.editionId },
+        tenant: tenantId,
+      },
+      overrideAccess: true,
+      depth: 0,
+      req,
+    })
+    await payload.create({
+      collection: "idempotency-records",
+      data: {
+        endpoint,
+        idempotencyKey: input.idempotencyKey,
+        operationId,
+        requestHash,
+        tenant: tenantId,
+        uniqueKey,
+      },
+      overrideAccess: true,
+      depth: 0,
+      req,
+    })
+    await appendOutboxEvent(
+      payload,
+      {
+        aggregateId: input.editionId,
+        eventPayload: {
+          operationType: "evaluate",
+          ...(thresholds === undefined ? {} : { thresholds }),
+        },
+        operationId,
+        requestId: input.requestId,
+        tenantId,
+        type: OUTBOX_EVENT.EVALUATION_REQUESTED,
+      },
+      req,
+    )
+    return {
+      created: true,
+      operation: {
+        attempt: 1,
+        currentStage: null,
+        endpoint,
+        error: null,
+        operationId,
+        operationType: "evaluate",
+        requestPayload,
+        result: null,
+        state: "queued",
+        tenantId,
+      },
+    }
+  })
 }
 
 export type SubmitEditionPublishInput = {

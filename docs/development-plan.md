@@ -1,7 +1,7 @@
 # Geo Foundry 开发计划
 
-- **状态**：现行计划
-- **日期**：2026-08-27
+- **状态**：阶段一至七已交付；真实 AI Provider 等待外部配置
+- **日期**：2026-08-30
 
 本文件取代 `.omo/plans/geo-foundry-development-plan.md`。那份 40 任务计划面向 2026-08-18 的旧产品方向，仅保留为历史存档。
 
@@ -158,6 +158,20 @@
 - 更新创建新草稿并重新走来源、质量、审核与发布，不直接修改已发布内容。
 
 ---
+
+## 交付状态（2026-08-30）
+
+阶段一至七的现行产品能力均已交付并由单元、隔离集成和受保护运行验证覆盖：统一 Console、稿源箱、编辑与审核、质量评估意图、排期发布、URL 生命周期、品牌版本、表现建议、Worker 同镜像运行、Outbox 消费与 rollback pointer switch 均不再是计划项。
+
+本轮收尾补齐的运行合同：
+
+- editor 从工作台提交 `evaluation.requested` 意图；Worker 以稳定 job ID 投递并执行既有质量评估，浏览器从不调用 `/internal/*`。
+- publisher 创建 rollback intent 时，在同一事务创建 queued rollback operation 与 `rollback.requested` Outbox 事件；Worker 自动执行 CAS pointer switch，重放不产生第二次回滚。
+- 历史 `{ label, url }` 引用在 compile snapshot 的只读映射中规范为 `{ id, title, url }`，不修改原始审计数据，也不会阻断同站点新版本发布。
+- Worker 的普通可重试任务在最后一次尝试耗尽时会以 `WORKER_RETRY_EXHAUSTED` 终结操作账本，避免 operation 或 publication plan 永久停留在 `running`。
+- `worker-business-smoke` 是独立的 append-only 验证，检查真实 CMS mutation → Outbox → BullMQ → Worker consumer；它不进入常规部署 smoke。
+
+**外部输入阻塞项：真实 AI Provider。** 当前 fake provider 是有意 fail-closed 的默认配置。启用真实调用仍需要所有者通过 owner-only 文件提供 `AI_API_KEY_FILE`，配置 `AI_BASE_URL`、`AI_CHAT_MODEL`、`AI_EMBEDDING_MODEL`，并明确批准会产生费用的外部 API 调用。在此之前不得把 fake provider 替换为隐式网络调用。
 
 ## 测试范围
 

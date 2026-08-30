@@ -21,7 +21,9 @@ export const OUTBOX_EVENT = {
   EDITION_DRAFT_WRITTEN: "edition.draft-written",
   ASSESSMENT_RECORDED: "assessment.recorded",
   EDITION_COMPILE_RECORDED: "edition.compile-recorded",
+  EVALUATION_REQUESTED: "evaluation.requested",
   PUBLISH_REQUESTED: "publish.requested",
+  ROLLBACK_REQUESTED: "rollback.requested",
 } as const
 
 export type OutboxEventType = (typeof OUTBOX_EVENT)[keyof typeof OUTBOX_EVENT]
@@ -37,6 +39,7 @@ export const txOf = (req: PayloadRequest): TransactionScope => {
 
 export type OutboxEventInput = {
   readonly aggregateId: number
+  readonly aggregateType?: "edition" | "site"
   readonly eventPayload: Record<string, unknown>
   readonly tenantId: number
   readonly type: OutboxEventType
@@ -46,7 +49,7 @@ export type OutboxEventInput = {
 
 const outboxDataOf = (input: OutboxEventInput, eventId: string) => ({
   aggregateId: input.aggregateId,
-  aggregateType: "edition" as const,
+  aggregateType: input.aggregateType ?? "edition",
   attempts: 0,
   eventPayload: input.eventPayload,
   eventId,

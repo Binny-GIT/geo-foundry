@@ -1,6 +1,12 @@
+import { createHash } from "node:crypto"
 import type { Payload } from "payload"
 import { resolveSessionClaims } from "../access/session"
-import { runOutboxScopedTransaction, type TransactionScope } from "../outbox/outbox"
+import {
+  appendOutboxEvent,
+  OUTBOX_EVENT,
+  runOutboxScopedTransaction,
+  type TransactionScope,
+} from "../outbox/outbox"
 
 export class RollbackIntentApprovalError extends Error {
   override readonly name = "RollbackIntentApprovalError"
@@ -61,8 +67,11 @@ export type CreateRollbackIntentInput = {
 
 export type RollbackIntentApproval = {
   readonly intentId: string
+  readonly operationId: string
   readonly runtimeSiteId: string
 }
+
+const sha256 = (value: string): string => createHash("sha256").update(value).digest("hex")
 
 /**
  * Freezes a publisher-approved, tenant-scoped rollback command. The service
@@ -122,6 +131,21 @@ export const createRollbackIntent = async (
       )
     }
     const intentId = crypto.randomUUID()
+    const operationId = crypto.randomUUID()
+    const endpoint = `/rollback-intents/${intentId}/execute`
+    const idempotencyKey = `rollback-intent-${intentId}`
+    const requestPayload = {
+      body: {
+        expectedCurrentManifestSha256: input.expectedCurrentManifestSha256,
+        expectedCurrentReleaseId: input.expectedCurrentReleaseId,
+        expectedManifestSha256: input.expectedManifestSha256,
+        rollbackIntentId: intentId,
+        siteId: runtimeSiteId,
+        targetReleaseId: input.targetReleaseId,
+      },
+    }
+    const requestHash = sha256(JSON.stringify(requestPayload))
+    const uniqueKey = sha256(`${tenantId}\n${endpoint}\n${idempotencyKey}`)
     await releaseStoreOf(payload).create({
       collection: "rollback-intents",
       data: {
@@ -137,6 +161,7 @@ export const createRollbackIntent = async (
         fromManifestSha256: input.expectedCurrentManifestSha256,
         fromReleaseId: input.expectedCurrentReleaseId,
         intentId,
+        operationId,
         ...(input.reason === undefined ? {} : { reason: input.reason }),
         runtimeSiteId,
         site: site.id,
@@ -147,6 +172,67 @@ export const createRollbackIntent = async (
       overrideAccess: true,
       req,
     })
-    return { intentId, runtimeSiteId }
+    await payload.create({
+      collection: "operations",
+      data: {
+        attempt: 1,
+        auditLog: [
+          {
+            action: "operation.created",
+            actor: {
+              kind: claims.kind,
+              role: claims.role,
+              tenantId: claims.tenantId,
+              userId: claims.userId,
+            },
+            at: new Date().toISOString(),
+            detail: { endpoint, requestHash },
+            ...(input.reason === undefined ? {} : { reason: input.reason }),
+          },
+        ],
+        endpoint,
+        error: null,
+        idempotencyKeyHash: sha256(idempotencyKey),
+        operationId,
+        operationType: "rollback",
+        requestPayload,
+        revision: 0,
+        result: null,
+        site: site.id,
+        state: "queued",
+        targetIds: { siteId: site.id },
+        tenant: tenantId,
+      },
+      depth: 0,
+      overrideAccess: true,
+      req,
+    })
+    await payload.create({
+      collection: "idempotency-records",
+      data: {
+        endpoint,
+        idempotencyKey,
+        operationId,
+        requestHash,
+        tenant: tenantId,
+        uniqueKey,
+      },
+      depth: 0,
+      overrideAccess: true,
+      req,
+    })
+    await appendOutboxEvent(
+      payload,
+      {
+        aggregateId: site.id,
+        aggregateType: "site",
+        eventPayload: requestPayload,
+        operationId,
+        tenantId,
+        type: OUTBOX_EVENT.ROLLBACK_REQUESTED,
+      },
+      req,
+    )
+    return { intentId, operationId, runtimeSiteId }
   })
 }

@@ -91,15 +91,14 @@ export const consumeRollbackIntent = async (
     if (!exactMatch || claims.tenantId === null || String(claims.tenantId) !== String(tenantId)) {
       throw new RollbackIntentError("ROLLBACK_INTENT_MISMATCH", input.rollbackIntentId)
     }
-    const consumedBy = textOf(intent.operationId)
+    const assignedOperationId = textOf(intent.operationId)
     if (
-      intent.consumedAt !== null &&
-      intent.consumedAt !== undefined &&
-      consumedBy !== input.operationId
+      assignedOperationId !== null &&
+      assignedOperationId !== input.operationId
     ) {
-      throw new RollbackIntentError("ROLLBACK_INTENT_ALREADY_CONSUMED", input.rollbackIntentId)
+      throw new RollbackIntentError("ROLLBACK_INTENT_MISMATCH", input.rollbackIntentId)
     }
-    if (consumedBy === input.operationId) {
+    if (intent.consumedAt !== null && intent.consumedAt !== undefined) {
       return
     }
     const updated = await storeOf(payload).update({

@@ -31,7 +31,7 @@ export const createPublicationPlanEndpoint: Endpoint = {
     } catch (error) { return errorOf(error) }
   },
   method: "post",
-  path: "/publication-plans",
+  path: "/publication-plan-operations",
 }
 
 export const cancelPublicationPlanEndpoint: Endpoint = {
@@ -45,5 +45,5 @@ export const cancelPublicationPlanEndpoint: Endpoint = {
     } catch (error) { return errorOf(error) }
   },
   method: "post",
-  path: "/publication-plans/:planId/cancel",
+  path: "/publication-plan-operations/:planId/cancel",
 }

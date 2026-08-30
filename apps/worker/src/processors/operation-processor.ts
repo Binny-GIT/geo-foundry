@@ -71,6 +71,23 @@ export const operationProcessor =
         })
         return { kind: "failed", reason: error.code }
       }
+      const finalAttempt = job.attemptsMade + 1 >= (job.opts?.attempts ?? 1)
+      if (finalAttempt) {
+        const message = String(error instanceof Error ? error.message : error).slice(0, 500)
+        await context.client.completeOperationStage(operation.operationId, {
+          attempt: operation.attempt,
+          error: { code: "WORKER_RETRY_EXHAUSTED", message },
+          outcome: "failed",
+          stage: spec.stage,
+        })
+        context.logger({
+          code: "worker.job.retry-exhausted",
+          detail: { message },
+          jobId: job.id ?? null,
+          queue: job.queueName,
+        })
+        return { kind: "failed", reason: "WORKER_RETRY_EXHAUSTED" }
+      }
       context.logger({
         code: "worker.job.retryable-failure",
         detail: { message: String(error).slice(0, 200) },

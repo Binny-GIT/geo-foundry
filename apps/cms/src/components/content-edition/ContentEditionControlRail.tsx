@@ -37,6 +37,8 @@ const COPY = {
     priority: "Priority",
     quality: "Quality",
     qualityMissing: "No quality assessment is available for this version.",
+    qualityQueued: "Quality check queued.",
+    qualityRun: "Run quality check",
     unassigned: "Unassigned",
     assigned: "Assigned",
     inProgress: "In progress",
@@ -61,6 +63,8 @@ const COPY = {
     priority: "优先级",
     quality: "质量",
     qualityMissing: "当前版本没有可用质量评估。",
+    qualityQueued: "已提交质量检查。",
+    qualityRun: "运行质量检查",
     unassigned: "未分配",
     assigned: "已分配",
     inProgress: "编辑中",
@@ -109,6 +113,7 @@ export const ContentEditionControlRail = ({ readOnly }: { readonly readOnly: boo
   const [sites, setSites] = useState<readonly SiteOption[]>([])
   const [targetSiteId, setTargetSiteId] = useState("")
   const [creatingVariant, setCreatingVariant] = useState(false)
+  const [runningQuality, setRunningQuality] = useState(false)
 
   useEffect(() => {
     if (id === undefined || id === null) return
@@ -150,12 +155,36 @@ export const ContentEditionControlRail = ({ readOnly }: { readonly readOnly: boo
     id !== null &&
     (user?.["role"] === "editor" || user?.["role"] === "tenant-admin" || user?.["role"] === "super-admin")
   const variantSites = sites.filter((site) => String(site.id) !== currentSiteId)
+  const canRunQuality = !readOnly && user?.["role"] === "editor" && id !== undefined && id !== null
+  const runQuality = async () => {
+    if (!canRunQuality || id === undefined || id === null) return
+    setRunningQuality(true)
+    try {
+      const response = await fetch(`/api/workspaces/editor/editions/${id}/evaluation-operations`, {
+        body: JSON.stringify({}),
+        credentials: "same-origin",
+        headers: {
+          "content-type": "application/json",
+          "idempotency-key": crypto.randomUUID(),
+          "x-request-id": crypto.randomUUID(),
+        },
+        method: "POST",
+      })
+      if (!response.ok) throw new Error()
+      toast.success(t.qualityQueued)
+      router.refresh()
+    } catch {
+      toast.error(lang === "zh" ? "提交质量检查失败。" : "Could not queue the quality check.")
+    } finally {
+      setRunningQuality(false)
+    }
+  }
   const canSchedule = user?.["role"] === "publisher" && id !== undefined && id !== null && context.edition.siteTimezone !== null
   const schedule = async () => {
     if (!canSchedule || scheduledFor.length === 0 || id === undefined || id === null) return
     setScheduling(true)
     try {
-      const response = await fetch("/api/publication-plans", {
+      const response = await fetch("/api/publication-plan-operations", {
         body: JSON.stringify({
           editionId: Number(id),
           scheduledFor,
@@ -205,6 +234,7 @@ export const ContentEditionControlRail = ({ readOnly }: { readonly readOnly: boo
       <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]">
         <div className="flex items-center gap-3"><IconBadge tone={qualityTone}><ShieldCheckIcon size={18} /></IconBadge><div><p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">{t.quality}</p><strong className="mt-1 block text-sm text-[var(--theme-text)]">{context.quality?.state ?? "—"}</strong></div></div>
         {context.quality === null ? <p className="m-0 mt-4 text-sm leading-6 text-[var(--theme-elevation-600)]">{t.qualityMissing}</p> : <div className="mt-4 grid gap-3"><div className="flex items-center justify-between gap-3"><Badge tone={qualityTone}>{context.quality.state ?? "—"}</Badge><span className="text-xs text-[var(--theme-elevation-600)]">{context.quality.overall ?? "—"}</span></div><p className="m-0 text-xs leading-5 text-[var(--theme-elevation-600)]">{context.quality.issues.length} issue(s) · {currentBodyCount} block(s)</p></div>}
+        {canRunQuality && <button className="mt-4 min-h-10 rounded-lg bg-[var(--gf-accent-600)] px-3 text-sm font-bold text-white disabled:opacity-60" disabled={runningQuality} onClick={() => void runQuality()} type="button">{runningQuality ? "…" : t.qualityRun}</button>}
       </section>
 
       {canCreateVariant && <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]"><p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">{t.variant}</p>{variantSites.length === 0 ? <p className="m-0 mt-3 text-sm leading-6 text-[var(--theme-elevation-600)]">{t.variantEmpty}</p> : <><label className="mt-3 grid gap-1 text-xs font-bold text-[var(--theme-elevation-600)]">{t.variantAt}<select className="min-h-10 rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)] focus-visible:ring-2 focus-visible:ring-[var(--gf-accent-400)]" disabled={creatingVariant} onChange={(event) => setTargetSiteId(event.target.value)} value={targetSiteId}><option value="">—</option>{variantSites.map((site) => <option key={site.id} value={site.id}>{site.name}</option>)}</select></label><button className="mt-3 min-h-10 rounded-lg bg-[var(--gf-accent-600)] px-3 text-sm font-bold text-white disabled:opacity-60" disabled={targetSiteId.length === 0 || creatingVariant} onClick={() => void createVariant()} type="button">{t.variant}</button></>}</section>}

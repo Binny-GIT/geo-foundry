@@ -57,7 +57,7 @@ describe("content edition unified workspace", () => {
     expect(controls).toContain('path: "dueAt"')
     expect(controls).toContain('path: "editorialStatus"')
     expect(controls).toContain("WorkflowActions")
-    expect(controls).toContain("/api/publication-plans")
+    expect(controls).toContain("/api/publication-plan-operations")
     expect(controls).toContain("Publish at (UTC)")
     expect(controls).toContain("/api/editions/${id}/site-variants")
     expect(controls).toContain("/api/sites?depth=0&limit=100&sort=name")

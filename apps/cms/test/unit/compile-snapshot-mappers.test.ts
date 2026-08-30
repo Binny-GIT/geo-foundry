@@ -103,4 +103,35 @@ describe("compile snapshot route mapping", () => {
       url: "https://site-a.test/authors/site-a-editorial-team",
     })
   })
+
+  it("normalizes legacy source citations without mutating the stored edition", () => {
+    const edition = mapEdition({
+      assessment: { inputHash: "a".repeat(64), state: "passed" },
+      authorId: "author-site-12",
+      authorName: "Site A Editorial Team",
+      canonicalDomain: "site-a.test",
+      edition: {
+        body: [{ blockType: "paragraph", text: "Stored paragraph" }],
+        citations: [{ label: "Legacy source", url: "https://example.com/legacy" }],
+        content: 24,
+        createdAt: "2026-08-21T00:00:00.000Z",
+        id: 42,
+        primaryTopic: "Release control",
+        summary: "Legacy citation compatibility",
+        title: "Legacy citation mapping",
+        updatedAt: "2026-08-21T00:00:00.000Z",
+        workflowStatus: "approved",
+      },
+      siteKey: "site-12",
+      urlPathname: "/articles/legacy-citation",
+    })
+
+    expect(edition?.citations).toEqual([
+      {
+        id: "citation-42-1",
+        title: "Legacy source",
+        url: "https://example.com/legacy",
+      },
+    ])
+  })
 })

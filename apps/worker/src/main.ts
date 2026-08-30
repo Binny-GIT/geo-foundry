@@ -90,7 +90,12 @@ export const main = async (): Promise<void> => {
     context,
     logger,
     outboxProcessor: (queues) =>
-      createOutboxProcessor({ embeddingQueue: queues.embedding, logger }),
+      createOutboxProcessor({
+        embeddingQueue: queues.embedding,
+        evaluationQueue: queues.evaluation,
+        logger,
+        publishQueue: queues.publish,
+      }),
     processors,
     prefix: queuePrefix,
   })

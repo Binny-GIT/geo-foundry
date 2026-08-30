@@ -81,6 +81,8 @@ describe("rollback release control-plane integration", () => {
     payload = (await getPayload({ config })) as Payload
     for (const collection of [
       "rollback-intents",
+      "idempotency-records",
+      "operations",
       "releases",
       "outbox-events",
       "domains",
@@ -165,6 +167,8 @@ describe("rollback release control-plane integration", () => {
   afterAll(async () => {
     for (const collection of [
       "rollback-intents",
+      "idempotency-records",
+      "operations",
       "releases",
       "outbox-events",
       "domains",
@@ -339,7 +343,7 @@ describe("rollback release control-plane integration", () => {
       expectedCurrentManifestSha256: v2.manifestSha256,
       expectedCurrentReleaseId: v2.releaseId,
       expectedManifestSha256: v1.manifestSha256,
-      operationId: "rollback-op-v2-v1",
+      operationId: approved.operationId,
       rollbackIntentId: approved.intentId,
       runtimeSiteId: approved.runtimeSiteId,
       targetReleaseId: v1.releaseId,
@@ -358,15 +362,39 @@ describe("rollback release control-plane integration", () => {
       expectedManifestSha256: v1.manifestSha256,
       fromManifestSha256: v2.manifestSha256,
       fromReleaseId: v2.releaseId,
+      operationId: approved.operationId,
       reason: "restore verified v1",
       targetReleaseId: v1.releaseId,
+    })
+    const operations = await payload.find({
+      collection: "operations",
+      depth: 0,
+      limit: 1,
+      overrideAccess: true,
+      where: { operationId: { equals: approved.operationId } },
+    })
+    expect(operations.docs[0]).toMatchObject({
+      operationType: "rollback",
+      requestPayload: { body: { rollbackIntentId: approved.intentId, siteId: approved.runtimeSiteId } },
+      state: "queued",
+    })
+    const outbox = await payload.find({
+      collection: "outbox-events",
+      depth: 0,
+      limit: 1,
+      overrideAccess: true,
+      where: { operationId: { equals: approved.operationId } },
+    })
+    expect(outbox.docs[0]).toMatchObject({
+      aggregateType: "site",
+      type: "rollback.requested",
     })
 
     await consumeRollbackIntent(payload, input)
     await consumeRollbackIntent(payload, input)
     await expect(
       consumeRollbackIntent(payload, { ...input, operationId: "rollback-op-other" }),
-    ).rejects.toThrow(/ROLLBACK_INTENT_ALREADY_CONSUMED/)
+    ).rejects.toThrow(/ROLLBACK_INTENT_MISMATCH/)
     await expect(
       consumeRollbackIntent(payload, { ...input, user: foreignService }),
     ).rejects.toThrow(/ROLLBACK_INTENT_NOT_FOUND/)

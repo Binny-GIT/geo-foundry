@@ -6,6 +6,8 @@
 services:
   cms:
     container_name: geo-foundry-cms-verify
+    environment:
+      GEO_FOUNDRY_CMS_DISABLE_BACKGROUND_RUNTIME: "true"
     ports: !override []
     deploy:
       resources:

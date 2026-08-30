@@ -77,4 +77,41 @@ describe("operation processor fault handling", () => {
     expect(fixture.completions).toEqual([])
     expect(fixture.logs).toContain("worker.job.retryable-failure")
   })
+
+  it("terminalizes the ledger when BullMQ exhausts retryable attempts", async () => {
+    const fixture = contextOf()
+    const processor = operationProcessor(
+      { context: fixture.context },
+      {
+        stage: "publish-gate",
+        work: async () => {
+          throw new Error("site lacks canonical domain")
+        },
+      },
+    )
+    const finalAttemptJob = {
+      attemptsMade: 2,
+      data: { operationId },
+      id: "fault-job-final",
+      opts: { attempts: 3 },
+      queueName: "content-publish",
+    } as never
+
+    await expect(processor(finalAttemptJob)).resolves.toEqual({
+      kind: "failed",
+      reason: "WORKER_RETRY_EXHAUSTED",
+    })
+    expect(fixture.completions).toEqual([
+      {
+        attempt: 1,
+        error: {
+          code: "WORKER_RETRY_EXHAUSTED",
+          message: "site lacks canonical domain",
+        },
+        outcome: "failed",
+        stage: "publish-gate",
+      },
+    ])
+    expect(fixture.logs).toContain("worker.job.retry-exhausted")
+  })
 })

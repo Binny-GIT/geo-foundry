@@ -396,7 +396,10 @@ export const adoptIntakeItem = async (
     data: {
       angle: title,
       body: [{ blockType: "paragraph", text: summary }],
-      citations: sourceUrl === undefined ? [] : [{ label: sourceUrl, url: sourceUrl }],
+      citations:
+        sourceUrl === undefined
+          ? []
+          : [{ id: `intake-${intakeItem.id}`, title, url: sourceUrl }],
       content: content.id,
       creationOrigin: "human",
       entities: [],

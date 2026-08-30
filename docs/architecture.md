@@ -65,9 +65,7 @@ Redis（宿主机共享）
 S3 兼容存储
 ```
 
-Web 与 Worker **使用同一个镜像**，通过启动命令区分角色，不是两个独立服务。
-
-> 当前 `deploy/compose.yaml` 只部署了 `cms`，Worker 尚未部署，因此定时发布无法运行。补齐 Worker 服务是发布阶段的前置条件，见[开发计划](development-plan.md)。
+Web 与 Worker **使用同一个镜像**，通过启动命令区分角色，不是两个独立服务。mk-dev Compose 同时运行 `cms` 与 `worker`：CMS 的 transactional Outbox 负责把数据库事实投递到 Redis，Worker 使用同一个 FILE-only 凭据目录和 tenant keyring 消费后台任务。`worker-smoke` 验证容器、keyring、Redis 与 CMS 连通；`worker-business-smoke` 额外验证一次 append-only CMS mutation → Outbox → BullMQ → Worker consumer 链路。
 
 ## 4. 模块边界
 
@@ -188,17 +186,17 @@ Domain   实际访问地址
 
 `examples/site-a-next` 与 `examples/site-b-express` 保留为多站点隔离测试的 Fixture，不是产品的一部分。
 
-## 8. 版本一致性
+## 8. 版本基线
 
-仓库内需统一的版本：
+当前工作区已统一为：
 
-| 依赖 | 现状 | 处理 |
-| --- | --- | --- |
-| Zod | `4.1.12` 与 `4.4.3` 并存 | 统一为单一版本 |
-| React | `19.2.6` 与 `19.2.8` 并存 | 统一 |
-| Next.js | `16.3.0` 与 `16.3.1` 并存 | 统一 |
+| 依赖 | 当前版本 |
+| --- | --- |
+| Zod | `4.4.3` |
+| React / React DOM | `19.2.8` |
+| Next.js | `16.3.1` |
 
-工具链基线：Node.js 24、pnpm 11.22.0、TypeScript 5.9.3、Turborepo、Biome。
+工具链基线：Node.js 24、pnpm 11.22.0、TypeScript 5.9.3、Turborepo、Biome。依赖升级仍须通过工作区 typecheck、测试、CMS build 与 Worker build 后才能部署。
 
 ## 相关文档
 
