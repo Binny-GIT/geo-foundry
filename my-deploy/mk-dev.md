@@ -313,6 +313,19 @@ deploy/smoke/smoke.sh
 - **RSS 真实运行验证（2026-08-28）**：Worker 的安全 DNS pinning 适配 Node 24 `lookup({ all: true })` 回调协议，仍对每跳拒绝 loopback/私网/metadata/非默认端口。`verify-rss-polling.mjs` 使用受控的公开 XML feed，真实确认 feed parent ready、创建 20 条 URL 子稿源，并在 finally 禁用验证 connector；一次 NASA feed 因私网地址解析被拒绝，验证了 SSRF fail-closed 路径。
 - **遗留**：AI Provider 仍为 fake（无 `ai-api-key` 凭据文件，`AI_PROVIDER` 未设置；提供真实 key 后配置 `AI_PROVIDER=openai-compatible` 即可）。
 
+## 质量评估、自动回滚派发与最终运行验收（2026-08-30，镜像 `mk-dev-01b17ec`，摘要 `sha256:2e2c338a...`）
+
+本轮从已推送的干净 `main` 隔离工作树构建部署，未将 mk-dev 旧工作树的未提交文件作为发布输入。部署前已执行 owner-only PostgreSQL 备份和独立恢复演练（71 表、24 条迁移、5 张核心表），随后确认生产迁移状态中 `20260830_100000_editor_evaluation_outbox` 与 `20260830_110000_rollback_outbox_dispatch` 均为 `Yes`。
+
+- **Editor 质量评估意图**：工作台新增“运行质量检查”。editor 会话只能写入 queued `evaluate` operation、idempotency record 与 `evaluation.requested` transactional Outbox；Worker 以稳定 job ID 转投既有 evaluation queue，assessment 仍仅由 content-service 内部端点持久化。浏览器不会调用 `/api/internal/*`。
+- **自动 rollback 派发**：publisher 创建 intent 时，同一事务创建绑定的 queued `rollback` operation 与 `rollback.requested` Outbox；Worker 自动进入 `rollback-gate` 并执行对象存储 pointer CAS。intent 只能由预绑定 operation 消费，避免不同 operation 重放或抢占。
+- **操作收敛**：普通可重试 Worker job 在最后一次失败后写入 `WORKER_RETRY_EXHAUSTED` 并终结 ledger operation，发布计划不会再因 BullMQ retry 耗尽而永久保持 `running`。
+- **历史引用兼容**：compile snapshot 只读地把历史 `{ label, url }` citation 规范为 compiler 所需 `{ id, title, url }`，不修改审计数据；新的 intake adoption 保持严格写入完整 citation 字段。
+- **可重复构建与 smoke**：`turbo typecheck` 先构建 workspace 依赖；mk-dev 镜像脚本在 `pnpm deploy --prod` 前后恢复锁定开发依赖。Makefile 对 shell 门禁显式使用 `bash`，并强制 Compose `--force-recreate --wait --wait-timeout 180`。verify 容器显式关闭 background runtime，只验证无共享依赖时的镜像启动；真实运行路径继续由 deploy smoke 和 business smoke 覆盖。
+- **部署后状态**：CMS 与 Worker 同一 image digest，CMS health/readiness、本机与公网 health、Worker FILE-only smoke 均通过。`worker-business-smoke` 成功写入 append-only failed assessment，验证 CMS mutation → Outbox → BullMQ → Worker consumer，且 fixture 的 input hash、workflow revision、workflow state 未变化。`runtime-status` 显示 Outbox pending=0、nonterminal operation=0、近期失败发布=0、RSS active stale=0、备份新鲜。历史 failed publication plan 作为不可删除审计证据保留并单独计数，不再掩盖当前运行健康。
+- **浏览器验收**：`.test/browser-workspace-tests.mjs` **8/8 PASS**，覆盖 Today Work、URL Inbox、计划分组、三栏工作台、editor 质量意图、editor emergency 拒绝、super-admin emergency fallback 与 console error=0。`.test/browser-business-flow.mjs` 成功运行真实会话路径：URL 导入→Worker 抓取→采用→编辑→质量评估→退回重审→批准→两次排期发布→rollback→反向 rollback 恢复原 current release→归档测试 edition。不可变 release、operation、assessment、rollback intent 与 Outbox 审计记录按产品规则保留。
+- **外部依赖**：AI Provider 仍为 deliberate fake/fail-closed。启用真实 provider 必须由所有者提供 owner-only API key file、base URL、chat/embedding model，并明确批准付费外部调用。
+
 ## 回滚
 
 1. `sudoedit /opt/geo-foundry/mk-dev.env` 将 `IMAGE_TAG` 改回上一 `mk-dev-<sha>`。

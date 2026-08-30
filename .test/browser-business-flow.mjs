@@ -151,10 +151,25 @@ const createRollback = async (page, siteId, current, target, reason) => {
     (candidate) => candidate.request().method() === "POST" && candidate.url().includes("/api/rollback-operations/intents"),
     { timeout: 60_000 },
   )
+  const navigation = page.waitForURL(
+    (url) =>
+      url.pathname === "/admin/collections/rollback-intents" ||
+      (url.pathname.startsWith("/admin/collections/rollback-intents/") &&
+        url.pathname !== "/admin/collections/rollback-intents/create"),
+    { timeout: 60_000 },
+  )
   await page.getByRole("button", { name: "创建回滚意图" }).click()
   const result = await response
   if (!result.ok()) throw new Error(`BROWSER_BUSINESS_ROLLBACK_INTENT_FAILED:${result.status()}`)
-  return result.json()
+  await navigation
+  return waitFor(async () => {
+    const intents = await api(
+      page,
+      `/api/rollback-intents?depth=0&limit=1&sort=-createdAt&where[reason][equals]=${encodeURIComponent(reason)}`,
+    )
+    const intent = intents.status === 200 ? intents.body.docs?.[0] : null
+    return typeof intent?.intentId === "string" ? intent : null
+  }, "rollback-intent-created")
 }
 
 const browser = await chromium.launch({ args: ["--no-proxy-server", "--no-sandbox"] })

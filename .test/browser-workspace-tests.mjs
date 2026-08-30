@@ -143,9 +143,15 @@ const run = async () => {
       editionId = await editorPage.evaluate(async () => {
         const response = await fetch("/api/content-editions?depth=0&limit=20&sort=-updatedAt&where[workflowStatus][equals]=draft")
         if (!response.ok) throw new Error(`draft edition query ${response.status}`)
-        const payload = (await response.json())
-        const candidate = payload.docs?.find((edition) => Number.isInteger(edition?.id))
-        return candidate?.id === undefined ? null : String(candidate.id)
+        const payload = await response.json()
+        for (const candidate of payload.docs ?? []) {
+          if (!Number.isInteger(candidate?.id)) continue
+          const draft = await fetch(`/api/content-editions/${candidate.id}?depth=0&draft=true`)
+          if (!draft.ok) continue
+          const draftEdition = await draft.json()
+          if (draftEdition.workflowStatus === "draft") return String(candidate.id)
+        }
+        return null
       })
     })
     if (editionId === null || editionId.length === 0) {

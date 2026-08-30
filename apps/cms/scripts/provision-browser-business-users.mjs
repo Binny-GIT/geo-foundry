@@ -32,10 +32,21 @@ try {
       overrideAccess: true,
       where: { email: { equals: email } },
     })
-    if (existing.docs[0] !== undefined) continue
-    await payload.create({
+    const user = existing.docs[0]
+    if (user === undefined) {
+      await payload.create({
+        collection: "users",
+        data: { email, password, role, tenant: tenantAdmin.tenant },
+        depth: 0,
+        overrideAccess: false,
+        user: tenantAdmin,
+      })
+      continue
+    }
+    await payload.update({
       collection: "users",
-      data: { email, password, role, tenant: tenantAdmin.tenant },
+      id: user.id,
+      data: { password, role, tenant: tenantAdmin.tenant },
       depth: 0,
       overrideAccess: false,
       user: tenantAdmin,

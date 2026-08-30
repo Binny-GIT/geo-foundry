@@ -212,6 +212,8 @@ v1（仅覆盖 `--theme-success-*` 色阶+按钮/聚焦色）用户反馈"看不
 | 2026-08-22 | browser-admin-tests.mjs（镜像 mk-dev-072a1c5，首页深度丰富 + 管理端大胆美化） | 深度 17/17；typecheck+webpack build+CMS 单测 67/67 全通过；截图逐张人工核对配色/图标/布局；测试数据无残留（本轮未新建持久化数据） |
 | 2026-08-24 | browser-admin-tests.mjs（GF Studio 换肤重建，镜像 mk-dev-e220638，摘要见下方章节） | 真实 Playwright 4 视口 × 多角色 17/18 PASS；唯一失败为集合行数与旧硬编码期望值不符（12 个集合 err=0，纯测试基线数据增长，非本轮回归）；CMS 单测 90/90 |
 | 2026-08-24 | browser-admin-tests.mjs（原生列表/表单页视觉打磨补课，镜像 mk-dev-e220638，摘要见下方章节） | 同一已知基线问题 17/18 PASS，无新增回归；CMS 单测 90/90（纯 CSS 改动）；Playwright 直接截图复验列表/详情/移动端/真实深色主题 |
+| 2026-08-30 | browser-workspace-tests.mjs（镜像 mk-dev-01b17ec，本机 Chromium） | **8/8 PASS**：Today Work、URL Inbox、排期分组、三栏工作台、editor 提交 `evaluation.requested`、editor emergency 拒绝、super-admin emergency fallback、零硬 console error。候选稿件必须以 `draft=true` 读取到实际 draft，避免将已批准 live 版本的历史草稿快照误作质量检查夹具。 |
+| 2026-08-30 | browser-business-flow.mjs（镜像 mk-dev-01b17ec，本机 Chromium） | **PASS**：真实会话完成 URL 导入→Worker 抓取→采用→编辑→质量评估→退回重审→批准→两次排期发布→rollback→反向 rollback 恢复原 current release→归档。脚本按本次唯一 rollback reason 查询 intent，不依赖表单成功后页面导航中已释放的 Response body。 |
 
 ## GF Studio 管理端全新设计系统（2026-08-24，最终镜像 `mk-dev-e220638`，摘要 `sha256:7c3a0695...`）
 
