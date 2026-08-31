@@ -22,7 +22,10 @@
   color: var(--gf-public-ink);
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   min-height: 100vh;
-  overflow: hidden;
+  /* clip (not hidden): overflow:hidden would make .page a scroll container and
+     view() timelines would bind to it instead of the document scroll, finishing
+     every scroll reveal on load. */
+  overflow: clip;
 }
 
 .shell {
