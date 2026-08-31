@@ -95,14 +95,16 @@ const run = async () => {
 
     await retry(async () => {
       await editorPage.goto(`${BASE}/admin/work`, { timeout: TIMEOUT, waitUntil: "domcontentloaded" })
-      await editorPage.getByRole("heading", { level: 1, name: "Today Work" }).waitFor({ timeout: TIMEOUT })
-      await editorPage.getByRole("heading", { level: 2, name: "My editions" }).waitFor({ timeout: TIMEOUT })
+      await editorPage.getByRole("heading", { level: 1, name: "工作台" }).waitFor({ timeout: TIMEOUT })
+      await editorPage.getByRole("heading", { level: 2, name: "草稿" }).waitFor({ timeout: TIMEOUT })
+      await editorPage.getByRole("heading", { level: 2, name: "待审核" }).waitFor({ timeout: TIMEOUT })
+      await editorPage.getByRole("heading", { level: 2, name: "已发布" }).waitFor({ timeout: TIMEOUT })
     })
     record(
       "WS-UI-001",
-      "Today Work page renders the editorial queue",
+      "Workbench board renders the six status columns",
       true,
-      "/admin/work shows the Today Work heading and My editions section",
+      "/admin/work shows the 工作台 heading and the draft/review/published board columns",
     )
     await editorPage.screenshot({ path: resolve(ARTIFACTS, "ws1-today-work.png") })
 
