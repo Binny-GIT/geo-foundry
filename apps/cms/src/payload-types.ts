@@ -876,6 +876,7 @@ export interface PerformanceSnapshot {
   edition?: (number | null) | ContentEdition;
   url: string;
   source: string;
+  city?: string | null;
   observedAt: string;
   visits?: number | null;
   engagement?: number | null;
@@ -1736,6 +1737,7 @@ export interface PerformanceSnapshotsSelect<T extends boolean = true> {
   edition?: T;
   url?: T;
   source?: T;
+  city?: T;
   observedAt?: T;
   visits?: T;
   engagement?: T;

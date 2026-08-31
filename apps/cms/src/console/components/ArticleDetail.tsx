@@ -1,10 +1,13 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 
+import { CMS_ACTION, CMS_RESOURCE } from "@/access/policy"
 import { CMS_ROLE } from "@/access/roles"
 import ArticleBody from "@/console/components/ArticleBody"
+import { RankedBars, TrendBars, type TrendPoint } from "@/console/components/charts"
 import { consoleRoute } from "@/console/lib/resources"
 import { requireConsolePayloadContext } from "@/console/lib/payload.server"
+import { canConsole } from "@/console/lib/session.server"
 
 const WORKFLOW_LABELS: Readonly<Record<string, string>> = {
   archived: "已删除",
@@ -87,7 +90,7 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
   const workflowStatus = typeof edition["workflowStatus"] === "string" ? edition["workflowStatus"] : ""
   const title = typeof edition["title"] === "string" && edition["title"].length > 0 ? edition["title"] : "未命名稿件"
 
-  const [urlRecord, domain, comments] = await Promise.all([
+  const [urlRecord, domain, comments, snapshots] = await Promise.all([
     payload
       .find({
         collection: "url-records",
@@ -135,6 +138,21 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
       })
       .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
       .catch(() => [] as readonly Record<string, unknown>[]),
+    canConsole(session, CMS_RESOURCE.PERFORMANCE_SNAPSHOTS, CMS_ACTION.READ)
+      ? payload
+          .find({
+            collection: "performance-snapshots",
+            depth: 0,
+            limit: 500,
+            overrideAccess: false,
+            select: { city: true, observedAt: true, visits: true },
+            sort: "-observedAt",
+            user,
+            where: { edition: { equals: numericId } },
+          })
+          .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
+          .catch(() => [] as readonly Record<string, unknown>[])
+      : null,
   ])
 
   const pathname = urlRecord === null ? null : typeof urlRecord["pathname"] === "string" ? urlRecord["pathname"] : null
@@ -170,6 +188,32 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
     session.role === CMS_ROLE.EDITOR ||
     session.role === CMS_ROLE.TENANT_ADMIN ||
     session.role === CMS_ROLE.SUPER_ADMIN
+
+  const todayKey = new Date().toISOString().slice(0, 10)
+  const readingDays = new Map<string, number>()
+  const readingCities = new Map<string, number>()
+  let todayVisits = 0
+  let totalVisits = 0
+  for (let offset = 29; offset >= 0; offset -= 1) {
+    readingDays.set(new Date(Date.now() - offset * 86_400_000).toISOString().slice(0, 10), 0)
+  }
+  for (const snapshot of snapshots ?? []) {
+    const visits = typeof snapshot["visits"] === "number" ? snapshot["visits"] : 0
+    const observedAt = typeof snapshot["observedAt"] === "string" ? snapshot["observedAt"] : null
+    totalVisits += visits
+    if (observedAt !== null) {
+      const day = observedAt.slice(0, 10)
+      if (day === todayKey) todayVisits += visits
+      if (readingDays.has(day)) readingDays.set(day, (readingDays.get(day) ?? 0) + visits)
+    }
+    const city = typeof snapshot["city"] === "string" && snapshot["city"].length > 0 ? snapshot["city"] : null
+    if (city !== null) readingCities.set(city, (readingCities.get(city) ?? 0) + visits)
+  }
+  const readingTrend: readonly TrendPoint[] = [...readingDays.entries()].map(([date, value]) => ({ date, value }))
+  const cityItems = [...readingCities.entries()]
+    .map(([label, value]) => ({ label, value }))
+    .sort((left, right) => right.value - left.value)
+    .slice(0, 6)
 
   return (
     <div className="grid gap-6">
@@ -298,11 +342,32 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
             )}
           </section>
 
-          <section className="gf-console-card grid gap-3 p-5">
-            <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">阅读分析</h2>
-            <p className="m-0 text-sm leading-6 text-[var(--console-ink-muted)]">
-              流量统计数据接入后，这里将展示今日阅读、近 30 天趋势与访问地区排行。
-            </p>
+          <section className="gf-console-card grid gap-4 p-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">阅读分析</h2>
+              <span className="text-xs font-semibold text-[var(--console-ink-muted)]">
+                今日 {todayVisits} · 累计 {totalVisits}
+              </span>
+            </div>
+            {snapshots === null ? (
+              <p className="m-0 text-sm leading-6 text-[var(--console-ink-muted)]">当前角色无权读取流量统计。</p>
+            ) : totalVisits === 0 ? (
+              <p className="m-0 text-sm leading-6 text-[var(--console-ink-muted)]">
+                暂无流量统计数据；由站点或 n8n 上报后，这里将展示今日阅读、近 30 天趋势与访问城市排行。
+              </p>
+            ) : (
+              <>
+                <TrendBars color="#f59e0b" data={readingTrend} emptyLabel="近 30 天暂无阅读" />
+                {cityItems.length > 0 && (
+                  <div className="grid gap-2 border-t border-[var(--console-border)] pt-3">
+                    <p className="m-0 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">
+                      访问城市排行
+                    </p>
+                    <RankedBars color="#f59e0b" items={cityItems} />
+                  </div>
+                )}
+              </>
+            )}
           </section>
 
           <section className="gf-console-card grid gap-4 p-5">

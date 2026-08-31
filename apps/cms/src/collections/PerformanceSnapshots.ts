@@ -33,6 +33,7 @@ export const PerformanceSnapshots = {
     { name: "edition", type: "relationship", relationTo: "content-editions", index: true },
     { name: "url", type: "text", required: true, index: true },
     { name: "source", type: "text", required: true, index: true },
+    { name: "city", type: "text", label: localized("City", "城市"), index: true },
     { name: "observedAt", type: "date", required: true, index: true },
     { name: "visits", type: "number", min: 0 },
     { name: "engagement", type: "number", min: 0 },

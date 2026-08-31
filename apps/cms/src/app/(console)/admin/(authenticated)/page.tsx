@@ -65,8 +65,9 @@ const ConsoleDashboardPage = async () => {
   const canReadReleases = canRead(CMS_RESOURCE.RELEASES)
   const canReadOperations = canRead(CMS_RESOURCE.OPERATIONS)
   const canReadSites = canRead(CMS_RESOURCE.SITES)
+  const canReadSnapshots = canRead(CMS_RESOURCE.PERFORMANCE_SNAPSHOTS)
 
-  const [statusCounts, intakeDocs, releaseDocs, failedOperations, sites] = await Promise.all([
+  const [statusCounts, intakeDocs, releaseDocs, failedOperations, sites, snapshotDocs] = await Promise.all([
     canReadEditions
       ? Promise.all(
           WORKFLOW_STATES.map((state) =>
@@ -133,6 +134,20 @@ const ConsoleDashboardPage = async () => {
           })
           .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
       : null,
+    canReadSnapshots
+      ? payload
+          .find({
+            collection: "performance-snapshots",
+            depth: 0,
+            limit: 1000,
+            overrideAccess: false,
+            select: { observedAt: true, visits: true },
+            sort: "-observedAt",
+            user,
+            where: { observedAt: { greater_than_equal: cutoff } },
+          })
+          .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
+      : null,
   ])
 
   const segments: readonly ChartSegment[] | null =
@@ -160,6 +175,21 @@ const ConsoleDashboardPage = async () => {
       }),
     )
   })()
+
+  const readingByDay = new Map<string, number>(
+    emptyTrend().map((point) => [point.date, 0] as const),
+  )
+  for (const snapshot of snapshotDocs ?? []) {
+    const observedAt = snapshot["observedAt"]
+    const visits = typeof snapshot["visits"] === "number" ? snapshot["visits"] : 0
+    if (typeof observedAt !== "string" || !readingByDay.has(observedAt.slice(0, 10))) continue
+    const day = observedAt.slice(0, 10)
+    readingByDay.set(day, (readingByDay.get(day) ?? 0) + visits)
+  }
+  const readingTrend: readonly TrendPoint[] = [...readingByDay.entries()].map(([date, value]) => ({
+    date,
+    value,
+  }))
 
   const reviewCount = statusCounts === null ? null : (statusCounts[2] ?? 0)
   const publishReadyCount =
@@ -300,6 +330,16 @@ const ConsoleDashboardPage = async () => {
             </div>
           ) : (
             <RankedBars emptyLabel="暂无站点" items={siteArticleItems} />
+          )}
+        </ChartCard>
+
+        <ChartCard title="近 30 天阅读趋势">
+          {snapshotDocs === null ? (
+            <div className="grid min-h-40 place-items-center rounded-xl border border-dashed border-[var(--console-border)]">
+              <span className="text-sm text-[var(--console-ink-muted)]">{restrictedNote}</span>
+            </div>
+          ) : (
+            <TrendBars color="#f59e0b" data={readingTrend} emptyLabel="近 30 天暂无阅读数据" />
           )}
         </ChartCard>
       </section>

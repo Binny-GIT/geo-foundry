@@ -17,6 +17,7 @@ const instant = (value: string): string => {
 }
 
 export type PerformanceImportRow = Readonly<{
+  city?: string
   editionId?: number
   engagement?: number
   observedAt: string
@@ -46,6 +47,7 @@ export const importPerformanceSnapshots = async (
     await payload.create({
       collection: "performance-snapshots",
       data: {
+        ...(row.city === undefined || row.city.trim().length === 0 ? {} : { city: row.city.trim() }),
         ...(row.conversions === undefined ? {} : { conversions: row.conversions }),
         ...(row.editionId === undefined ? {} : { edition: row.editionId }),
         ...(row.engagement === undefined ? {} : { engagement: row.engagement }),

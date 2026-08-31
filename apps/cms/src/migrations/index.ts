@@ -25,6 +25,7 @@ import * as migration_20260830_110000_rollback_outbox_dispatch from "./20260830_
 import * as migration_20260831_230000_user_site_scope from "./20260831_230000_user_site_scope"
 import * as migration_20260901_000000_api_usage_daily from "./20260901_000000_api_usage_daily"
 import * as migration_20260901_001000_api_usage_locked_rels from "./20260901_001000_api_usage_locked_rels"
+import * as migration_20260901_002000_reading_city from "./20260901_002000_reading_city"
 
 export const migrations = [
   {
@@ -161,5 +162,10 @@ export const migrations = [
     up: migration_20260901_001000_api_usage_locked_rels.up,
     down: migration_20260901_001000_api_usage_locked_rels.down,
     name: "20260901_001000_api_usage_locked_rels",
+  },
+  {
+    up: migration_20260901_002000_reading_city.up,
+    down: migration_20260901_002000_reading_city.down,
+    name: "20260901_002000_reading_city",
   },
 ]

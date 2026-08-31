@@ -4,6 +4,7 @@ import { z } from "zod"
 import { acceptPerformanceSuggestion, importPerformanceSnapshots, performanceSuggestions, PerformanceSnapshotsError } from "../services/performance-snapshots"
 
 const importRowSchema = z.object({
+  city: z.string().min(1).max(120).optional(),
   conversions: z.number().min(0).optional(),
   editionId: z.number().int().positive().optional(),
   engagement: z.number().min(0).optional(),
@@ -17,7 +18,7 @@ const importSchema = z.object({
   siteId: z.number().int().positive(),
 }).strict()
 const acceptSchema = z.object({ editionId: z.number().int().positive() }).strict()
-const CSV_HEADERS = ["siteId", "editionId", "observedAt", "source", "url", "visits", "engagement", "conversions"] as const
+const CSV_HEADERS = ["siteId", "editionId", "observedAt", "source", "url", "city", "visits", "engagement", "conversions"] as const
 const CSV_REQUIRED_HEADERS = ["siteId", "observedAt", "source", "url"] as const
 const MAX_CSV_BYTES = 2_000_000
 const MAX_CSV_ROWS = 1000
@@ -93,6 +94,7 @@ const csvImportOf = (text: string): unknown | null => {
     const row = Object.fromEntries(headers.map((header, index) => [header, (record[index] ?? "").trim()]))
     const recordSiteId = numberOf(row["siteId"] ?? "", true)
     const editionId = numberOf(row["editionId"] ?? "", true)
+    const city = (row["city"] ?? "").trim()
     const visits = numberOf(row["visits"] ?? "")
     const engagement = numberOf(row["engagement"] ?? "")
     const conversions = numberOf(row["conversions"] ?? "")
@@ -103,6 +105,7 @@ const csvImportOf = (text: string): unknown | null => {
       observedAt: row["observedAt"],
       source: row["source"],
       url: row["url"],
+      ...(city.length === 0 ? {} : { city }),
       ...(conversions === undefined ? {} : { conversions }),
       ...(editionId === undefined ? {} : { editionId }),
       ...(engagement === undefined ? {} : { engagement }),
@@ -140,6 +143,7 @@ export const importPerformanceSnapshotsEndpoint: Endpoint = {
             observedAt: row.observedAt,
             source: row.source,
             url: row.url,
+            ...(row.city === undefined ? {} : { city: row.city }),
             ...(row.conversions === undefined ? {} : { conversions: row.conversions }),
             ...(row.editionId === undefined ? {} : { editionId: row.editionId }),
             ...(row.engagement === undefined ? {} : { engagement: row.engagement }),

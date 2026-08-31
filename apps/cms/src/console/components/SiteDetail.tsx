@@ -84,7 +84,7 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
   const isPublisher = session.role === CMS_ROLE.PUBLISHER || session.role === CMS_ROLE.SUPER_ADMIN
   const canCreateDomain = canConsole(session, CMS_RESOURCE.DOMAINS, CMS_ACTION.CREATE)
 
-  const [statusCounts, domains, canonicalDomain, recentEditions, releases, operations] = await Promise.all([
+  const [statusCounts, domains, canonicalDomain, recentEditions, releases, operations, siteSnapshots] = await Promise.all([
     canReadEditions
       ? Promise.all(
           WORKFLOW_STATES.map((state) =>
@@ -169,6 +169,20 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
             limit: 10,
             overrideAccess: false,
             sort: "-updatedAt",
+            user,
+            where: { site: { equals: siteId } },
+          })
+          .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
+          .catch(() => [] as readonly Record<string, unknown>[])
+      : null,
+    canConsole(session, CMS_RESOURCE.PERFORMANCE_SNAPSHOTS, CMS_ACTION.READ)
+      ? payload
+          .find({
+            collection: "performance-snapshots",
+            depth: 0,
+            limit: 1000,
+            overrideAccess: false,
+            select: { visits: true },
             user,
             where: { site: { equals: siteId } },
           })
@@ -265,7 +279,14 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
           </div>
           <div>
             <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">累计阅读</dt>
-            <dd className="m-0 pt-1 text-sm text-[var(--console-ink-muted)]">流量统计数据接入后展示</dd>
+            <dd className="m-0 pt-1 text-sm text-[var(--console-ink)]">
+              {siteSnapshots === null
+                ? "当前角色无权读取流量统计"
+                : `${siteSnapshots.reduce(
+                    (sum, snapshot) => sum + (typeof snapshot["visits"] === "number" ? snapshot["visits"] : 0),
+                    0,
+                  )} 次（流量统计上报后累计）`}
+            </dd>
           </div>
         </dl>
       </section>
