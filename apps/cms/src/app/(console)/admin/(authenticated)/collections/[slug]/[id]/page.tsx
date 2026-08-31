@@ -4,6 +4,7 @@ import { notFound } from "next/navigation"
 import { CMS_ACTION } from "@/access/policy"
 import { CMS_ROLE } from "@/access/roles"
 import ArticleDetail from "@/console/components/ArticleDetail"
+import SiteDetail from "@/console/components/SiteDetail"
 import { ConsoleUrlRename } from "@/console/components/ConsoleUrlRename"
 import {
   CONSOLE_RESOURCES,
@@ -81,6 +82,10 @@ const ConsoleDocumentPage = async ({ params }: ConsoleDocumentPageProps) => {
 
   if (slug === "content-editions") {
     return <ArticleDetail id={id} />
+  }
+
+  if (slug === "sites") {
+    return <SiteDetail id={id} />
   }
 
   const resource = CONSOLE_RESOURCES[slug]

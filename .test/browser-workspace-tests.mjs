@@ -237,6 +237,24 @@ const run = async () => {
     }
 
     await retry(async () => {
+      await editorPage.goto(`${BASE}/admin/collections/sites`, { timeout: TIMEOUT, waitUntil: "domcontentloaded" })
+      await editorPage.getByRole("heading", { level: 1, name: "站点列表" }).waitFor({ timeout: TIMEOUT })
+      const firstSite = editorPage.locator('a[href*="/admin/collections/sites/"]').first()
+      await firstSite.waitFor({ timeout: TIMEOUT })
+      await firstSite.click()
+      await editorPage.getByText("站点详情", { exact: true }).waitFor({ timeout: TIMEOUT })
+      await editorPage.getByRole("heading", { level: 2, name: "站点信息与文章入口" }).waitFor({ timeout: TIMEOUT })
+      await editorPage.getByRole("heading", { level: 2, name: "域名管理" }).waitFor({ timeout: TIMEOUT })
+      await editorPage.getByRole("heading", { level: 2, name: "该站文章" }).waitFor({ timeout: TIMEOUT })
+    })
+    record(
+      "WS-UI-011",
+      "Site list shows summaries and site detail renders entry info and domains",
+      true,
+      "/admin/collections/sites lists sites with article counts and the detail page shows entry info, domains, and site articles",
+    )
+
+    await retry(async () => {
       await editorPage.goto(`${BASE}/admin/_emergency/collections/users`, {
         timeout: TIMEOUT,
         waitUntil: "domcontentloaded",

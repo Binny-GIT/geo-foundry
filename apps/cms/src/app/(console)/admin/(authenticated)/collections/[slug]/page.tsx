@@ -7,6 +7,9 @@ import { CMS_ROLE } from "@/access/roles"
 import EditionsWorkspace, {
   type FilterOption,
 } from "@/console/components/EditionsWorkspace"
+import SitesWorkspace, {
+  type SiteRow,
+} from "@/console/components/SitesWorkspace"
 import {
   CONSOLE_RESOURCES,
   CONSOLE_SECTION_LABELS,
@@ -176,12 +179,84 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
     )
   }
 
+  if (slug === "sites") {
+    const context = await requireConsolePayloadContext()
+    const result = await findConsoleDocuments({ page, slug, where: sitesIdScopeWhere(context.session) })
+    const canReadEditions = canConsole(context.session, CMS_RESOURCE.EDITIONS, CMS_ACTION.READ)
+    const canReadReleases = canConsole(context.session, CMS_RESOURCE.RELEASES, CMS_ACTION.READ)
+    const rows = await Promise.all(
+      result.docs.map(async (site): Promise<SiteRow> => {
+        const siteId = site["id"] as number
+        const [articleCount, latestRelease] = await Promise.all([
+          canReadEditions
+            ? context.payload
+                .count({
+                  collection: "content-editions",
+                  overrideAccess: false,
+                  user: context.user,
+                  where: { site: { equals: siteId } },
+                })
+                .then((counted) => counted.totalDocs ?? 0)
+                .catch(() => 0)
+            : 0,
+          canReadReleases
+            ? context.payload
+                .find({
+                  collection: "releases",
+                  depth: 0,
+                  limit: 1,
+                  overrideAccess: false,
+                  sort: "-createdAt",
+                  user: context.user,
+                  where: { site: { equals: siteId } },
+                })
+                .then(
+                  (found) =>
+                    ((found.docs[0] ?? null) as Record<string, unknown> | null)?.["createdAt"] ?? null,
+                )
+                .catch(() => null)
+            : null,
+        ])
+        const tenantRecord = site["tenant"]
+        return {
+          articleCount,
+          id: siteId,
+          lastPublishedAt: typeof latestRelease === "string" ? latestRelease : null,
+          locale: typeof site["locale"] === "string" ? site["locale"] : null,
+          name: typeof site["name"] === "string" && site["name"].length > 0 ? site["name"] : `站点 #${String(siteId)}`,
+          status: typeof site["status"] === "string" ? site["status"] : null,
+          tenantName:
+            typeof tenantRecord === "object" &&
+            tenantRecord !== null &&
+            typeof (tenantRecord as Record<string, unknown>)["name"] === "string"
+              ? String((tenantRecord as Record<string, unknown>)["name"])
+              : null,
+        }
+      }),
+    )
+    return (
+      <div className="grid gap-6">
+        <header>
+          <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">站点</p>
+          <h1 className="m-0 pt-1 text-3xl font-semibold tracking-tight text-[var(--console-ink)]">
+            站点列表
+          </h1>
+          <p className="m-0 max-w-2xl pt-2 text-sm leading-6 text-[var(--console-ink-muted)]">
+            每个站点是一个读取文章的发布目标网站；详情页提供该站文章、域名、发布历史与恢复。
+          </p>
+        </header>
+        <SitesWorkspace
+          isSuperAdmin={context.session.role === CMS_ROLE.SUPER_ADMIN}
+          page={result.page}
+          rows={rows}
+          totalPages={result.totalPages}
+        />
+      </div>
+    )
+  }
+
   const context = await requireConsolePayloadContext()
-  const result = await findConsoleDocuments({
-    page,
-    slug,
-    ...(slug === "sites" ? { where: sitesIdScopeWhere(context.session) } : {}),
-  })
+  const result = await findConsoleDocuments({ page, slug })
   const resource = CONSOLE_RESOURCES[slug]
   const columns = resource.defaultColumns
   const canCreate =
