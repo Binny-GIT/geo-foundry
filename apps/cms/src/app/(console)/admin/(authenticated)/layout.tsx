@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import Script from "next/script"
 
 import { CMS_ACTION, CMS_RESOURCE } from "@/access/policy"
 import { ConsoleShell } from "@/console/components/ConsoleShell"
@@ -30,19 +31,26 @@ const AuthenticatedConsoleLayout = async ({ children }: AuthenticatedLayoutProps
   })
 
   return (
-    <ConsoleShell
-      navigation={{
-        canReadInbox: canConsole(session, CMS_RESOURCE.INTAKE_ITEMS, CMS_ACTION.READ),
-        resources,
-        session: {
-          email: session.email,
-          roleLabel: ROLE_LABEL[session.role] ?? session.role,
-          tenantName: session.tenantName,
-        },
-      }}
-    >
-      {children}
-    </ConsoleShell>
+    <>
+      {/* Keep Payload i18n aligned with the SSR zh fallback before any jump
+          into the emergency tree; same bootstrap as workspace/_emergency. */}
+      <Script id="payload-language-bootstrap" strategy="beforeInteractive">
+        {`if (!document.cookie.split('; ').some((row) => row.startsWith('payload-lng='))) document.cookie = 'payload-lng=zh; path=/; SameSite=Lax'`}
+      </Script>
+      <ConsoleShell
+        navigation={{
+          canReadInbox: canConsole(session, CMS_RESOURCE.INTAKE_ITEMS, CMS_ACTION.READ),
+          resources,
+          session: {
+            email: session.email,
+            roleLabel: ROLE_LABEL[session.role] ?? session.role,
+            tenantName: session.tenantName,
+          },
+        }}
+      >
+        {children}
+      </ConsoleShell>
+    </>
   )
 }
 
