@@ -326,6 +326,22 @@ deploy/smoke/smoke.sh
 - **浏览器验收**：`.test/browser-workspace-tests.mjs` **8/8 PASS**，覆盖 Today Work、URL Inbox、计划分组、三栏工作台、editor 质量意图、editor emergency 拒绝、super-admin emergency fallback 与 console error=0。`.test/browser-business-flow.mjs` 成功运行真实会话路径：URL 导入→Worker 抓取→采用→编辑→质量评估→退回重审→批准→两次排期发布→rollback→反向 rollback 恢复原 current release→归档测试 edition。不可变 release、operation、assessment、rollback intent 与 Outbox 审计记录按产品规则保留。
 - **外部依赖**：AI Provider 仍为 deliberate fake/fail-closed。启用真实 provider 必须由所有者提供 owner-only API key file、base URL、chat/embedding model，并明确批准付费外部调用。
 
+## 控制台按核心业务重组与站点交付 API（2026-08-31，最终镜像 `mk-dev-c727c39`）
+
+按用户定稿的产品愿景分六阶段重组 Console，全部基于已推送提交在隔离工作树构建部署：
+
+- **导航（7 项，业务/管理分区）**：控制台 / 工作台 / 文章列表 / 站点列表 ｜ 系统用户管理 / 操作日志 / OSS存储。租户从日常界面隐藏；"表现快照"改名"流量统计"；域名/URL记录/质量评估/发布版本/回滚意图/内容条目不再占导航（路由保留防炸链，数据进上下文页面）。修复了硬编码导航项绕过权限过滤的缺陷；账户页与侧栏用户卡显示租户名称（会话扩展 tenantName）。
+- **控制台 dashboard**：文章状态分布环图、近30天稿源/发布/阅读趋势、待办计数、各站点文章数——全部自绘 SVG 零新依赖，权限内聚合、真实空态。
+- **工作台看板**：六列（草稿[生成中角标]/待审核/通过待发布/不通过[显退回原因]/已发布/已删除），纯展示层状态映射（board-model，后端状态机零改动）；顶部"新稿源"待处理条（采用→草稿/忽略；URL 导入、手动新建入口）；卡上操作全部走既有受保护工作流端点，不提供拖拽改状态。
+- **文章列表与详情**：站点/状态/标题筛选+搜索（URL 参数，服务端白名单 where）；super-admin 租户列+筛选；Console 原生详情页（基础信息/正文只读渲染/所属站点卡/线上入口链接/历史日志·版本·评论时间线/阅读分析卡），"去编辑"进入既有三栏工作台。
+- **用户站点数据范围**：Users 新增可选 `sites` 关系（空=全部站点；super/tenant-admin 不受限），迁移 `20260831_230000_user_site_scope` 建-users_rels 表；会话解析 siteIds 并在文章列表/看板/站点列表服务端过滤；系统用户管理表单提供站点范围勾选。
+- **站点视图**：站点列表含文章数/最近发布；站点详情含状态统计、站点入口+文章入口前缀+交付 API 地址、域名管理区、该站文章（预置过滤）、发布历史与**"恢复到此版本"**（publisher 可见，自动预填 CAS 预条件提交既有回滚端点，废除手填 ID/SHA）、该站操作日志。
+- **站点交付 API（需求3落地）**：公开只读 `GET /api/delivery/sites/:domain/articles`（分页+标题查询）与 `GET /api/delivery/articles/:id`，仅 published+启用站点，响应字段白名单、60s 缓存头、每 IP 每分钟 60 次限流；匿名冒烟已验证（列表/详情/用量落库）。接入文档页 `/admin/integration-docs`；接口统计页 `/admin/api-stats`（近14天调用量趋势+按站点分布，数据来自新集合 `api-usage-dailies`，迁移 `20260901_000000`，另补文档锁列迁移 `20260901_001000`——Payload 每个新集合都需要在 payload_locked_documents_rels 加列，这是本轮踩过并修复的坑）。
+- **阅读分析**：流量统计导入扩展 `city` 维度（JSON 与 CSV 均支持，迁移 `20260901_002000`）；文章详情显示今日/累计阅读、近30天趋势、访问城市排行；站点详情累计阅读；控制台阅读趋势。数据未上报前一律真实空态。
+- **水合修复**：emergency 页 React #418 复发的根因是 Console 页面未预置 `payload-lng` cookie——已在 Console 认证布局加入与 workspace/emergency 相同的 beforeInteractive 引导脚本。
+- **验证**：每阶段 typecheck + CMS 单测（最终 165/165）+ 隔离集成（阶段一批）+ 浏览器回归（最终 **13/13**：看板六列/稿源箱/排期分组/三栏工作台/质量意图/文章列表筛选/原生详情/站点列表+详情/接入文档/接口统计/emergency 边界/零 console error）+ 完整业务流（导入→采用→编辑→质量→退回重审→批准→两次发布→双向回滚恢复→归档，edition 566 通过）+ worker business smoke + runtime-status OK。迁移状态 25/25。
+- **部署链**：354492b（导航+控制台）→ b68c8f1（看板）→ 0372b07（列表+详情）→ 447f8b3（用户站点范围）→ 779f823（站点视图+恢复）→ c150fa9/5b281e9（交付API+统计+锁列修复）→ 4030fd1（阅读分析）→ c727c39（语言 cookie 修复，当前运行镜像）。
+
 ## 回滚
 
 1. `sudoedit /opt/geo-foundry/mk-dev.env` 将 `IMAGE_TAG` 改回上一 `mk-dev-<sha>`。
