@@ -244,7 +244,7 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
         <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">
           站点信息与文章入口
         </h2>
-        <dl className="m-0 grid gap-4 border-t border-[var(--console-border)] pt-4 sm:grid-cols-3">
+        <dl className="m-0 grid gap-4 border-t border-[var(--console-border)] pt-4 sm:grid-cols-2 xl:grid-cols-4">
           <div>
             <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">站点入口</dt>
             <dd className="m-0 break-all pt-1 text-sm text-[var(--console-ink)]">
@@ -255,6 +255,12 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
             <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">文章入口前缀</dt>
             <dd className="m-0 break-all pt-1 text-sm text-[var(--console-ink)]">
               {entryUrl === null ? "—" : `${entryUrl}/articles/`}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">交付 API</dt>
+            <dd className="m-0 break-all pt-1 font-mono text-xs leading-5 text-[var(--console-ink)]">
+              {hostname === null ? "—" : `/api/delivery/sites/${hostname}/articles`}
             </dd>
           </div>
           <div>

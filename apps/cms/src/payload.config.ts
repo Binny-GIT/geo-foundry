@@ -9,6 +9,7 @@ import { zh as zhLanguage, zhTranslations } from "@payloadcms/translations/langu
 import { buildConfig } from "payload"
 
 import { ArticleSources } from "./collections/ArticleSources"
+import { ApiUsageDaily } from "./collections/ApiUsageDaily"
 import { Connectors } from "./collections/Connectors"
 import { ContentEditions } from "./collections/ContentEditions"
 import { EditionDraftRestoreIdempotency } from "./collections/EditionDraftRestoreIdempotency"
@@ -64,6 +65,7 @@ import { createReviewCommentEndpoint } from "./endpoints/review-comments"
 import { createRollbackIntentEndpoint } from "./endpoints/rollback-intents"
 import { renameUrlRecordEndpoint } from "./endpoints/url-records"
 import { submitEditorEvaluationEndpoint } from "./endpoints/editor-evaluation"
+import { deliveryArticleEndpoint, deliveryArticlesEndpoint } from "./endpoints/delivery"
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 const environment = parseCmsEnvironment(process.env)
@@ -140,6 +142,7 @@ export default buildConfig({
     Operations,
     IdempotencyRecords,
     ReviewerEditionDecisionIdempotency,
+    ApiUsageDaily,
   ],
   i18n: {
     // Without `supportedLanguages`, Payload's sanitizer keeps only its
@@ -200,6 +203,8 @@ export default buildConfig({
     createPublicationPlanEndpoint,
     cancelPublicationPlanEndpoint,
     submitEditorEvaluationEndpoint,
+    deliveryArticlesEndpoint,
+    deliveryArticleEndpoint,
     ...allInternalEndpoints,
   ],
   db: postgresAdapter(

@@ -90,6 +90,7 @@ export interface Config {
     operations: Operation;
     'idempotency-records': IdempotencyRecord;
     'reviewer-edition-decision-idempotency': ReviewerEditionDecisionIdempotency;
+    'api-usage-dailies': ApiUsageDaily;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -120,6 +121,7 @@ export interface Config {
     operations: OperationsSelect<false> | OperationsSelect<true>;
     'idempotency-records': IdempotencyRecordsSelect<false> | IdempotencyRecordsSelect<true>;
     'reviewer-edition-decision-idempotency': ReviewerEditionDecisionIdempotencySelect<false> | ReviewerEditionDecisionIdempotencySelect<true>;
+    'api-usage-dailies': ApiUsageDailiesSelect<false> | ApiUsageDailiesSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -177,6 +179,10 @@ export interface User {
   id: number;
   role: 'content-service' | 'editor' | 'publisher' | 'reviewer' | 'super-admin' | 'tenant-admin';
   tenant?: (number | null) | Tenant;
+  /**
+   * Optional site scope for this user. Leave empty to grant access to every site in the tenant; super-admin and tenant-admin are never restricted.
+   */
+  sites?: (number | Site)[] | null;
   updatedAt: string;
   createdAt: string;
   enableAPIKey?: boolean | null;
@@ -1030,6 +1036,20 @@ export interface ReviewerEditionDecisionIdempotency {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "api-usage-dailies".
+ */
+export interface ApiUsageDaily {
+  id: number;
+  date: string;
+  route: 'articles' | 'article';
+  siteId?: number | null;
+  tenantId?: number | null;
+  count?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -1143,6 +1163,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'reviewer-edition-decision-idempotency';
         value: number | ReviewerEditionDecisionIdempotency;
+      } | null)
+    | ({
+        relationTo: 'api-usage-dailies';
+        value: number | ApiUsageDaily;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -1202,6 +1226,7 @@ export interface TenantsSelect<T extends boolean = true> {
 export interface UsersSelect<T extends boolean = true> {
   role?: T;
   tenant?: T;
+  sites?: T;
   updatedAt?: T;
   createdAt?: T;
   enableAPIKey?: T;
@@ -1796,6 +1821,19 @@ export interface ReviewerEditionDecisionIdempotencySelect<T extends boolean = tr
   requestId?: T;
   responsePayload?: T;
   replayCount?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "api-usage-dailies_select".
+ */
+export interface ApiUsageDailiesSelect<T extends boolean = true> {
+  date?: T;
+  route?: T;
+  siteId?: T;
+  tenantId?: T;
+  count?: T;
   updatedAt?: T;
   createdAt?: T;
 }

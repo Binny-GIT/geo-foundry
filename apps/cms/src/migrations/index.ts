@@ -23,6 +23,7 @@ import * as migration_20260828_010000_wave8_rss_polling from "./20260828_010000_
 import * as migration_20260830_100000_editor_evaluation_outbox from "./20260830_100000_editor_evaluation_outbox"
 import * as migration_20260830_110000_rollback_outbox_dispatch from "./20260830_110000_rollback_outbox_dispatch"
 import * as migration_20260831_230000_user_site_scope from "./20260831_230000_user_site_scope"
+import * as migration_20260901_000000_api_usage_daily from "./20260901_000000_api_usage_daily"
 
 export const migrations = [
   {
@@ -149,5 +150,10 @@ export const migrations = [
     up: migration_20260831_230000_user_site_scope.up,
     down: migration_20260831_230000_user_site_scope.down,
     name: "20260831_230000_user_site_scope",
+  },
+  {
+    up: migration_20260901_000000_api_usage_daily.up,
+    down: migration_20260901_000000_api_usage_daily.down,
+    name: "20260901_000000_api_usage_daily",
   },
 ]

@@ -242,6 +242,18 @@ export const CONSOLE_NAV: Readonly<{
     { kind: "resource", slug: "users" },
     { kind: "resource", slug: "operations" },
     { kind: "resource", slug: "media" },
+    {
+      href: "/admin/integration-docs",
+      icon: LinkIcon,
+      kind: "static",
+      label: { en: "Integration Docs", zh: "接入文档" },
+    },
+    {
+      href: "/admin/api-stats",
+      icon: PackageIcon,
+      kind: "static",
+      label: { en: "API Stats", zh: "接口统计" },
+    },
   ],
 }
 
