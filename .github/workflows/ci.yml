@@ -2,7 +2,8 @@ name: Geo Foundry CI
 
 on:
   push:
-    tags: ["v*"]
+    tags:
+      - "v*"
   workflow_dispatch:
     inputs:
       run_shared_services:
