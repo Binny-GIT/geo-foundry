@@ -6,6 +6,7 @@ export type UserFormInput = {
   readonly email: string
   readonly password?: string
   readonly role: unknown
+  readonly siteIds?: readonly string[]
   readonly tenantId?: string
 }
 
@@ -13,6 +14,7 @@ export type UserFormPayload = Readonly<{
   readonly email: string
   readonly password?: string
   readonly role: CmsRole
+  readonly sites?: readonly number[]
   readonly tenant?: string
 }>
 
@@ -49,10 +51,17 @@ export const userFormPayload = (
     email: string
     password?: string
     role: CmsRole
+    sites?: readonly number[]
     tenant?: string
   } = { email, role: input.role }
   if (password !== undefined && password.length > 0) {
     payload.password = password
+  }
+  if (input.siteIds !== undefined) {
+    const siteIds = input.siteIds
+      .map((value) => Number.parseInt(value, 10))
+      .filter((value) => Number.isSafeInteger(value) && value > 0)
+    payload.sites = siteIds
   }
 
   if (actorRole === CMS_ROLE.SUPER_ADMIN && input.role !== CMS_ROLE.SUPER_ADMIN) {

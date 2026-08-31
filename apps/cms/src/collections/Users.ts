@@ -68,5 +68,18 @@ export const Users = {
       },
     },
     tenantField({ required: false }),
+    {
+      name: "sites",
+      label: localized("Site scope", "站点范围"),
+      type: "relationship",
+      relationTo: "sites",
+      hasMany: true,
+      admin: {
+        description: localized(
+          "Optional site scope for this user. Leave empty to grant access to every site in the tenant; super-admin and tenant-admin are never restricted.",
+          "该用户可选的站点数据范围。留空表示该租户内全部站点；超级管理员与租户管理员不受此限制。",
+        ),
+      },
+    },
   ]),
 } satisfies CollectionConfig

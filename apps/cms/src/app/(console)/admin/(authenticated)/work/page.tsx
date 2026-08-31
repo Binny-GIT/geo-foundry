@@ -9,6 +9,7 @@ import {
 } from "@/console/components/PerformanceSuggestions"
 import { groupBoardCards } from "@/console/lib/board-model"
 import { consoleRoute } from "@/console/lib/resources"
+import { siteScopeWhere } from "@/console/lib/site-scope"
 import { requireConsolePayloadContext } from "@/console/lib/payload.server"
 import { canConsole } from "@/console/lib/session.server"
 import { performanceSuggestions } from "@/services/performance-snapshots"
@@ -23,6 +24,7 @@ const WorkbenchPage = async () => {
   const canManageIntake = canConsole(session, CMS_RESOURCE.INTAKE_ITEMS, CMS_ACTION.UPDATE)
   const canCreateEdition = canConsole(session, CMS_RESOURCE.EDITIONS, CMS_ACTION.CREATE)
   const canReadOperations = canConsole(session, CMS_RESOURCE.OPERATIONS, CMS_ACTION.READ)
+  const scopeWhere = siteScopeWhere(context.session)
 
   const [editions, intakeItems, failedCount, rawSuggestions] = await Promise.all([
     payload
@@ -34,6 +36,7 @@ const WorkbenchPage = async () => {
         overrideAccess: false,
         sort: "-updatedAt",
         user,
+        ...(scopeWhere === undefined ? {} : { where: scopeWhere }),
       })
       .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
       .catch(() => [] as readonly Record<string, unknown>[]),

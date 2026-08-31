@@ -18,6 +18,7 @@ import {
   articleListWhere,
   parseArticleListQuery,
 } from "@/console/lib/article-filters"
+import { combineWhere, sitesIdScopeWhere, siteScopeWhere } from "@/console/lib/site-scope"
 import { findConsoleDocuments, requireConsolePayloadContext } from "@/console/lib/payload.server"
 import { PublicationPlansWorkspace } from "@/console/components/PublicationPlansWorkspace"
 import { canConsole } from "@/console/lib/session.server"
@@ -128,7 +129,11 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
     const context = await requireConsolePayloadContext()
     const articleQuery = parseArticleListQuery(query)
     const [result, siteOptions, tenantOptions] = await Promise.all([
-      findConsoleDocuments({ page, slug, where: articleListWhere(articleQuery) }),
+      findConsoleDocuments({
+        page,
+        slug,
+        where: combineWhere(articleListWhere(articleQuery), siteScopeWhere(context.session)),
+      }),
       filterOptions(context, "sites"),
       context.session.role === CMS_ROLE.SUPER_ADMIN
         ? filterOptions(context, "tenants")
@@ -171,10 +176,12 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
     )
   }
 
-  const [result, context] = await Promise.all([
-    findConsoleDocuments({ page, slug }),
-    requireConsolePayloadContext(),
-  ])
+  const context = await requireConsolePayloadContext()
+  const result = await findConsoleDocuments({
+    page,
+    slug,
+    ...(slug === "sites" ? { where: sitesIdScopeWhere(context.session) } : {}),
+  })
   const resource = CONSOLE_RESOURCES[slug]
   const columns = resource.defaultColumns
   const canCreate =

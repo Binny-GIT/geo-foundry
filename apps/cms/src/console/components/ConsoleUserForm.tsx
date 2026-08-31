@@ -25,7 +25,20 @@ type UserDocument = {
   readonly email?: unknown
   readonly id: number | string
   readonly role?: unknown
+  readonly sites?: unknown
   readonly tenant?: unknown
+}
+
+const documentSiteIds = (sites: unknown): readonly string[] => {
+  if (!Array.isArray(sites)) return []
+  return sites.flatMap((site) => {
+    if (typeof site === "number") return [String(site)]
+    if (typeof site === "object" && site !== null && "id" in site) {
+      const id = (site as { readonly id?: unknown })["id"]
+      if (typeof id === "number") return [String(id)]
+    }
+    return []
+  })
 }
 
 const ROLE_LABEL: Readonly<Record<CmsRole, string>> = {
@@ -71,6 +84,7 @@ export const ConsoleUserForm = ({
     return fallback
   })
   const [tenants, setTenants] = useState<readonly TenantOption[]>([])
+  const [siteOptions, setSiteOptions] = useState<readonly TenantOption[]>([])
   const isCreate = document === undefined
   const needsTenant = actorRole === CMS_ROLE.SUPER_ADMIN && role !== CMS_ROLE.SUPER_ADMIN
   const documentId = document === undefined ? "" : String(document.id)
@@ -95,6 +109,25 @@ export const ConsoleUserForm = ({
     }
   }, [actorRole])
 
+  useEffect(() => {
+    let active = true
+    void fetch("/api/sites?depth=0&limit=100&sort=name", { credentials: "same-origin" })
+      .then(async (response) => {
+        if (!response.ok) return []
+        const payload = (await response.json()) as { readonly docs?: readonly TenantOption[] }
+        return payload.docs ?? []
+      })
+      .then((docs) => {
+        if (active) setSiteOptions(docs)
+      })
+      .catch(() => {
+        if (active) setSiteOptions([])
+      })
+    return () => {
+      active = false
+    }
+  }, [])
+
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setError(null)
@@ -105,6 +138,7 @@ export const ConsoleUserForm = ({
       email: String(form.get("email") ?? ""),
       password: String(form.get("password") ?? ""),
       role,
+      siteIds: form.getAll("sites").map((value) => String(value)),
       tenantId: String(form.get("tenant") ?? ""),
     })
     if (data === null || (isCreate && !("password" in data))) {
@@ -207,6 +241,37 @@ export const ConsoleUserForm = ({
             超级管理员账户不绑定租户；其他角色必须绑定一个租户。
           </small>
         </label>
+      )}
+
+      {siteOptions.length > 0 && (
+        <fieldset className="grid gap-2 border-0 p-0">
+          <legend className="text-sm font-medium text-[var(--console-ink)]">
+            站点范围（可选）
+          </legend>
+          <small className="leading-5 text-[var(--console-ink-muted)]">
+            勾选后该用户只能看到所选站点的文章与工作台内容；全部不勾选表示租户内全部站点。超级管理员与租户管理员不受限制。
+          </small>
+          <div className="mt-1 grid gap-1.5 sm:grid-cols-2">
+            {siteOptions.map((site) => {
+              const value = String(site.id)
+              return (
+                <label
+                  className="flex min-h-10 items-center gap-2.5 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-sm text-[var(--console-ink)]"
+                  key={value}
+                >
+                  <input
+                    className="gf-console-focus size-4"
+                    defaultChecked={documentSiteIds(document?.sites).includes(value)}
+                    name="sites"
+                    type="checkbox"
+                    value={value}
+                  />
+                  {site.name ?? "受限站点"}
+                </label>
+              )
+            })}
+          </div>
+        </fieldset>
       )}
 
       {actorRole === CMS_ROLE.TENANT_ADMIN && (

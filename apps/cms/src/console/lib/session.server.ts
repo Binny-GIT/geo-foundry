@@ -13,6 +13,7 @@ export type ConsoleSession = {
   readonly email: string
   readonly id: string
   readonly role: CmsRole
+  readonly siteIds: readonly number[] | null
   readonly tenantId: string | number | null
   readonly tenantName: string | null
 }
@@ -24,10 +25,17 @@ const sessionFromClaims = (user: unknown, claims: SessionClaims): ConsoleSession
   if (typeof user !== "object" || user === null) return null
   const email = stringValue((user as Record<string, unknown>)["email"])
   if (email === null) return null
+  const unrestricted =
+    claims.role === CMS_ROLE.SUPER_ADMIN || claims.role === CMS_ROLE.TENANT_ADMIN
+  const rawSites = (user as Record<string, unknown>)["sites"]
+  const siteIds = Array.isArray(rawSites)
+    ? rawSites.filter((id): id is number => typeof id === "number" && id > 0)
+    : []
   return Object.freeze({
     email,
     id: claims.userId,
     role: claims.role,
+    siteIds: unrestricted || siteIds.length === 0 ? null : siteIds,
     tenantId: claims.tenantId,
     tenantName: null,
   })
