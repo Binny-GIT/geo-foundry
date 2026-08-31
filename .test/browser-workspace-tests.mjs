@@ -255,6 +255,31 @@ const run = async () => {
     )
 
     await retry(async () => {
+      await editorPage.goto(`${BASE}/admin/integration-docs`, { timeout: TIMEOUT, waitUntil: "domcontentloaded" })
+      await editorPage.getByRole("heading", { level: 1, name: "接入文档" }).waitFor({ timeout: TIMEOUT })
+      await editorPage.getByText("GET /api/delivery/sites/{canonical-domain}/articles").first().waitFor({ timeout: TIMEOUT })
+    })
+    record(
+      "WS-UI-012",
+      "Integration docs page renders the delivery API contract",
+      true,
+      "/admin/integration-docs documents the delivery endpoints, params, and fetch example",
+    )
+
+    await retry(async () => {
+      await editorPage.goto(`${BASE}/admin/api-stats`, { timeout: TIMEOUT, waitUntil: "domcontentloaded" })
+      await editorPage.getByRole("heading", { level: 1, name: "接口统计" }).waitFor({ timeout: TIMEOUT })
+      await editorPage.getByRole("heading", { level: 2, name: "近 14 天调用量" }).waitFor({ timeout: TIMEOUT })
+      await editorPage.getByRole("heading", { level: 2, name: "按站点分布" }).waitFor({ timeout: TIMEOUT })
+    })
+    record(
+      "WS-UI-013",
+      "API stats page renders usage trend and site distribution",
+      true,
+      "/admin/api-stats shows the 14-day delivery usage trend and per-site distribution",
+    )
+
+    await retry(async () => {
       await editorPage.goto(`${BASE}/admin/_emergency/collections/users`, {
         timeout: TIMEOUT,
         waitUntil: "domcontentloaded",
