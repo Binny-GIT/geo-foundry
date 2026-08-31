@@ -208,6 +208,34 @@ const run = async () => {
       await editorPage.screenshot({ path: resolve(ARTIFACTS, "ws4-edition-workspace.png") })
     }
 
+    if (editionId !== null && editionId.length > 0) {
+      await retry(async () => {
+        await editorPage.goto(`${BASE}/admin/collections/content-editions`, { timeout: TIMEOUT, waitUntil: "domcontentloaded" })
+        await editorPage.getByPlaceholder("搜索标题…").waitFor({ timeout: TIMEOUT })
+        await editorPage.getByRole("button", { name: "筛选" }).waitFor({ timeout: TIMEOUT })
+        await editorPage.locator('select[name="site"]').waitFor({ timeout: TIMEOUT })
+      })
+      record(
+        "WS-UI-009",
+        "Article list renders filter, search, and pagination controls",
+        true,
+        "/admin/collections/content-editions shows the title search, site/status filters, and the filter action",
+      )
+      await retry(async () => {
+        await editorPage.goto(`${BASE}/admin/collections/content-editions/${editionId}`, { timeout: TIMEOUT, waitUntil: "domcontentloaded" })
+        await editorPage.getByText("文章详情", { exact: true }).waitFor({ timeout: TIMEOUT })
+        await editorPage.getByRole("heading", { level: 2, name: "正文" }).waitFor({ timeout: TIMEOUT })
+        await editorPage.getByRole("heading", { level: 2, name: "历史日志" }).waitFor({ timeout: TIMEOUT })
+        await editorPage.getByRole("heading", { level: 2, name: "站点文章入口" }).waitFor({ timeout: TIMEOUT })
+      })
+      record(
+        "WS-UI-010",
+        "Native article detail renders info, body, entry link, and history",
+        true,
+        `/admin/collections/content-editions/${editionId} shows the native detail with body, site entry, and history timeline`,
+      )
+    }
+
     await retry(async () => {
       await editorPage.goto(`${BASE}/admin/_emergency/collections/users`, {
         timeout: TIMEOUT,
