@@ -2,7 +2,7 @@ import "server-only"
 
 import { headers } from "next/headers"
 import { notFound } from "next/navigation"
-import { getPayload, type Payload } from "payload"
+import { getPayload, type Payload, type Where } from "payload"
 
 import { CMS_ACTION, type CmsResource } from "@/access/policy"
 import config from "@payload-config"
@@ -53,10 +53,12 @@ export const findConsoleDocuments = async ({
   limit = 20,
   page = 1,
   slug,
+  where,
 }: {
   readonly limit?: number
   readonly page?: number
   readonly slug: ConsoleResourceSlug
+  readonly where?: Where | undefined
 }) => {
   const context = await requireConsolePayloadContext()
   const readableSlug = requireReadableConsoleResource(context.session, slug)
@@ -71,6 +73,7 @@ export const findConsoleDocuments = async ({
     page: Math.max(page, 1),
     sort: "-updatedAt",
     user: context.user,
+    ...(where === undefined ? {} : { where }),
   })
 
   return {

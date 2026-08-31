@@ -2,8 +2,11 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 
 import { ChevronDownIcon } from "@/components/icons"
-import { CMS_ACTION } from "@/access/policy"
+import { CMS_ACTION, CMS_RESOURCE } from "@/access/policy"
 import { CMS_ROLE } from "@/access/roles"
+import EditionsWorkspace, {
+  type FilterOption,
+} from "@/console/components/EditionsWorkspace"
 import {
   CONSOLE_RESOURCES,
   CONSOLE_SECTION_LABELS,
@@ -11,6 +14,10 @@ import {
   isConsoleResourceSlug,
   type ConsoleResourceSlug,
 } from "@/console/lib/resources"
+import {
+  articleListWhere,
+  parseArticleListQuery,
+} from "@/console/lib/article-filters"
 import { findConsoleDocuments, requireConsolePayloadContext } from "@/console/lib/payload.server"
 import { PublicationPlansWorkspace } from "@/console/components/PublicationPlansWorkspace"
 import { canConsole } from "@/console/lib/session.server"
@@ -73,7 +80,41 @@ const columnLabel = (column: string): string => {
 
 type CollectionPageProps = {
   readonly params: Promise<{ readonly slug: string }>
-  readonly searchParams: Promise<{ readonly page?: string; readonly view?: string }>
+  readonly searchParams: Promise<{
+    readonly page?: string
+    readonly q?: string
+    readonly site?: string
+    readonly status?: string
+    readonly tenant?: string
+    readonly view?: string
+  }>
+}
+
+const filterOptions = async (
+  context: Awaited<ReturnType<typeof requireConsolePayloadContext>>,
+  collection: "sites" | "tenants",
+): Promise<readonly FilterOption[]> => {
+  const resource = collection === "sites" ? CMS_RESOURCE.SITES : CMS_RESOURCE.TENANTS
+  if (!canConsole(context.session, resource, CMS_ACTION.READ)) return []
+  try {
+    const result = await context.payload.find({
+      collection,
+      depth: 0,
+      limit: 100,
+      overrideAccess: false,
+      sort: "name",
+      user: context.user,
+    })
+    return (result.docs as unknown as readonly Record<string, unknown>[]).flatMap((doc) => {
+      const id = doc["id"]
+      const name = doc["name"]
+      return typeof id === "number" && typeof name === "string" && name.length > 0
+        ? [{ id, name }]
+        : []
+    })
+  } catch {
+    return []
+  }
 }
 
 const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPageProps) => {
@@ -82,6 +123,54 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
   const query = await searchParams
   const requestedPage = Number.parseInt(query.page ?? "1", 10)
   const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1
+
+  if (slug === "content-editions") {
+    const context = await requireConsolePayloadContext()
+    const articleQuery = parseArticleListQuery(query)
+    const [result, siteOptions, tenantOptions] = await Promise.all([
+      findConsoleDocuments({ page, slug, where: articleListWhere(articleQuery) }),
+      filterOptions(context, "sites"),
+      context.session.role === CMS_ROLE.SUPER_ADMIN
+        ? filterOptions(context, "tenants")
+        : Promise.resolve([] as readonly FilterOption[]),
+    ])
+    return (
+      <div className="grid gap-6">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">文章</p>
+            <h1 className="m-0 pt-1 text-3xl font-semibold tracking-tight text-[var(--console-ink)]">
+              文章列表
+            </h1>
+            <p className="m-0 max-w-2xl pt-2 text-sm leading-6 text-[var(--console-ink-muted)]">
+              全部文章的筛选、搜索与生命周期管理；筛选条件保存在地址栏，可直接分享。
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {canConsole(context.session, CMS_RESOURCE.EDITIONS, CMS_ACTION.CREATE) && (
+              <Link
+                className="gf-console-focus inline-flex h-10 items-center rounded-xl bg-[var(--console-accent)] px-3.5 text-sm font-semibold text-white no-underline hover:bg-[var(--console-accent-hover)]"
+                href="/admin/workspace/editions/new"
+              >
+                新建文章
+              </Link>
+            )}
+          </div>
+        </header>
+        <EditionsWorkspace
+          docs={result.docs}
+          isSuperAdmin={context.session.role === CMS_ROLE.SUPER_ADMIN}
+          page={result.page}
+          query={articleQuery}
+          siteOptions={siteOptions}
+          tenantOptions={tenantOptions}
+          totalDocs={result.totalDocs}
+          totalPages={result.totalPages}
+        />
+      </div>
+    )
+  }
+
   const [result, context] = await Promise.all([
     findConsoleDocuments({ page, slug }),
     requireConsolePayloadContext(),
@@ -119,11 +208,7 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
           {canCreate && createSupported && (
             <Link
               className="gf-console-focus inline-flex h-10 items-center rounded-xl bg-[var(--console-accent)] px-3.5 text-sm font-semibold text-white no-underline transition-colors hover:bg-[var(--console-accent-hover)]"
-              href={
-                slug === "content-editions"
-                  ? "/admin/workspace/editions/new"
-                  : `${consoleRoute.collection(slug as ConsoleResourceSlug)}/create`
-              }
+              href={`${consoleRoute.collection(slug as ConsoleResourceSlug)}/create`}
             >
               新建{resource.label.zh}
             </Link>

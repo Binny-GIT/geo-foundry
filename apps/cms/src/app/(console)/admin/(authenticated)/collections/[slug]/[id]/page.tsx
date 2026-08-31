@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 
 import { CMS_ACTION } from "@/access/policy"
 import { CMS_ROLE } from "@/access/roles"
+import ArticleDetail from "@/console/components/ArticleDetail"
 import { ConsoleUrlRename } from "@/console/components/ConsoleUrlRename"
 import {
   CONSOLE_RESOURCES,
@@ -78,6 +79,10 @@ const ConsoleDocumentPage = async ({ params }: ConsoleDocumentPageProps) => {
   const { id, slug } = await params
   if (!isConsoleResourceSlug(slug)) notFound()
 
+  if (slug === "content-editions") {
+    return <ArticleDetail id={id} />
+  }
+
   const resource = CONSOLE_RESOURCES[slug]
   const [document, context] = await Promise.all([
     findConsoleDocument({ id, slug }),
@@ -125,14 +130,6 @@ const ConsoleDocumentPage = async ({ params }: ConsoleDocumentPageProps) => {
           <span className="w-fit rounded-full border border-[var(--console-border)] bg-[var(--console-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--console-ink-muted)]">
             记录 {id}
           </span>
-          {slug === "content-editions" && (
-            <Link
-              className="gf-console-focus inline-flex h-10 items-center rounded-xl bg-[var(--console-accent)] px-3.5 text-sm font-semibold text-white no-underline transition-colors hover:bg-[var(--console-accent-hover)]"
-              href={`/admin/workspace/editions/${encodeURIComponent(id)}`}
-            >
-              打开内容工作台
-            </Link>
-          )}
           {canEdit && (
             <Link
               className="gf-console-focus inline-flex h-10 items-center rounded-xl bg-[var(--console-accent)] px-3.5 text-sm font-semibold text-white no-underline transition-colors hover:bg-[var(--console-accent-hover)]"
