@@ -152,7 +152,7 @@ const WorkbenchPage = async () => {
         </div>
         {failedCount > 0 && (
           <Link
-            className="gf-console-focus inline-flex h-10 items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3.5 text-sm font-semibold text-rose-700 no-underline hover:bg-rose-100"
+            className="gf-console-focus inline-flex h-10 items-center gap-2 rounded-xl border border-rose-300 bg-rose-100 px-3.5 text-sm font-bold text-rose-800 no-underline hover:bg-rose-200"
             href={consoleRoute.collection("operations")}
           >
             <AlertTriangleIcon size={16} />

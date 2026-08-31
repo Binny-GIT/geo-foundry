@@ -258,15 +258,16 @@ export const ConsoleUserForm = ({
                 <label
                   className="flex min-h-10 items-center gap-2.5 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-sm text-[var(--console-ink)]"
                   key={value}
+                  title={site.name ?? undefined}
                 >
                   <input
-                    className="gf-console-focus size-4"
+                    className="gf-console-focus size-4 shrink-0"
                     defaultChecked={documentSiteIds(document?.sites).includes(value)}
                     name="sites"
                     type="checkbox"
                     value={value}
                   />
-                  {site.name ?? "受限站点"}
+                  <span className="truncate">{site.name ?? "受限站点"}</span>
                 </label>
               )
             })}

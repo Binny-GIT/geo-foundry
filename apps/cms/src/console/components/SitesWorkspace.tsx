@@ -63,7 +63,7 @@ export const SitesWorkspace = ({
                 "文章数",
                 "最近发布",
                 ...(isSuperAdmin ? ["租户"] : []),
-                "更新操作",
+                "操作",
               ].map((label) => (
                 <th
                   className="whitespace-nowrap border-b border-[var(--console-border)] px-5 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--console-ink-muted)]"

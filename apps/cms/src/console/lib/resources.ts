@@ -86,6 +86,7 @@ export const CONSOLE_RESOURCES: Readonly<Record<ConsoleResourceSlug, ConsoleReso
     section: "sites",
     icon: GlobeIcon,
     label: { en: "Sites", zh: "站点列表" },
+    relationshipColumns: ["tenant"],
     resource: CMS_RESOURCE.SITES,
     subtitle: { en: "Publishing targets that read articles from this system", zh: "读取文章的发布目标网站" },
   },

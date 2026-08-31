@@ -26,6 +26,15 @@ const CHANNEL_LABELS: Readonly<Record<string, string>> = {
   webhook: "n8n/Webhook",
 }
 
+const COLUMN_DOTS: Readonly<Record<string, string>> = {
+  approved: "bg-sky-500",
+  archived: "bg-slate-600",
+  draft: "bg-slate-400",
+  published: "bg-emerald-500",
+  rejected: "bg-rose-500",
+  review: "bg-indigo-500",
+}
+
 const ACTION_ERRORS: Readonly<Record<string, string>> = {
   EDITION_WORKFLOW_ASSESSMENT_REQUIRED: "需要先通过一次质量评估。",
   EDITION_WORKFLOW_ASSESSMENT_NOT_PASSED: "质量评估未通过，无法执行此操作。",
@@ -248,47 +257,58 @@ const ReviewBoard = ({
             </div>
           </div>
           {intakeOpen && (
-            <ul className="m-0 mt-4 grid list-none gap-2 p-0">
+            <>
               {intakeItems.length === 0 ? (
-                <li className="rounded-xl border border-dashed border-[var(--console-border)] p-4 text-center text-sm text-[var(--console-ink-muted)]">
+                <p className="m-0 mt-4 rounded-xl border border-dashed border-[var(--console-border)] p-4 text-center text-sm text-[var(--console-ink-muted)]">
                   没有待处理的新稿源；采集与 n8n/Webhook 进入的内容会出现在这里。
-                </li>
+                </p>
               ) : (
-                intakeItems.map((item) => (
-                  <li
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-4 py-3"
-                    key={item.id}
-                  >
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--console-ink)]">
-                      {item.title}
-                      <span className="ml-2 rounded-full bg-[var(--console-surface)] px-2 py-0.5 text-[11px] font-semibold text-[var(--console-ink-muted)]">
-                        {CHANNEL_LABELS[item.channel] ?? item.channel}
+                <ul className="m-0 mt-4 grid max-h-[340px] list-none gap-2 overflow-y-auto p-0 pr-1">
+                  {intakeItems.map((item) => (
+                    <li
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-4 py-3"
+                      key={item.id}
+                    >
+                      <span className="min-w-0 flex-1 text-sm font-medium text-[var(--console-ink)]">
+                        <span className="line-clamp-2 break-words">{item.title}</span>
+                        <span className="ml-2 inline-block shrink-0 rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 align-middle text-[11px] font-bold text-indigo-700">
+                          {CHANNEL_LABELS[item.channel] ?? item.channel}
+                        </span>
                       </span>
-                    </span>
-                    {canManageIntake && (
-                      <span className="flex shrink-0 gap-2">
-                        <button
-                          className="gf-console-focus h-8 rounded-lg bg-[var(--console-accent)] px-3 text-xs font-semibold text-white disabled:opacity-60"
-                          disabled={pendingKey !== null}
-                          onClick={() => void intakeAction(item, "adopt")}
-                          type="button"
-                        >
-                          采用为草稿
-                        </button>
-                        <button
-                          className="gf-console-focus h-8 rounded-lg border border-[var(--console-border)] bg-[var(--console-surface)] px-3 text-xs font-semibold text-[var(--console-ink)] disabled:opacity-60"
-                          disabled={pendingKey !== null}
-                          onClick={() => void intakeAction(item, "ignore")}
-                          type="button"
-                        >
-                          忽略
-                        </button>
-                      </span>
-                    )}
-                  </li>
-                ))
+                      {canManageIntake && (
+                        <span className="flex shrink-0 gap-2">
+                          <button
+                            className="gf-console-focus h-8 rounded-lg bg-[var(--console-accent)] px-3 text-xs font-semibold text-white disabled:opacity-60"
+                            disabled={pendingKey !== null}
+                            onClick={() => void intakeAction(item, "adopt")}
+                            type="button"
+                          >
+                            采用为草稿
+                          </button>
+                          <button
+                            className="gf-console-focus h-8 rounded-lg border border-[var(--console-border)] bg-[var(--console-surface)] px-3 text-xs font-semibold text-[var(--console-ink)] disabled:opacity-60"
+                            disabled={pendingKey !== null}
+                            onClick={() => void intakeAction(item, "ignore")}
+                            type="button"
+                          >
+                            忽略
+                          </button>
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
               )}
-            </ul>
+              {intakeItems.length > 0 && (
+                <p className="m-0 mt-2 text-center text-xs text-[var(--console-ink-muted)]">
+                  共 {intakeItems.length} 条，可在
+                  <a className="font-semibold text-indigo-700 no-underline hover:underline" href="/admin/inbox">
+                    稿源箱
+                  </a>
+                  查看全部与重试失败抓取
+                </p>
+              )}
+            </>
           )}
         </section>
       )}
@@ -313,7 +333,10 @@ const ReviewBoard = ({
             return (
               <div className="grid content-start gap-3" key={column.key}>
                 <header className="sticky top-0 z-10 flex items-center justify-between gap-2 rounded-xl bg-[var(--console-surface-muted)] px-3 py-2">
-                  <h2 className="m-0 text-sm font-bold text-[var(--console-ink)]">{column.label}</h2>
+                  <h2 className="m-0 flex items-center gap-2 text-sm font-bold text-[var(--console-ink)]">
+                    <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${COLUMN_DOTS[column.key] ?? "bg-slate-400"}`} />
+                    {column.label}
+                  </h2>
                   <span className="grid min-w-6 place-items-center rounded-full bg-[var(--console-surface)] px-1.5 text-xs font-bold tabular-nums text-[var(--console-ink-muted)]">
                     {cards.length}
                   </span>
