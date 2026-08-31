@@ -68,7 +68,7 @@ const loginAs = async (context, account, sink) => {
     page.locator('button[aria-label="Login"]').click(),
   ])
   await page
-    .getByRole("link", { name: /contents|内容/i })
+    .getByRole("link", { name: /文章列表|工作台/i })
     .first()
     .waitFor({ timeout: TIMEOUT })
   return page

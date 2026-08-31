@@ -14,6 +14,7 @@ export type ConsoleSession = {
   readonly id: string
   readonly role: CmsRole
   readonly tenantId: string | number | null
+  readonly tenantName: string | null
 }
 
 const stringValue = (value: unknown): string | null =>
@@ -28,6 +29,7 @@ const sessionFromClaims = (user: unknown, claims: SessionClaims): ConsoleSession
     id: claims.userId,
     role: claims.role,
     tenantId: claims.tenantId,
+    tenantName: null,
   })
 }
 
@@ -40,7 +42,20 @@ export const getConsoleSession = async (): Promise<ConsoleSession | null> => {
   const payload = await getPayload({ config })
   const result = await payload.auth({ headers: await headers() })
   const claims = resolveSessionClaims(result.user)
-  return claims === null ? null : sessionFromClaims(result.user, claims)
+  const session = claims === null ? null : sessionFromClaims(result.user, claims)
+  if (session === null || session.tenantId === null) return session
+  try {
+    const tenant = (await payload.findByID({
+      collection: "tenants",
+      depth: 0,
+      id: session.tenantId,
+      overrideAccess: true,
+    })) as unknown as Record<string, unknown>
+    const name = stringValue(tenant["name"])
+    return Object.freeze({ ...session, tenantName: name })
+  } catch {
+    return session
+  }
 }
 
 export const requireConsoleSession = async (next = "/admin"): Promise<ConsoleSession> => {

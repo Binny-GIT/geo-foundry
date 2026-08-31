@@ -50,6 +50,7 @@ const HARMLESS = [/favicon/i, /gravatar\.com/i]
 
 // 服务自有集合：全角色 read=false，Payload renderListView 对 read 拒绝直接 404（by design）
 const BY_DESIGN_404_SLUGS = ["outbox-events", "idempotency-records"]
+// 直接路由可达的集合页（导航重组后路由全部保留）
 const VISIBLE_SLUGS = [
   "users",
   "tenants",
@@ -64,6 +65,8 @@ const VISIBLE_SLUGS = [
   "rollback-intents",
   "operations",
 ]
+// 侧栏导航实际展示的集合入口（业务区+管理区）
+const NAV_SLUGS = ["content-editions", "sites", "users", "operations", "media"]
 
 /**
  * 等待独立 Console 集合页：
@@ -149,7 +152,7 @@ const loginAs = async (context, account) => {
   await page.waitForURL(`${BASE}/admin`, { timeout: PAGE_TIMEOUT_MS })
   // 等待 Console session 与客户端 Shell 完成挂载；不要把品牌标题作为就绪信号。
   await page
-    .getByRole("link", { name: /内容条目|contents/i })
+    .getByRole("link", { name: /文章列表|站点列表/i })
     .first()
     .waitFor({
       state: "visible",
@@ -359,8 +362,8 @@ try {
     hard: loginHard,
   } = await loginAs(admin, ACCOUNTS.superAdmin)
 
-  // B1 API-P0-052 登录成功进入 Dashboard，侧栏集合列表
-  // 期望 12 个集合在侧栏；outbox-events/idempotency-records 服务自有、read 全拒，by design 不在侧栏
+  // B1 API-P0-052 登录成功进入控制台，侧栏为业务/管理分区导航
+  // 期望 5 个集合入口；账本类资源不再出现在侧栏；outbox-events/idempotency-records 服务自有、by design 不在侧栏
   {
     const title = await adminPage.title()
     const sidebarLinks = adminPage.locator('nav a[href*="/admin/collections/"]')
@@ -371,12 +374,18 @@ try {
     const hiddenOk = BY_DESIGN_404_SLUGS.every(
       (slug) => !linkHrefs.some((href) => href?.includes(slug)),
     )
+    const navComplete = NAV_SLUGS.every((slug) =>
+      linkHrefs.some((href) => href?.includes(`/admin/collections/${slug}`)),
+    )
+    const ledgerHidden = ["domains", "url-records", "quality-assessments", "releases", "rollback-intents", "contents", "tenants", "performance-snapshots", "publication-plans"].every(
+      (slug) => !linkHrefs.some((href) => href?.includes(`/admin/collections/${slug}`)),
+    )
     const dashboardState = await adminPage.evaluate(() => {
       const text = document.body.innerText
       return {
-        hasConsole: text.includes("内容运营控制中心"),
+        hasConsole: text.includes("控制台"),
         hasNoStockChrome: !text.includes("Collections"),
-        hasScopeCopy: text.includes("服务端权限范围读取"),
+        hasScopeCopy: text.includes("服务端权限范围"),
         hasStudio: text.toLowerCase().includes("gf studio"),
         overflow: document.documentElement.scrollWidth - window.innerWidth,
       }
@@ -388,16 +397,18 @@ try {
       dashboardState.hasNoStockChrome &&
       dashboardState.overflow <= 1
     const ok =
-      title === "Dashboard | Geo Foundry" &&
-      count === VISIBLE_SLUGS.length &&
+      title === "控制台 | Geo Foundry" &&
+      count === NAV_SLUGS.length &&
+      navComplete &&
+      ledgerHidden &&
       hiddenOk &&
       dashboardOk &&
       loginHard.length === 0
     record(
       "API-P0-052",
-      "登录成功 → Dashboard + 侧栏 12 集合 + Operations dashboard",
+      "登录成功 → 控制台 + 业务/管理分区侧栏",
       ok,
-      `title=${title}; sidebar-collections=${count}; service-owned-hidden=${hiddenOk}; dashboard=${dashboardOk}; overflow=${dashboardState.overflow}${loginHard.length ? `; login-console-errors=${JSON.stringify(loginHard.slice(0, 3))}` : ""}`,
+      `title=${title}; sidebar-collections=${count}; nav-complete=${navComplete}; ledger-hidden=${ledgerHidden}; service-owned-hidden=${hiddenOk}; dashboard=${dashboardOk}; overflow=${dashboardState.overflow}${loginHard.length ? `; login-console-errors=${JSON.stringify(loginHard.slice(0, 3))}` : ""}`,
     )
     await adminPage.screenshot({ path: `${ARTIFACTS}b1-dashboard.png` })
   }

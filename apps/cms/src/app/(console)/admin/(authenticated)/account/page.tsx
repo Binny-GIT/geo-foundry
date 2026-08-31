@@ -43,9 +43,11 @@ const ConsoleAccountPage = async () => {
             <dd className="m-0 pt-1 text-sm font-medium text-[var(--console-ink)]">{session.email}</dd>
           </div>
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">租户范围</dt>
+            <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">所属租户</dt>
             <dd className="m-0 pt-1 text-sm font-medium text-[var(--console-ink)]">
-              {session.tenantId === null ? "全部租户" : "当前租户"}
+              {session.tenantId === null
+                ? "全部租户（跨租户读取）"
+                : session.tenantName ?? `租户 #${String(session.tenantId)}`}
             </dd>
           </div>
         </dl>

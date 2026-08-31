@@ -1,53 +1,194 @@
 import Link from "next/link"
 
-import { CMS_ACTION } from "@/access/policy"
+import { CMS_ACTION, CMS_RESOURCE, type CmsResource } from "@/access/policy"
+import { AlertTriangleIcon, CheckCircleIcon, SendIcon } from "@/components/icons"
 import {
-  CheckCircleIcon,
-  GlobeIcon,
-  LayersIcon,
-  PackageIcon,
-} from "@/components/icons"
-import {
-  CONSOLE_RESOURCES,
-  consoleRoute,
-  type ConsoleResourceSlug,
-} from "@/console/lib/resources"
-import {
-  countConsoleResource,
-  requireConsolePayloadContext,
-} from "@/console/lib/payload.server"
+  ChartCard,
+  DonutChart,
+  RankedBars,
+  TrendBars,
+  type ChartSegment,
+  type TrendPoint,
+} from "@/console/components/charts"
+import { requireConsolePayloadContext } from "@/console/lib/payload.server"
 import { canConsole } from "@/console/lib/session.server"
 
 export const metadata = {
-  title: "Dashboard | Geo Foundry",
+  title: "控制台 | Geo Foundry",
 }
 
-const DASHBOARD_METRICS: readonly {
-  readonly Icon: typeof GlobeIcon
-  readonly slug: ConsoleResourceSlug
-}[] = [
-  { Icon: GlobeIcon, slug: "sites" },
-  { Icon: LayersIcon, slug: "content-editions" },
-  { Icon: CheckCircleIcon, slug: "quality-assessments" },
-  { Icon: PackageIcon, slug: "releases" },
-]
+const WORKFLOW_STATES = [
+  { color: "#94a3b8", key: "draft", label: "草稿" },
+  { color: "#f59e0b", key: "generating", label: "生成中" },
+  { color: "#6366f1", key: "review", label: "待审核" },
+  { color: "#0ea5e9", key: "approved", label: "已通过" },
+  { color: "#06b6d4", key: "compiled", label: "已编译" },
+  { color: "#10b981", key: "published", label: "已发布" },
+  { color: "#64748b", key: "archived", label: "已删除" },
+] as const
+
+const TREND_DAYS = 30
+
+const utcDay = (instant: string): string => instant.slice(0, 10)
+
+const emptyTrend = (): readonly TrendPoint[] => {
+  const days: TrendPoint[] = []
+  for (let offset = TREND_DAYS - 1; offset >= 0; offset -= 1) {
+    days.push({ date: new Date(Date.now() - offset * 86_400_000).toISOString().slice(0, 10), value: 0 })
+  }
+  return days
+}
+
+const bucketByDay = (
+  docs: readonly Record<string, unknown>[],
+): readonly TrendPoint[] => {
+  const byDay = new Map<string, number>()
+  for (const doc of docs) {
+    const createdAt = doc["createdAt"]
+    if (typeof createdAt !== "string") continue
+    byDay.set(utcDay(createdAt), (byDay.get(utcDay(createdAt)) ?? 0) + 1)
+  }
+  return emptyTrend().map((point) => ({ ...point, value: byDay.get(point.date) ?? 0 }))
+}
+
+const restrictedNote = "当前角色无权读取"
 
 const ConsoleDashboardPage = async () => {
   const context = await requireConsolePayloadContext()
-  const metrics = await Promise.all(
-    DASHBOARD_METRICS.map(async ({ Icon, slug }) => {
-      const resource = CONSOLE_RESOURCES[slug]
-      const value =
-        resource.resource === null
-          ? null
-          : await countConsoleResource(context, resource.resource, resource.apiSlug)
-      return { Icon, resource, value }
-    }),
-  )
+  const { payload, session, user } = context
+  const canRead = (resource: CmsResource) => canConsole(session, resource, CMS_ACTION.READ)
 
-  const quickLinks = Object.values(CONSOLE_RESOURCES).filter(
-    (resource) => resource.resource !== null && canConsole(context.session, resource.resource, CMS_ACTION.READ),
-  )
+  const cutoff = new Date(Date.now() - (TREND_DAYS - 1) * 86_400_000).toISOString()
+
+  const canReadEditions = canRead(CMS_RESOURCE.EDITIONS)
+  const canReadIntake = canRead(CMS_RESOURCE.INTAKE_ITEMS)
+  const canReadReleases = canRead(CMS_RESOURCE.RELEASES)
+  const canReadOperations = canRead(CMS_RESOURCE.OPERATIONS)
+  const canReadSites = canRead(CMS_RESOURCE.SITES)
+
+  const [statusCounts, intakeDocs, releaseDocs, failedOperations, sites] = await Promise.all([
+    canReadEditions
+      ? Promise.all(
+          WORKFLOW_STATES.map((state) =>
+            payload
+              .count({
+                collection: "content-editions",
+                overrideAccess: false,
+                user,
+                where: { workflowStatus: { equals: state.key } },
+              })
+              .then((result) => result.totalDocs ?? 0),
+          ),
+        )
+      : null,
+    canReadIntake
+      ? payload
+          .find({
+            collection: "intake-items",
+            depth: 0,
+            limit: 1000,
+            overrideAccess: false,
+            pagination: false,
+            select: { createdAt: true },
+            sort: "-createdAt",
+            user,
+            where: { createdAt: { greater_than_equal: cutoff } },
+          })
+          .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
+      : null,
+    canReadReleases
+      ? payload
+          .find({
+            collection: "releases",
+            depth: 0,
+            limit: 1000,
+            overrideAccess: false,
+            pagination: false,
+            select: { createdAt: true },
+            sort: "-createdAt",
+            user,
+            where: { createdAt: { greater_than_equal: cutoff } },
+          })
+          .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
+      : null,
+    canReadOperations
+      ? payload
+          .count({
+            collection: "operations",
+            overrideAccess: false,
+            user,
+            where: { state: { equals: "failed" } },
+          })
+          .then((result) => result.totalDocs ?? 0)
+      : null,
+    canReadSites
+      ? payload
+          .find({
+            collection: "sites",
+            depth: 0,
+            limit: 12,
+            overrideAccess: false,
+            sort: "name",
+            user,
+          })
+          .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
+      : null,
+  ])
+
+  const segments: readonly ChartSegment[] | null =
+    statusCounts === null
+      ? null
+      : WORKFLOW_STATES.map((state, index) => ({
+          color: state.color,
+          label: state.label,
+          value: statusCounts[index] ?? 0,
+        }))
+
+  const siteArticleItems = await (async () => {
+    if (sites === null || !canReadEditions) return null
+    return Promise.all(
+      sites.map(async (site) => {
+        const siteId = site["id"] as number
+        const name = typeof site["name"] === "string" && site["name"].length > 0 ? site["name"] : `站点 #${String(siteId)}`
+        const result = await payload.count({
+          collection: "content-editions",
+          overrideAccess: false,
+          user,
+          where: { site: { equals: siteId } },
+        })
+        return { label: name, value: result.totalDocs ?? 0 }
+      }),
+    )
+  })()
+
+  const reviewCount = statusCounts === null ? null : (statusCounts[2] ?? 0)
+  const publishReadyCount =
+    statusCounts === null ? null : (statusCounts[3] ?? 0) + (statusCounts[4] ?? 0)
+  const canCreateEdition = canConsole(session, CMS_RESOURCE.EDITIONS, CMS_ACTION.CREATE)
+
+  const todoCards = [
+    {
+      href: "/admin/work",
+      Icon: CheckCircleIcon,
+      label: "待审核",
+      tone: "text-indigo-600 bg-indigo-50 dark:bg-indigo-400/15 dark:text-indigo-300",
+      value: reviewCount,
+    },
+    {
+      href: "/admin/work",
+      Icon: SendIcon,
+      label: "待发布",
+      tone: "text-sky-600 bg-sky-50 dark:bg-sky-400/15 dark:text-sky-300",
+      value: publishReadyCount,
+    },
+    {
+      href: "/admin/collections/operations",
+      Icon: AlertTriangleIcon,
+      label: "失败操作",
+      tone: "text-rose-600 bg-rose-50 dark:bg-rose-400/15 dark:text-rose-300",
+      value: failedOperations,
+    },
+  ] as const
 
   return (
     <div className="grid gap-7">
@@ -55,72 +196,112 @@ const ConsoleDashboardPage = async () => {
         <div>
           <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">GF Studio</p>
           <h1 className="m-0 pt-1 text-3xl font-semibold tracking-tight text-[var(--console-ink)]">
-            内容运营控制中心
+            控制台
           </h1>
           <p className="m-0 max-w-2xl pt-2 text-sm leading-6 text-[var(--console-ink-muted)]">
-            所有数据均由当前会话的服务端权限范围读取；无访问权限的资源不会被伪装成空数据。
+            全部统计由当前会话的服务端权限范围实时聚合；无权限或无数据时如实显示，不伪造数字。
           </p>
         </div>
-        <span className="w-fit rounded-full border border-[var(--console-border)] bg-[var(--console-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--console-ink-muted)]">
-          当前角色：{context.session.role}
-        </span>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="rounded-full border border-[var(--console-border)] bg-[var(--console-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--console-ink-muted)]">
+            {session.role}
+            {session.tenantId === null ? "" : ` · ${session.tenantName ?? `租户 #${String(session.tenantId)}`}`}
+          </span>
+          {canCreateEdition && (
+            <Link
+              className="gf-console-focus inline-flex h-10 items-center rounded-xl bg-[var(--console-accent)] px-3.5 text-sm font-semibold text-white no-underline transition-colors hover:bg-[var(--console-accent-hover)]"
+              href="/admin/workspace/editions/new"
+            >
+              新建文章
+            </Link>
+          )}
+          {canReadIntake && (
+            <Link
+              className="gf-console-focus inline-flex h-10 items-center rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] px-3.5 text-sm font-semibold text-[var(--console-ink)] no-underline transition-colors hover:bg-[var(--console-surface-muted)]"
+              href="/admin/inbox"
+            >
+              导入 URL / 处理稿源
+            </Link>
+          )}
+        </div>
       </header>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {metrics.map(({ Icon, resource, value }) => (
+      <section className="grid gap-4 sm:grid-cols-3">
+        {todoCards.map((card) => (
           <Link
-            className="gf-console-card gf-console-focus group grid min-h-[148px] content-between p-5 no-underline transition-transform hover:-translate-y-0.5"
-            href={consoleRoute.collection(resource.apiSlug)}
-            key={resource.apiSlug}
+            className="gf-console-card gf-console-focus group grid content-between gap-3 p-5 no-underline transition-transform hover:-translate-y-0.5"
+            href={card.href}
+            key={card.label}
           >
-            <span className="grid size-10 place-items-center rounded-xl bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100 dark:bg-indigo-400/15 dark:text-indigo-300">
-              <Icon size={20} />
+            <span className={`grid size-10 place-items-center rounded-xl ${card.tone}`}>
+              <card.Icon size={20} />
             </span>
             <div>
-              <strong className="block text-3xl font-semibold tracking-tight text-[var(--console-ink)]">
-                {value === null ? "受限" : value}
+              <strong className="block text-3xl font-semibold tracking-tight tabular-nums text-[var(--console-ink)]">
+                {card.value === null ? "受限" : card.value}
               </strong>
-              <span className="block pt-1 text-sm font-medium text-[var(--console-ink)]">
-                {resource.label.zh}
-              </span>
-              <span className="block pt-1 text-xs text-[var(--console-ink-muted)]">
-                {value === null ? "当前角色无权读取" : resource.subtitle.zh}
-              </span>
+              <span className="block pt-1 text-sm font-medium text-[var(--console-ink)]">{card.label}</span>
             </div>
           </Link>
         ))}
       </section>
 
-      <section className="gf-console-card p-5 sm:p-6">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">资源工作区</p>
-            <h2 className="m-0 pt-1 text-xl font-semibold tracking-tight text-[var(--console-ink)]">
-              在当前权限范围内继续工作
-            </h2>
-          </div>
-          <span className="text-xs text-[var(--console-ink-muted)]">{quickLinks.length} 个可用资源</span>
-        </div>
-        <div className="grid gap-3 pt-5 sm:grid-cols-2 xl:grid-cols-3">
-          {quickLinks.map((resource) => {
-            const Icon = resource.icon
-            return (
-              <Link
-                className="gf-console-focus flex min-h-20 items-center gap-3 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] p-4 no-underline transition-colors hover:border-indigo-300 hover:bg-indigo-50/60 dark:hover:bg-indigo-400/8"
-                href={consoleRoute.collection(resource.apiSlug)}
-                key={resource.apiSlug}
-              >
-                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[var(--console-surface)] text-indigo-600 shadow-sm dark:text-indigo-300">
-                  <Icon size={18} />
-                </span>
-                <span className="min-w-0">
-                  <strong className="block truncate text-sm text-[var(--console-ink)]">{resource.label.zh}</strong>
-                  <small className="block truncate pt-1 text-xs text-[var(--console-ink-muted)]">{resource.subtitle.zh}</small>
-                </span>
-              </Link>
-            )
-          })}
-        </div>
+      <section className="grid gap-4 xl:grid-cols-2">
+        <ChartCard title="文章状态分布">
+          {segments === null ? (
+            <div className="grid min-h-40 place-items-center rounded-xl border border-dashed border-[var(--console-border)]">
+              <span className="text-sm text-[var(--console-ink-muted)]">{restrictedNote}</span>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-6">
+              <DonutChart segments={segments} />
+              <ul className="m-0 grid min-w-40 flex-1 list-none gap-2 p-0">
+                {segments.map((segment) => (
+                  <li className="flex items-center gap-2.5 text-sm" key={segment.label}>
+                    <span
+                      className="size-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: segment.color }}
+                    />
+                    <span className="min-w-0 flex-1 text-[var(--console-ink)]">{segment.label}</span>
+                    <span className="font-semibold tabular-nums text-[var(--console-ink)]">
+                      {segment.value}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </ChartCard>
+
+        <ChartCard title="近 30 天稿源进入">
+          {intakeDocs === null ? (
+            <div className="grid min-h-40 place-items-center rounded-xl border border-dashed border-[var(--console-border)]">
+              <span className="text-sm text-[var(--console-ink-muted)]">{restrictedNote}</span>
+            </div>
+          ) : (
+            <TrendBars data={bucketByDay(intakeDocs)} emptyLabel="近 30 天暂无稿源进入" />
+          )}
+        </ChartCard>
+
+        <ChartCard title="近 30 天发布趋势">
+          {releaseDocs === null ? (
+            <div className="grid min-h-40 place-items-center rounded-xl border border-dashed border-[var(--console-border)]">
+              <span className="text-sm text-[var(--console-ink-muted)]">{restrictedNote}</span>
+            </div>
+          ) : (
+            <TrendBars color="#10b981" data={bucketByDay(releaseDocs)} emptyLabel="近 30 天暂无发布" />
+          )}
+        </ChartCard>
+
+        <ChartCard title="各站点文章数">
+          {siteArticleItems === null ? (
+            <div className="grid min-h-40 place-items-center rounded-xl border border-dashed border-[var(--console-border)]">
+              <span className="text-sm text-[var(--console-ink-muted)]">{restrictedNote}</span>
+            </div>
+          ) : (
+            <RankedBars emptyLabel="暂无站点" items={siteArticleItems} />
+          )}
+        </ChartCard>
       </section>
     </div>
   )

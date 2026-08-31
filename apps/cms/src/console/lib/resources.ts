@@ -3,6 +3,7 @@ import {
   GlobeIcon,
   ImageIcon,
   LayersIcon,
+  LayoutGridIcon,
   LinkIcon,
   PackageIcon,
   SearchIcon,
@@ -31,10 +32,26 @@ export const VISIBLE_RESOURCE_SLUGS = [
 
 export type ConsoleResourceSlug = (typeof VISIBLE_RESOURCE_SLUGS)[number]
 
+/**
+ * Page-level section for the Console eyebrow label. The sidebar itself only
+ * renders CONSOLE_NAV; resources outside the nav keep their routes and show
+ * their section on the page header.
+ */
+export type ConsoleSectionKey = "articles" | "sites" | "publishing" | "system"
+
+export const CONSOLE_SECTION_LABELS: Readonly<
+  Record<ConsoleSectionKey, { readonly en: string; readonly zh: string }>
+> = {
+  articles: { en: "Articles", zh: "文章" },
+  sites: { en: "Sites", zh: "站点" },
+  publishing: { en: "Publishing", zh: "发布" },
+  system: { en: "System", zh: "系统" },
+}
+
 type ConsoleResource = {
   readonly apiSlug: ConsoleResourceSlug
   readonly defaultColumns: readonly string[]
-  readonly group: "access" | "sites" | "content" | "release"
+  readonly section: ConsoleSectionKey
   readonly icon: (props: IconProps) => React.JSX.Element
   readonly label: { readonly en: string; readonly zh: string }
   readonly relationshipColumns?: readonly string[]
@@ -47,46 +64,46 @@ export const CONSOLE_RESOURCES: Readonly<Record<ConsoleResourceSlug, ConsoleReso
   users: {
     apiSlug: "users",
     defaultColumns: ["email", "role", "tenant", "updatedAt"],
-    group: "access",
+    section: "system",
     icon: UsersIcon,
-    label: { en: "Users", zh: "用户" },
+    label: { en: "System Users", zh: "系统用户管理" },
     relationshipColumns: ["tenant"],
     resource: CMS_RESOURCE.USERS,
-    subtitle: { en: "Access, roles, and tenant membership", zh: "访问权限、角色与租户归属" },
+    subtitle: { en: "Accounts, roles, and access boundaries", zh: "系统账号、角色与权限归属" },
   },
   tenants: {
     apiSlug: "tenants",
     defaultColumns: ["name", "updatedAt"],
-    group: "access",
+    section: "system",
     icon: UsersIcon,
     label: { en: "Tenants", zh: "租户" },
     resource: CMS_RESOURCE.TENANTS,
-    subtitle: { en: "Tenant workspaces and access boundaries", zh: "租户工作区与访问边界" },
+    subtitle: { en: "Isolated data boundaries grouping sites and users", zh: "隔离的数据边界（站点与用户的分组）" },
   },
   sites: {
     apiSlug: "sites",
     defaultColumns: ["name", "status", "locale", "timezone", "updatedAt"],
-    group: "sites",
+    section: "sites",
     icon: GlobeIcon,
-    label: { en: "Sites", zh: "站点" },
+    label: { en: "Sites", zh: "站点列表" },
     resource: CMS_RESOURCE.SITES,
-    subtitle: { en: "Site configuration and operating readiness", zh: "站点配置与运营就绪度" },
+    subtitle: { en: "Publishing targets that read articles from this system", zh: "读取文章的发布目标网站" },
   },
   domains: {
     apiSlug: "domains",
     defaultColumns: ["hostname", "site", "role", "status", "updatedAt"],
-    group: "sites",
+    section: "system",
     icon: LinkIcon,
     label: { en: "Domains", zh: "域名" },
     relationshipColumns: ["site"],
     resource: CMS_RESOURCE.DOMAINS,
-    subtitle: { en: "Canonical hostnames and aliases", zh: "主域名与别名管理" },
+    subtitle: { en: "Canonical hostnames and aliases", zh: "主域名与别名管理（站点详情内维护）" },
   },
   contents: {
     apiSlug: "contents",
     defaultColumns: ["topic", "intent", "createdBy", "updatedAt"],
-    group: "content",
-    icon: LayersIcon,
+    section: "system",
+    icon: SearchIcon,
     label: { en: "Contents", zh: "内容条目" },
     resource: CMS_RESOURCE.CONTENTS,
     subtitle: { en: "Content briefs and production intent", zh: "内容简报与生产意图" },
@@ -94,26 +111,26 @@ export const CONSOLE_RESOURCES: Readonly<Record<ConsoleResourceSlug, ConsoleReso
   "content-editions": {
     apiSlug: "content-editions",
     defaultColumns: ["title", "site", "workflowStatus", "updatedAt"],
-    group: "content",
+    section: "articles",
     icon: SearchIcon,
-    label: { en: "Content Editions", zh: "内容版本" },
+    label: { en: "Articles", zh: "文章列表" },
     relationshipColumns: ["content", "site", "tenant"],
     resource: CMS_RESOURCE.EDITIONS,
-    subtitle: { en: "Drafts, review, evidence, and publication", zh: "草稿、审核、证据与发布" },
+    subtitle: { en: "Every article: filter, search, and lifecycle", zh: "全部文章的筛选、搜索与生命周期管理" },
   },
   media: {
     apiSlug: "media",
     defaultColumns: ["filename", "alt", "updatedAt"],
-    group: "content",
+    section: "system",
     icon: ImageIcon,
-    label: { en: "Media", zh: "媒体库" },
+    label: { en: "OSS Storage", zh: "OSS存储" },
     resource: CMS_RESOURCE.MEDIA,
-    subtitle: { en: "Tenant-scoped files and accessibility metadata", zh: "租户隔离文件与无障碍元数据" },
+    subtitle: { en: "Media files stored in object storage", zh: "对象存储中的媒体文件" },
   },
   "url-records": {
     apiSlug: "url-records",
     defaultColumns: ["pathname", "state", "site", "updatedAt"],
-    group: "content",
+    section: "system",
     icon: LinkIcon,
     label: { en: "URL Records", zh: "URL 记录" },
     relationshipColumns: ["content", "site", "targetUrl"],
@@ -123,7 +140,7 @@ export const CONSOLE_RESOURCES: Readonly<Record<ConsoleResourceSlug, ConsoleReso
   "quality-assessments": {
     apiSlug: "quality-assessments",
     defaultColumns: ["edition", "state", "overall", "updatedAt"],
-    group: "release",
+    section: "system",
     icon: CheckCircleIcon,
     label: { en: "Quality Assessments", zh: "质量评估" },
     relationshipColumns: ["edition", "site", "tenant"],
@@ -133,7 +150,7 @@ export const CONSOLE_RESOURCES: Readonly<Record<ConsoleResourceSlug, ConsoleReso
   releases: {
     apiSlug: "releases",
     defaultColumns: ["releaseId", "site", "state", "updatedAt"],
-    group: "release",
+    section: "system",
     icon: PackageIcon,
     label: { en: "Releases", zh: "发布版本" },
     relationshipColumns: ["site", "tenant"],
@@ -143,19 +160,19 @@ export const CONSOLE_RESOURCES: Readonly<Record<ConsoleResourceSlug, ConsoleReso
   "performance-snapshots": {
     apiSlug: "performance-snapshots",
     defaultColumns: ["site", "edition", "source", "observedAt", "visits", "updatedAt"],
-    group: "release",
+    section: "system",
     icon: LayersIcon,
-    label: { en: "Performance Snapshots", zh: "表现快照" },
+    label: { en: "Traffic Statistics", zh: "流量统计" },
     relationshipColumns: ["edition", "site", "tenant"],
     resource: CMS_RESOURCE.PERFORMANCE_SNAPSHOTS,
-    subtitle: { en: "Imported observations and deterministic refresh signals", zh: "导入观测与确定性更新信号" },
+    subtitle: { en: "Imported traffic observations for reading analytics", zh: "导入的流量统计数据（阅读分析的数据源）" },
   },
   "publication-plans": {
     apiSlug: "publication-plans",
     defaultColumns: ["edition", "site", "scheduledFor", "timezone", "status", "updatedAt"],
-    group: "release",
+    section: "publishing",
     icon: SendIcon,
-    label: { en: "Publication Plans", zh: "发布计划" },
+    label: { en: "Publication Plans", zh: "发布排期" },
     relationshipColumns: ["edition", "site", "tenant"],
     resource: CMS_RESOURCE.PUBLICATION_PLANS,
     subtitle: { en: "UTC schedules and publisher-authorized release execution", zh: "UTC 排期与发布者授权执行" },
@@ -163,7 +180,7 @@ export const CONSOLE_RESOURCES: Readonly<Record<ConsoleResourceSlug, ConsoleReso
   "rollback-intents": {
     apiSlug: "rollback-intents",
     defaultColumns: ["intentId", "site", "consumedAt", "updatedAt"],
-    group: "release",
+    section: "system",
     icon: SendIcon,
     label: { en: "Rollback Intents", zh: "回滚意图" },
     relationshipColumns: ["site", "tenant"],
@@ -173,11 +190,11 @@ export const CONSOLE_RESOURCES: Readonly<Record<ConsoleResourceSlug, ConsoleReso
   operations: {
     apiSlug: "operations",
     defaultColumns: ["operationId", "operationType", "state", "updatedAt"],
-    group: "release",
+    section: "system",
     icon: SendIcon,
-    label: { en: "Operations", zh: "操作记录" },
+    label: { en: "Operation Log", zh: "操作日志" },
     resource: CMS_RESOURCE.OPERATIONS,
-    subtitle: { en: "Read-only asynchronous operation ledger", zh: "只读异步操作台账" },
+    subtitle: { en: "Auditable async operations and failure triage", zh: "可审计的异步操作与失败排查" },
   },
 }
 
@@ -186,12 +203,47 @@ export const FIRST_WAVE_MUTABLE_RESOURCES = ["contents", "domains", "sites", "te
 export const isFirstWaveMutableResource = (value: ConsoleResourceSlug): boolean =>
   (FIRST_WAVE_MUTABLE_RESOURCES as readonly string[]).includes(value)
 
-export const CONSOLE_GROUPS = [
-  { key: "access", label: { en: "Access", zh: "访问控制" } },
-  { key: "sites", label: { en: "Sites & Domains", zh: "站点与域名" } },
-  { key: "content", label: { en: "Content", zh: "内容" } },
-  { key: "release", label: { en: "Quality & Release", zh: "质量与发布" } },
-] as const
+export type ConsoleNavItem =
+  | {
+      readonly href: string
+      readonly icon: (props: IconProps) => React.JSX.Element
+      readonly kind: "static"
+      readonly label: { readonly en: string; readonly zh: string }
+    }
+  | { readonly kind: "resource"; readonly slug: ConsoleResourceSlug }
+
+/**
+ * The sidebar is organized around the operator's pipeline (console → workbench
+ * → articles → sites) instead of mirroring collection tables. Registry
+ * resources are permission-filtered by the caller; static routes are available
+ * to every human role.
+ */
+export const CONSOLE_NAV: Readonly<{
+  readonly admin: readonly ConsoleNavItem[]
+  readonly business: readonly ConsoleNavItem[]
+}> = {
+  business: [
+    {
+      href: "/admin",
+      icon: LayoutGridIcon,
+      kind: "static",
+      label: { en: "Console", zh: "控制台" },
+    },
+    {
+      href: "/admin/work",
+      icon: LayersIcon,
+      kind: "static",
+      label: { en: "Workbench", zh: "工作台" },
+    },
+    { kind: "resource", slug: "content-editions" },
+    { kind: "resource", slug: "sites" },
+  ],
+  admin: [
+    { kind: "resource", slug: "users" },
+    { kind: "resource", slug: "operations" },
+    { kind: "resource", slug: "media" },
+  ],
+}
 
 export const isConsoleResourceSlug = (value: string): value is ConsoleResourceSlug =>
   (VISIBLE_RESOURCE_SLUGS as readonly string[]).includes(value)

@@ -6,6 +6,7 @@ import { CMS_ACTION } from "@/access/policy"
 import { CMS_ROLE } from "@/access/roles"
 import {
   CONSOLE_RESOURCES,
+  CONSOLE_SECTION_LABELS,
   consoleRoute,
   isConsoleResourceSlug,
   type ConsoleResourceSlug,
@@ -102,7 +103,7 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">
-            {resource.group}
+            {CONSOLE_SECTION_LABELS[resource.section].zh}
           </p>
           <h1 className="m-0 pt-1 text-3xl font-semibold tracking-tight text-[var(--console-ink)]">
             {resource.label.zh}

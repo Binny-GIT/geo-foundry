@@ -37,6 +37,7 @@ const AuthenticatedConsoleLayout = async ({ children }: AuthenticatedLayoutProps
         session: {
           email: session.email,
           roleLabel: ROLE_LABEL[session.role] ?? session.role,
+          tenantName: session.tenantName,
         },
       }}
     >

@@ -7,18 +7,15 @@ import { useEffect, useState } from "react"
 import { GeoIcon } from "@/components/branding/GeoIcon"
 import {
   ChevronDownIcon,
-  GlobeIcon,
-  LayersIcon,
-  LayoutGridIcon,
   LogOutIcon,
   MenuIcon,
-  SearchIcon,
   XIcon,
 } from "@/components/icons"
 import {
-  CONSOLE_GROUPS,
+  CONSOLE_NAV,
   CONSOLE_RESOURCES,
   consoleRoute,
+  type ConsoleNavItem,
   type ConsoleResourceSlug,
 } from "@/console/lib/resources"
 import { cn } from "@/lib/utils"
@@ -29,10 +26,38 @@ export type ConsoleNavigation = {
   readonly session: {
     readonly email: string
     readonly roleLabel: string
+    readonly tenantName: string | null
   }
 }
 
 const initialOf = (email: string) => email.slice(0, 1).toUpperCase() || "?"
+
+type ResolvedNavItem = {
+  readonly href: string
+  readonly icon: (props: { readonly size?: number }) => React.JSX.Element
+  readonly key: string
+  readonly label: string
+}
+
+const resolveNavItems = (
+  items: readonly ConsoleNavItem[],
+  resources: readonly ConsoleResourceSlug[],
+): readonly ResolvedNavItem[] =>
+  items.flatMap((item) => {
+    if (item.kind === "static") {
+      return [{ href: item.href, icon: item.icon, key: item.href, label: item.label.zh }]
+    }
+    if (!resources.includes(item.slug)) return []
+    const resource = CONSOLE_RESOURCES[item.slug]
+    return [
+      {
+        href: consoleRoute.collection(item.slug),
+        icon: resource.icon,
+        key: item.slug,
+        label: resource.label.zh,
+      },
+    ]
+  })
 
 export const ConsoleShell = ({ children, navigation }: React.PropsWithChildren<{
   readonly navigation: ConsoleNavigation
@@ -50,7 +75,7 @@ export const ConsoleShell = ({ children, navigation }: React.PropsWithChildren<{
   }, [])
 
   const switchTheme = () => {
-    const nextTheme = theme === "light" ? "dark" : "light"
+    const nextTheme = theme === "dark" ? "dark" : "light"
     setTheme(nextTheme)
     window.localStorage.setItem("gf-console-theme", nextTheme)
     document.documentElement.dataset["consoleTheme"] = nextTheme
@@ -69,6 +94,25 @@ export const ConsoleShell = ({ children, navigation }: React.PropsWithChildren<{
         ? "bg-white/12 font-semibold text-white"
         : "text-white/65 hover:bg-white/7 hover:text-white",
     )
+
+  const businessItems = resolveNavItems(CONSOLE_NAV.business, navigation.resources)
+  const adminItems = resolveNavItems(CONSOLE_NAV.admin, navigation.resources)
+
+  const renderLink = (item: ResolvedNavItem) => {
+    const active = pathname === item.href || pathname.startsWith(`${item.href}/`)
+    return (
+      <Link
+        className={linkClass(active)}
+        href={item.href}
+        key={item.key}
+        onClick={() => setMenuOpen(false)}
+      >
+        {active && <span className="absolute inset-y-2 left-0 w-1 rounded-full bg-indigo-300" />}
+        <item.icon size={18} />
+        <span className="truncate">{item.label}</span>
+      </Link>
+    )
+  }
 
   return (
     <div className="gf-console flex min-h-screen">
@@ -99,91 +143,13 @@ export const ConsoleShell = ({ children, navigation }: React.PropsWithChildren<{
           </button>
         </div>
         <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-5">
-          <Link
-            className={linkClass(pathname === consoleRoute.dashboard)}
-            href={consoleRoute.dashboard}
-            onClick={() => setMenuOpen(false)}
-          >
-            <LayoutGridIcon size={18} />
-            控制中心
-          </Link>
-          <section className="mt-6">
-            <h2 className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/38">
-              日常运营
-            </h2>
-            <div className="grid gap-1">
-              <Link
-                className={linkClass(pathname === "/admin/work" || pathname.startsWith("/admin/work/"))}
-                href="/admin/work"
-                onClick={() => setMenuOpen(false)}
-              >
-                <LayoutGridIcon size={18} />
-                今日工作
-              </Link>
-              {navigation.canReadInbox && (
-                <Link
-                  className={linkClass(pathname === "/admin/inbox" || pathname.startsWith("/admin/inbox?"))}
-                  href="/admin/inbox"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  <LayersIcon size={18} />
-                  稿源箱
-                </Link>
-              )}
-              <Link
-                className={linkClass(pathname === consoleRoute.collection("content-editions"))}
-                href={consoleRoute.collection("content-editions")}
-                onClick={() => setMenuOpen(false)}
-              >
-                <SearchIcon size={18} />
-                内容库
-              </Link>
-              <Link
-                className={linkClass(pathname === consoleRoute.collection("sites"))}
-                href={consoleRoute.collection("sites")}
-                onClick={() => setMenuOpen(false)}
-              >
-                <GlobeIcon size={18} />
-                品牌与站点
-              </Link>
-            </div>
-          </section>
-          {CONSOLE_GROUPS.map((group) => {
-            const entries = navigation.resources
-              .map((slug) => CONSOLE_RESOURCES[slug])
-              .filter(
-                (resource) =>
-                  resource.group === group.key &&
-                  !["content-editions", "sites"].includes(resource.apiSlug),
-              )
-            if (entries.length === 0) return null
-            return (
-              <section className="mt-6" key={group.key}>
-                <h2 className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/38">
-                  {group.label.zh}
-                </h2>
-                <div className="grid gap-1">
-                  {entries.map((resource) => {
-                    const href = consoleRoute.collection(resource.apiSlug)
-                    const active = pathname === href || pathname.startsWith(`${href}/`)
-                    const Icon = resource.icon
-                    return (
-                      <Link
-                        className={linkClass(active)}
-                        href={href}
-                        key={resource.apiSlug}
-                        onClick={() => setMenuOpen(false)}
-                      >
-                        {active && <span className="absolute inset-y-2 left-0 w-1 rounded-full bg-indigo-300" />}
-                        <Icon size={18} />
-                        <span className="truncate">{resource.label.zh}</span>
-                      </Link>
-                    )
-                  })}
-                </div>
-              </section>
-            )
-          })}
+          <div className="grid gap-1">{businessItems.map(renderLink)}</div>
+          {adminItems.length > 0 && (
+            <>
+              <div className="my-4 border-t border-white/10" />
+              <div className="grid gap-1">{adminItems.map(renderLink)}</div>
+            </>
+          )}
         </nav>
         <div className="border-t border-white/10 p-4">
           <div className="flex items-center gap-3 rounded-2xl bg-white/6 p-3">
@@ -192,7 +158,10 @@ export const ConsoleShell = ({ children, navigation }: React.PropsWithChildren<{
             </span>
             <Link className="min-w-0 flex-1 no-underline" href={consoleRoute.account}>
               <strong className="block truncate text-xs font-semibold">{navigation.session.email}</strong>
-              <span className="block truncate pt-0.5 text-[11px] text-white/50">{navigation.session.roleLabel}</span>
+              <span className="block truncate pt-0.5 text-[11px] text-white/50">
+                {navigation.session.roleLabel}
+                {navigation.session.tenantName === null ? "" : ` · ${navigation.session.tenantName}`}
+              </span>
             </Link>
             <button
               aria-label="账户选项"
