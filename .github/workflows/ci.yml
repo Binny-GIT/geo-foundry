@@ -70,12 +70,16 @@ jobs:
       GEO_FOUNDRY_S3_PORT: "9000"
       GEO_FOUNDRY_S3_USE_SSL: "false"
       GEO_FOUNDRY_S3_FORCE_PATH_STYLE: "true"
-      GEO_FOUNDRY_EVIDENCE_DIR: ${{ runner.temp }}/geo-foundry-reports/${{ github.run_id }}-${{ github.run_attempt }}
-      GEO_FOUNDRY_SHARED_SERVICES_STATE_DIR: ${{ runner.temp }}/geo-foundry-shared-services
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+
+      - name: Resolve runner-local report directories
+        run: |
+          set -eu
+          printf 'GEO_FOUNDRY_EVIDENCE_DIR=%s\n' "$RUNNER_TEMP/geo-foundry-reports/${{ github.run_id }}-${{ github.run_attempt }}" >> "$GITHUB_ENV"
+          printf 'GEO_FOUNDRY_SHARED_SERVICES_STATE_DIR=%s\n' "$RUNNER_TEMP/geo-foundry-shared-services" >> "$GITHUB_ENV"
 
       - uses: actions/setup-node@v4
         with:
@@ -139,6 +143,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: protected-test-reports-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/geo-foundry-reports/${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.GEO_FOUNDRY_EVIDENCE_DIR }}
           if-no-files-found: warn
           retention-days: 7
