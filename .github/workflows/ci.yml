@@ -1,9 +1,8 @@
 name: Geo Foundry CI
 
 on:
-  pull_request:
   push:
-    branches: [main]
+    tags: ["v*"]
   workflow_dispatch:
     inputs:
       run_shared_services:
@@ -25,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      GEO_FOUNDRY_CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+      GEO_FOUNDRY_CI_BASE_SHA: ${{ github.event_name == 'push' && !startsWith(github.event.before, '0000000000') && github.event.before || '' }}
       TURBO_REMOTE_CACHE: "0"
     steps:
       - uses: actions/checkout@v4
