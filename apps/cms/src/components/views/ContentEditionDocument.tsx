@@ -109,7 +109,7 @@ const ContentEditionDocumentBody = ({ readOnly }: { readonly readOnly: boolean }
   const saveState = processing ? t.saving : modified ? t.unsaved : t.saved
 
   return (
-    <main className="mx-auto flex min-h-full w-full max-w-[1600px] flex-col gap-5 p-4 sm:p-6 lg:p-8">
+    <main className="flex min-h-full w-full flex-col gap-5 p-4 sm:p-6 lg:px-8 lg:py-6">
       <header className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)] sm:p-5">
         <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">

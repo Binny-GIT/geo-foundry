@@ -7,7 +7,7 @@ import type { ComponentProps } from "react"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-gfs-accent-400/60 disabled:pointer-events-none disabled:opacity-55 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+  "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-indigo-400/60 disabled:pointer-events-none disabled:opacity-55 [&_svg]:pointer-events-none [&_svg]:shrink-0",
   {
     defaultVariants: {
       size: "default",
@@ -21,12 +21,18 @@ const buttonVariants = cva(
         sm: "h-8 gap-1.5 rounded-md px-3",
       },
       variant: {
-        default: "bg-gfs-accent-500 text-white hover:bg-gfs-accent-600",
-        dark: "bg-[var(--theme-text)] text-white hover:bg-[var(--theme-elevation-800)]",
+        /*
+         * Standard Tailwind palette scales only (no --gf-* / --theme-*
+         * variables): this component renders inside both the Payload admin
+         * shell and the console shell, which compile two disjoint Tailwind
+         * stylesheets with separate @theme token sets.
+         */
+        default: "bg-indigo-500 text-white hover:bg-indigo-600",
+        dark: "bg-slate-900 text-white hover:bg-slate-800",
         secondary:
-          "border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] text-[var(--theme-text)] hover:border-[var(--theme-elevation-300)] hover:bg-[var(--theme-elevation-100)]",
+          "border border-slate-200 bg-slate-50 text-slate-900 hover:border-slate-300 hover:bg-slate-100",
         danger:
-          "border border-[var(--theme-error-300)] bg-[var(--gf-tone-danger-bg)] text-[var(--gf-tone-danger-fg)] hover:brightness-[.97]",
+          "border border-rose-200 bg-rose-50 text-rose-700 hover:brightness-[.97]",
         ghost: "hover:bg-white/10",
         outline: "border border-white/15 hover:bg-white/10",
       },

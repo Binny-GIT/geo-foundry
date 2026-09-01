@@ -13,10 +13,16 @@ const ConsoleLoginPage = async () => {
   if (session !== null) redirect(consoleRoute.dashboard)
 
   return (
-    <main className="gf-console grid min-h-screen place-items-center px-4 py-8">
-      <section className="grid w-full max-w-[440px] gap-7">
+    <main
+      className="gf-console relative grid min-h-screen place-items-center overflow-hidden px-4 py-8"
+      style={{
+        backgroundImage:
+          "radial-gradient(circle at 82% -8%, rgb(99 102 241 / 13%), transparent 30rem), radial-gradient(circle at -12% 108%, rgb(16 185 129 / 9%), transparent 26rem)",
+      }}
+    >
+      <section className="relative grid w-full max-w-[440px] gap-7">
         <div className="flex items-center gap-3 px-2">
-          <span className="grid size-11 place-items-center rounded-2xl bg-indigo-600 shadow-lg shadow-indigo-500/20">
+          <span className="grid size-11 place-items-center rounded-2xl bg-indigo-600 shadow-lg shadow-indigo-500/25">
             <GeoIcon size={25} />
           </span>
           <div>
@@ -24,7 +30,7 @@ const ConsoleLoginPage = async () => {
             <p className="m-0 pt-0.5 text-xs text-[var(--console-ink-muted)]">GF Studio · 内容运营管理中心</p>
           </div>
         </div>
-        <section className="gf-console-card p-6 sm:p-8">
+        <section className="gf-console-card p-6 shadow-2xl shadow-indigo-950/10 sm:p-8">
           <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">安全访问</p>
           <h1 className="m-0 pt-2 text-2xl font-semibold tracking-tight text-[var(--console-ink)]">
             登录管理中心

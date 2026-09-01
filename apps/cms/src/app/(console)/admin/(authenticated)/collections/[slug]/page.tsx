@@ -24,7 +24,9 @@ import {
 import { combineWhere, sitesIdScopeWhere, siteScopeWhere } from "@/console/lib/site-scope"
 import { findConsoleDocuments, requireConsolePayloadContext } from "@/console/lib/payload.server"
 import { PublicationPlansWorkspace } from "@/console/components/PublicationPlansWorkspace"
+import { ConsoleCreateDialog } from "@/console/components/ConsoleCreateDialog"
 import { canConsole } from "@/console/lib/session.server"
+import { Button } from "@/components/ui/button"
 
 const formatValue = (value: unknown, relationship = false): string => {
   if (relationship && (typeof value === "number" || typeof value === "string")) return "受限"
@@ -287,29 +289,33 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
           <span className="rounded-full border border-[var(--console-border)] bg-[var(--console-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--console-ink-muted)]">
             {result.totalDocs} 条可见记录
           </span>
-          {canCreate && createSupported && (
-            <Link
-              className="gf-console-focus inline-flex h-10 items-center rounded-xl bg-[var(--console-accent)] px-3.5 text-sm font-semibold text-white no-underline transition-colors hover:bg-[var(--console-accent-hover)]"
-              href={`${consoleRoute.collection(slug as ConsoleResourceSlug)}/create`}
-            >
-              新建{resource.label.zh}
-            </Link>
-          )}
+          {canCreate &&
+          slug === "users" &&
+          (context.session.role === CMS_ROLE.SUPER_ADMIN || context.session.role === CMS_ROLE.TENANT_ADMIN) ? (
+            <ConsoleCreateDialog
+              actorRole={context.session.role === CMS_ROLE.SUPER_ADMIN ? CMS_ROLE.SUPER_ADMIN : CMS_ROLE.TENANT_ADMIN}
+              label={resource.label.zh}
+            />
+          ) : canCreate && createSupported && slug !== "users" ? (
+            <Button asChild className="h-10 rounded-xl" type="button">
+              <Link href={`${consoleRoute.collection(slug as ConsoleResourceSlug)}/create`}>
+                新建{resource.label.zh}
+              </Link>
+            </Button>
+          ) : null}
           {canUploadMedia && (
-            <Link
-              className="gf-console-focus inline-flex h-10 items-center rounded-xl bg-[var(--console-accent)] px-3.5 text-sm font-semibold text-white no-underline transition-colors hover:bg-[var(--console-accent-hover)]"
-              href="/admin/collections/media/upload"
-            >
-              上传媒体
-            </Link>
+            <Button asChild className="h-10 rounded-xl" type="button">
+              <Link href="/admin/collections/media/upload">上传媒体</Link>
+            </Button>
           )}
           {canCreateRollbackIntent && (
-            <Link
-              className="gf-console-focus inline-flex h-10 items-center rounded-xl bg-rose-600 px-3.5 text-sm font-semibold text-white no-underline transition-colors hover:bg-rose-700"
-              href="/admin/collections/rollback-intents/create"
+            <Button
+              asChild
+              className="h-10 rounded-xl bg-rose-600 hover:bg-rose-700"
+              type="button"
             >
-              创建回滚意图
-            </Link>
+              <Link href="/admin/collections/rollback-intents/create">创建回滚意图</Link>
+            </Button>
           )}
         </div>
       </header>

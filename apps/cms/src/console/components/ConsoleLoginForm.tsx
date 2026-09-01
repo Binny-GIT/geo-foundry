@@ -78,8 +78,8 @@ export const ConsoleLoginForm = () => {
         忘记密码？
       </a>
       <button
-        aria-label="Login"
-        className="gf-console-focus flex h-11 items-center justify-center rounded-xl bg-[var(--console-accent)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--console-accent-hover)] disabled:cursor-wait disabled:opacity-60"
+        aria-label="登录"
+        className="gf-console-focus mt-1 flex h-11 w-full items-center justify-center rounded-xl bg-[var(--console-accent)] px-4 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition-colors hover:bg-[var(--console-accent-hover)] disabled:cursor-wait disabled:opacity-60"
         disabled={loading || !hydrated}
         type="submit"
       >

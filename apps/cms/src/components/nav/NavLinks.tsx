@@ -115,6 +115,11 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
   useEffect(() => {
     setCollapsed(window.localStorage.getItem("gf-nav-collapsed") === "1")
   }, [])
+  /* Mirrors collapse state onto <html> so nav-layout.css can shrink Payload's
+   * `--nav-width` grid track together with the rail (see that file). */
+  useEffect(() => {
+    document.documentElement.toggleAttribute("data-gf-nav-collapsed", collapsed)
+  }, [collapsed])
   const toggleCollapsed = () => {
     setCollapsed((previous) => {
       window.localStorage.setItem("gf-nav-collapsed", previous ? "0" : "1")
@@ -194,19 +199,23 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
             >
               Geo Foundry
             </span>
-            {/* Desktop collapse toggle: narrows the sidebar to an icon rail. */}
+            {/* Desktop collapse toggle: narrows the sidebar to an icon rail.
+             * Quiet by default, brightens on hover — it must read as a rail
+             * control, not compete with the brand lockup next to it. */}
             <button
               aria-label={isZH ? "收起导航" : "Collapse navigation"}
               className={cn(
-                "hidden size-8 items-center justify-center rounded-md text-white/60 transition-colors hover:bg-white/10 hover:text-white min-[1441px]:flex",
+                "hidden size-7 items-center justify-center rounded-full text-white/40 transition-colors hover:bg-white/12 hover:text-white min-[1441px]:flex",
+                collapsed && "min-[1441px]:mt-3",
               )}
               onClick={toggleCollapsed}
+              title={isZH ? "收起导航" : "Collapse navigation"}
               type="button"
             >
               {collapsed ? (
-                <PanelLeftOpenIcon size={18} strokeWidth={1.8} />
+                <PanelLeftOpenIcon size={16} strokeWidth={1.9} />
               ) : (
-                <PanelLeftCloseIcon size={18} strokeWidth={1.8} />
+                <PanelLeftCloseIcon size={16} strokeWidth={1.9} />
               )}
             </button>
             {/* Close button: only needed where the nav is a drawer. */}

@@ -196,6 +196,13 @@ export const HelpCircleIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => 
 )
 
 /** Dropdown affordance. */
+export const PlusIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <path d="M5 12h14" />
+    <path d="M12 5v14" />
+  </svg>
+)
+
 export const ChevronDownIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <path d="m6 9 6 6 6-6" />

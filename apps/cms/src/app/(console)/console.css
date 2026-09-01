@@ -3,6 +3,9 @@
 
 @source "../../console";
 @source "./";
+/* Shared shadcn primitives (Button, Dialog, icons) render inside console
+ * pages too; their utility classes must be compiled into this stylesheet. */
+@source "../../components";
 
 @theme {
   --color-console-accent: #4f46e5;

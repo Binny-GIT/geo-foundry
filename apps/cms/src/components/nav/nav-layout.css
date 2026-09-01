@@ -29,6 +29,20 @@
 }
 
 /*
+ * Desktop icon-rail width sync. Payload's template lays the main area out
+ * with `grid-template-columns: var(--nav-width) auto`, so narrowing the
+ * <aside> alone would strand ~200px of dead grid track next to the rail.
+ * Overriding the variable itself (scoped to >=1441px, where the desktop
+ * collapse exists at all) moves both the grid track and the aside together,
+ * and rides Payload's own `--nav-trans-time` grid transition.
+ */
+@media (min-width: 1441px) {
+  html[data-gf-nav-collapsed] .template-default--nav-open {
+    --nav-width: 72px;
+  }
+}
+
+/*
  * Payload's stock AppHeader (breadcrumbs + account avatar + its own mobile
  * toggler) is fully replaced by this app's own chrome: the sidebar owns
  * identity + a Dashboard entry, NavLinks.tsx renders its own mobile
