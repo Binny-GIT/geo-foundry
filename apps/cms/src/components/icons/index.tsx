@@ -335,3 +335,59 @@ export const NAV_ICON_BY_SLUG: Readonly<Record<string, ComponentType<IconProps>>
   "idempotency-records": KeyRoundIcon,
   "reviewer-edition-decision-idempotency": KeyRoundIcon,
 }
+
+/** AI / generation affordances. */
+export const SparklesIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <path d="M9.9 15.5a2 2 0 0 0-1.4-1.4L2.3 12.5a.5.5 0 0 1 0-1L8.5 9.9A2 2 0 0 0 9.9 8.5l1.6-6.1a.5.5 0 0 1 1 0L14.1 8.5a2 2 0 0 0 1.4 1.4l6.1 1.6a.5.5 0 0 1 0 1l-6.1 1.6a2 2 0 0 0-1.4 1.4l-1.6 6.1a.5.5 0 0 1-1 0z" />
+    <path d="M20 3v4" />
+    <path d="M22 5h-4" />
+  </svg>
+)
+
+/** New document. */
+export const FilePlusIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z" />
+    <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+    <path d="M9 15h6" />
+    <path d="M12 12v6" />
+  </svg>
+)
+
+/** Light / dark theme toggles. */
+export const SunIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2" />
+    <path d="M12 20v2" />
+    <path d="m4.9 4.9 1.4 1.4" />
+    <path d="m17.7 17.7 1.4 1.4" />
+    <path d="M2 12h2" />
+    <path d="M20 12h2" />
+    <path d="m6.3 17.7-1.4 1.4" />
+    <path d="m19.1 4.9-1.4 1.4" />
+  </svg>
+)
+
+export const MoonIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z" />
+  </svg>
+)
+
+/** List filtering. */
+export const FilterIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <polygon points="22 3 2 3 10 12.5 10 19 14 21 14 12.5 22 3" />
+  </svg>
+)
+
+/** Import / bring content in. */
+export const ImportIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <path d="M12 17V3" />
+    <path d="m6 11 6 6 6-6" />
+    <path d="M19 21H5" />
+  </svg>
+)

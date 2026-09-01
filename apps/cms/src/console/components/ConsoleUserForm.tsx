@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react"
 
 import { CMS_ROLE, type CmsRole } from "@/access/roles"
+import { PlusIcon } from "@/components/icons"
+import { Button } from "@/components/ui/button"
 
 import {
   assignableUserRoles,
@@ -288,19 +290,20 @@ export const ConsoleUserForm = ({
       )}
 
       <div className="flex flex-wrap justify-end gap-3 border-t border-[var(--console-border)] pt-5">
-        <a
-          className="gf-console-focus inline-flex h-11 items-center justify-center rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] px-4 text-sm font-semibold text-[var(--console-ink)] no-underline hover:bg-[var(--console-surface-muted)]"
-          href={isCreate ? consoleRoute.collection("users") : consoleRoute.document("users", documentId)}
-        >
-          取消
-        </a>
-        <button
-          className="gf-console-focus inline-flex h-11 items-center justify-center rounded-xl bg-[var(--console-accent)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--console-accent-hover)] disabled:cursor-wait disabled:opacity-60"
+        <Button asChild size="lg" variant="secondary">
+          <a href={isCreate ? consoleRoute.collection("users") : consoleRoute.document("users", documentId)}>
+            取消
+          </a>
+        </Button>
+        <Button
+          className="disabled:cursor-wait"
           disabled={loading || (needsTenant && tenants.length === 0)}
+          size="lg"
           type="submit"
         >
+          {isCreate && <PlusIcon size={15} />}
           {loading ? (isCreate ? "正在创建…" : "正在保存…") : isCreate ? "创建用户" : "保存更改"}
-        </button>
+        </Button>
       </div>
     </form>
   )

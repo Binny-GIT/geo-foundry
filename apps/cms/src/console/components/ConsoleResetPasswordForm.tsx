@@ -3,6 +3,8 @@
 import { useSearchParams } from "next/navigation"
 import { useState } from "react"
 
+import { Button } from "@/components/ui/button"
+
 export const ConsoleResetPasswordForm = () => {
   const params = useSearchParams()
   const [error, setError] = useState<string | null>(null)
@@ -56,14 +58,15 @@ export const ConsoleResetPasswordForm = () => {
           {error}
         </p>
       )}
-      <button
+      <Button
         aria-label="Reset password"
-        className="gf-console-focus flex h-11 items-center justify-center rounded-xl bg-[var(--console-accent)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--console-accent-hover)] disabled:cursor-wait disabled:opacity-60"
+        className="w-full disabled:cursor-wait"
         disabled={loading}
+        size="lg"
         type="submit"
       >
         {loading ? "正在重置…" : "设置新密码"}
-      </button>
+      </Button>
     </form>
   )
 }

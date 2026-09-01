@@ -6,6 +6,8 @@ import { Link, useAuth, useConfig, useNav, useTranslation } from "@payloadcms/ui
 import { usePathname } from "next/navigation"
 import { formatAdminURL } from "payload/shared"
 import { type ComponentType, useEffect, useState } from "react"
+import { PanelLeftClose, PanelLeftOpen } from "lucide"
+import { MorphIcon } from "morphicons/react"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -20,15 +22,7 @@ import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 
 import { GeoIcon } from "../branding/GeoIcon"
-import {
-  ChevronDownIcon,
-  LogOutIcon,
-  MenuIcon,
-  NAV_ICON_BY_SLUG,
-  PanelLeftCloseIcon,
-  PanelLeftOpenIcon,
-  XIcon,
-} from "../icons"
+import { ChevronDownIcon, LogOutIcon, MenuIcon, NAV_ICON_BY_SLUG, XIcon } from "../icons"
 import type { IconProps } from "../icons"
 import {
   CONSOLE_NAV,
@@ -251,11 +245,19 @@ export const NavLinks = ({ visibleSlugs }: NavLinksProps) => {
               title={isZH ? "收起导航" : "Collapse navigation"}
               type="button"
             >
-              {collapsed ? (
-                <PanelLeftOpenIcon size={16} strokeWidth={1.7} />
-              ) : (
-                <PanelLeftCloseIcon size={16} strokeWidth={1.7} />
-              )}
+              {/*
+               * Morphing collapse toggle (morphicons): the panel glyph glides
+               * between its close/open chevron instead of hard-swapping SVGs.
+               * Icon data comes from the lucide data package, matching the
+               * shapes in components/icons.
+               */}
+              <MorphIcon
+                icon={collapsed ? PanelLeftOpen : PanelLeftClose}
+                reducedMotion="user"
+                size={16}
+                spring="snappy"
+                strokeWidth={1.7}
+              />
             </button>
             {/* Close button: only needed where the nav is a drawer. */}
             <button

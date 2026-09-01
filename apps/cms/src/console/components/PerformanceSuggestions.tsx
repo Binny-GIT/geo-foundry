@@ -3,6 +3,9 @@
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
+import { FilePlusIcon } from "@/components/icons"
+import { Button } from "@/components/ui/button"
+
 export type PerformanceSuggestion = Readonly<{
   readonly current: number
   readonly editionId: number
@@ -48,14 +51,15 @@ export const PerformanceSuggestions = ({ suggestions }: { readonly suggestions: 
               <a className="gf-console-focus truncate text-sm font-semibold text-[var(--console-ink)] no-underline hover:underline" href={suggestion.href}>{suggestion.title}</a>
               <span className="block pt-1 text-xs text-[var(--console-ink-muted)]">{suggestion.site} · visits {suggestion.previous} → {suggestion.current}</span>
             </span>
-            <button
-              className="gf-console-focus shrink-0 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+            <Button
+              className="shrink-0 text-xs"
               disabled={pending !== null}
               onClick={() => void accept(suggestion.editionId)}
               type="button"
             >
+              <FilePlusIcon size={15} />
               {pending === suggestion.editionId ? "Creating draft…" : "Create refresh draft"}
-            </button>
+            </Button>
           </li>
         ))}
       </ul>

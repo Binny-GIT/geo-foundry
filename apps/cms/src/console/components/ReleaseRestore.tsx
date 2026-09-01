@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
+import { Button } from "@/components/ui/button"
+
 /**
  * Business-language rollback entry: the publisher picks a historical release
  * row and this control submits the same protected rollback intent endpoint
@@ -69,14 +71,16 @@ export const ReleaseRestore = ({
 
   return (
     <>
-      <button
-        className="gf-console-focus h-8 rounded-lg border border-[var(--console-border)] bg-[var(--console-surface)] px-2.5 text-[11px] font-semibold text-[var(--console-ink)] hover:bg-[var(--console-surface-muted)]"
+      <Button
+        className="text-[11px]"
         onClick={() => setOpen(true)}
+        size="sm"
         title={reasonHint}
         type="button"
+        variant="secondary"
       >
         恢复到此版本
-      </button>
+      </Button>
       {open && (
         <div
           aria-modal="true"
@@ -106,22 +110,24 @@ export const ReleaseRestore = ({
               </p>
             )}
             <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <button
-                className="h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-4 text-sm font-semibold text-[var(--console-ink)]"
+              <Button
                 disabled={pending}
                 onClick={() => setOpen(false)}
+                size="lg"
                 type="button"
+                variant="secondary"
               >
                 取消
-              </button>
-              <button
-                className="h-11 rounded-xl bg-rose-600 px-4 text-sm font-semibold text-white disabled:opacity-70"
+              </Button>
+              <Button
+                className="bg-rose-600 hover:bg-rose-700"
                 disabled={pending}
                 onClick={() => void submit()}
+                size="lg"
                 type="button"
               >
                 {pending ? "提交中…" : "确认恢复"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

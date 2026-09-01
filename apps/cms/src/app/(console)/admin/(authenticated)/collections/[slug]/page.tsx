@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 
-import { ChevronDownIcon } from "@/components/icons"
+import { ChevronDownIcon, NAV_ICON_BY_SLUG } from "@/components/icons"
 import { CMS_ACTION, CMS_RESOURCE } from "@/access/policy"
 import { CMS_ROLE } from "@/access/roles"
 import EditionsWorkspace, {
@@ -153,6 +153,7 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
               <CreateArticleLink />
             ) : null
           }
+          icon={NAV_ICON_BY_SLUG["content-editions"]}
           meta={
             <span className="rounded-full border border-[var(--console-border)] bg-[var(--console-surface)] px-3 py-1 text-xs font-semibold text-[var(--console-ink-muted)]">
               {result.totalDocs} 篇
@@ -232,6 +233,7 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
     return (
       <div className="grid gap-6 [&>*]:min-w-0">
         <PageHeader
+          icon={NAV_ICON_BY_SLUG.sites}
           meta={
             <span className="rounded-full border border-[var(--console-border)] bg-[var(--console-surface)] px-3 py-1 text-xs font-semibold text-[var(--console-ink-muted)]">
               {result.totalDocs} 个站点
@@ -266,6 +268,7 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
   return (
     <div className="gf-stagger grid gap-6 [&>*]:min-w-0">
       <PageHeader
+        icon={NAV_ICON_BY_SLUG[slug]}
         actions={
           <>
             {canCreate &&

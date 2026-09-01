@@ -16,6 +16,8 @@ import {
   editionWorkflowEndpointOf,
   publicationPlanEndpoint,
 } from "@/console/lib/edition-workflow-client"
+import { ShieldCheckIcon } from "@/components/icons"
+import { Button } from "@/components/ui/button"
 import { consoleRoute } from "@/console/lib/resources"
 
 type BoardData = Readonly<Record<BoardColumnKey, readonly BoardCard[]>>
@@ -225,12 +227,8 @@ const ReviewBoard = ({
                       {cardActions(card).length > 0 && (
                         <div className="flex flex-wrap gap-1.5 border-t border-[var(--console-border)] pt-2">
                           {cardActions(card).map((action) => (
-                            <button
-                              className={`gf-console-focus h-7 rounded-lg px-2.5 text-[11px] font-semibold disabled:cursor-wait disabled:opacity-60 ${
-                                action.tone === "primary"
-                                  ? "bg-[var(--console-accent)] text-white"
-                                  : "border border-[var(--console-border)] bg-[var(--console-surface)] text-[var(--console-ink)]"
-                              }`}
+                            <Button
+                              className="h-7 px-2.5 text-[11px]"
                               disabled={pendingKey !== null}
                               key={action.label}
                               onClick={() => {
@@ -242,37 +240,41 @@ const ReviewBoard = ({
                                 void runAction(action, card)
                               }}
                               type="button"
+                              variant={action.tone === "primary" ? "default" : "secondary"}
                             >
                               {pendingKey === `${card.id}:${action.label}` ? "…" : action.label}
-                            </button>
+                            </Button>
                           ))}
                           {role === "editor" &&
                             (card.workflowStatus === "draft" ||
                               card.workflowStatus === "generating" ||
                               card.workflowStatus === "review") && (
-                              <button
-                                className="gf-console-focus h-7 rounded-lg border border-[var(--console-border)] bg-[var(--console-surface)] px-2.5 text-[11px] font-semibold text-[var(--console-ink)] disabled:cursor-wait disabled:opacity-60"
+                              <Button
+                                className="h-7 px-2.5 text-[11px]"
                                 disabled={pendingKey !== null}
                                 onClick={() => void runQuality(card)}
                                 type="button"
+                                variant="secondary"
                               >
+                                <ShieldCheckIcon size={15} />
                                 {pendingKey === `${card.id}:quality` ? "…" : "质量检查"}
-                              </button>
+                              </Button>
                             )}
                           {role === "publisher" &&
                             (card.workflowStatus === "approved" ||
                               card.workflowStatus === "compiled") && (
-                              <button
-                                className="gf-console-focus h-7 rounded-lg border border-[var(--console-border)] bg-[var(--console-surface)] px-2.5 text-[11px] font-semibold text-[var(--console-ink)] disabled:cursor-wait disabled:opacity-60"
+                              <Button
+                                className="h-7 px-2.5 text-[11px]"
                                 disabled={pendingKey !== null}
                                 onClick={() => {
                                   setScheduling(card)
                                   setScheduledFor("")
                                 }}
                                 type="button"
+                                variant="secondary"
                               >
                                 排期
-                              </button>
+                              </Button>
                             )}
                         </div>
                       )}
@@ -310,19 +312,19 @@ const ReviewBoard = ({
               </span>
             </label>
             <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <button
-                className="h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-4 text-sm font-semibold text-[var(--console-ink)]"
+              <Button
                 disabled={pendingKey !== null}
                 onClick={() => {
                   setConfirming(null)
                   setReason("")
                 }}
+                size="lg"
                 type="button"
+                variant="secondary"
               >
                 取消
-              </button>
-              <button
-                className="h-11 rounded-xl bg-[var(--console-accent)] px-4 text-sm font-semibold text-white disabled:opacity-70"
+              </Button>
+              <Button
                 disabled={pendingKey !== null}
                 onClick={() => {
                   if (confirming.action.reasonRequired === true && reason.trim().length === 0) {
@@ -331,10 +333,11 @@ const ReviewBoard = ({
                   }
                   void runAction(confirming.action, confirming.card, reason)
                 }}
+                size="lg"
                 type="button"
               >
                 {pendingKey !== null ? "处理中…" : "确认操作"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -363,21 +366,22 @@ const ReviewBoard = ({
               </span>
             </label>
             <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <button
-                className="h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-4 text-sm font-semibold text-[var(--console-ink)]"
+              <Button
                 onClick={() => setScheduling(null)}
+                size="lg"
                 type="button"
+                variant="secondary"
               >
                 取消
-              </button>
-              <button
-                className="h-11 rounded-xl bg-[var(--console-accent)] px-4 text-sm font-semibold text-white disabled:opacity-70"
+              </Button>
+              <Button
                 disabled={scheduledFor.length === 0 || pendingKey !== null}
                 onClick={() => void submitSchedule()}
+                size="lg"
                 type="button"
               >
                 {pendingKey === `${scheduling.id}:schedule` ? "处理中…" : "创建排期"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

@@ -2,6 +2,9 @@
 
 import { useState } from "react"
 
+import { PlusIcon } from "@/components/icons"
+import { Button } from "@/components/ui/button"
+
 import { consoleRoute } from "../lib/resources"
 
 type EndpointError = { readonly error?: { readonly code?: unknown } }
@@ -129,19 +132,19 @@ export const ConsoleRollbackIntentForm = () => {
         </p>
       )}
       <div className="flex flex-wrap justify-end gap-3 border-t border-[var(--console-border)] pt-5">
-        <a
-          className="gf-console-focus inline-flex h-11 items-center justify-center rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] px-4 text-sm font-semibold text-[var(--console-ink)] no-underline hover:bg-[var(--console-surface-muted)]"
-          href={consoleRoute.collection("rollback-intents")}
-        >
-          取消
-        </a>
-        <button
-          className="gf-console-focus inline-flex h-11 items-center justify-center rounded-xl bg-rose-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-rose-700 disabled:cursor-wait disabled:opacity-60"
+        <Button asChild size="lg" variant="secondary">
+          <a href={consoleRoute.collection("rollback-intents")}>取消</a>
+        </Button>
+        <Button
+          className="disabled:cursor-wait"
           disabled={loading}
+          size="lg"
           type="submit"
+          variant="danger"
         >
+          <PlusIcon size={15} />
           {loading ? "正在提交…" : "创建回滚意图"}
-        </button>
+        </Button>
       </div>
     </form>
   )

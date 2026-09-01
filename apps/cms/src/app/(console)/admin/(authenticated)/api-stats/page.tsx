@@ -1,4 +1,5 @@
 import { PageHeader } from "@/console/components/PageHeader"
+import { ChartBarIcon } from "@/components/icons"
 import { ChartCard, RankedBars, TrendBars, type TrendPoint } from "@/console/components/charts"
 import { requireConsolePayloadContext } from "@/console/lib/payload.server"
 
@@ -78,6 +79,7 @@ const ApiStatsPage = async () => {
   return (
     <div className="grid gap-6 [&>*]:min-w-0">
       <PageHeader
+        icon={ChartBarIcon}
         meta={
           <span className="rounded-full border border-[var(--console-border)] bg-[var(--console-surface)] px-3 py-1 text-xs font-semibold text-[var(--console-ink-muted)]">
             近 {DAYS} 天共 {total} 次调用

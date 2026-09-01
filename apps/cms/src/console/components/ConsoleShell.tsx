@@ -3,6 +3,8 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+import { Moon, Sun } from "lucide"
+import { MorphIcon } from "morphicons/react"
 
 import { GeoIcon } from "@/components/branding/GeoIcon"
 import {
@@ -198,12 +200,22 @@ export const ConsoleShell = ({ children, navigation }: React.PropsWithChildren<{
             </span>
             <span className="pl-2">内容运营管理中心</span>
           </p>
+          {/* Theme toggle: the sun/moon glyph morphs (morphicons) between
+           * modes; text-free icon button keeps the mobile header tight. */}
           <button
-            className="gf-console-focus h-9 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] px-3 text-xs font-semibold text-[var(--console-ink)] hover:bg-[var(--console-surface-muted)]"
+            aria-label={theme === "light" ? "切换深色主题" : "切换浅色主题"}
+            className="gf-console-focus flex size-9 items-center justify-center rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] text-[var(--console-ink)] hover:bg-[var(--console-surface-muted)]"
             onClick={switchTheme}
+            title={theme === "light" ? "切换深色主题" : "切换浅色主题"}
             type="button"
           >
-            {theme === "light" ? "深色" : "浅色"}
+            <MorphIcon
+              icon={theme === "light" ? Moon : Sun}
+              reducedMotion="user"
+              size={17}
+              spring="snappy"
+              strokeWidth={1.6}
+            />
           </button>
         </header>
         <main className="w-full px-4 py-6 lg:px-8 lg:py-8">{children}</main>

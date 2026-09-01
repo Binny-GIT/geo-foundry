@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react"
 
+import { Button } from "@/components/ui/button"
+
 import { consoleRoute } from "../lib/resources"
 
 type RecordLike = Record<string, unknown>
@@ -219,19 +221,17 @@ export const ConsoleEditForm = ({
         </p>
       )}
       <div className="flex flex-wrap justify-end gap-3 border-t border-[var(--console-border)] pt-5">
-        <a
-          className="gf-console-focus inline-flex h-11 items-center justify-center rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] px-4 text-sm font-semibold text-[var(--console-ink)] no-underline hover:bg-[var(--console-surface-muted)]"
-          href={consoleRoute.document(slug, id)}
-        >
-          取消
-        </a>
-        <button
-          className="gf-console-focus inline-flex h-11 items-center justify-center rounded-xl bg-[var(--console-accent)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--console-accent-hover)] disabled:cursor-wait disabled:opacity-60"
+        <Button asChild size="lg" variant="secondary">
+          <a href={consoleRoute.document(slug, id)}>取消</a>
+        </Button>
+        <Button
+          className="disabled:cursor-wait"
           disabled={loading || (slug === "domains" && sites.length === 0)}
+          size="lg"
           type="submit"
         >
           {loading ? "正在保存…" : "保存更改"}
-        </button>
+        </Button>
       </div>
     </form>
   )

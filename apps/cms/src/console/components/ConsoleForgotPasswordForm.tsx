@@ -2,6 +2,8 @@
 
 import { useState } from "react"
 
+import { Button } from "@/components/ui/button"
+
 export const ConsoleForgotPasswordForm = () => {
   const [email, setEmail] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -58,14 +60,15 @@ export const ConsoleForgotPasswordForm = () => {
           {error}
         </p>
       )}
-      <button
+      <Button
         aria-label="Send password reset"
-        className="gf-console-focus flex h-11 items-center justify-center rounded-xl bg-[var(--console-accent)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--console-accent-hover)] disabled:cursor-wait disabled:opacity-60"
+        className="w-full disabled:cursor-wait"
         disabled={loading}
+        size="lg"
         type="submit"
       >
         {loading ? "正在发送…" : "发送密码重置说明"}
-      </button>
+      </Button>
     </form>
   )
 }

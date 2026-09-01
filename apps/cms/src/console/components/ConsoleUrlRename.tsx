@@ -2,6 +2,8 @@
 
 import { useState } from "react"
 
+import { Button } from "@/components/ui/button"
+
 import { consoleRoute } from "../lib/resources"
 
 type RenameProps = {
@@ -85,13 +87,9 @@ export const ConsoleUrlRename = ({ id, initialLocale, initialPathname }: RenameP
           {error}
         </p>
       )}
-      <button
-        className="gf-console-focus h-10 rounded-xl bg-[var(--console-accent)] px-3 text-sm font-semibold text-white hover:bg-[var(--console-accent-hover)] disabled:opacity-60"
-        disabled={loading}
-        type="submit"
-      >
+      <Button disabled={loading} type="submit">
         {loading ? "正在提交…" : "提交受控重命名"}
-      </button>
+      </Button>
     </form>
   )
 }

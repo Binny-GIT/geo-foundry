@@ -5,6 +5,7 @@ import { AlertTriangleIcon } from "@/components/icons"
 import ReviewBoard from "@/console/components/ReviewBoard"
 import { CreateArticleLink } from "@/console/components/CreateArticleLink"
 import { PageHeader } from "@/console/components/PageHeader"
+import { LayersIcon } from "@/components/icons"
 import {
   PerformanceSuggestions,
   type PerformanceSuggestion,
@@ -116,6 +117,7 @@ const WorkbenchPage = async () => {
   return (
     <div className="grid gap-6 [&>*]:min-w-0">
       <PageHeader
+        icon={LayersIcon}
         actions={
           <>
             {failedCount > 0 && (

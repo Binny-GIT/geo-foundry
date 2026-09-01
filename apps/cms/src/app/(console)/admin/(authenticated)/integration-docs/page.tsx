@@ -1,4 +1,5 @@
 import { PageHeader } from "@/console/components/PageHeader"
+import { LinkIcon } from "@/components/icons"
 import { requireConsoleSession } from "@/console/lib/session.server"
 
 export const metadata = { title: "接入文档 | Geo Foundry" }
@@ -15,6 +16,7 @@ const IntegrationDocsPage = async () => {
   return (
     <div className="grid gap-6 [&>*]:min-w-0">
       <PageHeader
+        icon={LinkIcon}
         meta={
           <span className="rounded-full border border-[var(--console-border)] bg-[var(--console-surface)] px-3 py-1 text-xs font-semibold text-[var(--console-ink-muted)]">
             公开只读 · 仅已发布内容 · 每 IP 限流 · 调用计入接口统计

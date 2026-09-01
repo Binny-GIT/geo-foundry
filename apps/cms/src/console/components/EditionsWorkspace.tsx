@@ -5,6 +5,7 @@ import {
   articleListHref,
   type ArticleListQuery,
 } from "@/console/lib/article-filters"
+import { Button } from "@/components/ui/button"
 import { consoleRoute } from "@/console/lib/resources"
 
 type RecordLike = Record<string, unknown>
@@ -109,12 +110,9 @@ export const EditionsWorkspace = ({
         <span />
       )}
       <div className="flex items-center gap-2">
-        <button
-          className="gf-console-focus h-10 rounded-xl bg-[var(--console-accent)] px-4 text-sm font-semibold text-white hover:bg-[var(--console-accent-hover)]"
-          type="submit"
-        >
+        <Button type="submit">
           筛选
-        </button>
+        </Button>
         <Link
           className="gf-console-focus inline-flex h-10 items-center rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] px-3 text-sm font-semibold text-[var(--console-ink)] no-underline hover:bg-[var(--console-surface-muted)]"
           href={articleListHref({ ...query, page: 1, q: null, site: null, status: null, tenant: null })}
