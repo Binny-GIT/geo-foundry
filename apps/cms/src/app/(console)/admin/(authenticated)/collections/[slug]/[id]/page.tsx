@@ -112,7 +112,7 @@ const ConsoleDocumentPage = async ({ params }: ConsoleDocumentPageProps) => {
   )
 
   return (
-    <div className="mx-auto grid max-w-4xl gap-6">
+    <div className="grid gap-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <Link

@@ -46,7 +46,7 @@ const ConsoleEditPage = async ({ params }: EditPageProps) => {
 
   const document = await findConsoleDocument({ id, slug })
   return (
-    <div className="mx-auto grid max-w-3xl gap-6">
+    <div className="grid gap-6">
       <header>
         <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">编辑记录</p>
         <h1 className="m-0 pt-1 text-3xl font-semibold tracking-tight text-[var(--console-ink)]">

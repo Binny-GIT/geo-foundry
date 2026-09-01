@@ -276,7 +276,7 @@ const ConsoleDashboardPage = async () => {
         ))}
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-2">
+      <section className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3">
         <ChartCard title="文章状态分布">
           {segments === null ? (
             <div className="grid min-h-40 place-items-center rounded-xl border border-dashed border-[var(--console-border)]">
