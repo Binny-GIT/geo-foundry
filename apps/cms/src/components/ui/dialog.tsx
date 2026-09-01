@@ -54,7 +54,7 @@ const DialogContent = ({ children, className, wide = false, ...props }: DialogCo
         className="absolute right-4 top-4 flex size-8 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
         type="button"
       >
-        <XIcon size={16} strokeWidth={1.9} />
+        <XIcon size={16} strokeWidth={1.7} />
       </DialogPrimitive.Close>
     </DialogPrimitive.Content>
   </DialogPrimitive.Portal>

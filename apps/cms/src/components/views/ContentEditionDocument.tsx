@@ -110,7 +110,7 @@ const ContentEditionDocumentBody = ({ readOnly }: { readonly readOnly: boolean }
 
   return (
     <main className="flex min-h-full w-full flex-col gap-5 p-4 sm:p-6 lg:px-8 lg:py-6">
-      <header className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)] sm:p-5">
+      <header className="gf-card-in rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)] sm:p-5">
         <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">
             <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
@@ -168,7 +168,7 @@ const ContentEditionDocumentBody = ({ readOnly }: { readonly readOnly: boolean }
         </div>
       </header>
 
-      <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(240px,0.66fr)_minmax(0,1.68fr)_minmax(300px,0.8fr)]">
+      <div className="gf-stagger grid min-w-0 gap-5 xl:grid-cols-[minmax(240px,0.66fr)_minmax(0,1.68fr)_minmax(300px,0.8fr)]">
         {id !== undefined && id !== null && (
           <ContentEditionContextRail
             onSelectVersion={setSelectedVersion}

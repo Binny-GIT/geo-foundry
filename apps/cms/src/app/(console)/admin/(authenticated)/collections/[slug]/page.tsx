@@ -264,7 +264,7 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
     slug === "rollback-intents" && context.session.role === CMS_ROLE.PUBLISHER
 
   return (
-    <div className="grid gap-6 [&>*]:min-w-0">
+    <div className="gf-stagger grid gap-6 [&>*]:min-w-0">
       <PageHeader
         actions={
           <>
@@ -357,8 +357,9 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
               <tbody>
                 {result.docs.map((doc, index) => (
                   <tr
-                    className="transition-colors hover:bg-indigo-50/45 dark:hover:bg-indigo-400/6"
+                    className="gf-row transition-colors hover:bg-indigo-50/45 dark:hover:bg-indigo-400/6"
                     key={String(doc["id"] ?? index)}
+                    style={{ animationDelay: `${Math.min(index, 8) * 35}ms` }}
                   >
                     {columns.map((column) => (
                       <td

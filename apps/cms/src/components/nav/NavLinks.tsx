@@ -158,7 +158,7 @@ export const NavLinks = ({ visibleSlugs }: NavLinksProps) => {
         {isActive && (
           <span className="absolute inset-y-1 left-0 w-[3px] rounded-full bg-gfs-accent-500" />
         )}
-        {Icon !== undefined && <Icon size={17} strokeWidth={1.8} />}
+        {Icon !== undefined && <Icon size={17} strokeWidth={1.65} />}
         <span className={cn("truncate", collapsed && "min-[1441px]:hidden")}>{item.label}</span>
       </>
     )
@@ -200,7 +200,7 @@ export const NavLinks = ({ visibleSlugs }: NavLinksProps) => {
           onClick={() => setNavOpen(true)}
           type="button"
         >
-          <MenuIcon size={18} strokeWidth={1.8} />
+          <MenuIcon size={18} strokeWidth={1.65} />
         </button>
       )}
 
@@ -252,9 +252,9 @@ export const NavLinks = ({ visibleSlugs }: NavLinksProps) => {
               type="button"
             >
               {collapsed ? (
-                <PanelLeftOpenIcon size={16} strokeWidth={1.9} />
+                <PanelLeftOpenIcon size={16} strokeWidth={1.7} />
               ) : (
-                <PanelLeftCloseIcon size={16} strokeWidth={1.9} />
+                <PanelLeftCloseIcon size={16} strokeWidth={1.7} />
               )}
             </button>
             {/* Close button: only needed where the nav is a drawer. */}
@@ -264,7 +264,7 @@ export const NavLinks = ({ visibleSlugs }: NavLinksProps) => {
               onClick={() => setNavOpen(false)}
               type="button"
             >
-              <XIcon size={18} strokeWidth={1.8} />
+              <XIcon size={18} strokeWidth={1.65} />
             </button>
           </div>
 
@@ -321,7 +321,7 @@ export const NavLinks = ({ visibleSlugs }: NavLinksProps) => {
                   className="flex shrink-0 items-center gap-1 rounded-full bg-white/10 px-2.5 py-1.5 text-[11px] font-bold text-white outline-none transition-colors hover:bg-white/20"
                 >
                   {LANG_LABEL[currentLang]}
-                  <ChevronDownIcon size={12} strokeWidth={2} />
+                  <ChevronDownIcon size={12} strokeWidth={1.8} />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" side="top">
                   {UI_LANGUAGES.map((lang) => (
@@ -354,7 +354,7 @@ export const NavLinks = ({ visibleSlugs }: NavLinksProps) => {
             </div>
             <Button asChild aria-label={t("authentication:logOut")} size="icon" variant="ghost">
               <Link href={logoutHref} prefetch={false} title={t("authentication:logOut")}>
-                <LogOutIcon size={16} strokeWidth={1.8} />
+                <LogOutIcon size={16} strokeWidth={1.65} />
               </Link>
             </Button>
           </div>

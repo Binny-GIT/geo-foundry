@@ -202,10 +202,10 @@ export const ContentEditionEditorCanvas = ({ readOnly }: { readonly readOnly: bo
         {!readOnly && (
           <div className="flex flex-wrap gap-2">
             <Button onClick={() => add("paragraph")} size="sm" type="button" variant="secondary">
-              <PlusIcon size={14} strokeWidth={2} /> 段落
+              <PlusIcon size={14} strokeWidth={1.8} /> 段落
             </Button>
             <Button onClick={() => add("heading")} size="sm" type="button" variant="secondary">
-              <PlusIcon size={14} strokeWidth={2} /> 标题
+              <PlusIcon size={14} strokeWidth={1.8} /> 标题
             </Button>
           </div>
         )}

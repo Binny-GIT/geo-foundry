@@ -1572,3 +1572,46 @@ body {
     gap: var(--gf-space-025);
   }
 }
+
+/* ---- entrance motion (admin + workspace shells) ----
+   Mirrored verbatim in (console)/console.css so both Tailwind units share
+   one motion language: quiet card rise-ins, staggered by container. */
+@keyframes gfCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.gf-card-in {
+  animation: gfCardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.gf-stagger > * {
+  animation: gfCardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.gf-stagger > :nth-child(2) {
+  animation-delay: 0.07s;
+}
+.gf-stagger > :nth-child(3) {
+  animation-delay: 0.14s;
+}
+.gf-stagger > :nth-child(4) {
+  animation-delay: 0.21s;
+}
+
+.gf-row {
+  animation: gfCardIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gf-card-in,
+  .gf-stagger > *,
+  .gf-row {
+    animation: none;
+  }
+}

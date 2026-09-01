@@ -32,7 +32,7 @@ export const ConsoleCreateDialog = ({
   <Dialog>
     <DialogTrigger asChild>
       <Button className="h-10 rounded-xl" type="button">
-        <PlusIcon size={16} strokeWidth={2} /> 新建{createLabel}
+        <PlusIcon size={16} strokeWidth={1.65} /> 新建{createLabel}
       </Button>
     </DialogTrigger>
     <DialogContent aria-describedby="create-dialog-desc" wide>

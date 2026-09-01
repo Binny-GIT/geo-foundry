@@ -348,7 +348,7 @@ const SectionHeading = ({
         {title}
         {tooltip !== undefined && (
           <span className="group relative inline-flex cursor-help py-0.5 text-[var(--theme-elevation-400)]">
-            <HelpCircleIcon size={15} strokeWidth={1.9} />
+            <HelpCircleIcon size={15} strokeWidth={1.7} />
             <span className="pointer-events-none absolute top-full left-1/2 z-30 mt-2 w-64 -translate-x-1/2 rounded-lg bg-[var(--theme-elevation-900)] px-3 py-2 text-left text-xs font-normal leading-relaxed text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
               {tooltip}
             </span>
@@ -381,7 +381,7 @@ const AttentionCard = ({ panel }: { readonly panel: AttentionPanel }) => (
   <article className={`${cardClass} flex min-h-[188px] flex-col gap-4 p-5`}>
     <div className="flex items-start gap-3">
       <IconBadge tone={panel.count > 0 ? panel.tone : "neutral"}>
-        <panel.Icon size={18} strokeWidth={1.9} />
+        <panel.Icon size={18} strokeWidth={1.7} />
       </IconBadge>
       <div className="min-w-0 flex-1">
         <h3 className="m-0 text-sm font-bold text-[var(--theme-elevation-900)]">{panel.label}</h3>
@@ -748,7 +748,7 @@ export const OperationsDashboard = async ({ i18n, payload, user }: DashboardProp
                 {role === CMS_ROLE.SUPER_ADMIN ? t.allTenants : t.currentTenant}
               </strong>
               <InlineAction href={action.href} variant="primary">
-                <action.Icon size={16} strokeWidth={2} /> {action.label}
+                <action.Icon size={16} strokeWidth={1.8} /> {action.label}
               </InlineAction>
             </div>
           </div>

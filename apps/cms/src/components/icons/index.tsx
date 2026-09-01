@@ -17,7 +17,7 @@ const base = (size: number, strokeWidth: number) => ({
 })
 
 /** Draft / content authoring. */
-export const PencilIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const PencilIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <path d="M12 20h9" />
     <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
@@ -25,7 +25,7 @@ export const PencilIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
 )
 
 /** Preview / document reading. */
-export const EyeIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const EyeIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <path d="M2.5 12s3.3-6 9.5-6 9.5 6 9.5 6-3.3 6-9.5 6-9.5-6-9.5-6Z" />
     <circle cx="12" cy="12" r="2.5" />
@@ -33,7 +33,7 @@ export const EyeIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
 )
 
 /** Quality gate / review evidence. */
-export const ShieldCheckIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const ShieldCheckIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <path d="M12 3 5 6v6c0 4.4 3 7.6 7 9 4-1.4 7-4.6 7-9V6Z" />
     <path d="m9 12 2 2 4-4" />
@@ -41,7 +41,7 @@ export const ShieldCheckIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) =>
 )
 
 /** Immutable release / package. */
-export const PackageIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const PackageIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <path d="m3.3 7 8.7 5 8.7-5" />
     <path d="M12 22V12" />
@@ -50,7 +50,7 @@ export const PackageIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
 )
 
 /** Awaiting review / search. */
-export const SearchIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const SearchIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <circle cx="11" cy="11" r="7" />
     <path d="m21 21-4.35-4.35" />
@@ -58,7 +58,7 @@ export const SearchIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
 )
 
 /** Approved / passed. */
-export const CheckCircleIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const CheckCircleIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <circle cx="12" cy="12" r="9" />
     <path d="m8.5 12.5 2.5 2.5 4.5-5" />
@@ -66,14 +66,14 @@ export const CheckCircleIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) =>
 )
 
 /** Publish / send. */
-export const SendIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const SendIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <path d="m3 11 18-8-8 18-2.5-7.5L3 11Z" />
   </svg>
 )
 
 /** Failed / needs attention. */
-export const AlertTriangleIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const AlertTriangleIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <path d="M10.3 3.9 2 19h20L13.7 3.9a2 2 0 0 0-3.4 0Z" />
     <path d="M12 9v4" />
@@ -82,7 +82,7 @@ export const AlertTriangleIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) 
 )
 
 /** Roles / team. */
-export const UsersIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const UsersIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
     <circle cx="9" cy="7" r="4" />
@@ -92,7 +92,7 @@ export const UsersIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
 )
 
 /** Published site / serving plane. */
-export const GlobeIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const GlobeIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <circle cx="12" cy="12" r="10" />
     <path d="M2 12h20" />
@@ -101,7 +101,7 @@ export const GlobeIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
 )
 
 /** Control plane / stack. */
-export const LayersIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const LayersIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <path d="m12 2 10 5-10 5L2 7Z" />
     <path d="m2 12 10 5 10-5" />
@@ -110,7 +110,7 @@ export const LayersIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
 )
 
 /** Tenant isolation / security. */
-export const LockIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const LockIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <rect height="11" width="18" x="3" y="11" rx="2" />
     <path d="M7 11V7a5 5 0 0 1 10 0v4" />
@@ -118,7 +118,7 @@ export const LockIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
 )
 
 /** Media library / uploaded asset. */
-export const ImageIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const ImageIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <rect height="18" width="18" x="3" y="3" rx="2" />
     <circle cx="9" cy="9" r="2" />
@@ -127,7 +127,7 @@ export const ImageIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
 )
 
 /** Canonical URL / routing record. */
-export const LinkIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const LinkIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
     <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
@@ -135,7 +135,7 @@ export const LinkIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
 )
 
 /** Content edition / versioned document. */
-export const CopyIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const CopyIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <rect height="13" width="13" x="8" y="8" rx="2" />
     <path d="M4.5 15.5A2 2 0 0 1 3 13.6V4.9a2 2 0 0 1 2-2h8.7a2 2 0 0 1 1.9 1.5" />
@@ -143,7 +143,7 @@ export const CopyIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
 )
 
 /** Rollback intent / revert to a prior release. */
-export const RotateCcwIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const RotateCcwIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <path d="M3 12a9 9 0 1 0 2.64-6.36L3 8" />
     <path d="M3 3v5h5" />
@@ -151,7 +151,7 @@ export const RotateCcwIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
 )
 
 /** Sign out of the current session. */
-export const LogOutIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const LogOutIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
     <path d="M16 17l5-5-5-5" />
@@ -160,7 +160,7 @@ export const LogOutIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
 )
 
 /** Mobile menu toggle (hamburger). */
-export const MenuIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const MenuIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <path d="M4 6h16" />
     <path d="M4 12h16" />
@@ -169,7 +169,7 @@ export const MenuIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
 )
 
 /** Close / dismiss. */
-export const XIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const XIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <path d="M18 6 6 18" />
     <path d="m6 6 12 12" />
@@ -177,7 +177,7 @@ export const XIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
 )
 
 /** Dashboard / home overview. */
-export const LayoutGridIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const LayoutGridIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <rect height="7" width="7" x="3" y="3" rx="1" />
     <rect height="7" width="7" x="14" y="3" rx="1" />
@@ -187,7 +187,7 @@ export const LayoutGridIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => 
 )
 
 /** Inline hint / tooltip affordance. */
-export const HelpCircleIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const HelpCircleIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <circle cx="12" cy="12" r="9" />
     <path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.4-3 4" />
@@ -196,21 +196,21 @@ export const HelpCircleIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => 
 )
 
 /** Dropdown affordance. */
-export const PlusIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const PlusIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <path d="M5 12h14" />
     <path d="M12 5v14" />
   </svg>
 )
 
-export const ChevronDownIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const ChevronDownIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <path d="m6 9 6 6 6-6" />
   </svg>
 )
 
 /** Sidebar collapse / expand toggles. */
-export const PanelLeftCloseIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const PanelLeftCloseIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <rect height="18" rx="2" width="18" x="3" y="3" />
     <path d="M9 3v18" />
@@ -218,7 +218,7 @@ export const PanelLeftCloseIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps)
   </svg>
 )
 
-export const PanelLeftOpenIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const PanelLeftOpenIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <rect height="18" rx="2" width="18" x="3" y="3" />
     <path d="M9 3v18" />
@@ -226,7 +226,7 @@ export const PanelLeftOpenIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) 
   </svg>
 )
 
-export const PlugIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const PlugIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <path d="M12 22v-5" />
     <path d="M9 8V2" />
@@ -235,14 +235,14 @@ export const PlugIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
   </svg>
 )
 
-export const InboxIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const InboxIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
     <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
   </svg>
 )
 
-export const FileClockIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const FileClockIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <path d="M11.4 12H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-3" />
     <path d="M16 2v4h6" />
@@ -252,7 +252,7 @@ export const FileClockIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
   </svg>
 )
 
-export const NewspaperIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const NewspaperIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2" />
     <path d="M18 14h-8" />
@@ -261,13 +261,13 @@ export const NewspaperIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
   </svg>
 )
 
-export const MessageSquareIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const MessageSquareIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
   </svg>
 )
 
-export const CalendarClockIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const CalendarClockIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5" />
     <path d="M16 2v4" />
@@ -278,14 +278,14 @@ export const CalendarClockIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) 
   </svg>
 )
 
-export const ChartLineIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const ChartLineIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
     <polyline points="16 7 22 7 22 13" />
   </svg>
 )
 
-export const ChartBarIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const ChartBarIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <path d="M3 3v18h18" />
     <path d="M8 17v-5" />
@@ -294,7 +294,7 @@ export const ChartBarIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
   </svg>
 )
 
-export const KeyRoundIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+export const KeyRoundIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <path d="M2.59 17.42A2 2 0 0 0 2 18.83V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.17a2 2 0 0 0 1.42-.59l.81-.81a6.5 6.5 0 1 0-4-4z" />
     <circle cx="16.5" cy="7.5" r="0.5" fill="currentColor" />

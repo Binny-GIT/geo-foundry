@@ -281,7 +281,7 @@ export const SitesOperationsWorkspace = async ({ i18n, payload, user }: SitesWor
                   </p>
                 </div>
                 <IconBadge tone="accent">
-                  <GlobeIcon size={20} strokeWidth={1.8} />
+                  <GlobeIcon size={20} strokeWidth={1.65} />
                 </IconBadge>
               </div>
 
@@ -339,7 +339,7 @@ export const SitesOperationsWorkspace = async ({ i18n, payload, user }: SitesWor
         <div
           className={`${cardClass} flex items-start gap-3 p-5 text-[var(--theme-warning-700)]`}
         >
-          <AlertTriangleIcon size={20} strokeWidth={1.8} />
+          <AlertTriangleIcon size={20} strokeWidth={1.65} />
           <div className="grid gap-0.5">
             <strong className="text-sm text-[var(--theme-text)]">{t.emptyHeadline}</strong>
             <span className="text-sm text-[var(--theme-elevation-600)]">{t.emptyBody}</span>
