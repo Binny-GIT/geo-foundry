@@ -391,3 +391,11 @@ export const ImportIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
     <path d="M19 21H5" />
   </svg>
 )
+
+/** Single account / profile. */
+export const UserIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+)

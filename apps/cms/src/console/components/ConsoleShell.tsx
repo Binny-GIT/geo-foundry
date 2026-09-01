@@ -1,13 +1,19 @@
 "use client"
 
-import { Moon, Sun } from "lucide"
+import { Moon, PanelLeftClose, PanelLeftOpen, Sun } from "lucide"
 import { MorphIcon } from "morphicons/react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
 import { GeoIcon } from "@/components/branding/GeoIcon"
-import { ChevronDownIcon, LogOutIcon, MenuIcon, XIcon } from "@/components/icons"
+import { ChevronDownIcon, LogOutIcon, MenuIcon, UserIcon, XIcon } from "@/components/icons"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   CONSOLE_NAV,
   CONSOLE_RESOURCES,
@@ -65,6 +71,24 @@ export const ConsoleShell = ({
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
   const [theme, setTheme] = useState<"dark" | "light">("light")
+  /*
+   * Desktop icon-rail collapse, mirrored from the admin sidebar (same
+   * localStorage key, so collapsing one shell collapses the other). Like
+   * there, it is applied after mount so SSR and the first client render
+   * stay identical.
+   */
+  const [collapsed, setCollapsed] = useState(false)
+
+  useEffect(() => {
+    setCollapsed(window.localStorage.getItem("gf-nav-collapsed") === "1")
+  }, [])
+
+  const toggleCollapsed = () => {
+    setCollapsed((previous) => {
+      window.localStorage.setItem("gf-nav-collapsed", previous ? "0" : "1")
+      return !previous
+    })
+  }
 
   useEffect(() => {
     const saved = window.localStorage.getItem("gf-console-theme")
@@ -92,23 +116,32 @@ export const ConsoleShell = ({
       active
         ? "bg-white/12 font-semibold text-white"
         : "text-white/65 hover:bg-white/7 hover:text-white",
+      collapsed && "lg:justify-center lg:gap-0 lg:px-0",
     )
 
   const businessItems = resolveNavItems(CONSOLE_NAV.business, navigation.resources)
   const adminItems = resolveNavItems(CONSOLE_NAV.admin, navigation.resources)
 
   const renderLink = (item: ResolvedNavItem) => {
-    const active = pathname === item.href || pathname.startsWith(`${item.href}/`)
+    /*
+     * Exact match for the dashboard href — a prefix match would keep
+     * "控制台" lit on every /admin/* route.
+     */
+    const active =
+      item.href === consoleRoute.dashboard
+        ? pathname === item.href
+        : pathname === item.href || pathname.startsWith(`${item.href}/`)
     return (
       <Link
         className={linkClass(active)}
         href={item.href}
         key={item.key}
         onClick={() => setMenuOpen(false)}
+        title={item.label}
       >
         {active && <span className="absolute inset-y-2 left-0 w-1 rounded-full bg-indigo-300" />}
         <item.icon size={18} />
-        <span className="truncate">{item.label}</span>
+        <span className={cn("truncate", collapsed && "lg:hidden")}>{item.label}</span>
       </Link>
     )
   }
@@ -123,17 +156,41 @@ export const ConsoleShell = ({
           type="button"
         />
       )}
+      {/* `lg:top-0 lg:h-screen` matter: a sticky element without an explicit
+       * top behaves like relative and scrolls away with the page. */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-[284px] -translate-x-full flex-col bg-[var(--console-sidebar)] text-white transition-transform lg:sticky lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-[284px] -translate-x-full flex-col bg-[var(--console-sidebar)] text-white transition-transform lg:sticky lg:top-0 lg:h-screen lg:translate-x-0",
           menuOpen && "translate-x-0",
+          collapsed && "lg:w-[72px]",
         )}
       >
-        <div className="flex h-14 shrink-0 items-center gap-2.5 border-b border-white/10 px-4">
+        <div
+          className={cn(
+            "flex h-14 shrink-0 items-center gap-2.5 border-b border-white/10 px-4",
+            collapsed && "lg:justify-center lg:gap-0 lg:px-2",
+          )}
+        >
           <GeoIcon size={22} />
-          <span className="min-w-0 flex-1 truncate text-sm font-bold tracking-tight">
+          <span className={cn("min-w-0 flex-1 truncate text-sm font-bold tracking-tight", collapsed && "lg:hidden")}>
             Geo Foundry
           </span>
+          {/* Desktop collapse toggle, same morphing glyph as the admin sidebar. */}
+          <button
+            aria-label={collapsed ? "展开导航" : "收起导航"}
+            className="hidden size-7 cursor-pointer items-center justify-center rounded-full text-white/40 transition-colors hover:bg-white/12 hover:text-white lg:flex"
+            onClick={toggleCollapsed}
+            title={collapsed ? "展开导航" : "收起导航"}
+            type="button"
+          >
+            <MorphIcon
+              icon={collapsed ? PanelLeftOpen : PanelLeftClose}
+              reducedMotion="user"
+              size={16}
+              spring="snappy"
+              strokeWidth={1.7}
+            />
+          </button>
           <button
             aria-label="关闭导航"
             className="gf-console-focus grid size-10 place-items-center rounded-xl text-white/60 hover:bg-white/10 hover:text-white lg:hidden"
@@ -152,41 +209,6 @@ export const ConsoleShell = ({
             </>
           )}
         </nav>
-        <div className="border-t border-white/10 p-4">
-          <div className="flex items-center gap-3 rounded-2xl bg-white/6 p-3">
-            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-indigo-400/20 text-sm font-bold text-indigo-200">
-              {initialOf(navigation.session.email)}
-            </span>
-            <Link className="min-w-0 flex-1 no-underline" href={consoleRoute.account}>
-              <strong className="block truncate text-xs font-semibold">
-                {navigation.session.email}
-              </strong>
-              <span className="block truncate pt-0.5 text-[11px] text-white/50">
-                {navigation.session.roleLabel}
-                {navigation.session.tenantName === null
-                  ? ""
-                  : ` · ${navigation.session.tenantName}`}
-              </span>
-            </Link>
-            <button
-              aria-label="账户选项"
-              className="gf-console-focus grid size-8 place-items-center rounded-lg text-white/65 hover:bg-white/10 hover:text-white"
-              onClick={switchTheme}
-              title={theme === "light" ? "切换深色主题" : "切换浅色主题"}
-              type="button"
-            >
-              <ChevronDownIcon size={15} />
-            </button>
-          </div>
-          <button
-            className="gf-console-focus mt-2 flex h-10 w-full items-center gap-2 rounded-xl px-3 text-sm text-white/60 transition-colors hover:bg-white/8 hover:text-white"
-            onClick={() => void logout()}
-            type="button"
-          >
-            <LogOutIcon size={17} />
-            退出登录
-          </button>
-        </div>
       </aside>
       <div className="min-w-0 flex-1">
         <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-[var(--console-border)] bg-[color-mix(in_srgb,var(--console-canvas)_92%,transparent)] px-4 backdrop-blur lg:px-8">
@@ -221,6 +243,50 @@ export const ConsoleShell = ({
               strokeWidth={1.6}
             />
           </button>
+          {/*
+           * Account menu (moved out of the sidebar footer): identity with
+           * tenant scoping, account settings (password change lives there),
+           * and logout — the same dropdown pattern as the admin sidebar.
+           */}
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              aria-label="账户选项"
+              className="gf-console-focus flex min-h-9 cursor-pointer items-center gap-2 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] px-2 pr-2.5 text-[var(--console-ink)] outline-none transition-colors hover:bg-[var(--console-surface-muted)]"
+            >
+              <span className="grid size-6 place-items-center rounded-full bg-indigo-500/15 text-xs font-bold text-indigo-600">
+                {initialOf(navigation.session.email)}
+              </span>
+              <span className="hidden max-w-[180px] truncate text-sm font-semibold sm:block">
+                {navigation.session.email}
+              </span>
+              <ChevronDownIcon size={14} />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64">
+              <div className="grid gap-0.5 px-2.5 py-2">
+                <strong className="truncate text-sm font-semibold text-slate-900">
+                  {navigation.session.email}
+                </strong>
+                <span className="text-xs text-slate-500">
+                  {navigation.session.roleLabel}
+                  {navigation.session.tenantName === null
+                    ? ""
+                    : ` · 租户：${navigation.session.tenantName}`}
+                </span>
+              </div>
+              <div className="my-1 h-px bg-slate-100" />
+              <DropdownMenuItem asChild>
+                <Link className="flex cursor-pointer items-center gap-2 text-sm" href={consoleRoute.account}>
+                  <UserIcon size={15} /> 账户设置（修改密码）
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="flex cursor-pointer items-center gap-2 text-sm text-rose-600 focus:bg-rose-50 focus:text-rose-700"
+                onSelect={() => void logout()}
+              >
+                <LogOutIcon size={15} /> 退出登录
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </header>
         <main className="w-full px-4 py-6 lg:px-8 lg:py-8">{children}</main>
       </div>

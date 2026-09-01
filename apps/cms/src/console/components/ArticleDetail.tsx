@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 
 import { CMS_ACTION, CMS_RESOURCE } from "@/access/policy"
 import { CMS_ROLE } from "@/access/roles"
+import { Button } from "@/components/ui/button"
 import ArticleBody from "@/console/components/ArticleBody"
 import ArticleWorkflowPanel from "@/console/components/ArticleWorkflowPanel"
 import { RankedBars, TrendBars, type TrendPoint } from "@/console/components/charts"
@@ -232,12 +233,9 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
   return (
     <div className="grid gap-6 [&>*]:min-w-0">
       <header className="grid gap-3">
-        <Link
-          className="gf-console-focus w-fit text-sm font-semibold text-indigo-700 no-underline hover:underline"
-          href={consoleRoute.collection("content-editions")}
-        >
-          ← 返回文章列表
-        </Link>
+        <Button asChild className="gf-console-focus w-fit" size="sm" type="button" variant="secondary">
+          <Link href={consoleRoute.collection("content-editions")}>← 返回文章列表</Link>
+        </Button>
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">
             <h1 className="m-0 max-w-3xl break-words text-2xl font-bold tracking-tight text-[var(--console-ink)]">
@@ -259,22 +257,16 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {canEdit && (
-              <Link
-                className="gf-console-focus inline-flex h-9 items-center rounded-xl bg-[var(--console-accent)] px-3.5 text-sm font-semibold text-white no-underline hover:bg-[var(--console-accent-hover)]"
-                href={`/admin/workspace/editions/${numericId}`}
-              >
-                去编辑
-              </Link>
+              <Button asChild className="rounded-xl" size="sm" type="button">
+                <Link href={`/admin/workspace/editions/${numericId}`}>去编辑</Link>
+              </Button>
             )}
             {publicUrl !== null && (
-              <a
-                className="gf-console-focus inline-flex h-9 items-center rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] px-3.5 text-sm font-semibold text-[var(--console-ink)] no-underline hover:bg-[var(--console-surface-muted)]"
-                href={publicUrl}
-                rel="noreferrer"
-                target="_blank"
-              >
-                打开线上页面
-              </a>
+              <Button asChild className="rounded-xl" size="sm" type="button" variant="secondary">
+                <a href={publicUrl} rel="noreferrer" target="_blank">
+                  打开线上页面
+                </a>
+              </Button>
             )}
           </div>
         </div>
@@ -377,12 +369,11 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
               </a>
             )}
             {siteId !== null && (
-              <Link
-                className="gf-console-focus text-sm font-semibold text-[var(--console-ink)] no-underline hover:text-indigo-600"
-                href={consoleRoute.document("sites", String(siteId))}
-              >
-                查看站点发布历史与恢复 →
-              </Link>
+              <Button asChild className="gf-console-focus" size="sm" type="button" variant="secondary">
+                <Link href={consoleRoute.document("sites", String(siteId))}>
+                  查看站点发布历史与恢复 →
+                </Link>
+              </Button>
             )}
           </section>
 

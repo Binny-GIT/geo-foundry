@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 
 import { CMS_ACTION, CMS_RESOURCE } from "@/access/policy"
 import { CMS_ROLE } from "@/access/roles"
+import { Button } from "@/components/ui/button"
 import { ReleaseRestore } from "@/console/components/ReleaseRestore"
 import { requireConsolePayloadContext } from "@/console/lib/payload.server"
 import { consoleRoute } from "@/console/lib/resources"
@@ -223,12 +224,9 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
   return (
     <div className="grid gap-6 [&>*]:min-w-0">
       <header className="grid gap-3">
-        <Link
-          className="gf-console-focus w-fit text-sm font-semibold text-indigo-700 no-underline hover:underline"
-          href={consoleRoute.collection("sites")}
-        >
-          ← 返回站点列表
-        </Link>
+        <Button asChild className="gf-console-focus w-fit" size="sm" type="button" variant="secondary">
+          <Link href={consoleRoute.collection("sites")}>← 返回站点列表</Link>
+        </Button>
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">
             <h1 className="m-0 break-words text-2xl font-bold tracking-tight text-[var(--console-ink)]">
@@ -250,14 +248,11 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {entryUrl !== null && (
-              <a
-                className="gf-console-focus inline-flex h-9 items-center rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] px-3.5 text-sm font-semibold text-[var(--console-ink)] no-underline hover:bg-[var(--console-surface-muted)]"
-                href={entryUrl}
-                rel="noreferrer"
-                target="_blank"
-              >
-                打开站点入口
-              </a>
+              <Button asChild className="rounded-xl" size="sm" type="button" variant="secondary">
+                <a href={entryUrl} rel="noreferrer" target="_blank">
+                  打开站点入口
+                </a>
+              </Button>
             )}
           </div>
         </div>
@@ -329,12 +324,9 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
               域名管理
             </h2>
             {canCreateDomain && (
-              <Link
-                className="gf-console-focus inline-flex h-9 items-center rounded-xl bg-[var(--console-accent)] px-3 text-xs font-semibold text-white no-underline hover:bg-[var(--console-accent-hover)]"
-                href="/admin/collections/domains/create"
-              >
-                新增域名
-              </Link>
+              <Button asChild className="rounded-xl text-xs" size="sm" type="button">
+                <Link href="/admin/collections/domains/create">新增域名</Link>
+              </Button>
             )}
           </div>
           {domains.length === 0 ? (
@@ -378,12 +370,11 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
             <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">
               该站文章
             </h2>
-            <Link
-              className="gf-console-focus text-sm font-semibold text-indigo-700 no-underline hover:underline"
-              href={`/admin/collections/content-editions?site=${siteId}`}
-            >
-              查看全部（筛选此站点）→
-            </Link>
+            <Button asChild className="gf-console-focus" size="sm" type="button" variant="secondary">
+              <Link href={`/admin/collections/content-editions?site=${siteId}`}>
+                查看全部（筛选此站点）→
+              </Link>
+            </Button>
           </div>
           {recentEditions.length === 0 ? (
             <p className="m-0 rounded-xl border border-dashed border-[var(--console-border)] p-4 text-center text-sm text-[var(--console-ink-muted)]">
@@ -490,12 +481,9 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
             <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">
               该站操作日志
             </h2>
-            <Link
-              className="gf-console-focus text-sm font-semibold text-indigo-700 no-underline hover:underline"
-              href={consoleRoute.collection("operations")}
-            >
-              全部操作日志 →
-            </Link>
+            <Button asChild className="gf-console-focus" size="sm" type="button" variant="secondary">
+              <Link href={consoleRoute.collection("operations")}>全部操作日志 →</Link>
+            </Button>
           </div>
           {operations.length === 0 ? (
             <p className="m-0 rounded-xl border border-dashed border-[var(--console-border)] p-4 text-center text-sm text-[var(--console-ink-muted)]">

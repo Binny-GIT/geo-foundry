@@ -3,6 +3,8 @@
 import { useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
 
+import { Button } from "@/components/ui/button"
+
 const safeNext = (value: string | null): string =>
   value !== null && value.startsWith("/admin") && !value.startsWith("//") ? value : "/admin"
 
@@ -88,14 +90,15 @@ export const ConsoleLoginForm = () => {
       >
         忘记密码？
       </a>
-      <button
+      <Button
         aria-label="登录"
-        className="gf-console-focus mt-1 flex h-11 w-full items-center justify-center rounded-xl bg-[var(--console-accent)] px-4 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition-colors hover:bg-[var(--console-accent-hover)] disabled:cursor-wait disabled:opacity-60"
+        className="mt-1 h-11 w-full rounded-xl shadow-lg shadow-indigo-500/20 disabled:cursor-wait"
         disabled={loading || !hydrated}
+        size="lg"
         type="submit"
       >
         {loading ? "正在登录…" : hydrated ? "登录到管理中心" : "正在准备登录…"}
-      </button>
+      </Button>
     </form>
   )
 }

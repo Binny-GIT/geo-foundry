@@ -4,6 +4,15 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 
 import {
+  CheckCircleIcon,
+  FilePlusIcon,
+  SendIcon,
+  ShieldCheckIcon,
+  SparklesIcon,
+  XIcon,
+} from "@/components/icons"
+import { Button } from "@/components/ui/button"
+import {
   isWorkflowStatus,
   type WorkflowAction,
   workflowActionsFor,
@@ -189,12 +198,8 @@ const ArticleWorkflowPanel = ({
       {hasActions ? (
         <div className="grid gap-2 border-t border-[var(--console-border)] pt-4 sm:grid-cols-2">
           {actions.map((action) => (
-            <button
-              className={`gf-console-focus h-9 rounded-xl px-3 text-sm font-semibold disabled:cursor-wait disabled:opacity-60 ${
-                action.tone === "primary"
-                  ? "bg-[var(--console-accent)] text-white hover:bg-[var(--console-accent-hover)]"
-                  : "border border-[var(--console-border)] bg-[var(--console-surface)] text-[var(--console-ink)] hover:bg-[var(--console-surface-muted)]"
-              }`}
+            <Button
+              className="gf-console-focus rounded-xl disabled:cursor-wait"
               disabled={pending !== null}
               key={action.label}
               onClick={() => {
@@ -205,33 +210,44 @@ const ArticleWorkflowPanel = ({
                 }
                 void runAction(action)
               }}
+              size="sm"
               type="button"
+              variant={action.tone === "primary" ? "default" : "secondary"}
             >
+              {action.type === "draft-from-published" ? <FilePlusIcon size={15} /> : null}
+              {action.type === "publish-operation" ? <SendIcon size={15} /> : null}
+              {action.type === "reviewer-approve" ? <CheckCircleIcon size={15} /> : null}
+              {action.target === "generating" ? <SparklesIcon size={15} /> : null}
               {pending === action.label ? "…" : action.label}
-            </button>
+            </Button>
           ))}
           {showQuality && (
-            <button
-              className="gf-console-focus h-9 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] px-3 text-sm font-semibold text-[var(--console-ink)] hover:bg-[var(--console-surface-muted)] disabled:cursor-wait disabled:opacity-60"
+            <Button
+              className="gf-console-focus rounded-xl disabled:cursor-wait"
               disabled={pending !== null}
               onClick={() => void runQuality()}
+              size="sm"
               type="button"
+              variant="secondary"
             >
+              <ShieldCheckIcon size={15} />
               {pending === "quality" ? "…" : "质量检查"}
-            </button>
+            </Button>
           )}
           {showSchedule && (
-            <button
-              className="gf-console-focus h-9 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] px-3 text-sm font-semibold text-[var(--console-ink)] hover:bg-[var(--console-surface-muted)] disabled:cursor-wait disabled:opacity-60"
+            <Button
+              className="gf-console-focus rounded-xl disabled:cursor-wait"
               disabled={pending !== null}
               onClick={() => {
                 setScheduling(true)
                 setScheduledFor("")
               }}
+              size="sm"
               type="button"
+              variant="secondary"
             >
               创建发布排期
-            </button>
+            </Button>
           )}
         </div>
       ) : (
@@ -255,14 +271,15 @@ const ArticleWorkflowPanel = ({
           placeholder="评审意见会与文章历史一起保存…"
           value={comment}
         />
-        <button
-          className="gf-console-focus h-9 rounded-xl bg-[var(--console-accent)] px-4 text-sm font-semibold text-white hover:bg-[var(--console-accent-hover)] disabled:opacity-60"
+        <Button
+          className="gf-console-focus rounded-xl"
           disabled={pending !== null || comment.trim().length === 0}
           onClick={() => void submitComment()}
+          size="sm"
           type="button"
         >
           {pending === "comment" ? "提交中…" : "提交评论"}
-        </button>
+        </Button>
       </div>
 
       {confirming !== null && (
@@ -290,19 +307,22 @@ const ArticleWorkflowPanel = ({
               </span>
             </label>
             <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <button
-                className="h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-4 text-sm font-semibold text-[var(--console-ink)]"
+              <Button
+                className="rounded-xl"
                 disabled={pending !== null}
                 onClick={() => {
                   setConfirming(null)
                   setReason("")
                 }}
+                size="lg"
                 type="button"
+                variant="secondary"
               >
+                <XIcon size={15} />
                 取消
-              </button>
-              <button
-                className="h-11 rounded-xl bg-[var(--console-accent)] px-4 text-sm font-semibold text-white disabled:opacity-70"
+              </Button>
+              <Button
+                className="rounded-xl"
                 disabled={pending !== null}
                 onClick={() => {
                   if (confirming.reasonRequired === true && reason.trim().length === 0) {
@@ -311,10 +331,12 @@ const ArticleWorkflowPanel = ({
                   }
                   void runAction(confirming, reason)
                 }}
+                size="lg"
                 type="button"
               >
+                <CheckCircleIcon size={15} />
                 {pending !== null ? "处理中…" : "确认操作"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -345,21 +367,25 @@ const ArticleWorkflowPanel = ({
               </span>
             </label>
             <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <button
-                className="h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-4 text-sm font-semibold text-[var(--console-ink)]"
+              <Button
+                className="rounded-xl"
                 onClick={() => setScheduling(false)}
+                size="lg"
                 type="button"
+                variant="secondary"
               >
+                <XIcon size={15} />
                 取消
-              </button>
-              <button
-                className="h-11 rounded-xl bg-[var(--console-accent)] px-4 text-sm font-semibold text-white disabled:opacity-70"
+              </Button>
+              <Button
+                className="rounded-xl"
                 disabled={scheduledFor.length === 0 || pending !== null}
                 onClick={() => void submitSchedule()}
+                size="lg"
                 type="button"
               >
                 {pending === "schedule" ? "处理中…" : "创建排期"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
