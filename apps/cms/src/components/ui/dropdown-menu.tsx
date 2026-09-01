@@ -9,9 +9,9 @@ const DropdownMenu = (props: ComponentProps<typeof DropdownMenuPrimitive.Root>) 
   <DropdownMenuPrimitive.Root data-slot="dropdown-menu" {...props} />
 )
 
-const DropdownMenuTrigger = (
-  props: ComponentProps<typeof DropdownMenuPrimitive.Trigger>,
-) => <DropdownMenuPrimitive.Trigger data-slot="dropdown-menu-trigger" {...props} />
+const DropdownMenuTrigger = (props: ComponentProps<typeof DropdownMenuPrimitive.Trigger>) => (
+  <DropdownMenuPrimitive.Trigger data-slot="dropdown-menu-trigger" {...props} />
+)
 
 const DropdownMenuContent = ({
   className,

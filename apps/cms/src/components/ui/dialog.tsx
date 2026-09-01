@@ -60,8 +60,7 @@ const DialogContent = ({ children, className, wide = false, ...props }: DialogCo
   </DialogPrimitive.Portal>
 )
 
-const dialogKickerClass =
-  "m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-indigo-600"
+const dialogKickerClass = "m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-indigo-600"
 
 const DialogTitle = ({ className, ...props }: ComponentProps<typeof DialogPrimitive.Title>) => (
   <DialogPrimitive.Title
@@ -70,7 +69,10 @@ const DialogTitle = ({ className, ...props }: ComponentProps<typeof DialogPrimit
   />
 )
 
-const DialogDescription = ({ className, ...props }: ComponentProps<typeof DialogPrimitive.Description>) => (
+const DialogDescription = ({
+  className,
+  ...props
+}: ComponentProps<typeof DialogPrimitive.Description>) => (
   <DialogPrimitive.Description
     className={cn("m-0 mt-2 text-sm leading-6 text-slate-500", className)}
     {...props}
@@ -84,8 +86,8 @@ export {
   DialogClose,
   DialogContent,
   DialogDescription,
-  dialogFooterClass,
   DialogTitle,
   DialogTrigger,
+  dialogFooterClass,
   dialogKickerClass,
 }
