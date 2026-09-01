@@ -266,7 +266,7 @@ const ReviewBoard = ({
                 <ul className="m-0 mt-4 grid max-h-[340px] list-none gap-2 overflow-y-auto p-0 pr-1">
                   {intakeItems.map((item) => (
                     <li
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-4 py-3"
+                      className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-4 py-3"
                       key={item.id}
                     >
                       <span className="min-w-0 flex-1 text-sm font-medium text-[var(--console-ink)]">

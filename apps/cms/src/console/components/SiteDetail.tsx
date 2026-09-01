@@ -312,7 +312,7 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
             <ul className="m-0 grid min-w-0 list-none gap-2 p-0">
               {domains.map((domain) => (
                 <li
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-4 py-3"
+                  className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-4 py-3"
                   key={String(domain["id"])}
                 >
                   <span className="min-w-0 flex-1 truncate font-mono text-sm text-[var(--console-ink)]">
@@ -360,7 +360,7 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
                 const status = typeof edition["workflowStatus"] === "string" ? edition["workflowStatus"] : ""
                 return (
                   <li
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--console-border)] px-4 py-3"
+                    className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--console-border)] px-4 py-3"
                     key={String(edition["id"])}
                   >
                     <Link
@@ -409,7 +409,7 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
                   currentRestore.releaseId !== releaseId
                 return (
                   <li
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--console-border)] px-4 py-3"
+                    className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--console-border)] px-4 py-3"
                     key={releaseId}
                   >
                     <span className="grid min-w-0 gap-0.5">
@@ -466,7 +466,7 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
             <ul className="m-0 grid min-w-0 list-none gap-2 p-0">
               {operations.map((operation) => (
                 <li
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--console-border)] px-4 py-3"
+                  className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--console-border)] px-4 py-3"
                   key={String(operation["operationId"] ?? operation["id"])}
                 >
                   <Link
