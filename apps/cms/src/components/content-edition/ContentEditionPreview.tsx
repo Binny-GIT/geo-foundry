@@ -5,7 +5,7 @@ import type { ReactNode } from "react"
 
 import { AlertTriangleIcon } from "../icons"
 import { IconBadge } from "../ui"
-import { previewDocumentOf, type PreviewSource } from "./page-document-preview-adapter"
+import { type PreviewSource, previewDocumentOf } from "./page-document-preview-adapter"
 
 export const ContentEditionPreview = ({
   historical,
@@ -19,14 +19,18 @@ export const ContentEditionPreview = ({
     return (
       <section className="rounded-2xl border border-[var(--gf-tone-warning-fg)] bg-[var(--gf-tone-warning-bg)] p-5">
         <div className="flex items-start gap-3">
-          <IconBadge tone="warning"><AlertTriangleIcon size={18} /></IconBadge>
+          <IconBadge tone="warning">
+            <AlertTriangleIcon size={18} />
+          </IconBadge>
           <div>
             <h2 className="m-0 text-base font-bold text-[var(--theme-text)]">预览尚未就绪</h2>
             <p className="m-0 mt-1 text-sm leading-6 text-[var(--theme-elevation-700)]">
               请补全正文中标记的问题后再查看预览。
             </p>
             <ul className="m-0 mt-3 list-disc pl-5 text-xs text-[var(--theme-elevation-700)]">
-              {result.issues.map((issue) => <li key={issue}>{issue}</li>)}
+              {result.issues.map((issue) => (
+                <li key={issue}>{issue}</li>
+              ))}
             </ul>
           </div>
         </div>

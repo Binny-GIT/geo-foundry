@@ -1,4 +1,4 @@
-import { PageDocumentSchema, type ContentBlock, type PageDocument } from "@geo/schema"
+import { type ContentBlock, type PageDocument, PageDocumentSchema } from "@geo/schema"
 
 export type PreviewSource = Readonly<{
   body: unknown

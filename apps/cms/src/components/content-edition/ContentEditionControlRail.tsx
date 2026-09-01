@@ -1,11 +1,17 @@
 "use client"
 
-import { toast, useAuth, useDocumentInfo, useField, useFormFields, useTranslation } from "@payloadcms/ui"
+import {
+  toast,
+  useAuth,
+  useDocumentInfo,
+  useField,
+  useFormFields,
+  useTranslation,
+} from "@payloadcms/ui"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-
-import { AlertTriangleIcon, ShieldCheckIcon, UsersIcon } from "../icons"
 import { uiLangOf } from "../i18n/ui-lang"
+import { AlertTriangleIcon, ShieldCheckIcon, UsersIcon } from "../icons"
 import { Badge, IconBadge } from "../ui"
 import { Button } from "../ui/button"
 import { WorkflowActions } from "../workflow/WorkflowActions"
@@ -22,7 +28,11 @@ type WorkspaceContext = Readonly<{
   }> | null
 }>
 
-const EMPTY: WorkspaceContext = { assignees: [], edition: { siteTimezone: null, workflowRevision: 0 }, quality: null }
+const EMPTY: WorkspaceContext = {
+  assignees: [],
+  edition: { siteTimezone: null, workflowRevision: 0 },
+  quality: null,
+}
 type SiteOption = Readonly<{ id: number; name: string }>
 
 const COPY = {
@@ -82,7 +92,8 @@ const COPY = {
 
 const idOf = (value: unknown): string => {
   if (typeof value === "number" || typeof value === "string") return String(value)
-  if (typeof value === "object" && value !== null) return idOf((value as Record<string, unknown>)["id"])
+  if (typeof value === "object" && value !== null)
+    return idOf((value as Record<string, unknown>)["id"])
   return ""
 }
 
@@ -105,7 +116,9 @@ export const ContentEditionControlRail = ({ readOnly }: { readonly readOnly: boo
   const { setValue: setOwner, value: owner } = useField<unknown>({ path: "owner" })
   const { setValue: setPriority, value: priority } = useField<string>({ path: "priority" })
   const { setValue: setDueAt, value: dueAt } = useField<unknown>({ path: "dueAt" })
-  const { setValue: setEditorialStatus, value: editorialStatus } = useField<string>({ path: "editorialStatus" })
+  const { setValue: setEditorialStatus, value: editorialStatus } = useField<string>({
+    path: "editorialStatus",
+  })
   const body = useFormFields(([fields]) => fields["body"]?.value)
   const currentSite = useFormFields(([fields]) => fields["site"]?.value)
   const [context, setContext] = useState<WorkspaceContext>(EMPTY)
@@ -118,8 +131,13 @@ export const ContentEditionControlRail = ({ readOnly }: { readonly readOnly: boo
 
   useEffect(() => {
     if (id === undefined || id === null) return
-    void fetch(`/api/workspaces/editions/${id}/context`, { credentials: "same-origin", headers: { "x-request-id": crypto.randomUUID() } })
-      .then(async (response) => (response.ok ? (await response.json()) as WorkspaceContext : EMPTY))
+    void fetch(`/api/workspaces/editions/${id}/context`, {
+      credentials: "same-origin",
+      headers: { "x-request-id": crypto.randomUUID() },
+    })
+      .then(async (response) =>
+        response.ok ? ((await response.json()) as WorkspaceContext) : EMPTY,
+      )
       .then(setContext)
       .catch(() => setContext(EMPTY))
   }, [id])
@@ -127,14 +145,20 @@ export const ContentEditionControlRail = ({ readOnly }: { readonly readOnly: boo
   useEffect(() => {
     let active = true
     void fetch("/api/sites?depth=0&limit=100&sort=name", { credentials: "same-origin" })
-      .then(async (response) => (response.ok ? await response.json() as { docs?: readonly Record<string, unknown>[] } : { docs: [] }))
+      .then(async (response) =>
+        response.ok
+          ? ((await response.json()) as { docs?: readonly Record<string, unknown>[] })
+          : { docs: [] },
+      )
       .then((data) => {
         if (!active) return
         setSites(
           (data.docs ?? []).flatMap((site) => {
             const siteId = Number(site["id"])
             const name = typeof site["name"] === "string" ? site["name"].trim() : ""
-            return Number.isInteger(siteId) && siteId > 0 && name.length > 0 ? [{ id: siteId, name }] : []
+            return Number.isInteger(siteId) && siteId > 0 && name.length > 0
+              ? [{ id: siteId, name }]
+              : []
           }),
         )
       })
@@ -146,7 +170,12 @@ export const ContentEditionControlRail = ({ readOnly }: { readonly readOnly: boo
     }
   }, [])
 
-  const qualityTone = context.quality?.state === "passed" ? "success" : context.quality === null ? "neutral" : "warning"
+  const qualityTone =
+    context.quality?.state === "passed"
+      ? "success"
+      : context.quality === null
+        ? "neutral"
+        : "warning"
   const currentOwner = idOf(owner)
   const currentBodyCount = Array.isArray(body) ? body.length : 0
   const currentSiteId = idOf(currentSite)
@@ -154,7 +183,9 @@ export const ContentEditionControlRail = ({ readOnly }: { readonly readOnly: boo
     !readOnly &&
     id !== undefined &&
     id !== null &&
-    (user?.["role"] === "editor" || user?.["role"] === "tenant-admin" || user?.["role"] === "super-admin")
+    (user?.["role"] === "editor" ||
+      user?.["role"] === "tenant-admin" ||
+      user?.["role"] === "super-admin")
   const variantSites = sites.filter((site) => String(site.id) !== currentSiteId)
   const canRunQuality = !readOnly && user?.["role"] === "editor" && id !== undefined && id !== null
   const runQuality = async () => {
@@ -180,7 +211,11 @@ export const ContentEditionControlRail = ({ readOnly }: { readonly readOnly: boo
       setRunningQuality(false)
     }
   }
-  const canSchedule = user?.["role"] === "publisher" && id !== undefined && id !== null && context.edition.siteTimezone !== null
+  const canSchedule =
+    user?.["role"] === "publisher" &&
+    id !== undefined &&
+    id !== null &&
+    context.edition.siteTimezone !== null
   const schedule = async () => {
     if (!canSchedule || scheduledFor.length === 0 || id === undefined || id === null) return
     setScheduling(true)
@@ -226,21 +261,203 @@ export const ContentEditionControlRail = ({ readOnly }: { readonly readOnly: boo
   }
 
   return (
-    <aside aria-label={lang === "zh" ? "任务控制和工作流" : "Editorial controls and workflow"} className="grid min-w-0 content-start gap-4">
+    <aside
+      aria-label={lang === "zh" ? "任务控制和工作流" : "Editorial controls and workflow"}
+      className="grid min-w-0 content-start gap-4"
+    >
       <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]">
-        <div className="flex items-center gap-3"><IconBadge tone="accent"><UsersIcon size={18} /></IconBadge><div><p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">{t.assignment}</p><strong className="mt-1 block text-sm text-[var(--theme-text)]">{t.editorial}</strong></div></div>
-        <div className="mt-4 grid gap-3"><label className="grid gap-1 text-xs font-bold text-[var(--theme-elevation-600)]">{t.owner}<select className="min-h-10 rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)] focus:border-[var(--gf-accent-400)] focus:outline-none focus:ring-2 focus:ring-[var(--gf-accent-200)]" disabled={readOnly} onChange={(event) => setOwner(event.target.value.length === 0 ? null : Number(event.target.value))} value={currentOwner}><option value="">—</option>{context.assignees.filter((assignee) => assignee.id !== null).map((assignee) => <option key={assignee.id} value={String(assignee.id)}>{assignee.email ?? assignee.id}</option>)}</select></label><label className="grid gap-1 text-xs font-bold text-[var(--theme-elevation-600)]">{t.priority}<select className="min-h-10 rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)] focus:border-[var(--gf-accent-400)] focus:outline-none focus:ring-2 focus:ring-[var(--gf-accent-200)]" disabled={readOnly} onChange={(event) => setPriority(event.target.value)} value={typeof priority === "string" ? priority : "normal"}><option value="low">{t.low}</option><option value="normal">{t.normal}</option><option value="high">{t.high}</option><option value="urgent">{t.urgent}</option></select></label><label className="grid gap-1 text-xs font-bold text-[var(--theme-elevation-600)]">{t.due}<input className="min-h-10 rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)] focus:border-[var(--gf-accent-400)] focus:outline-none focus:ring-2 focus:ring-[var(--gf-accent-200)]" disabled={readOnly} onChange={(event) => setDueAt(event.target.value.length === 0 ? null : new Date(event.target.value).toISOString())} type="datetime-local" value={localDateValue(dueAt)} /></label><label className="grid gap-1 text-xs font-bold text-[var(--theme-elevation-600)]">{t.editorial}<select className="min-h-10 rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)] focus:border-[var(--gf-accent-400)] focus:outline-none focus:ring-2 focus:ring-[var(--gf-accent-200)]" disabled={readOnly} onChange={(event) => setEditorialStatus(event.target.value)} value={typeof editorialStatus === "string" ? editorialStatus : "unassigned"}><option value="unassigned">{t.unassigned}</option><option value="assigned">{t.assigned}</option><option value="in-progress">{t.inProgress}</option><option value="blocked">{t.blocked}</option></select></label></div>
+        <div className="flex items-center gap-3">
+          <IconBadge tone="accent">
+            <UsersIcon size={18} />
+          </IconBadge>
+          <div>
+            <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
+              {t.assignment}
+            </p>
+            <strong className="mt-1 block text-sm text-[var(--theme-text)]">{t.editorial}</strong>
+          </div>
+        </div>
+        <div className="mt-4 grid gap-3">
+          <label className="grid gap-1 text-xs font-bold text-[var(--theme-elevation-600)]">
+            {t.owner}
+            <select
+              className="min-h-10 rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)] focus:border-[var(--gf-accent-400)] focus:outline-none focus:ring-2 focus:ring-[var(--gf-accent-200)]"
+              disabled={readOnly}
+              onChange={(event) =>
+                setOwner(event.target.value.length === 0 ? null : Number(event.target.value))
+              }
+              value={currentOwner}
+            >
+              <option value="">—</option>
+              {context.assignees
+                .filter((assignee) => assignee.id !== null)
+                .map((assignee) => (
+                  <option key={assignee.id} value={String(assignee.id)}>
+                    {assignee.email ?? assignee.id}
+                  </option>
+                ))}
+            </select>
+          </label>
+          <label className="grid gap-1 text-xs font-bold text-[var(--theme-elevation-600)]">
+            {t.priority}
+            <select
+              className="min-h-10 rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)] focus:border-[var(--gf-accent-400)] focus:outline-none focus:ring-2 focus:ring-[var(--gf-accent-200)]"
+              disabled={readOnly}
+              onChange={(event) => setPriority(event.target.value)}
+              value={typeof priority === "string" ? priority : "normal"}
+            >
+              <option value="low">{t.low}</option>
+              <option value="normal">{t.normal}</option>
+              <option value="high">{t.high}</option>
+              <option value="urgent">{t.urgent}</option>
+            </select>
+          </label>
+          <label className="grid gap-1 text-xs font-bold text-[var(--theme-elevation-600)]">
+            {t.due}
+            <input
+              className="min-h-10 rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)] focus:border-[var(--gf-accent-400)] focus:outline-none focus:ring-2 focus:ring-[var(--gf-accent-200)]"
+              disabled={readOnly}
+              onChange={(event) =>
+                setDueAt(
+                  event.target.value.length === 0
+                    ? null
+                    : new Date(event.target.value).toISOString(),
+                )
+              }
+              type="datetime-local"
+              value={localDateValue(dueAt)}
+            />
+          </label>
+          <label className="grid gap-1 text-xs font-bold text-[var(--theme-elevation-600)]">
+            {t.editorial}
+            <select
+              className="min-h-10 rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)] focus:border-[var(--gf-accent-400)] focus:outline-none focus:ring-2 focus:ring-[var(--gf-accent-200)]"
+              disabled={readOnly}
+              onChange={(event) => setEditorialStatus(event.target.value)}
+              value={typeof editorialStatus === "string" ? editorialStatus : "unassigned"}
+            >
+              <option value="unassigned">{t.unassigned}</option>
+              <option value="assigned">{t.assigned}</option>
+              <option value="in-progress">{t.inProgress}</option>
+              <option value="blocked">{t.blocked}</option>
+            </select>
+          </label>
+        </div>
       </section>
 
       <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]">
-        <div className="flex items-center gap-3"><IconBadge tone={qualityTone}><ShieldCheckIcon size={18} /></IconBadge><div><p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">{t.quality}</p><strong className="mt-1 block text-sm text-[var(--theme-text)]">{context.quality?.state ?? "—"}</strong></div></div>
-        {context.quality === null ? <p className="m-0 mt-4 text-sm leading-6 text-[var(--theme-elevation-600)]">{t.qualityMissing}</p> : <div className="mt-4 grid gap-3"><div className="flex items-center justify-between gap-3"><Badge tone={qualityTone}>{context.quality.state ?? "—"}</Badge><span className="text-xs text-[var(--theme-elevation-600)]">{context.quality.overall ?? "—"}</span></div><p className="m-0 text-xs leading-5 text-[var(--theme-elevation-600)]">{context.quality.issues.length} issue(s) · {currentBodyCount} block(s)</p></div>}
-        {canRunQuality && <Button className="mt-4 w-full" disabled={runningQuality} onClick={() => void runQuality()} size="lg" type="button">{runningQuality ? "…" : t.qualityRun}</Button>}
+        <div className="flex items-center gap-3">
+          <IconBadge tone={qualityTone}>
+            <ShieldCheckIcon size={18} />
+          </IconBadge>
+          <div>
+            <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
+              {t.quality}
+            </p>
+            <strong className="mt-1 block text-sm text-[var(--theme-text)]">
+              {context.quality?.state ?? "—"}
+            </strong>
+          </div>
+        </div>
+        {context.quality === null ? (
+          <p className="m-0 mt-4 text-sm leading-6 text-[var(--theme-elevation-600)]">
+            {t.qualityMissing}
+          </p>
+        ) : (
+          <div className="mt-4 grid gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <Badge tone={qualityTone}>{context.quality.state ?? "—"}</Badge>
+              <span className="text-xs text-[var(--theme-elevation-600)]">
+                {context.quality.overall ?? "—"}
+              </span>
+            </div>
+            <p className="m-0 text-xs leading-5 text-[var(--theme-elevation-600)]">
+              {context.quality.issues.length} issue(s) · {currentBodyCount} block(s)
+            </p>
+          </div>
+        )}
+        {canRunQuality && (
+          <Button
+            className="mt-4 w-full"
+            disabled={runningQuality}
+            onClick={() => void runQuality()}
+            size="lg"
+            type="button"
+          >
+            {runningQuality ? "…" : t.qualityRun}
+          </Button>
+        )}
       </section>
 
-      {canCreateVariant && <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]"><p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">{t.variant}</p>{variantSites.length === 0 ? <p className="m-0 mt-3 text-sm leading-6 text-[var(--theme-elevation-600)]">{t.variantEmpty}</p> : <><label className="mt-3 grid gap-1 text-xs font-bold text-[var(--theme-elevation-600)]">{t.variantAt}<select className="min-h-10 rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)] focus-visible:ring-2 focus-visible:ring-[var(--gf-accent-400)]" disabled={creatingVariant} onChange={(event) => setTargetSiteId(event.target.value)} value={targetSiteId}><option value="">—</option>{variantSites.map((site) => <option key={site.id} value={site.id}>{site.name}</option>)}</select></label><Button className="mt-3 w-full" disabled={targetSiteId.length === 0 || creatingVariant} onClick={() => void createVariant()} size="lg" type="button">{t.variant}</Button></>}</section>}
+      {canCreateVariant && (
+        <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]">
+          <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
+            {t.variant}
+          </p>
+          {variantSites.length === 0 ? (
+            <p className="m-0 mt-3 text-sm leading-6 text-[var(--theme-elevation-600)]">
+              {t.variantEmpty}
+            </p>
+          ) : (
+            <>
+              <label className="mt-3 grid gap-1 text-xs font-bold text-[var(--theme-elevation-600)]">
+                {t.variantAt}
+                <select
+                  className="min-h-10 rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)] focus-visible:ring-2 focus-visible:ring-[var(--gf-accent-400)]"
+                  disabled={creatingVariant}
+                  onChange={(event) => setTargetSiteId(event.target.value)}
+                  value={targetSiteId}
+                >
+                  <option value="">—</option>
+                  {variantSites.map((site) => (
+                    <option key={site.id} value={site.id}>
+                      {site.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <Button
+                className="mt-3 w-full"
+                disabled={targetSiteId.length === 0 || creatingVariant}
+                onClick={() => void createVariant()}
+                size="lg"
+                type="button"
+              >
+                {t.variant}
+              </Button>
+            </>
+          )}
+        </section>
+      )}
 
-      {canSchedule && <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]"><p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">{t.schedule}</p><label className="mt-3 grid gap-1 text-xs font-bold text-[var(--theme-elevation-600)]">{t.scheduleAt}<input className="min-h-10 rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)] focus:border-[var(--gf-accent-400)] focus:outline-none focus:ring-2 focus:ring-[var(--gf-accent-200)]" onChange={(event) => setScheduledFor(event.target.value)} placeholder="2026-12-01T15:00:00.000Z" value={scheduledFor} /></label><p className="m-0 mt-2 text-xs text-[var(--theme-elevation-600)]">{context.edition.siteTimezone}</p><Button className="mt-3 w-full" disabled={scheduledFor.length === 0 || scheduling} onClick={() => void schedule()} size="lg" type="button">{t.schedule}</Button></section>}
+      {canSchedule && (
+        <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]">
+          <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
+            {t.schedule}
+          </p>
+          <label className="mt-3 grid gap-1 text-xs font-bold text-[var(--theme-elevation-600)]">
+            {t.scheduleAt}
+            <input
+              className="min-h-10 rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)] focus:border-[var(--gf-accent-400)] focus:outline-none focus:ring-2 focus:ring-[var(--gf-accent-200)]"
+              onChange={(event) => setScheduledFor(event.target.value)}
+              placeholder="2026-12-01T15:00:00.000Z"
+              value={scheduledFor}
+            />
+          </label>
+          <p className="m-0 mt-2 text-xs text-[var(--theme-elevation-600)]">
+            {context.edition.siteTimezone}
+          </p>
+          <Button
+            className="mt-3 w-full"
+            disabled={scheduledFor.length === 0 || scheduling}
+            onClick={() => void schedule()}
+            size="lg"
+            type="button"
+          >
+            {t.schedule}
+          </Button>
+        </section>
+      )}
 
       <WorkflowActions />
     </aside>

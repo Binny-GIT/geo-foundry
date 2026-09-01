@@ -45,15 +45,23 @@ const SetupSelect = ({
   const selected = idOf(value)
   return (
     <label className="block rounded-xl border border-[var(--theme-elevation-150)] bg-[var(--theme-elevation-50)] px-4 py-3 focus-within:border-[var(--gf-accent-400)] focus-within:ring-2 focus-within:ring-[var(--gf-accent-100)]">
-      <span className="block text-xs font-bold uppercase tracking-[0.06em] text-[var(--theme-elevation-600)]">{label}</span>
+      <span className="block text-xs font-bold uppercase tracking-[0.06em] text-[var(--theme-elevation-600)]">
+        {label}
+      </span>
       <select
         className="mt-2 w-full border-0 bg-transparent p-0 text-sm font-semibold text-[var(--theme-text)] outline-none"
         disabled={readOnly}
-        onChange={(event) => setValue(event.target.value.length === 0 ? null : Number(event.target.value))}
+        onChange={(event) =>
+          setValue(event.target.value.length === 0 ? null : Number(event.target.value))
+        }
         value={selected ?? ""}
       >
         <option value="">{placeholder}</option>
-        {options.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
+        {options.map((option) => (
+          <option key={option.id} value={option.id}>
+            {option.label}
+          </option>
+        ))}
       </select>
     </label>
   )
@@ -89,12 +97,28 @@ export const ContentEditionSetupFields = ({ readOnly }: { readonly readOnly: boo
 
   return (
     <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-5 shadow-[var(--gf-shadow-surface)] sm:p-7">
-      <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">文档设置</p>
+      <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
+        文档设置
+      </p>
       <h2 className="m-0 mt-1 text-lg font-bold text-[var(--theme-text)]">关联内容与站点</h2>
-      <p className="m-0 mt-2 text-sm leading-6 text-[var(--theme-elevation-600)]">内容与站点均只来自当前会话可读范围，租户由服务端校验。</p>
+      <p className="m-0 mt-2 text-sm leading-6 text-[var(--theme-elevation-600)]">
+        内容与站点均只来自当前会话可读范围，租户由服务端校验。
+      </p>
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
-        <SetupSelect label="内容" options={contents} path="content" placeholder={loading ? "正在加载内容…" : "选择内容"} readOnly={readOnly} />
-        <SetupSelect label="站点" options={sites} path="site" placeholder={loading ? "正在加载站点…" : "选择站点"} readOnly={readOnly} />
+        <SetupSelect
+          label="内容"
+          options={contents}
+          path="content"
+          placeholder={loading ? "正在加载内容…" : "选择内容"}
+          readOnly={readOnly}
+        />
+        <SetupSelect
+          label="站点"
+          options={sites}
+          path="site"
+          placeholder={loading ? "正在加载站点…" : "选择站点"}
+          readOnly={readOnly}
+        />
       </div>
     </section>
   )

@@ -6,8 +6,8 @@ import { getTranslation } from "@payloadcms/translations"
 import { Link, useAuth, useConfig, useNav, useTranslation } from "@payloadcms/ui"
 import { EntityType, type NavGroupType } from "@payloadcms/ui/shared"
 import { usePathname } from "next/navigation"
-import { useEffect, useState } from "react"
 import { formatAdminURL } from "payload/shared"
+import { useEffect, useState } from "react"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -179,9 +179,21 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
         inert={!navOpen}
       >
         <div className="flex h-full flex-col bg-gfs-ink-900 text-white">
-          <div className={cn("flex items-center gap-2.5 px-5 pt-6 pb-5", collapsed && "min-[1441px]:justify-center min-[1441px]:gap-0 min-[1441px]:px-2")}>
+          <div
+            className={cn(
+              "flex items-center gap-2.5 px-5 pt-6 pb-5",
+              collapsed && "min-[1441px]:justify-center min-[1441px]:gap-0 min-[1441px]:px-2",
+            )}
+          >
             <GeoIcon size={26} />
-            <span className={cn("flex-1 text-base font-bold tracking-tight", collapsed && "min-[1441px]:hidden")}>Geo Foundry</span>
+            <span
+              className={cn(
+                "flex-1 text-base font-bold tracking-tight",
+                collapsed && "min-[1441px]:hidden",
+              )}
+            >
+              Geo Foundry
+            </span>
             {/* Desktop collapse toggle: narrows the sidebar to an icon rail. */}
             <button
               aria-label={isZH ? "收起导航" : "Collapse navigation"}
@@ -191,7 +203,11 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
               onClick={toggleCollapsed}
               type="button"
             >
-              {collapsed ? <PanelLeftOpenIcon size={18} strokeWidth={1.8} /> : <PanelLeftCloseIcon size={18} strokeWidth={1.8} />}
+              {collapsed ? (
+                <PanelLeftOpenIcon size={18} strokeWidth={1.8} />
+              ) : (
+                <PanelLeftCloseIcon size={18} strokeWidth={1.8} />
+              )}
             </button>
             {/* Close button: only needed where the nav is a drawer. */}
             <button
@@ -220,19 +236,33 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
                     <span className="absolute inset-y-1 left-0 w-[3px] rounded-full bg-gfs-accent-500" />
                   )}
                   <LayoutGridIcon size={17} strokeWidth={1.8} />
-                  <span className={cn("truncate", collapsed && "min-[1441px]:hidden")}>{t("general:dashboard")}</span>
+                  <span className={cn("truncate", collapsed && "min-[1441px]:hidden")}>
+                    {t("general:dashboard")}
+                  </span>
                 </Link>
                 {canUseWorkQueue && (
-                  <Link className={linkClassName(pathname === `${adminRoute}/work`)} href={`${adminRoute}/work`} prefetch={false} title={workLabel}>
+                  <Link
+                    className={linkClassName(pathname === `${adminRoute}/work`)}
+                    href={`${adminRoute}/work`}
+                    prefetch={false}
+                    title={workLabel}
+                  >
                     <LayersIcon size={17} strokeWidth={1.8} />
-                    <span className={cn("truncate", collapsed && "min-[1441px]:hidden")}>{workLabel}</span>
+                    <span className={cn("truncate", collapsed && "min-[1441px]:hidden")}>
+                      {workLabel}
+                    </span>
                   </Link>
                 )}
               </div>
 
               {groups.map((group) => (
                 <div className="flex flex-col gap-1" key={group.label}>
-                  <div className={cn("px-3 text-[11px] font-semibold uppercase tracking-wider text-white/40", collapsed && "min-[1441px]:hidden")}>
+                  <div
+                    className={cn(
+                      "px-3 text-[11px] font-semibold uppercase tracking-wider text-white/40",
+                      collapsed && "min-[1441px]:hidden",
+                    )}
+                  >
                     {isZH ? (ZH_GROUP_LABEL[group.label] ?? group.label) : group.label}
                   </div>
                   <div className="flex flex-col gap-0.5">
@@ -267,7 +297,12 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
                       )
                       if (pathname === href) {
                         return (
-                          <div className={linkClassName(isActive)} id={id} key={entity.slug} title={label}>
+                          <div
+                            className={linkClassName(isActive)}
+                            id={id}
+                            key={entity.slug}
+                            title={label}
+                          >
                             {content}
                           </div>
                         )
@@ -293,7 +328,13 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
 
           <Separator className="mx-5 w-auto bg-white/10" />
 
-          <div className={cn("flex items-center gap-2.5 px-5 py-4", collapsed && "min-[1441px]:flex-col min-[1441px]:justify-center min-[1441px]:gap-2 min-[1441px]:px-2")}>
+          <div
+            className={cn(
+              "flex items-center gap-2.5 px-5 py-4",
+              collapsed &&
+                "min-[1441px]:flex-col min-[1441px]:justify-center min-[1441px]:gap-2 min-[1441px]:px-2",
+            )}
+          >
             <Avatar className="bg-gfs-accent-500/20" title={email ?? undefined}>
               <AvatarFallback className="bg-transparent text-gfs-accent-300">
                 {initialOf(email)}
@@ -317,42 +358,42 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
              * rail (72px); expand or use the account page to switch.
              */}
             <div className={cn(collapsed && "min-[1441px]:hidden")}>
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                aria-label={t("general:language")}
-                className="flex shrink-0 items-center gap-1 rounded-full bg-white/10 px-2.5 py-1.5 text-[11px] font-bold text-white outline-none transition-colors hover:bg-white/20"
-              >
-                {LANG_LABEL[currentLang]}
-                <ChevronDownIcon size={12} strokeWidth={2} />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" side="top">
-                {UI_LANGUAGES.map((lang) => (
-                  <DropdownMenuItem
-                    key={lang}
-                    onSelect={() => {
-                      if (lang !== currentLang) {
-                        /*
-                         * router.refresh() (inside switchLanguage) reliably
-                         * re-renders client chrome, but server-rendered
-                         * surfaces like the dashboard lag behind it —
-                         * verified live: the dashboard only swapped after a
-                         * full navigation. A hard reload after the cookie
-                         * write guarantees the whole page swaps atomically.
-                         */
-                        void switchLanguage?.(lang).then(() => {
-                          window.location.reload()
-                        })
-                      }
-                    }}
-                  >
-                    <span className="w-4 text-gfs-accent-600">
-                      {lang === currentLang ? "✓" : ""}
-                    </span>
-                    {LANG_NATIVE_LABEL[lang]}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  aria-label={t("general:language")}
+                  className="flex shrink-0 items-center gap-1 rounded-full bg-white/10 px-2.5 py-1.5 text-[11px] font-bold text-white outline-none transition-colors hover:bg-white/20"
+                >
+                  {LANG_LABEL[currentLang]}
+                  <ChevronDownIcon size={12} strokeWidth={2} />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" side="top">
+                  {UI_LANGUAGES.map((lang) => (
+                    <DropdownMenuItem
+                      key={lang}
+                      onSelect={() => {
+                        if (lang !== currentLang) {
+                          /*
+                           * router.refresh() (inside switchLanguage) reliably
+                           * re-renders client chrome, but server-rendered
+                           * surfaces like the dashboard lag behind it —
+                           * verified live: the dashboard only swapped after a
+                           * full navigation. A hard reload after the cookie
+                           * write guarantees the whole page swaps atomically.
+                           */
+                          void switchLanguage?.(lang).then(() => {
+                            window.location.reload()
+                          })
+                        }
+                      }}
+                    >
+                      <span className="w-4 text-gfs-accent-600">
+                        {lang === currentLang ? "✓" : ""}
+                      </span>
+                      {LANG_NATIVE_LABEL[lang]}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
             <Button asChild aria-label={t("authentication:logOut")} size="icon" variant="ghost">
               <Link href={logoutHref} prefetch={false} title={t("authentication:logOut")}>

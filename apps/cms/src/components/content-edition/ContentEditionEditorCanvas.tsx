@@ -1,7 +1,7 @@
 "use client"
 
 import { useField } from "@payloadcms/ui"
-import { useEffect, useState, type ReactNode } from "react"
+import { type ReactNode, useEffect, useState } from "react"
 
 import { ChevronDownIcon, PencilIcon, XIcon } from "../icons"
 
@@ -126,7 +126,11 @@ const BlockEditor = ({
           onChange={(event) => update({ ...row, level: event.target.value })}
           value={String(row["level"] ?? "2")}
         >
-          {["2", "3", "4", "5", "6"].map((level) => <option key={level} value={level}>H{level}</option>)}
+          {["2", "3", "4", "5", "6"].map((level) => (
+            <option key={level} value={level}>
+              H{level}
+            </option>
+          ))}
         </select>
         <textarea
           className="min-h-16 w-full resize-y border-0 bg-transparent p-0 text-2xl font-bold leading-9 tracking-tight text-[var(--theme-text)] outline-none"
@@ -141,7 +145,8 @@ const BlockEditor = ({
   return (
     <details className="rounded-lg border border-dashed border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] p-3">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-bold text-[var(--theme-text)]">
-        <span>{labelOf(row)}区块</span><ChevronDownIcon size={16} />
+        <span>{labelOf(row)}区块</span>
+        <ChevronDownIcon size={16} />
       </summary>
       <p className="m-0 mt-2 text-xs leading-5 text-[var(--theme-elevation-600)]">
         此区块保留结构化编辑，避免破坏页面文档契约。
@@ -189,30 +194,65 @@ export const ContentEditionEditorCanvas = ({ readOnly }: { readonly readOnly: bo
     <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] shadow-[var(--gf-shadow-surface)]">
       <header className="flex flex-col gap-3 border-b border-[var(--theme-elevation-150)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">内容画布</p>
+          <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
+            内容画布
+          </p>
           <h2 className="m-0 mt-1 text-base font-bold text-[var(--theme-text)]">正文</h2>
         </div>
         {!readOnly && (
           <div className="flex flex-wrap gap-2">
-            <button className="rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 py-2 text-sm font-bold text-[var(--theme-text)] hover:bg-[var(--theme-elevation-100)]" onClick={() => add("paragraph")} type="button">+ 段落</button>
-            <button className="rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 py-2 text-sm font-bold text-[var(--theme-text)] hover:bg-[var(--theme-elevation-100)]" onClick={() => add("heading")} type="button">+ 标题</button>
+            <button
+              className="rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 py-2 text-sm font-bold text-[var(--theme-text)] hover:bg-[var(--theme-elevation-100)]"
+              onClick={() => add("paragraph")}
+              type="button"
+            >
+              + 段落
+            </button>
+            <button
+              className="rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 py-2 text-sm font-bold text-[var(--theme-text)] hover:bg-[var(--theme-elevation-100)]"
+              onClick={() => add("heading")}
+              type="button"
+            >
+              + 标题
+            </button>
           </div>
         )}
       </header>
       <div className="divide-y divide-[var(--theme-elevation-100)] px-5 sm:px-7">
         {rows.map((row, index) => (
-          <article className="group relative py-6" key={`${String(row["id"] ?? row["blockType"])}-${index}`}>
+          <article
+            className="group relative py-6"
+            key={`${String(row["id"] ?? row["blockType"])}-${index}`}
+          >
             <div className="mb-3 flex items-center justify-between gap-3">
-              <span className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--theme-elevation-500)]">{String(index + 1).padStart(2, "0")} · {labelOf(row)}</span>
+              <span className="text-xs font-bold uppercase tracking-[0.08em] text-[var(--theme-elevation-500)]">
+                {String(index + 1).padStart(2, "0")} · {labelOf(row)}
+              </span>
               {!readOnly && rows.length > 1 && (
-                <button aria-label={`删除第 ${index + 1} 个区块`} className="rounded-md p-1.5 text-[var(--theme-elevation-500)] opacity-0 transition hover:bg-[var(--gf-tone-danger-bg)] hover:text-[var(--gf-tone-danger-fg)] group-hover:opacity-100 focus:opacity-100" onClick={() => remove(index)} type="button"><XIcon size={15} /></button>
+                <button
+                  aria-label={`删除第 ${index + 1} 个区块`}
+                  className="rounded-md p-1.5 text-[var(--theme-elevation-500)] opacity-0 transition hover:bg-[var(--gf-tone-danger-bg)] hover:text-[var(--gf-tone-danger-fg)] group-hover:opacity-100 focus:opacity-100"
+                  onClick={() => remove(index)}
+                  type="button"
+                >
+                  <XIcon size={15} />
+                </button>
               )}
             </div>
-            <BlockEditor index={index} readOnly={readOnly} row={row} update={(next) => update(index, next)} />
+            <BlockEditor
+              index={index}
+              readOnly={readOnly}
+              row={row}
+              update={(next) => update(index, next)}
+            />
           </article>
         ))}
       </div>
-      {rows.length === 0 && <p className="m-0 p-6 text-sm text-[var(--theme-elevation-600)]">请添加至少一个正文区块。</p>}
+      {rows.length === 0 && (
+        <p className="m-0 p-6 text-sm text-[var(--theme-elevation-600)]">
+          请添加至少一个正文区块。
+        </p>
+      )}
     </section>
   )
 }
@@ -244,21 +284,121 @@ const StructuredRowsField = ({
     ])
   return (
     <section className="rounded-xl border border-[var(--theme-elevation-150)] bg-[var(--theme-elevation-50)] p-4">
-      <div className="flex items-center justify-between gap-3"><div><p className="m-0 text-xs font-bold uppercase tracking-[0.06em] text-[var(--theme-elevation-600)]">{label}</p><p className="m-0 mt-1 text-xs leading-5 text-[var(--theme-elevation-600)]">{kind === "citation" ? "使用标题和公开 URL 描述正文来源。" : "使用名称、类型和可选公开 URL 描述重要实体。"}</p></div>{!readOnly && <button className="rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-100)] px-3 py-2 text-sm font-bold text-[var(--theme-text)]" onClick={add} type="button">添加</button>}</div>
-      {rows.length === 0 ? <p className="m-0 mt-4 text-sm text-[var(--theme-elevation-600)]">暂未添加{label}。</p> : <div className="mt-4 grid gap-3">{rows.map((row, index) => <div className="grid gap-2 rounded-lg border border-[var(--theme-elevation-150)] bg-[var(--gf-surface)] p-3" key={String(row["id"] ?? index)}><div className="grid gap-2 sm:grid-cols-2"><input aria-label={`${label} ID`} className="min-h-10 rounded-md border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)]" onChange={(event) => update(index, "id", event.target.value)} readOnly={readOnly} value={typeof row["id"] === "string" ? row["id"] : ""} /><input aria-label={kind === "citation" ? "引文标题" : "实体名称"} className="min-h-10 rounded-md border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)]" onChange={(event) => update(index, kind === "citation" ? "title" : "name", event.target.value)} readOnly={readOnly} value={typeof row[kind === "citation" ? "title" : "name"] === "string" ? String(row[kind === "citation" ? "title" : "name"]) : ""} /></div><div className="grid gap-2 sm:grid-cols-2">{kind === "entity" && <input aria-label="实体类型" className="min-h-10 rounded-md border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)]" onChange={(event) => update(index, "type", event.target.value)} readOnly={readOnly} value={typeof row["type"] === "string" ? row["type"] : ""} />}{kind === "citation" && <input aria-label="发布者" className="min-h-10 rounded-md border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)]" onChange={(event) => update(index, "publisher", event.target.value)} readOnly={readOnly} value={typeof row["publisher"] === "string" ? row["publisher"] : ""} />}<input aria-label={`${label} URL`} className="min-h-10 rounded-md border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)]" onChange={(event) => update(index, "url", event.target.value)} placeholder="https://" readOnly={readOnly} value={typeof row["url"] === "string" ? row["url"] : ""} /></div>{!readOnly && <button className="justify-self-start text-xs font-bold text-[var(--gf-tone-danger-fg)] hover:underline" onClick={() => replace(rows.filter((_, rowIndex) => rowIndex !== index))} type="button">删除</button>}</div>)}</div>}
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="m-0 text-xs font-bold uppercase tracking-[0.06em] text-[var(--theme-elevation-600)]">
+            {label}
+          </p>
+          <p className="m-0 mt-1 text-xs leading-5 text-[var(--theme-elevation-600)]">
+            {kind === "citation"
+              ? "使用标题和公开 URL 描述正文来源。"
+              : "使用名称、类型和可选公开 URL 描述重要实体。"}
+          </p>
+        </div>
+        {!readOnly && (
+          <button
+            className="rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-100)] px-3 py-2 text-sm font-bold text-[var(--theme-text)]"
+            onClick={add}
+            type="button"
+          >
+            添加
+          </button>
+        )}
+      </div>
+      {rows.length === 0 ? (
+        <p className="m-0 mt-4 text-sm text-[var(--theme-elevation-600)]">暂未添加{label}。</p>
+      ) : (
+        <div className="mt-4 grid gap-3">
+          {rows.map((row, index) => (
+            <div
+              className="grid gap-2 rounded-lg border border-[var(--theme-elevation-150)] bg-[var(--gf-surface)] p-3"
+              key={String(row["id"] ?? index)}
+            >
+              <div className="grid gap-2 sm:grid-cols-2">
+                <input
+                  aria-label={`${label} ID`}
+                  className="min-h-10 rounded-md border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)]"
+                  onChange={(event) => update(index, "id", event.target.value)}
+                  readOnly={readOnly}
+                  value={typeof row["id"] === "string" ? row["id"] : ""}
+                />
+                <input
+                  aria-label={kind === "citation" ? "引文标题" : "实体名称"}
+                  className="min-h-10 rounded-md border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)]"
+                  onChange={(event) =>
+                    update(index, kind === "citation" ? "title" : "name", event.target.value)
+                  }
+                  readOnly={readOnly}
+                  value={
+                    typeof row[kind === "citation" ? "title" : "name"] === "string"
+                      ? String(row[kind === "citation" ? "title" : "name"])
+                      : ""
+                  }
+                />
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {kind === "entity" && (
+                  <input
+                    aria-label="实体类型"
+                    className="min-h-10 rounded-md border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)]"
+                    onChange={(event) => update(index, "type", event.target.value)}
+                    readOnly={readOnly}
+                    value={typeof row["type"] === "string" ? row["type"] : ""}
+                  />
+                )}
+                {kind === "citation" && (
+                  <input
+                    aria-label="发布者"
+                    className="min-h-10 rounded-md border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)]"
+                    onChange={(event) => update(index, "publisher", event.target.value)}
+                    readOnly={readOnly}
+                    value={typeof row["publisher"] === "string" ? row["publisher"] : ""}
+                  />
+                )}
+                <input
+                  aria-label={`${label} URL`}
+                  className="min-h-10 rounded-md border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)]"
+                  onChange={(event) => update(index, "url", event.target.value)}
+                  placeholder="https://"
+                  readOnly={readOnly}
+                  value={typeof row["url"] === "string" ? row["url"] : ""}
+                />
+              </div>
+              {!readOnly && (
+                <button
+                  className="justify-self-start text-xs font-bold text-[var(--gf-tone-danger-fg)] hover:underline"
+                  onClick={() => replace(rows.filter((_, rowIndex) => rowIndex !== index))}
+                  type="button"
+                >
+                  删除
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   )
 }
 
 const SecondaryTopicsField = ({ readOnly }: { readonly readOnly: boolean }) => {
   const { setValue, value } = useField<unknown>({ path: "secondaryTopics" })
-  const text = Array.isArray(value) ? value.filter((item): item is string => typeof item === "string").join(", ") : ""
+  const text = Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string").join(", ")
+    : ""
   return (
     <div className="rounded-xl border border-[var(--theme-elevation-150)] bg-[var(--theme-elevation-50)] px-4 py-3 focus-within:border-[var(--gf-accent-400)] focus-within:ring-2 focus-within:ring-[var(--gf-accent-100)]">
       <FieldLabel>次要主题</FieldLabel>
       <input
         className="mt-2 w-full border-0 bg-transparent p-0 text-base text-[var(--theme-text)] outline-none placeholder:text-[var(--theme-elevation-400)]"
-        onChange={(event) => setValue(event.target.value.split(",").map((item) => item.trim()).filter(Boolean))}
+        onChange={(event) =>
+          setValue(
+            event.target.value
+              .split(",")
+              .map((item) => item.trim())
+              .filter(Boolean),
+          )
+        }
         placeholder="用逗号分隔主题"
         readOnly={readOnly}
         value={text}
@@ -270,12 +410,26 @@ const SecondaryTopicsField = ({ readOnly }: { readonly readOnly: boolean }) => {
 export const ContentEditionMetadataEditor = ({ readOnly }: { readonly readOnly: boolean }) => (
   <section className="grid gap-4">
     <InlineTextField label="标题" path="title" placeholder="内容标题" readOnly={readOnly} />
-    <InlineTextField label="摘要" multiline path="summary" placeholder="用一两句话说明读者将获得什么" readOnly={readOnly} />
+    <InlineTextField
+      label="摘要"
+      multiline
+      path="summary"
+      placeholder="用一两句话说明读者将获得什么"
+      readOnly={readOnly}
+    />
     <div className="grid gap-4 sm:grid-cols-2">
-      <InlineTextField label="主要主题" path="primaryTopic" placeholder="主要主题" readOnly={readOnly} />
+      <InlineTextField
+        label="主要主题"
+        path="primaryTopic"
+        placeholder="主要主题"
+        readOnly={readOnly}
+      />
       <InlineTextField label="内容角度" path="angle" placeholder="内容角度" readOnly={readOnly} />
     </div>
     <SecondaryTopicsField readOnly={readOnly} />
-    <div className="grid gap-4"><StructuredRowsField kind="citation" path="citations" readOnly={readOnly} /><StructuredRowsField kind="entity" path="entities" readOnly={readOnly} /></div>
+    <div className="grid gap-4">
+      <StructuredRowsField kind="citation" path="citations" readOnly={readOnly} />
+      <StructuredRowsField kind="entity" path="entities" readOnly={readOnly} />
+    </div>
   </section>
 )

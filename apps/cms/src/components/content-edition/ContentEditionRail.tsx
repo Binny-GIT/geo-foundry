@@ -3,26 +3,31 @@
 import { toast, useAuth, useDocumentInfo, useFormFields, useTranslation } from "@payloadcms/ui"
 import { useRouter } from "next/navigation"
 import { useEffect, useId, useState } from "react"
-
+import type { EditionVersionHistoryItem } from "../../services/edition-version-history"
+import { uiLangOf } from "../i18n/ui-lang"
 import { CopyIcon, LayersIcon, RotateCcwIcon } from "../icons"
 import { Badge, IconBadge } from "../ui"
 import { Button } from "../ui/button"
-import { uiLangOf } from "../i18n/ui-lang"
-import { workflowStatusLabel, isWorkflowStatus, WORKFLOW_TONE } from "../workflow/workflow-actions-model"
 import { WorkflowActions } from "../workflow/WorkflowActions"
-import type { EditionVersionHistoryItem } from "../../services/edition-version-history"
+import {
+  isWorkflowStatus,
+  WORKFLOW_TONE,
+  workflowStatusLabel,
+} from "../workflow/workflow-actions-model"
 
 const TEXT = {
   en: {
     api: "Document API",
-    apiHint: "Browser-safe record summary. It never exposes internal service routes, credentials, or raw audit data.",
+    apiHint:
+      "Browser-safe record summary. It never exposes internal service routes, credentials, or raw audit data.",
     current: "Current document",
     history: "Version history",
     loading: "Loading versions…",
     noVersions: "No saved versions are visible yet.",
     restore: "Restore as draft",
     restoreConfirm: "Restore selected version",
-    restoreHint: "This copies editable content into a new current draft. It never overwrites the historical version or a published release.",
+    restoreHint:
+      "This copies editable content into a new current draft. It never overwrites the historical version or a published release.",
     restoreReason: "Restore reason",
     restoreReasonRequired: "Add a reason before restoring this version.",
     restoring: "Restoring…",
@@ -116,7 +121,11 @@ export const ContentEditionRail = ({
       return
     }
     if (typeof workflowRevision !== "number" || typeof updatedAt !== "string") {
-      toast.error(lang === "zh" ? "当前草稿状态不可恢复，请刷新后重试。" : "Current draft state is unavailable. Refresh and retry.")
+      toast.error(
+        lang === "zh"
+          ? "当前草稿状态不可恢复，请刷新后重试。"
+          : "Current draft state is unavailable. Refresh and retry.",
+      )
       return
     }
     setRestoring(true)
@@ -149,7 +158,9 @@ export const ContentEditionRail = ({
               : "Draft restore failed."
         throw new Error(message)
       }
-      toast.success(lang === "zh" ? "已从历史版本恢复新的草稿。" : "A new draft was restored from history.")
+      toast.success(
+        lang === "zh" ? "已从历史版本恢复新的草稿。" : "A new draft was restored from history.",
+      )
       setRestoreOpen(false)
       setReason("")
       setReasonError(null)
@@ -164,26 +175,178 @@ export const ContentEditionRail = ({
 
   return (
     <aside className="grid min-w-0 content-start gap-4">
-      {showWorkflow && <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]">
-        <div className="flex items-center gap-3">
-          <IconBadge tone="accent"><LayersIcon size={18} /></IconBadge>
-          <div><p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">{t.status}</p><strong className="mt-1 block text-sm text-[var(--theme-text)]">{isWorkflowStatus(workflowStatus) ? workflowStatusLabel(workflowStatus, i18n.language) : "—"}</strong></div>
-        </div>
-        <div className="mt-4"><WorkflowActions /></div>
-      </section>}
+      {showWorkflow && (
+        <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]">
+          <div className="flex items-center gap-3">
+            <IconBadge tone="accent">
+              <LayersIcon size={18} />
+            </IconBadge>
+            <div>
+              <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
+                {t.status}
+              </p>
+              <strong className="mt-1 block text-sm text-[var(--theme-text)]">
+                {isWorkflowStatus(workflowStatus)
+                  ? workflowStatusLabel(workflowStatus, i18n.language)
+                  : "—"}
+              </strong>
+            </div>
+          </div>
+          <div className="mt-4">
+            <WorkflowActions />
+          </div>
+        </section>
+      )}
 
       <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]">
-        <div className="flex items-center gap-3"><IconBadge tone="neutral"><CopyIcon size={18} /></IconBadge><div><p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">{t.history}</p><strong className="mt-1 block text-sm text-[var(--theme-text)]">{versionCount} {t.version}</strong></div></div>
-        {loading ? <p className="m-0 mt-4 text-sm text-[var(--theme-elevation-600)]">{t.loading}</p> : versions.length === 0 ? <p className="m-0 mt-4 text-sm text-[var(--theme-elevation-600)]">{t.noVersions}</p> : <ol className="m-0 mt-3 flex list-none flex-col gap-1 p-0">{versions.map((version, index) => { const isSelected = selectedVersion?.id === version.id; const tone = isWorkflowStatus(version.workflowStatus) ? WORKFLOW_TONE[version.workflowStatus] : "neutral"; const label = isWorkflowStatus(version.workflowStatus) ? workflowStatusLabel(version.workflowStatus, i18n.language) : lang === "zh" ? "已保存版本" : "Saved version"; return <li key={version.id}><button aria-pressed={isSelected} className={`flex w-full items-center gap-2.5 rounded-lg border px-2.5 py-2 text-left transition-colors ${isSelected ? "border-[var(--gf-accent-300)] bg-[var(--gf-tone-accent-bg)]" : "border-transparent hover:bg-[var(--theme-elevation-50)]"}`} onClick={() => onSelectVersion(isSelected ? null : version)} type="button"><span className="text-xs font-bold tabular-nums text-[var(--theme-elevation-500)]">#{versions.length - index}</span><Badge tone={tone}>{label}</Badge><span className="ml-auto text-xs tabular-nums text-[var(--theme-elevation-600)]" title={new Date(version.updatedAt).toLocaleString(lang === "zh" ? "zh-CN" : "en-US", { timeZone: "UTC" })}>{shortUtcStamp(version.updatedAt)}</span></button></li> })}</ol>}
-        {selectedVersion !== null && <div className="mt-4 rounded-xl border border-[var(--gf-tone-warning-fg)] bg-[var(--gf-tone-warning-bg)] p-3"><p className="m-0 text-sm font-bold text-[var(--gf-tone-warning-fg)]">{t.selected}</p>{canRestore && <Button className="mt-3 w-full" onClick={() => setRestoreOpen(true)} size="lg" type="button">{t.restore}</Button>}</div>}
+        <div className="flex items-center gap-3">
+          <IconBadge tone="neutral">
+            <CopyIcon size={18} />
+          </IconBadge>
+          <div>
+            <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
+              {t.history}
+            </p>
+            <strong className="mt-1 block text-sm text-[var(--theme-text)]">
+              {versionCount} {t.version}
+            </strong>
+          </div>
+        </div>
+        {loading ? (
+          <p className="m-0 mt-4 text-sm text-[var(--theme-elevation-600)]">{t.loading}</p>
+        ) : versions.length === 0 ? (
+          <p className="m-0 mt-4 text-sm text-[var(--theme-elevation-600)]">{t.noVersions}</p>
+        ) : (
+          <ol className="m-0 mt-3 flex list-none flex-col gap-1 p-0">
+            {versions.map((version, index) => {
+              const isSelected = selectedVersion?.id === version.id
+              const tone = isWorkflowStatus(version.workflowStatus)
+                ? WORKFLOW_TONE[version.workflowStatus]
+                : "neutral"
+              const label = isWorkflowStatus(version.workflowStatus)
+                ? workflowStatusLabel(version.workflowStatus, i18n.language)
+                : lang === "zh"
+                  ? "已保存版本"
+                  : "Saved version"
+              return (
+                <li key={version.id}>
+                  <button
+                    aria-pressed={isSelected}
+                    className={`flex w-full items-center gap-2.5 rounded-lg border px-2.5 py-2 text-left transition-colors ${isSelected ? "border-[var(--gf-accent-300)] bg-[var(--gf-tone-accent-bg)]" : "border-transparent hover:bg-[var(--theme-elevation-50)]"}`}
+                    onClick={() => onSelectVersion(isSelected ? null : version)}
+                    type="button"
+                  >
+                    <span className="text-xs font-bold tabular-nums text-[var(--theme-elevation-500)]">
+                      #{versions.length - index}
+                    </span>
+                    <Badge tone={tone}>{label}</Badge>
+                    <span
+                      className="ml-auto text-xs tabular-nums text-[var(--theme-elevation-600)]"
+                      title={new Date(version.updatedAt).toLocaleString(
+                        lang === "zh" ? "zh-CN" : "en-US",
+                        { timeZone: "UTC" },
+                      )}
+                    >
+                      {shortUtcStamp(version.updatedAt)}
+                    </span>
+                  </button>
+                </li>
+              )
+            })}
+          </ol>
+        )}
+        {selectedVersion !== null && (
+          <div className="mt-4 rounded-xl border border-[var(--gf-tone-warning-fg)] bg-[var(--gf-tone-warning-bg)] p-3">
+            <p className="m-0 text-sm font-bold text-[var(--gf-tone-warning-fg)]">{t.selected}</p>
+            {canRestore && (
+              <Button
+                className="mt-3 w-full"
+                onClick={() => setRestoreOpen(true)}
+                size="lg"
+                type="button"
+              >
+                {t.restore}
+              </Button>
+            )}
+          </div>
+        )}
       </section>
 
       <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]">
-        <div className="flex items-center gap-3"><IconBadge tone="neutral"><RotateCcwIcon size={18} /></IconBadge><div><p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">{t.api}</p><strong className="mt-1 block text-sm text-[var(--theme-text)]">Content Editions · {id ?? "new"}</strong></div></div>
+        <div className="flex items-center gap-3">
+          <IconBadge tone="neutral">
+            <RotateCcwIcon size={18} />
+          </IconBadge>
+          <div>
+            <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
+              {t.api}
+            </p>
+            <strong className="mt-1 block text-sm text-[var(--theme-text)]">
+              Content Editions · {id ?? "new"}
+            </strong>
+          </div>
+        </div>
         <p className="m-0 mt-3 text-xs leading-5 text-[var(--theme-elevation-600)]">{t.apiHint}</p>
       </section>
 
-      {restoreOpen && selectedVersion !== null && <div aria-labelledby={`${reasonId}-title`} aria-modal="true" className="fixed inset-0 z-50 grid place-items-center bg-slate-950/45 p-4" role="dialog"><div className="w-full max-w-lg rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-6 shadow-2xl"><p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">{t.history}</p><h2 className="m-0 mt-1 text-xl font-bold tracking-tight text-[var(--theme-text)]" id={`${reasonId}-title`}>{t.restoreConfirm}</h2><p className="m-0 mt-3 text-sm leading-6 text-[var(--theme-elevation-700)]">{t.restoreHint}</p><label className="mt-5 block" htmlFor={reasonId}><span className="text-sm font-bold text-[var(--theme-text)]">{t.restoreReason} *</span><textarea aria-invalid={reasonError !== null} className="mt-2 min-h-24 w-full resize-y rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] p-3 text-sm text-[var(--theme-text)] outline-none focus:border-[var(--gf-accent-500)] focus:ring-2 focus:ring-[var(--gf-accent-200)]" id={reasonId} maxLength={500} onChange={(event) => { setReason(event.target.value); setReasonError(null) }} value={reason} />{reasonError !== null && <span className="mt-1 block text-xs font-semibold text-[var(--theme-error-700)]">{reasonError}</span>}</label><div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><Button disabled={restoring} onClick={() => setRestoreOpen(false)} size="lg" type="button" variant="secondary">{lang === "zh" ? "取消" : "Cancel"}</Button><Button disabled={restoring} onClick={() => void restore()} size="lg" type="button">{restoring ? t.restoring : t.restoreConfirm}</Button></div></div></div>}
+      {restoreOpen && selectedVersion !== null && (
+        <div
+          aria-labelledby={`${reasonId}-title`}
+          aria-modal="true"
+          className="fixed inset-0 z-50 grid place-items-center bg-slate-950/45 p-4"
+          role="dialog"
+        >
+          <div className="w-full max-w-lg rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-6 shadow-2xl">
+            <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
+              {t.history}
+            </p>
+            <h2
+              className="m-0 mt-1 text-xl font-bold tracking-tight text-[var(--theme-text)]"
+              id={`${reasonId}-title`}
+            >
+              {t.restoreConfirm}
+            </h2>
+            <p className="m-0 mt-3 text-sm leading-6 text-[var(--theme-elevation-700)]">
+              {t.restoreHint}
+            </p>
+            <label className="mt-5 block" htmlFor={reasonId}>
+              <span className="text-sm font-bold text-[var(--theme-text)]">
+                {t.restoreReason} *
+              </span>
+              <textarea
+                aria-invalid={reasonError !== null}
+                className="mt-2 min-h-24 w-full resize-y rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] p-3 text-sm text-[var(--theme-text)] outline-none focus:border-[var(--gf-accent-500)] focus:ring-2 focus:ring-[var(--gf-accent-200)]"
+                id={reasonId}
+                maxLength={500}
+                onChange={(event) => {
+                  setReason(event.target.value)
+                  setReasonError(null)
+                }}
+                value={reason}
+              />
+              {reasonError !== null && (
+                <span className="mt-1 block text-xs font-semibold text-[var(--theme-error-700)]">
+                  {reasonError}
+                </span>
+              )}
+            </label>
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button
+                disabled={restoring}
+                onClick={() => setRestoreOpen(false)}
+                size="lg"
+                type="button"
+                variant="secondary"
+              >
+                {lang === "zh" ? "取消" : "Cancel"}
+              </Button>
+              <Button disabled={restoring} onClick={() => void restore()} size="lg" type="button">
+                {restoring ? t.restoring : t.restoreConfirm}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   )
 }

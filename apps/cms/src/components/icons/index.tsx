@@ -287,13 +287,6 @@ export const ChartBarIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
   </svg>
 )
 
-export const SendIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
-  <svg {...base(size, strokeWidth)} aria-hidden="true">
-    <path d="m22 2-7 20-4-9-9-4Z" />
-    <path d="M22 2 11 13" />
-  </svg>
-)
-
 export const KeyRoundIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <path d="M2.59 17.42A2 2 0 0 0 2 18.83V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.17a2 2 0 0 0 1.42-.59l.81-.81a6.5 6.5 0 1 0-4-4z" />
