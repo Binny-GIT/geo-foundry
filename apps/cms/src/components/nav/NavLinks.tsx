@@ -237,7 +237,7 @@ export const NavLinks = ({ visibleSlugs }: NavLinksProps) => {
             <button
               aria-label={isZH ? "收起导航" : "Collapse navigation"}
               className={cn(
-                "hidden size-7 items-center justify-center rounded-full text-white/40 transition-colors hover:bg-white/12 hover:text-white min-[1441px]:flex",
+                "hidden size-7 items-center justify-center rounded-full bg-white/10 text-white/80 transition-colors hover:bg-white/20 hover:text-white min-[1441px]:flex",
                 collapsed && "min-[1441px]:mt-3",
               )}
               onClick={toggleCollapsed}

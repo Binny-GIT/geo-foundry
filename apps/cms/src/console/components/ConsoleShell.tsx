@@ -98,7 +98,7 @@ export const ConsoleShell = ({
   }, [])
 
   const switchTheme = () => {
-    const nextTheme = theme === "dark" ? "dark" : "light"
+    const nextTheme = theme === "dark" ? "light" : "dark"
     setTheme(nextTheme)
     window.localStorage.setItem("gf-console-theme", nextTheme)
     document.documentElement.dataset["consoleTheme"] = nextTheme
@@ -183,7 +183,7 @@ export const ConsoleShell = ({
           {/* Desktop collapse toggle, same morphing glyph as the admin sidebar. */}
           <button
             aria-label={collapsed ? "展开导航" : "收起导航"}
-            className="hidden size-7 cursor-pointer items-center justify-center rounded-full text-white/40 transition-colors hover:bg-white/12 hover:text-white lg:flex"
+            className="hidden size-7 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white/80 transition-colors hover:bg-white/20 hover:text-white lg:flex"
             onClick={toggleCollapsed}
             title={collapsed ? "展开导航" : "收起导航"}
             type="button"
