@@ -9,30 +9,35 @@ import { Badge } from "../ui/Badge"
 import { Button } from "../ui/button"
 import {
   isWorkflowStatus,
-  workflowActionsFor,
-  workflowStatusLabel,
   WORKFLOW_TONE,
   type WorkflowAction,
+  workflowActionsFor,
+  workflowStatusLabel,
 } from "./workflow-actions-model"
 
 const MESSAGE = {
   en: {
-    approveImpact: "Approval confirms that the visible quality evidence is accepted. Compilation remains a separate controlled step.",
-    archiveImpact: "Archived editions leave the release ledger intact and no longer appear as active editorial work.",
+    approveImpact:
+      "Approval confirms that the visible quality evidence is accepted. Compilation remains a separate controlled step.",
+    archiveImpact:
+      "Archived editions leave the release ledger intact and no longer appear as active editorial work.",
     assessment: "A passed quality assessment is required before this action.",
     cancel: "Cancel",
     confirm: "Confirm action",
-    createDraftImpact: "A new editable draft is created from this published edition. The published release and its artifacts remain unchanged.",
+    createDraftImpact:
+      "A new editable draft is created from this published edition. The published release and its artifacts remain unchanged.",
     default: "This workflow action did not complete.",
     draftCreated: "New draft created.",
     notCompiled: "This edition has not been compiled.",
     publisherRequired: "Only the publisher role may request publishing.",
-    publishImpact: "This creates a background publish operation. It is not live until the operation succeeds, the release becomes current, and a verified receipt is recorded.",
+    publishImpact:
+      "This creates a background publish operation. It is not live until the operation succeeds, the release becomes current, and a verified receipt is recorded.",
     publishSubmitted: "Publish request submitted; it will complete in the background.",
     reason: "Reason",
     reasonHint: "This explanation is included in the protected audit trail.",
     reasonRequired: "Add a reason before requesting changes.",
-    requestChangesImpact: "The edition returns to Draft so the editor can revise it. Your reason is required and becomes part of the audit trail.",
+    requestChangesImpact:
+      "The edition returns to Draft so the editor can revise it. Your reason is required and becomes part of the audit trail.",
     stale: "This edition changed elsewhere — refresh and retry.",
     transitioned: (status: string) => `Edition moved to ${status}.`,
     workflow: "Workflow",
@@ -51,7 +56,8 @@ const MESSAGE = {
     draftCreated: "已创建新草稿。",
     notCompiled: "该版本尚未编译。",
     publisherRequired: "只有发布者角色可以请求发布。",
-    publishImpact: "此操作只会创建后台发布任务。仅当操作成功、发布版本成为当前版本且已记录验证回执后，才算真正上线。",
+    publishImpact:
+      "此操作只会创建后台发布任务。仅当操作成功、发布版本成为当前版本且已记录验证回执后，才算真正上线。",
     publishSubmitted: "已提交发布请求，将在后台完成。",
     reason: "原因",
     reasonHint: "该说明会写入受保护的审计记录。",
@@ -156,7 +162,9 @@ export const WorkflowActions = () => {
       const body = {
         ...(action.type === "transition" ? { target: action.target } : {}),
         ...(reviewerDecision ? { expectedRevision: Number(workflowRevision) } : {}),
-        ...(normalizedReason === undefined || normalizedReason.length === 0 ? {} : { reason: normalizedReason }),
+        ...(normalizedReason === undefined || normalizedReason.length === 0
+          ? {}
+          : { reason: normalizedReason }),
       }
       const requestId = crypto.randomUUID()
       const response = await fetch(endpoint, {
@@ -217,7 +225,9 @@ export const WorkflowActions = () => {
           </p>
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm text-[var(--theme-elevation-600)]">{M.currentState}</span>
-            <Badge tone={WORKFLOW_TONE[statusValue]}>{workflowStatusLabel(statusValue, i18n.language)}</Badge>
+            <Badge tone={WORKFLOW_TONE[statusValue]}>
+              {workflowStatusLabel(statusValue, i18n.language)}
+            </Badge>
           </div>
         </div>
         <div className="flex flex-wrap justify-end gap-2">
@@ -259,7 +269,10 @@ export const WorkflowActions = () => {
             <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
               {M.workflow}
             </p>
-            <h2 className="m-0 mt-1 text-xl font-bold tracking-tight text-[var(--theme-text)]" id={`${reasonId}-title`}>
+            <h2
+              className="m-0 mt-1 text-xl font-bold tracking-tight text-[var(--theme-text)]"
+              id={`${reasonId}-title`}
+            >
               {selectedAction.label}
             </h2>
             <p className="m-0 mt-3 text-sm leading-6 text-[var(--theme-elevation-700)]">
@@ -269,9 +282,12 @@ export const WorkflowActions = () => {
             {(requiresReason(selectedAction) || selectedAction.type === "publish-operation") && (
               <label className="mt-5 block" htmlFor={reasonId}>
                 <span className="block text-sm font-bold text-[var(--theme-text)]">
-                  {M.reason}{requiresReason(selectedAction) ? " *" : ""}
+                  {M.reason}
+                  {requiresReason(selectedAction) ? " *" : ""}
                 </span>
-                <span className="mt-1 block text-xs text-[var(--theme-elevation-600)]">{M.reasonHint}</span>
+                <span className="mt-1 block text-xs text-[var(--theme-elevation-600)]">
+                  {M.reasonHint}
+                </span>
                 <textarea
                   aria-describedby={reasonError === null ? undefined : `${reasonId}-error`}
                   aria-invalid={reasonError !== null}
@@ -286,7 +302,10 @@ export const WorkflowActions = () => {
                   value={reason}
                 />
                 {reasonError !== null && (
-                  <span className="mt-1 block text-xs font-semibold text-[var(--theme-error-700)]" id={`${reasonId}-error`}>
+                  <span
+                    className="mt-1 block text-xs font-semibold text-[var(--theme-error-700)]"
+                    id={`${reasonId}-error`}
+                  >
                     {reasonError}
                   </span>
                 )}
@@ -294,10 +313,22 @@ export const WorkflowActions = () => {
             )}
 
             <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button disabled={pending !== null} onClick={closeConfirmation} size="lg" type="button" variant="secondary">
+              <Button
+                disabled={pending !== null}
+                onClick={closeConfirmation}
+                size="lg"
+                type="button"
+                variant="secondary"
+              >
                 {M.cancel}
               </Button>
-              <Button disabled={pending !== null} onClick={confirm} ref={confirmButton} size="lg" type="button">
+              <Button
+                disabled={pending !== null}
+                onClick={confirm}
+                ref={confirmButton}
+                size="lg"
+                type="button"
+              >
                 {pending === selectedAction.label ? M.working : M.confirm}
               </Button>
             </div>
