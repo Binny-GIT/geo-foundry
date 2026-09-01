@@ -128,7 +128,7 @@ export const SitesWorkspace = ({
           <Link href={`${consoleRoute.collection("sites")}?page=${Math.max(page - 1, 1)}`}>上一页</Link>
         </Button>
         <Button asChild aria-disabled={page >= totalPages} size="sm" type="button" variant="secondary">
-          <Link href={`${consoleRoute.collection("sites")}?page=${Math.min(page + 1, Math.max(totalPages, 1)}`}>
+          <Link href={`${consoleRoute.collection("sites")}?page=${Math.min(page + 1, Math.max(totalPages, 1))}`}>
             下一页
           </Link>
         </Button>
