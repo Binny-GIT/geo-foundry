@@ -7,14 +7,23 @@ const root = resolve(import.meta.dirname, "../..")
 const sourceOf = async (path: string): Promise<string> => readFile(resolve(root, path), "utf8")
 
 describe("admin navigation contract", () => {
-  it("keeps Dashboard and role work queues while removing obsolete workspace destinations", async () => {
-    const navigation = await sourceOf("src/components/nav/NavLinks.tsx")
+  it("renders the unified nav from the shared console registry", async () => {
+    const [navigation, registry] = await Promise.all([
+      sourceOf("src/components/nav/NavLinks.tsx"),
+      sourceOf("src/console/lib/resources.ts"),
+    ])
 
-    expect(navigation).toContain('id="nav-dashboard"')
-    expect(navigation).toContain('`${adminRoute}/work`')
+    expect(navigation).toContain("CONSOLE_NAV")
+    expect(navigation).toContain("CONSOLE_NAV.business")
+    expect(navigation).toContain("CONSOLE_NAV.admin")
     expect(navigation).not.toContain("/history/releases")
     expect(navigation).not.toContain("`${adminRoute}/tenant`")
     expect(navigation).not.toContain("`${adminRoute}/system/diagnostics`")
+
+    expect(registry).toContain('href: "/admin"')
+    expect(registry).toContain('href: "/admin/work"')
+    expect(registry).toContain('{ kind: "resource", slug: "content-editions" }')
+    expect(registry).toContain('{ kind: "resource", slug: "sites" }')
   })
 
   it("does not register removed release, tenant, or diagnostics custom routes", async () => {

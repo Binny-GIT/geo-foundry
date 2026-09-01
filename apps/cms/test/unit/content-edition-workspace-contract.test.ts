@@ -11,7 +11,7 @@ describe("content edition unified workspace", () => {
 
     expect(document).toContain("ContentEditionContextRail")
     expect(document).toContain("ContentEditionControlRail")
-    expect(document).toContain("xl:grid-cols-[minmax(240px,0.72fr)_minmax(0,1.55fr)_minmax(300px,0.86fr)]")
+    expect(document).toContain("xl:grid-cols-[minmax(240px,0.66fr)_minmax(0,1.68fr)_minmax(300px,0.8fr)]")
     expect(document).toContain("ContentEditionEditorCanvas")
     expect(document).toContain("ContentEditionPreview")
   })
