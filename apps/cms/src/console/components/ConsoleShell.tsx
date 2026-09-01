@@ -121,6 +121,7 @@ export const ConsoleShell = ({
 
   const businessItems = resolveNavItems(CONSOLE_NAV.business, navigation.resources)
   const adminItems = resolveNavItems(CONSOLE_NAV.admin, navigation.resources)
+  const isWorkbench = pathname === "/admin/work"
 
   const renderLink = (item: ResolvedNavItem) => {
     /*
@@ -147,7 +148,12 @@ export const ConsoleShell = ({
   }
 
   return (
-    <div className="gf-console flex min-h-screen">
+    <div
+      className={cn(
+        "gf-console flex",
+        isWorkbench ? "h-dvh min-h-0 overflow-hidden" : "min-h-screen",
+      )}
+    >
       {menuOpen && (
         <button
           aria-label="关闭导航"
@@ -215,8 +221,8 @@ export const ConsoleShell = ({
           )}
         </nav>
       </aside>
-      <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-[var(--console-border)] bg-[color-mix(in_srgb,var(--console-canvas)_92%,transparent)] px-4 backdrop-blur lg:px-8">
+      <div className={cn("min-w-0 flex-1", isWorkbench && "flex min-h-0 flex-col")}>
+        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-[var(--console-border)] bg-[color-mix(in_srgb,var(--console-canvas)_92%,transparent)] px-4 backdrop-blur lg:px-8">
           <button
             aria-label="打开导航"
             className="gf-console-focus grid size-9 place-items-center rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] text-[var(--console-ink)] lg:hidden"
@@ -296,7 +302,14 @@ export const ConsoleShell = ({
             </DropdownMenuContent>
           </DropdownMenu>
         </header>
-        <main className="w-full px-4 py-6 lg:px-8 lg:py-8">{children}</main>
+        <main
+          className={cn(
+            "w-full px-4 py-6 lg:px-8 lg:py-8",
+            isWorkbench && "flex min-h-0 flex-1 flex-col overflow-hidden",
+          )}
+        >
+          {children}
+        </main>
       </div>
     </div>
   )

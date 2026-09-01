@@ -43,8 +43,19 @@ const formatDate = (value: string | null): string => {
       }).format(date)
 }
 
-const ReviewBoard = ({ board, role }: { readonly board: BoardData; readonly role: string }) => {
+const ReviewBoard = ({
+  board,
+  role,
+  showTerminalColumns,
+}: {
+  readonly board: BoardData
+  readonly role: string
+  readonly showTerminalColumns: boolean
+}) => {
   const router = useRouter()
+  const columns = showTerminalColumns
+    ? BOARD_COLUMNS
+    : BOARD_COLUMNS.filter((column) => column.key !== "published" && column.key !== "archived")
   const [pendingKey, setPendingKey] = useState<string | null>(null)
   const [notice, setNotice] = useState<{ readonly ok: boolean; readonly text: string } | null>(null)
   const [confirming, setConfirming] = useState<{
@@ -153,7 +164,7 @@ const ReviewBoard = ({ board, role }: { readonly board: BoardData; readonly role
     isWorkflowStatus(card.workflowStatus) ? workflowActionsFor(role, card.workflowStatus, "zh") : []
 
   return (
-    <div className="grid gap-5">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       {notice !== null && (
         <p
           className={`m-0 rounded-xl border px-4 py-3 text-sm ${
@@ -167,19 +178,19 @@ const ReviewBoard = ({ board, role }: { readonly board: BoardData; readonly role
         </p>
       )}
 
-      <section className="overflow-x-auto pb-2">
-        <div className="grid min-w-[1500px] grid-cols-6 gap-4">
-          {BOARD_COLUMNS.map((column) => {
+      <section className="min-h-0 flex-1 overflow-auto pb-2 pr-1">
+        <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+          {columns.map((column) => {
             const cards = board[column.key]
             return (
-              <div className="grid content-start gap-3" key={column.key}>
-                <header className="sticky top-0 z-10 flex items-center justify-between gap-2 rounded-xl bg-[var(--console-surface-muted)] px-3 py-2">
-                  <h2 className="m-0 flex items-center gap-2 text-sm font-bold text-[var(--console-ink)]">
+              <div className="grid min-w-0 content-start gap-3" key={column.key}>
+                <header className="sticky top-0 z-10 flex min-w-0 items-center justify-between gap-2 rounded-xl bg-[var(--console-surface-muted)] px-3 py-2">
+                  <h2 className="m-0 flex min-w-0 items-center gap-2 text-sm font-bold text-[var(--console-ink)]">
                     <span
                       aria-hidden="true"
                       className={`size-2 shrink-0 rounded-full ${COLUMN_DOTS[column.key] ?? "bg-slate-400"}`}
                     />
-                    {column.label}
+                    <span className="truncate">{column.label}</span>
                   </h2>
                   <span className="grid min-w-6 place-items-center rounded-full bg-[var(--console-surface)] px-1.5 text-xs font-bold tabular-nums text-[var(--console-ink-muted)]">
                     {cards.length}

@@ -46,8 +46,7 @@ const retry = async (action) => {
 }
 
 const attachErrorTracking = (page, sink) => {
-  const harmless = (text) =>
-    /favicon|gravatar|net::ERR_CONNECTION_(REFUSED|TIMED_OUT)/i.test(text)
+  const harmless = (text) => /favicon|gravatar|net::ERR_CONNECTION_(REFUSED|TIMED_OUT)/i.test(text)
   page.on("pageerror", (error) => {
     if (!harmless(String(error))) sink.push(String(error))
   })
@@ -76,7 +75,9 @@ const loginAs = async (context, account, sink) => {
 
 const run = async () => {
   if (!accounts.editor.password || !accounts.superAdmin.password) {
-    throw new Error("GEO_FOUNDRY_BROWSER_EDITOR_PASSWORD and GEO_FOUNDRY_BROWSER_SUPER_ADMIN_PASSWORD are required")
+    throw new Error(
+      "GEO_FOUNDRY_BROWSER_EDITOR_PASSWORD and GEO_FOUNDRY_BROWSER_SUPER_ADMIN_PASSWORD are required",
+    )
   }
   mkdirSync(ARTIFACTS, { recursive: true })
   const isLocalTarget = /^(127\.|localhost$|\[::1\])/.test(PUBLIC_HOST)
@@ -94,28 +95,50 @@ const run = async () => {
     const editorPage = await loginAs(editorContext, accounts.editor, editorErrors)
 
     await retry(async () => {
-      await editorPage.goto(`${BASE}/admin/work`, { timeout: TIMEOUT, waitUntil: "domcontentloaded" })
-      await editorPage.getByRole("heading", { level: 1, name: "工作台" }).waitFor({ timeout: TIMEOUT })
-      await editorPage.getByRole("heading", { level: 2, name: "草稿" }).waitFor({ timeout: TIMEOUT })
-      await editorPage.getByRole("heading", { level: 2, name: "待审核" }).waitFor({ timeout: TIMEOUT })
-      await editorPage.getByRole("heading", { level: 2, name: "已发布" }).waitFor({ timeout: TIMEOUT })
+      await editorPage.goto(`${BASE}/admin/work`, {
+        timeout: TIMEOUT,
+        waitUntil: "domcontentloaded",
+      })
+      await editorPage
+        .getByRole("heading", { level: 1, name: "工作台" })
+        .waitFor({ timeout: TIMEOUT })
+      await editorPage
+        .getByRole("heading", { level: 2, name: "草稿" })
+        .waitFor({ timeout: TIMEOUT })
+      await editorPage
+        .getByRole("heading", { level: 2, name: "待审核" })
+        .waitFor({ timeout: TIMEOUT })
+      await editorPage.getByRole("link", { name: "全部记录" }).click()
+      await editorPage
+        .getByRole("heading", { level: 2, name: "已发布" })
+        .waitFor({ timeout: TIMEOUT })
+      await editorPage.getByRole("link", { name: "近 7 天" }).click()
+      await editorPage.waitForURL(/range=7d/, { timeout: TIMEOUT })
     })
     record(
       "WS-UI-001",
-      "Workbench board renders the six status columns",
+      "Workbench supports active/all views and date-range deep links",
       true,
-      "/admin/work shows the 工作台 heading and the draft/review/published board columns",
+      "/admin/work defaults to active columns, exposes terminal columns in 全部记录, and preserves the 7-day URL range",
     )
     await editorPage.screenshot({ path: resolve(ARTIFACTS, "ws1-today-work.png") })
 
     await retry(async () => {
-      await editorPage.goto(`${BASE}/admin/inbox`, { timeout: TIMEOUT, waitUntil: "domcontentloaded" })
-      await editorPage.getByRole("heading", { level: 1, name: "Inbox" }).waitFor({ timeout: TIMEOUT })
+      await editorPage.goto(`${BASE}/admin/inbox`, {
+        timeout: TIMEOUT,
+        waitUntil: "domcontentloaded",
+      })
+      await editorPage
+        .getByRole("heading", { level: 1, name: "Inbox" })
+        .waitFor({ timeout: TIMEOUT })
       await editorPage.getByText(/visible items/i).waitFor({ timeout: TIMEOUT })
       await editorPage.getByText("导入公开 URL").waitFor({ timeout: TIMEOUT })
       await editorPage.locator('input[name="title"]').first().waitFor({ timeout: TIMEOUT })
       await editorPage.locator('input[name="sourceUrl"]').first().waitFor({ timeout: TIMEOUT })
-      await editorPage.locator('select[name="suggestedSiteId"]').first().waitFor({ timeout: TIMEOUT })
+      await editorPage
+        .locator('select[name="suggestedSiteId"]')
+        .first()
+        .waitFor({ timeout: TIMEOUT })
     })
     record(
       "WS-UI-002",
@@ -126,7 +149,10 @@ const run = async () => {
     await editorPage.screenshot({ path: resolve(ARTIFACTS, "ws2-inbox.png") })
 
     await retry(async () => {
-      await editorPage.goto(`${BASE}/admin/collections/publication-plans`, { timeout: TIMEOUT, waitUntil: "domcontentloaded" })
+      await editorPage.goto(`${BASE}/admin/collections/publication-plans`, {
+        timeout: TIMEOUT,
+        waitUntil: "domcontentloaded",
+      })
       await editorPage.getByText("排期列表").waitFor({ timeout: TIMEOUT })
       await editorPage.getByRole("link", { name: "按日" }).waitFor({ timeout: TIMEOUT })
       await editorPage.getByRole("link", { name: "按周" }).waitFor({ timeout: TIMEOUT })
@@ -141,9 +167,14 @@ const run = async () => {
 
     let editionId = null
     await retry(async () => {
-      await editorPage.goto(`${BASE}/admin/collections/content-editions`, { timeout: TIMEOUT, waitUntil: "domcontentloaded" })
+      await editorPage.goto(`${BASE}/admin/collections/content-editions`, {
+        timeout: TIMEOUT,
+        waitUntil: "domcontentloaded",
+      })
       editionId = await editorPage.evaluate(async () => {
-        const response = await fetch("/api/content-editions?depth=0&limit=20&sort=-updatedAt&where[workflowStatus][equals]=draft")
+        const response = await fetch(
+          "/api/content-editions?depth=0&limit=20&sort=-updatedAt&where[workflowStatus][equals]=draft",
+        )
         if (!response.ok) throw new Error(`draft edition query ${response.status}`)
         const payload = await response.json()
         for (const candidate of payload.docs ?? []) {
@@ -157,11 +188,19 @@ const run = async () => {
       })
     })
     if (editionId === null || editionId.length === 0) {
-      record("WS-UI-004", "Edition workspace three-pane layout", false, "no draft content-edition found to open")
+      record(
+        "WS-UI-004",
+        "Edition workspace three-pane layout",
+        false,
+        "no draft content-edition found to open",
+      )
     } else {
       const workspacePath = `/admin/workspace/editions/${editionId}`
       await retry(async () => {
-        await editorPage.goto(`${BASE}${workspacePath}`, { timeout: TIMEOUT, waitUntil: "domcontentloaded" })
+        await editorPage.goto(`${BASE}${workspacePath}`, {
+          timeout: TIMEOUT,
+          waitUntil: "domcontentloaded",
+        })
         await editorPage
           .locator('aside[aria-label*="Sources, comments"], aside[aria-label*="来源、评论"]')
           .first()
@@ -181,13 +220,17 @@ const run = async () => {
         true,
         `${workspacePath} renders context rail, control rail, and site variants section`,
       )
-      const evaluationButton = editorPage.getByRole("button", { name: /Run quality check|运行质量检查/ })
+      const evaluationButton = editorPage.getByRole("button", {
+        name: /Run quality check|运行质量检查/,
+      })
       await evaluationButton.waitFor({ timeout: TIMEOUT })
       const [evaluation] = await Promise.all([
         editorPage.waitForResponse(
           (response) =>
             response.request().method() === "POST" &&
-            response.url().includes(`/api/workspaces/editor/editions/${editionId}/evaluation-operations`),
+            response
+              .url()
+              .includes(`/api/workspaces/editor/editions/${editionId}/evaluation-operations`),
           { timeout: TIMEOUT },
         ),
         evaluationButton.click(),
@@ -210,7 +253,10 @@ const run = async () => {
 
     if (editionId !== null && editionId.length > 0) {
       await retry(async () => {
-        await editorPage.goto(`${BASE}/admin/collections/content-editions`, { timeout: TIMEOUT, waitUntil: "domcontentloaded" })
+        await editorPage.goto(`${BASE}/admin/collections/content-editions`, {
+          timeout: TIMEOUT,
+          waitUntil: "domcontentloaded",
+        })
         await editorPage.getByPlaceholder("搜索标题…").waitFor({ timeout: TIMEOUT })
         await editorPage.getByRole("button", { name: "筛选" }).waitFor({ timeout: TIMEOUT })
         await editorPage.locator('select[name="site"]').waitFor({ timeout: TIMEOUT })
@@ -222,11 +268,20 @@ const run = async () => {
         "/admin/collections/content-editions shows the title search, site/status filters, and the filter action",
       )
       await retry(async () => {
-        await editorPage.goto(`${BASE}/admin/collections/content-editions/${editionId}`, { timeout: TIMEOUT, waitUntil: "domcontentloaded" })
+        await editorPage.goto(`${BASE}/admin/collections/content-editions/${editionId}`, {
+          timeout: TIMEOUT,
+          waitUntil: "domcontentloaded",
+        })
         await editorPage.getByText("文章详情", { exact: true }).waitFor({ timeout: TIMEOUT })
-        await editorPage.getByRole("heading", { level: 2, name: "正文" }).waitFor({ timeout: TIMEOUT })
-        await editorPage.getByRole("heading", { level: 2, name: "历史日志" }).waitFor({ timeout: TIMEOUT })
-        await editorPage.getByRole("heading", { level: 2, name: "站点文章入口" }).waitFor({ timeout: TIMEOUT })
+        await editorPage
+          .getByRole("heading", { level: 2, name: "正文" })
+          .waitFor({ timeout: TIMEOUT })
+        await editorPage
+          .getByRole("heading", { level: 2, name: "历史日志" })
+          .waitFor({ timeout: TIMEOUT })
+        await editorPage
+          .getByRole("heading", { level: 2, name: "站点文章入口" })
+          .waitFor({ timeout: TIMEOUT })
       })
       record(
         "WS-UI-010",
@@ -237,15 +292,26 @@ const run = async () => {
     }
 
     await retry(async () => {
-      await editorPage.goto(`${BASE}/admin/collections/sites`, { timeout: TIMEOUT, waitUntil: "domcontentloaded" })
-      await editorPage.getByRole("heading", { level: 1, name: "站点列表" }).waitFor({ timeout: TIMEOUT })
+      await editorPage.goto(`${BASE}/admin/collections/sites`, {
+        timeout: TIMEOUT,
+        waitUntil: "domcontentloaded",
+      })
+      await editorPage
+        .getByRole("heading", { level: 1, name: "站点列表" })
+        .waitFor({ timeout: TIMEOUT })
       const firstSite = editorPage.locator('a[href*="/admin/collections/sites/"]').first()
       await firstSite.waitFor({ timeout: TIMEOUT })
       await firstSite.click()
       await editorPage.getByText("站点详情", { exact: true }).waitFor({ timeout: TIMEOUT })
-      await editorPage.getByRole("heading", { level: 2, name: "站点信息与文章入口" }).waitFor({ timeout: TIMEOUT })
-      await editorPage.getByRole("heading", { level: 2, name: "域名管理" }).waitFor({ timeout: TIMEOUT })
-      await editorPage.getByRole("heading", { level: 2, name: "该站文章" }).waitFor({ timeout: TIMEOUT })
+      await editorPage
+        .getByRole("heading", { level: 2, name: "站点信息与文章入口" })
+        .waitFor({ timeout: TIMEOUT })
+      await editorPage
+        .getByRole("heading", { level: 2, name: "域名管理" })
+        .waitFor({ timeout: TIMEOUT })
+      await editorPage
+        .getByRole("heading", { level: 2, name: "该站文章" })
+        .waitFor({ timeout: TIMEOUT })
     })
     record(
       "WS-UI-011",
@@ -255,9 +321,17 @@ const run = async () => {
     )
 
     await retry(async () => {
-      await editorPage.goto(`${BASE}/admin/integration-docs`, { timeout: TIMEOUT, waitUntil: "domcontentloaded" })
-      await editorPage.getByRole("heading", { level: 1, name: "接入文档" }).waitFor({ timeout: TIMEOUT })
-      await editorPage.getByText("GET /api/delivery/sites/{canonical-domain}/articles").first().waitFor({ timeout: TIMEOUT })
+      await editorPage.goto(`${BASE}/admin/integration-docs`, {
+        timeout: TIMEOUT,
+        waitUntil: "domcontentloaded",
+      })
+      await editorPage
+        .getByRole("heading", { level: 1, name: "接入文档" })
+        .waitFor({ timeout: TIMEOUT })
+      await editorPage
+        .getByText("GET /api/delivery/sites/{canonical-domain}/articles")
+        .first()
+        .waitFor({ timeout: TIMEOUT })
     })
     record(
       "WS-UI-012",
@@ -267,10 +341,19 @@ const run = async () => {
     )
 
     await retry(async () => {
-      await editorPage.goto(`${BASE}/admin/api-stats`, { timeout: TIMEOUT, waitUntil: "domcontentloaded" })
-      await editorPage.getByRole("heading", { level: 1, name: "接口统计" }).waitFor({ timeout: TIMEOUT })
-      await editorPage.getByRole("heading", { level: 2, name: "近 14 天调用量" }).waitFor({ timeout: TIMEOUT })
-      await editorPage.getByRole("heading", { level: 2, name: "按站点分布" }).waitFor({ timeout: TIMEOUT })
+      await editorPage.goto(`${BASE}/admin/api-stats`, {
+        timeout: TIMEOUT,
+        waitUntil: "domcontentloaded",
+      })
+      await editorPage
+        .getByRole("heading", { level: 1, name: "接口统计" })
+        .waitFor({ timeout: TIMEOUT })
+      await editorPage
+        .getByRole("heading", { level: 2, name: "近 14 天调用量" })
+        .waitFor({ timeout: TIMEOUT })
+      await editorPage
+        .getByRole("heading", { level: 2, name: "按站点分布" })
+        .waitFor({ timeout: TIMEOUT })
     })
     record(
       "WS-UI-013",
@@ -334,7 +417,10 @@ run()
       passed: results.length - failed,
       results,
     }
-    writeFileSync(resolve(import.meta.dirname, "workspace-latest-run.json"), `${JSON.stringify(summary, null, 2)}\n`)
+    writeFileSync(
+      resolve(import.meta.dirname, "workspace-latest-run.json"),
+      `${JSON.stringify(summary, null, 2)}\n`,
+    )
     console.log(`workspace browser summary: ${summary.passed} passed, ${failed} failed`)
     process.exitCode = failed === 0 ? 0 : 1
   })
