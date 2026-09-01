@@ -146,9 +146,12 @@ export const NavLinks = ({ visibleSlugs }: NavLinksProps) => {
 
   const renderItem = (item: UnifiedNavItem) => {
     // Same active-link rule as Payload's own DefaultNavClient: an exact
-    // segment match, not a loose prefix match (dashboard vs /work etc.).
+    // segment match, not a loose prefix match. The dashboard is an exact
+    // equality on top of that — otherwise every /admin/* route highlights it.
     const isActive =
-      pathname.startsWith(item.href) && ["/", undefined].includes(pathname[item.href.length])
+      item.href === adminRoute
+        ? pathname === item.href
+        : pathname.startsWith(item.href) && ["/", undefined].includes(pathname[item.href.length])
     const Icon = item.icon
     const content = (
       <>
