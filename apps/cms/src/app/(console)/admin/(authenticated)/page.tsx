@@ -10,6 +10,8 @@ import {
   type ChartSegment,
   type TrendPoint,
 } from "@/console/components/charts"
+import { CreateArticleLink } from "@/console/components/CreateArticleLink"
+import { PageHeader } from "@/console/components/PageHeader"
 import { requireConsolePayloadContext } from "@/console/lib/payload.server"
 import { canConsole } from "@/console/lib/session.server"
 
@@ -222,39 +224,28 @@ const ConsoleDashboardPage = async () => {
 
   return (
     <div className="grid gap-7 [&>*]:min-w-0">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">GF Studio</p>
-          <h1 className="m-0 pt-1 text-3xl font-semibold tracking-tight text-[var(--console-ink)]">
-            控制台
-          </h1>
-          <p className="m-0 max-w-2xl pt-2 text-sm leading-6 text-[var(--console-ink-muted)]">
-            全部统计由当前会话的服务端权限范围实时聚合；无权限或无数据时如实显示，不伪造数字。
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="rounded-full border border-[var(--console-border)] bg-[var(--console-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--console-ink-muted)]">
+      <PageHeader
+        actions={
+          <>
+            {canReadIntake && (
+              <Link
+                className="gf-console-focus inline-flex h-9 items-center rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] px-3.5 text-sm font-semibold text-[var(--console-ink)] no-underline transition-colors hover:bg-[var(--console-surface-muted)]"
+                href="/admin/inbox"
+              >
+                采集 / 导入
+              </Link>
+            )}
+            {canCreateEdition && <CreateArticleLink />}
+          </>
+        }
+        meta={
+          <span className="rounded-full border border-[var(--console-border)] bg-[var(--console-surface)] px-3 py-1 text-xs font-semibold text-[var(--console-ink-muted)]">
             {session.role}
             {session.tenantId === null ? "" : ` · ${session.tenantName ?? `租户 #${String(session.tenantId)}`}`}
           </span>
-          {canCreateEdition && (
-            <Link
-              className="gf-console-focus inline-flex h-10 items-center rounded-xl bg-[var(--console-accent)] px-3.5 text-sm font-semibold text-white no-underline transition-colors hover:bg-[var(--console-accent-hover)]"
-              href="/admin/workspace/editions/new"
-            >
-              新建文章
-            </Link>
-          )}
-          {canReadIntake && (
-            <Link
-              className="gf-console-focus inline-flex h-10 items-center rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] px-3.5 text-sm font-semibold text-[var(--console-ink)] no-underline transition-colors hover:bg-[var(--console-surface-muted)]"
-              href="/admin/inbox"
-            >
-              导入 URL / 处理稿源
-            </Link>
-          )}
-        </div>
-      </header>
+        }
+        title="控制台"
+      />
 
       <section className="grid gap-4 sm:grid-cols-3">
         {todoCards.map((card) => (

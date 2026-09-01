@@ -4,6 +4,7 @@ import { notFound } from "next/navigation"
 import { CMS_ACTION, CMS_RESOURCE } from "@/access/policy"
 import { CMS_ROLE } from "@/access/roles"
 import ArticleBody from "@/console/components/ArticleBody"
+import ArticleWorkflowPanel from "@/console/components/ArticleWorkflowPanel"
 import { RankedBars, TrendBars, type TrendPoint } from "@/console/components/charts"
 import { consoleRoute } from "@/console/lib/resources"
 import { requireConsolePayloadContext } from "@/console/lib/payload.server"
@@ -217,51 +218,52 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
 
   return (
     <div className="grid gap-6 [&>*]:min-w-0">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0">
-          <Link
-            className="gf-console-focus text-sm font-semibold text-indigo-700 no-underline hover:underline"
-            href={consoleRoute.collection("content-editions")}
-          >
-            ← 返回文章列表
-          </Link>
-          <p className="m-0 pt-5 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">文章详情</p>
-          <h1 className="m-0 max-w-3xl break-words pt-1 text-3xl font-semibold tracking-tight text-[var(--console-ink)]">
-            {title}
-          </h1>
-          <div className="flex flex-wrap items-center gap-2 pt-3">
-            <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
-              {WORKFLOW_LABELS[workflowStatus] ?? workflowStatus}
-            </span>
-            {session.role === CMS_ROLE.SUPER_ADMIN && tenantName !== null && (
-              <span className="rounded-full bg-[var(--console-surface-muted)] px-3 py-1 text-xs font-semibold text-[var(--console-ink-muted)]">
-                租户：{tenantName}
+      <header className="grid gap-3">
+        <Link
+          className="gf-console-focus w-fit text-sm font-semibold text-indigo-700 no-underline hover:underline"
+          href={consoleRoute.collection("content-editions")}
+        >
+          ← 返回文章列表
+        </Link>
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div className="min-w-0">
+            <h1 className="m-0 max-w-3xl break-words text-2xl font-bold tracking-tight text-[var(--console-ink)]">
+              {title}
+            </h1>
+            <div className="flex flex-wrap items-center gap-2 pt-2.5">
+              <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
+                {WORKFLOW_LABELS[workflowStatus] ?? workflowStatus}
               </span>
-            )}
-            <span className="text-xs text-[var(--console-ink-muted)]">
-              更新于 {formatInstant(edition["updatedAt"])}（UTC）
-            </span>
+              {session.role === CMS_ROLE.SUPER_ADMIN && tenantName !== null && (
+                <span className="rounded-full bg-[var(--console-surface-muted)] px-3 py-1 text-xs font-semibold text-[var(--console-ink-muted)]">
+                  租户：{tenantName}
+                </span>
+              )}
+              <span className="text-xs text-[var(--console-ink-muted)]">
+                更新于 {formatInstant(edition["updatedAt"])}（UTC）
+              </span>
+            </div>
           </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          {canEdit && (
-            <Link
-              className="gf-console-focus inline-flex h-10 items-center rounded-xl bg-[var(--console-accent)] px-3.5 text-sm font-semibold text-white no-underline hover:bg-[var(--console-accent-hover)]"
-              href={`/admin/workspace/editions/${numericId}`}
-            >
-              去编辑
-            </Link>
-          )}
-          {publicUrl !== null && (
-            <a
-              className="gf-console-focus inline-flex h-10 items-center rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] px-3.5 text-sm font-semibold text-[var(--console-ink)] no-underline hover:bg-[var(--console-surface-muted)]"
-              href={publicUrl}
-              rel="noreferrer"
-              target="_blank"
-            >
-              打开线上页面
-            </a>
-          )}
+          <div className="flex flex-wrap items-center gap-3">
+            {canEdit && (
+              <Link
+                className="gf-console-focus inline-flex h-9 items-center rounded-xl bg-[var(--console-accent)] px-3.5 text-sm font-semibold text-white no-underline hover:bg-[var(--console-accent-hover)]"
+                href={`/admin/workspace/editions/${numericId}`}
+              >
+                去编辑
+              </Link>
+            )}
+            {publicUrl !== null && (
+              <a
+                className="gf-console-focus inline-flex h-9 items-center rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] px-3.5 text-sm font-semibold text-[var(--console-ink)] no-underline hover:bg-[var(--console-surface-muted)]"
+                href={publicUrl}
+                rel="noreferrer"
+                target="_blank"
+              >
+                打开线上页面
+              </a>
+            )}
+          </div>
         </div>
       </header>
 
@@ -316,6 +318,17 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
         </div>
 
         <div className="grid content-start gap-6">
+          <ArticleWorkflowPanel
+            editionId={numericId}
+            role={session.role}
+            siteTimezone={siteTimezone}
+            title={title}
+            workflowRevision={
+              typeof edition["workflowRevision"] === "number" ? edition["workflowRevision"] : 0
+            }
+            workflowStatus={workflowStatus}
+          />
+
           <section className="gf-console-card grid gap-3 p-5">
             <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">站点文章入口</h2>
             {publicUrl === null ? (

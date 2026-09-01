@@ -201,43 +201,44 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
 
   return (
     <div className="grid gap-6 [&>*]:min-w-0">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0">
-          <Link
-            className="gf-console-focus text-sm font-semibold text-indigo-700 no-underline hover:underline"
-            href={consoleRoute.collection("sites")}
-          >
-            ← 返回站点列表
-          </Link>
-          <p className="m-0 pt-5 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">站点详情</p>
-          <h1 className="m-0 break-words pt-1 text-3xl font-semibold tracking-tight text-[var(--console-ink)]">
-            {name}
-          </h1>
-          <div className="flex flex-wrap items-center gap-2 pt-3 text-xs text-[var(--console-ink-muted)]">
-            <span className="rounded-full bg-indigo-50 px-3 py-1 font-semibold text-indigo-700">
-              {site["status"] === "active" ? "启用" : String(site["status"] ?? "—")}
-            </span>
-            {session.role === CMS_ROLE.SUPER_ADMIN && tenantName !== null && (
-              <span className="rounded-full bg-[var(--console-surface-muted)] px-3 py-1 font-semibold">
-                租户：{tenantName}
+      <header className="grid gap-3">
+        <Link
+          className="gf-console-focus w-fit text-sm font-semibold text-indigo-700 no-underline hover:underline"
+          href={consoleRoute.collection("sites")}
+        >
+          ← 返回站点列表
+        </Link>
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div className="min-w-0">
+            <h1 className="m-0 break-words text-2xl font-bold tracking-tight text-[var(--console-ink)]">
+              {name}
+            </h1>
+            <div className="flex flex-wrap items-center gap-2 pt-2.5 text-xs text-[var(--console-ink-muted)]">
+              <span className="rounded-full bg-indigo-50 px-3 py-1 font-semibold text-indigo-700">
+                {site["status"] === "active" ? "启用" : String(site["status"] ?? "—")}
               </span>
-            )}
-            <span>{relationText(site, "locale") ?? "—"}</span>
-            <span aria-hidden="true">·</span>
-            <span>{relationText(site, "timezone") ?? "UTC"}</span>
+              {session.role === CMS_ROLE.SUPER_ADMIN && tenantName !== null && (
+                <span className="rounded-full bg-[var(--console-surface-muted)] px-3 py-1 font-semibold">
+                  租户：{tenantName}
+                </span>
+              )}
+              <span>{relationText(site, "locale") ?? "—"}</span>
+              <span aria-hidden="true">·</span>
+              <span>{relationText(site, "timezone") ?? "UTC"}</span>
+            </div>
           </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          {entryUrl !== null && (
-            <a
-              className="gf-console-focus inline-flex h-10 items-center rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] px-3.5 text-sm font-semibold text-[var(--console-ink)] no-underline hover:bg-[var(--console-surface-muted)]"
-              href={entryUrl}
-              rel="noreferrer"
-              target="_blank"
-            >
-              打开站点入口
-            </a>
-          )}
+          <div className="flex flex-wrap items-center gap-3">
+            {entryUrl !== null && (
+              <a
+                className="gf-console-focus inline-flex h-9 items-center rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] px-3.5 text-sm font-semibold text-[var(--console-ink)] no-underline hover:bg-[var(--console-surface-muted)]"
+                href={entryUrl}
+                rel="noreferrer"
+                target="_blank"
+              >
+                打开站点入口
+              </a>
+            )}
+          </div>
         </div>
       </header>
 

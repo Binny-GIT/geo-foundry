@@ -10,21 +10,15 @@ import {
   type WorkflowAction,
 } from "@/components/workflow/workflow-actions-model"
 import { BOARD_COLUMNS, type BoardCard, type BoardColumnKey } from "@/console/lib/board-model"
-
-export type IntakeStripItem = {
-  readonly channel: string
-  readonly id: number
-  readonly title: string
-}
+import {
+  editionActionErrorMessage,
+  editionEvaluationEndpointOf,
+  editionWorkflowEndpointOf,
+  publicationPlanEndpoint,
+} from "@/console/lib/edition-workflow-client"
+import { consoleRoute } from "@/console/lib/resources"
 
 type BoardData = Readonly<Record<BoardColumnKey, readonly BoardCard[]>>
-
-const CHANNEL_LABELS: Readonly<Record<string, string>> = {
-  manual: "手动",
-  rss: "RSS",
-  url: "URL",
-  webhook: "n8n/Webhook",
-}
 
 const COLUMN_DOTS: Readonly<Record<string, string>> = {
   approved: "bg-sky-500",
@@ -34,31 +28,6 @@ const COLUMN_DOTS: Readonly<Record<string, string>> = {
   rejected: "bg-rose-500",
   review: "bg-indigo-500",
 }
-
-const ACTION_ERRORS: Readonly<Record<string, string>> = {
-  EDITION_WORKFLOW_ASSESSMENT_REQUIRED: "需要先通过一次质量评估。",
-  EDITION_WORKFLOW_ASSESSMENT_NOT_PASSED: "质量评估未通过，无法执行此操作。",
-  EDITION_WORKFLOW_STALE_ASSESSMENT: "质量评估已过期，请重新运行质量检查。",
-  EDITION_WORKFLOW_REASON_REQUIRED: "退回修改前请填写原因。",
-  EDITION_WORKFLOW_STALE: "该稿件已在别处变化，请刷新后重试。",
-  EDITION_WORKFLOW_REVISION_CONFLICT: "该稿件已在别处变化，请刷新后重试。",
-  EDITION_WORKFLOW_NOT_COMPILED: "该稿件尚未编译。",
-  EDITION_WORKFLOW_PUBLISHER_REQUIRED: "只有发布者角色可以执行发布操作。",
-}
-
-const errorMessageOf = (code: unknown): string =>
-  (typeof code === "string" ? ACTION_ERRORS[code] : undefined) ?? "操作未能完成，请刷新后重试。"
-
-const workflowEndpointOf = (action: WorkflowAction, id: number): string =>
-  action.type === "draft-from-published"
-    ? `/api/editions/${id}/draft-from-published`
-    : action.type === "publish-operation"
-      ? `/api/editions/${id}/publish-operations`
-      : action.type === "reviewer-approve"
-        ? `/api/workspaces/reviewer/editions/${id}/approve`
-        : action.type === "reviewer-request-changes"
-          ? `/api/workspaces/reviewer/editions/${id}/request-changes`
-          : `/api/editions/${id}/workflow-transitions`
 
 const formatDate = (value: string | null): string => {
   if (value === null) return "—"
@@ -75,21 +44,12 @@ const formatDate = (value: string | null): string => {
 
 const ReviewBoard = ({
   board,
-  canCreateEdition,
-  canManageIntake,
-  canReadInbox,
-  intakeItems,
   role,
 }: {
   readonly board: BoardData
-  readonly canCreateEdition: boolean
-  readonly canManageIntake: boolean
-  readonly canReadInbox: boolean
-  readonly intakeItems: readonly IntakeStripItem[]
   readonly role: string
 }) => {
   const router = useRouter()
-  const [intakeOpen, setIntakeOpen] = useState(false)
   const [pendingKey, setPendingKey] = useState<string | null>(null)
   const [notice, setNotice] = useState<{ readonly ok: boolean; readonly text: string } | null>(null)
   const [confirming, setConfirming] = useState<{
@@ -108,7 +68,7 @@ const ReviewBoard = ({
       const reviewerDecision =
         action.type === "reviewer-approve" || action.type === "reviewer-request-changes"
       const normalizedReason = auditReason?.trim()
-      const response = await fetch(workflowEndpointOf(action, card.id), {
+      const response = await fetch(editionWorkflowEndpointOf(action, card.id), {
         body: JSON.stringify({
           ...(action.type === "transition" ? { target: action.target } : {}),
           ...(reviewerDecision ? { expectedRevision: card.workflowRevision } : {}),
@@ -126,7 +86,7 @@ const ReviewBoard = ({
         method: "POST",
       })
       const result = (await response.json().catch(() => ({}))) as { error?: { code?: unknown } }
-      if (!response.ok) throw new Error(errorMessageOf(result.error?.code))
+      if (!response.ok) throw new Error(editionActionErrorMessage(result.error?.code))
       setConfirming(null)
       setReason("")
       setNotice({ ok: true, text: `${card.title}：${action.label}已完成` })
@@ -134,7 +94,7 @@ const ReviewBoard = ({
     } catch (error) {
       setNotice({
         ok: false,
-        text: `${card.title}：${error instanceof Error ? error.message : errorMessageOf(undefined)}`,
+        text: `${card.title}：${error instanceof Error ? error.message : editionActionErrorMessage(undefined)}`,
       })
     } finally {
       setPendingKey(null)
@@ -146,7 +106,7 @@ const ReviewBoard = ({
     setPendingKey(key)
     setNotice(null)
     try {
-      const response = await fetch(`/api/workspaces/editor/editions/${card.id}/evaluation-operations`, {
+      const response = await fetch(editionEvaluationEndpointOf(card.id), {
         body: JSON.stringify({}),
         credentials: "same-origin",
         headers: {
@@ -156,33 +116,11 @@ const ReviewBoard = ({
         },
         method: "POST",
       })
-      if (!response.ok) throw new Error(errorMessageOf(undefined))
+      if (!response.ok) throw new Error(editionActionErrorMessage(undefined))
       setNotice({ ok: true, text: `${card.title}：已提交质量检查` })
       router.refresh()
     } catch (error) {
       setNotice({ ok: false, text: error instanceof Error ? error.message : "提交质量检查失败。" })
-    } finally {
-      setPendingKey(null)
-    }
-  }
-
-  const intakeAction = async (item: IntakeStripItem, action: "adopt" | "ignore") => {
-    const key = `intake-${item.id}`
-    setPendingKey(key)
-    setNotice(null)
-    try {
-      const response = await fetch(`/api/intake-operations/${item.id}/${action}`, {
-        credentials: "same-origin",
-        method: "POST",
-      })
-      if (!response.ok) throw new Error(action === "adopt" ? "采用失败。" : "忽略失败。")
-      setNotice({
-        ok: true,
-        text: action === "adopt" ? `${item.title}：已采用为草稿` : `${item.title}：已忽略`,
-      })
-      router.refresh()
-    } catch (error) {
-      setNotice({ ok: false, text: error instanceof Error ? error.message : "操作失败。" })
     } finally {
       setPendingKey(null)
     }
@@ -194,7 +132,7 @@ const ReviewBoard = ({
     setPendingKey(`${card.id}:schedule`)
     setNotice(null)
     try {
-      const response = await fetch("/api/publication-plan-operations", {
+      const response = await fetch(publicationPlanEndpoint, {
         body: JSON.stringify({
           editionId: card.id,
           scheduledFor: new Date(scheduledFor).toISOString(),
@@ -223,96 +161,6 @@ const ReviewBoard = ({
 
   return (
     <div className="grid gap-5">
-      {canReadInbox && (
-        <section className="gf-console-card p-4 sm:p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <button
-              className="gf-console-focus flex items-center gap-2 rounded-xl bg-[var(--console-surface-muted)] px-3 py-2 text-sm font-semibold text-[var(--console-ink)]"
-              onClick={() => setIntakeOpen((open) => !open)}
-              type="button"
-            >
-              新稿源
-              <span className="grid min-w-6 place-items-center rounded-full bg-indigo-600 px-1.5 text-xs font-bold text-white">
-                {intakeItems.length}
-              </span>
-              <span className="text-xs text-[var(--console-ink-muted)]">
-                {intakeOpen ? "收起" : "展开"}
-              </span>
-            </button>
-            <div className="flex flex-wrap gap-2">
-              <Link
-                className="gf-console-focus inline-flex h-9 items-center rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] px-3 text-xs font-semibold text-[var(--console-ink)] no-underline hover:bg-[var(--console-surface-muted)]"
-                href="/admin/inbox"
-              >
-                导入 URL / 全部稿源
-              </Link>
-              {canCreateEdition && (
-                <Link
-                  className="gf-console-focus inline-flex h-9 items-center rounded-xl bg-[var(--console-accent)] px-3 text-xs font-semibold text-white no-underline hover:bg-[var(--console-accent-hover)]"
-                  href="/admin/workspace/editions/new"
-                >
-                  新建文章
-                </Link>
-              )}
-            </div>
-          </div>
-          {intakeOpen && (
-            <>
-              {intakeItems.length === 0 ? (
-                <p className="m-0 mt-4 rounded-xl border border-dashed border-[var(--console-border)] p-4 text-center text-sm text-[var(--console-ink-muted)]">
-                  没有待处理的新稿源；采集与 n8n/Webhook 进入的内容会出现在这里。
-                </p>
-              ) : (
-                <ul className="m-0 mt-4 grid max-h-[340px] list-none gap-2 overflow-y-auto p-0 pr-1">
-                  {intakeItems.map((item) => (
-                    <li
-                      className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-4 py-3"
-                      key={item.id}
-                    >
-                      <span className="min-w-0 flex-1 text-sm font-medium text-[var(--console-ink)]">
-                        <span className="line-clamp-2 break-words">{item.title}</span>
-                        <span className="ml-2 inline-block shrink-0 rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 align-middle text-[11px] font-bold text-indigo-700">
-                          {CHANNEL_LABELS[item.channel] ?? item.channel}
-                        </span>
-                      </span>
-                      {canManageIntake && (
-                        <span className="flex shrink-0 gap-2">
-                          <button
-                            className="gf-console-focus h-8 rounded-lg bg-[var(--console-accent)] px-3 text-xs font-semibold text-white disabled:opacity-60"
-                            disabled={pendingKey !== null}
-                            onClick={() => void intakeAction(item, "adopt")}
-                            type="button"
-                          >
-                            采用为草稿
-                          </button>
-                          <button
-                            className="gf-console-focus h-8 rounded-lg border border-[var(--console-border)] bg-[var(--console-surface)] px-3 text-xs font-semibold text-[var(--console-ink)] disabled:opacity-60"
-                            disabled={pendingKey !== null}
-                            onClick={() => void intakeAction(item, "ignore")}
-                            type="button"
-                          >
-                            忽略
-                          </button>
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {intakeItems.length > 0 && (
-                <p className="m-0 mt-2 text-center text-xs text-[var(--console-ink-muted)]">
-                  共 {intakeItems.length} 条，可在
-                  <a className="font-semibold text-indigo-700 no-underline hover:underline" href="/admin/inbox">
-                    稿源箱
-                  </a>
-                  查看全部与重试失败抓取
-                </p>
-              )}
-            </>
-          )}
-        </section>
-      )}
-
       {notice !== null && (
         <p
           className={`m-0 rounded-xl border px-4 py-3 text-sm ${
@@ -353,7 +201,7 @@ const ReviewBoard = ({
                     >
                       <Link
                         className="gf-console-focus truncate text-sm font-semibold text-[var(--console-ink)] no-underline hover:text-indigo-600"
-                        href={`/admin/workspace/editions/${card.id}`}
+                        href={consoleRoute.document("content-editions", String(card.id))}
                       >
                         {card.title}
                       </Link>

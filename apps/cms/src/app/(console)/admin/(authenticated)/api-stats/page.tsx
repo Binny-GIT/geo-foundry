@@ -1,3 +1,4 @@
+import { PageHeader } from "@/console/components/PageHeader"
 import { ChartCard, RankedBars, TrendBars, type TrendPoint } from "@/console/components/charts"
 import { requireConsolePayloadContext } from "@/console/lib/payload.server"
 
@@ -76,20 +77,14 @@ const ApiStatsPage = async () => {
 
   return (
     <div className="grid gap-6 [&>*]:min-w-0">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">系统</p>
-          <h1 className="m-0 pt-1 text-3xl font-semibold tracking-tight text-[var(--console-ink)]">
-            接口统计
-          </h1>
-          <p className="m-0 max-w-2xl pt-2 text-sm leading-6 text-[var(--console-ink-muted)]">
-            站点交付 API 的调用量监控：按日聚合、按站点分布。数据来自公开交付端点的内置计数。
-          </p>
-        </div>
-        <span className="w-fit rounded-full border border-[var(--console-border)] bg-[var(--console-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--console-ink-muted)]">
-          近 {DAYS} 天共 {total} 次调用
-        </span>
-      </header>
+      <PageHeader
+        meta={
+          <span className="rounded-full border border-[var(--console-border)] bg-[var(--console-surface)] px-3 py-1 text-xs font-semibold text-[var(--console-ink-muted)]">
+            近 {DAYS} 天共 {total} 次调用
+          </span>
+        }
+        title="接口统计"
+      />
 
       <section className="grid gap-4 xl:grid-cols-2">
         <ChartCard title="近 14 天调用量">

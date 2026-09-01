@@ -1,3 +1,4 @@
+import { PageHeader } from "@/console/components/PageHeader"
 import { notFound } from "next/navigation"
 
 import { CMS_ROLE } from "@/access/roles"
@@ -10,13 +11,7 @@ const ConsoleRollbackIntentCreatePage = async () => {
 
   return (
     <div className="grid gap-6">
-      <header>
-        <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-rose-600">发布控制</p>
-        <h1 className="m-0 pt-1 text-3xl font-semibold tracking-tight text-[var(--console-ink)]">创建回滚意图</h1>
-        <p className="m-0 pt-2 text-sm leading-6 text-[var(--console-ink-muted)]">
-          此操作不会直接改写生产指针。它只提交一条 publisher 批准的不可变意图，后续由受保护的后台流程在预条件仍成立时执行。
-        </p>
-      </header>
+      <PageHeader title="创建回滚意图" />
       <section className="gf-console-card p-5 sm:p-6">
         <ConsoleRollbackIntentForm />
       </section>

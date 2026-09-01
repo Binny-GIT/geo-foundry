@@ -12,7 +12,6 @@ import SitesWorkspace, {
 } from "@/console/components/SitesWorkspace"
 import {
   CONSOLE_RESOURCES,
-  CONSOLE_SECTION_LABELS,
   consoleRoute,
   isConsoleResourceSlug,
   type ConsoleResourceSlug,
@@ -25,6 +24,8 @@ import { combineWhere, sitesIdScopeWhere, siteScopeWhere } from "@/console/lib/s
 import { findConsoleDocuments, requireConsolePayloadContext } from "@/console/lib/payload.server"
 import { PublicationPlansWorkspace } from "@/console/components/PublicationPlansWorkspace"
 import { ConsoleCreateDialog } from "@/console/components/ConsoleCreateDialog"
+import { CreateArticleLink } from "@/console/components/CreateArticleLink"
+import { PageHeader } from "@/console/components/PageHeader"
 import { canConsole } from "@/console/lib/session.server"
 import { Button } from "@/components/ui/button"
 
@@ -146,27 +147,19 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
     ])
     return (
       <div className="grid gap-6 [&>*]:min-w-0">
-        <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">文章</p>
-            <h1 className="m-0 pt-1 text-3xl font-semibold tracking-tight text-[var(--console-ink)]">
-              文章列表
-            </h1>
-            <p className="m-0 max-w-2xl pt-2 text-sm leading-6 text-[var(--console-ink-muted)]">
-              全部文章的筛选、搜索与生命周期管理；筛选条件保存在地址栏，可直接分享。
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            {canConsole(context.session, CMS_RESOURCE.EDITIONS, CMS_ACTION.CREATE) && (
-              <Link
-                className="gf-console-focus inline-flex h-10 items-center rounded-xl bg-[var(--console-accent)] px-3.5 text-sm font-semibold text-white no-underline hover:bg-[var(--console-accent-hover)]"
-                href="/admin/workspace/editions/new"
-              >
-                新建文章
-              </Link>
-            )}
-          </div>
-        </header>
+        <PageHeader
+          actions={
+            canConsole(context.session, CMS_RESOURCE.EDITIONS, CMS_ACTION.CREATE) ? (
+              <CreateArticleLink />
+            ) : null
+          }
+          meta={
+            <span className="rounded-full border border-[var(--console-border)] bg-[var(--console-surface)] px-3 py-1 text-xs font-semibold text-[var(--console-ink-muted)]">
+              {result.totalDocs} 篇
+            </span>
+          }
+          title="文章列表"
+        />
         <EditionsWorkspace
           docs={result.docs}
           isSuperAdmin={context.session.role === CMS_ROLE.SUPER_ADMIN}
@@ -238,15 +231,14 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
     )
     return (
       <div className="grid gap-6 [&>*]:min-w-0">
-        <header>
-          <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">站点</p>
-          <h1 className="m-0 pt-1 text-3xl font-semibold tracking-tight text-[var(--console-ink)]">
-            站点列表
-          </h1>
-          <p className="m-0 max-w-2xl pt-2 text-sm leading-6 text-[var(--console-ink-muted)]">
-            每个站点是一个读取文章的发布目标网站；详情页提供该站文章、域名、发布历史与恢复。
-          </p>
-        </header>
+        <PageHeader
+          meta={
+            <span className="rounded-full border border-[var(--console-border)] bg-[var(--console-surface)] px-3 py-1 text-xs font-semibold text-[var(--console-ink-muted)]">
+              {result.totalDocs} 个站点
+            </span>
+          }
+          title="站点列表"
+        />
         <SitesWorkspace
           isSuperAdmin={context.session.role === CMS_ROLE.SUPER_ADMIN}
           page={result.page}
@@ -273,52 +265,46 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
 
   return (
     <div className="grid gap-6 [&>*]:min-w-0">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">
-            {CONSOLE_SECTION_LABELS[resource.section].zh}
-          </p>
-          <h1 className="m-0 pt-1 text-3xl font-semibold tracking-tight text-[var(--console-ink)]">
-            {resource.label.zh}
-          </h1>
-          <p className="m-0 max-w-2xl pt-2 text-sm leading-6 text-[var(--console-ink-muted)]">
-            {resource.subtitle.zh}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="rounded-full border border-[var(--console-border)] bg-[var(--console-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--console-ink-muted)]">
+      <PageHeader
+        actions={
+          <>
+            {canCreate &&
+            slug === "users" &&
+            (context.session.role === CMS_ROLE.SUPER_ADMIN || context.session.role === CMS_ROLE.TENANT_ADMIN) ? (
+              <ConsoleCreateDialog
+                actorRole={context.session.role === CMS_ROLE.SUPER_ADMIN ? CMS_ROLE.SUPER_ADMIN : CMS_ROLE.TENANT_ADMIN}
+                createLabel="用户"
+              />
+            ) : canCreate && createSupported && slug !== "users" ? (
+              <Button asChild className="h-9 rounded-xl" type="button">
+                <Link href={`${consoleRoute.collection(slug as ConsoleResourceSlug)}/create`}>
+                  新建{resource.label.zh}
+                </Link>
+              </Button>
+            ) : null}
+            {canUploadMedia && (
+              <Button asChild className="h-9 rounded-xl" type="button">
+                <Link href="/admin/collections/media/upload">上传媒体</Link>
+              </Button>
+            )}
+            {canCreateRollbackIntent && (
+              <Button
+                asChild
+                className="h-9 rounded-xl bg-rose-600 hover:bg-rose-700"
+                type="button"
+              >
+                <Link href="/admin/collections/rollback-intents/create">创建回滚意图</Link>
+              </Button>
+            )}
+          </>
+        }
+        meta={
+          <span className="rounded-full border border-[var(--console-border)] bg-[var(--console-surface)] px-3 py-1 text-xs font-semibold text-[var(--console-ink-muted)]">
             {result.totalDocs} 条可见记录
           </span>
-          {canCreate &&
-          slug === "users" &&
-          (context.session.role === CMS_ROLE.SUPER_ADMIN || context.session.role === CMS_ROLE.TENANT_ADMIN) ? (
-            <ConsoleCreateDialog
-              actorRole={context.session.role === CMS_ROLE.SUPER_ADMIN ? CMS_ROLE.SUPER_ADMIN : CMS_ROLE.TENANT_ADMIN}
-              createLabel="用户"
-            />
-          ) : canCreate && createSupported && slug !== "users" ? (
-            <Button asChild className="h-10 rounded-xl" type="button">
-              <Link href={`${consoleRoute.collection(slug as ConsoleResourceSlug)}/create`}>
-                新建{resource.label.zh}
-              </Link>
-            </Button>
-          ) : null}
-          {canUploadMedia && (
-            <Button asChild className="h-10 rounded-xl" type="button">
-              <Link href="/admin/collections/media/upload">上传媒体</Link>
-            </Button>
-          )}
-          {canCreateRollbackIntent && (
-            <Button
-              asChild
-              className="h-10 rounded-xl bg-rose-600 hover:bg-rose-700"
-              type="button"
-            >
-              <Link href="/admin/collections/rollback-intents/create">创建回滚意图</Link>
-            </Button>
-          )}
-        </div>
-      </header>
+        }
+        title={resource.label.zh}
+      />
 
       {slug === "publication-plans" ? (
         <PublicationPlansWorkspace

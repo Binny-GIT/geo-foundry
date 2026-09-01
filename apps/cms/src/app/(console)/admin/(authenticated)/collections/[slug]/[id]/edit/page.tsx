@@ -1,3 +1,4 @@
+import { PageHeader } from "@/console/components/PageHeader"
 import { notFound } from "next/navigation"
 
 import { CMS_ACTION } from "@/access/policy"
@@ -47,17 +48,7 @@ const ConsoleEditPage = async ({ params }: EditPageProps) => {
   const document = await findConsoleDocument({ id, slug })
   return (
     <div className="grid gap-6">
-      <header>
-        <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">编辑记录</p>
-        <h1 className="m-0 pt-1 text-3xl font-semibold tracking-tight text-[var(--console-ink)]">
-          编辑{resource.label.zh}
-        </h1>
-        <p className="m-0 pt-2 text-sm leading-6 text-[var(--console-ink-muted)]">
-          {slug === "users"
-            ? "可用角色与租户选择由当前会话决定；Payload API 仍会在服务端强制执行最终权限与租户规则。"
-            : "只提交当前资源允许由人工更新的字段。服务端会继续执行租户范围、唯一性、关系与领域校验。"}
-        </p>
-      </header>
+      <PageHeader title={`编辑${resource.label.zh}`} />
       <section className="gf-console-card p-5 sm:p-6">
         {slug === "users" ? (
           <ConsoleUserForm actorRole={userAdministratorRole(session.role)} document={{ ...document, id }} />

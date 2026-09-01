@@ -113,36 +113,30 @@ const ConsoleDocumentPage = async ({ params }: ConsoleDocumentPageProps) => {
 
   return (
     <div className="grid gap-6">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <Link
-            className="gf-console-focus text-sm font-semibold text-indigo-700 no-underline hover:underline dark:text-indigo-300"
-            href={consoleRoute.collection(slug as ConsoleResourceSlug)}
-          >
-            ← 返回{resource.label.zh}
-          </Link>
-          <p className="m-0 pt-5 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">
-            记录详情
-          </p>
-          <h1 className="m-0 max-w-3xl pt-1 break-words text-3xl font-semibold tracking-tight text-[var(--console-ink)]">
+      <header className="grid gap-3">
+        <Link
+          className="gf-console-focus w-fit text-sm font-semibold text-indigo-700 no-underline hover:underline dark:text-indigo-300"
+          href={consoleRoute.collection(slug as ConsoleResourceSlug)}
+        >
+          ← 返回{resource.label.zh}
+        </Link>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="m-0 max-w-3xl break-words text-2xl font-bold tracking-tight text-[var(--console-ink)]">
             {title}
           </h1>
-          <p className="m-0 pt-2 text-sm leading-6 text-[var(--console-ink-muted)]">
-            当前为安全只读详情视图，仅显示此资源在 Console registry 中允许展示的字段。
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="w-fit rounded-full border border-[var(--console-border)] bg-[var(--console-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--console-ink-muted)]">
-            记录 {id}
-          </span>
-          {canEdit && (
-            <Link
-              className="gf-console-focus inline-flex h-10 items-center rounded-xl bg-[var(--console-accent)] px-3.5 text-sm font-semibold text-white no-underline transition-colors hover:bg-[var(--console-accent-hover)]"
-              href={`${consoleRoute.document(slug as ConsoleResourceSlug, id)}/edit`}
-            >
-              编辑{resource.label.zh}
-            </Link>
-          )}
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="w-fit rounded-full border border-[var(--console-border)] bg-[var(--console-surface)] px-3 py-1 text-xs font-semibold text-[var(--console-ink-muted)]">
+              记录 {id}
+            </span>
+            {canEdit && (
+              <Link
+                className="gf-console-focus inline-flex h-9 items-center rounded-xl bg-[var(--console-accent)] px-3.5 text-sm font-semibold text-white no-underline transition-colors hover:bg-[var(--console-accent-hover)]"
+                href={`${consoleRoute.document(slug as ConsoleResourceSlug, id)}/edit`}
+              >
+                编辑{resource.label.zh}
+              </Link>
+            )}
+          </div>
         </div>
       </header>
 

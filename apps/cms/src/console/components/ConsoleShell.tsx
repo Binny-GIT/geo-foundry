@@ -21,7 +21,6 @@ import {
 import { cn } from "@/lib/utils"
 
 export type ConsoleNavigation = {
-  readonly canReadInbox: boolean
   readonly resources: readonly ConsoleResourceSlug[]
   readonly session: {
     readonly email: string
@@ -130,9 +129,9 @@ export const ConsoleShell = ({ children, navigation }: React.PropsWithChildren<{
           menuOpen && "translate-x-0",
         )}
       >
-        <div className="flex h-[76px] items-center gap-3 border-b border-white/10 px-5">
-          <GeoIcon size={28} />
-          <span className="min-w-0 flex-1 truncate text-base font-bold tracking-tight">Geo Foundry</span>
+        <div className="flex h-14 shrink-0 items-center gap-2.5 border-b border-white/10 px-4">
+          <GeoIcon size={22} />
+          <span className="min-w-0 flex-1 truncate text-sm font-bold tracking-tight">Geo Foundry</span>
           <button
             aria-label="关闭导航"
             className="gf-console-focus grid size-10 place-items-center rounded-xl text-white/60 hover:bg-white/10 hover:text-white lg:hidden"
@@ -184,21 +183,23 @@ export const ConsoleShell = ({ children, navigation }: React.PropsWithChildren<{
         </div>
       </aside>
       <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-30 flex h-[76px] items-center gap-3 border-b border-[var(--console-border)] bg-[color-mix(in_srgb,var(--console-canvas)_92%,transparent)] px-4 backdrop-blur lg:px-8">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-[var(--console-border)] bg-[color-mix(in_srgb,var(--console-canvas)_92%,transparent)] px-4 backdrop-blur lg:px-8">
           <button
             aria-label="打开导航"
-            className="gf-console-focus grid size-11 place-items-center rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] text-[var(--console-ink)] lg:hidden"
+            className="gf-console-focus grid size-9 place-items-center rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] text-[var(--console-ink)] lg:hidden"
             onClick={() => setMenuOpen(true)}
             type="button"
           >
-            <MenuIcon size={19} />
+            <MenuIcon size={18} />
           </button>
-          <div className="min-w-0 flex-1">
-            <p className="m-0 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--console-ink-muted)]">GF Studio</p>
-            <p className="m-0 truncate pt-0.5 text-sm font-semibold text-[var(--console-ink)]">内容运营管理中心</p>
-          </div>
+          <p className="m-0 min-w-0 flex-1 truncate text-sm font-semibold text-[var(--console-ink)]">
+            <span className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--console-ink-muted)]">
+              GF Studio
+            </span>
+            <span className="pl-2">内容运营管理中心</span>
+          </p>
           <button
-            className="gf-console-focus h-10 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] px-3 text-xs font-semibold text-[var(--console-ink)] hover:bg-[var(--console-surface-muted)]"
+            className="gf-console-focus h-9 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] px-3 text-xs font-semibold text-[var(--console-ink)] hover:bg-[var(--console-surface-muted)]"
             onClick={switchTheme}
             type="button"
           >

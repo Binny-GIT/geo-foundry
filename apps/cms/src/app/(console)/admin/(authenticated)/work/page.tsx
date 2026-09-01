@@ -2,7 +2,9 @@ import Link from "next/link"
 
 import { CMS_ACTION, CMS_RESOURCE } from "@/access/policy"
 import { AlertTriangleIcon } from "@/components/icons"
-import ReviewBoard, { type IntakeStripItem } from "@/console/components/ReviewBoard"
+import ReviewBoard from "@/console/components/ReviewBoard"
+import { CreateArticleLink } from "@/console/components/CreateArticleLink"
+import { PageHeader } from "@/console/components/PageHeader"
 import {
   PerformanceSuggestions,
   type PerformanceSuggestion,
@@ -20,13 +22,11 @@ const WorkbenchPage = async () => {
   const context = await requireConsolePayloadContext()
   const { payload, session, user } = context
   const role = session.role
-  const canReadIntake = canConsole(session, CMS_RESOURCE.INTAKE_ITEMS, CMS_ACTION.READ)
-  const canManageIntake = canConsole(session, CMS_RESOURCE.INTAKE_ITEMS, CMS_ACTION.UPDATE)
   const canCreateEdition = canConsole(session, CMS_RESOURCE.EDITIONS, CMS_ACTION.CREATE)
   const canReadOperations = canConsole(session, CMS_RESOURCE.OPERATIONS, CMS_ACTION.READ)
   const scopeWhere = siteScopeWhere(context.session)
 
-  const [editions, intakeItems, failedCount, rawSuggestions] = await Promise.all([
+  const [editions, failedCount, rawSuggestions] = await Promise.all([
     payload
       .find({
         collection: "content-editions",
@@ -40,31 +40,6 @@ const WorkbenchPage = async () => {
       })
       .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
       .catch(() => [] as readonly Record<string, unknown>[]),
-    canReadIntake
-      ? payload
-          .find({
-            collection: "intake-items",
-            depth: 0,
-            limit: 20,
-            overrideAccess: false,
-            sort: "-receivedAt",
-            user,
-            where: { status: { equals: "ready" } },
-          })
-          .then((result) =>
-            (result.docs as unknown as readonly Record<string, unknown>[]).flatMap((item) => {
-              const id = item["id"]
-              const title = item["title"]
-              const channel = item["channel"]
-              return typeof id === "number" &&
-                typeof title === "string" &&
-                typeof channel === "string"
-                ? [{ channel, id, title }]
-                : []
-            }),
-          )
-          .catch(() => [] as readonly IntakeStripItem[])
-      : Promise.resolve([] as readonly IntakeStripItem[]),
     canReadOperations
       ? payload
           .count({
@@ -140,37 +115,27 @@ const WorkbenchPage = async () => {
 
   return (
     <div className="grid gap-6 [&>*]:min-w-0">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">运营</p>
-          <h1 className="m-0 pt-1 text-3xl font-semibold tracking-tight text-[var(--console-ink)]">
-            工作台
-          </h1>
-          <p className="m-0 max-w-2xl pt-2 text-sm leading-6 text-[var(--console-ink-muted)]">
-            按状态分列的评审看板：新稿源进入后，沿 草稿 → 待审核 → 通过 → 已发布 流转；所有操作走受保护的工作流端点并写入审计。
-          </p>
-        </div>
-        {failedCount > 0 && (
-          <Link
-            className="gf-console-focus inline-flex h-10 items-center gap-2 rounded-xl border border-rose-300 bg-rose-100 px-3.5 text-sm font-bold text-rose-800 no-underline hover:bg-rose-200"
-            href={consoleRoute.collection("operations")}
-          >
-            <AlertTriangleIcon size={16} />
-            {failedCount} 个失败操作
-          </Link>
-        )}
-      </header>
+      <PageHeader
+        actions={
+          <>
+            {failedCount > 0 && (
+              <Link
+                className="gf-console-focus inline-flex h-9 items-center gap-2 rounded-xl border border-rose-300 bg-rose-100 px-3 text-sm font-bold text-rose-800 no-underline hover:bg-rose-200"
+                href={consoleRoute.collection("operations")}
+              >
+                <AlertTriangleIcon size={15} />
+                {failedCount} 个失败操作
+              </Link>
+            )}
+            {canCreateEdition && <CreateArticleLink />}
+          </>
+        }
+        title="工作台"
+      />
 
       {suggestions.length > 0 && <PerformanceSuggestions suggestions={suggestions} />}
 
-      <ReviewBoard
-        board={groupBoardCards(editions)}
-        canCreateEdition={canCreateEdition}
-        canManageIntake={canManageIntake}
-        canReadInbox={canReadIntake}
-        intakeItems={intakeItems}
-        role={role}
-      />
+      <ReviewBoard board={groupBoardCards(editions)} role={role} />
     </div>
   )
 }

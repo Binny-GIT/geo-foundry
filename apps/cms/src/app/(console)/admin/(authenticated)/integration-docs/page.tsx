@@ -1,3 +1,4 @@
+import { PageHeader } from "@/console/components/PageHeader"
 import { requireConsoleSession } from "@/console/lib/session.server"
 
 export const metadata = { title: "接入文档 | Geo Foundry" }
@@ -13,15 +14,14 @@ const IntegrationDocsPage = async () => {
 
   return (
     <div className="grid gap-6 [&>*]:min-w-0">
-      <header>
-        <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">系统</p>
-        <h1 className="m-0 pt-1 text-3xl font-semibold tracking-tight text-[var(--console-ink)]">
-          接入文档
-        </h1>
-        <p className="m-0 max-w-2xl pt-2 text-sm leading-6 text-[var(--console-ink-muted)]">
-          品牌网站从本系统拉取文章的公开只读接口。只暴露「已发布 + 启用站点」的内容，无需登录，带每 IP 限流；所有调用计入接口统计。
-        </p>
-      </header>
+      <PageHeader
+        meta={
+          <span className="rounded-full border border-[var(--console-border)] bg-[var(--console-surface)] px-3 py-1 text-xs font-semibold text-[var(--console-ink-muted)]">
+            公开只读 · 仅已发布内容 · 每 IP 限流 · 调用计入接口统计
+          </span>
+        }
+        title="接入文档"
+      />
 
       <section className="gf-console-card grid gap-4 p-5 sm:p-6">
         <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">

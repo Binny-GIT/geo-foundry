@@ -1,5 +1,6 @@
 import { CMS_ROLE } from "@/access/roles"
 import { ShieldCheckIcon, UsersIcon } from "@/components/icons"
+import { PageHeader } from "@/console/components/PageHeader"
 import { requireConsoleSession } from "@/console/lib/session.server"
 
 const ROLE_COPY: Readonly<Record<string, { readonly detail: string; readonly label: string }>> = {
@@ -20,13 +21,7 @@ const ConsoleAccountPage = async () => {
 
   return (
     <div className="grid gap-6 [&>*]:min-w-0">
-      <header>
-        <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">账户</p>
-        <h1 className="m-0 pt-1 text-3xl font-semibold tracking-tight text-[var(--console-ink)]">个人与权限</h1>
-        <p className="m-0 pt-2 text-sm leading-6 text-[var(--console-ink-muted)]">
-          账户身份和租户边界始终由服务端会话决定，不能在浏览器中自行变更。
-        </p>
-      </header>
+      <PageHeader title="个人与权限" />
       <section className="gf-console-card grid gap-5 p-5 sm:p-6">
         <div className="flex items-center gap-3">
           <span className="grid size-11 place-items-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-400/15 dark:text-indigo-300">
