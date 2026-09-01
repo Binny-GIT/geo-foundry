@@ -388,7 +388,7 @@ export const IntakeInbox = ({
               </div>
               {typeof selected["sourceUrl"] === "string" && selected["sourceUrl"].length > 0 && (
                 <a
-                  className="gf-console-focus w-fit text-sm font-semibold text-indigo-700 hover:underline dark:text-indigo-300"
+                  className="gf-console-focus w-fit text-sm font-semibold text-[var(--console-ink)] no-underline hover:text-[var(--console-accent)]"
                   href={selected["sourceUrl"]}
                   rel="noreferrer"
                   target="_blank"

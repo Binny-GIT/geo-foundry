@@ -2,6 +2,7 @@ import Link from "next/link"
 
 import { CMS_ACTION, CMS_RESOURCE, type CmsResource } from "@/access/policy"
 import { AlertTriangleIcon, CheckCircleIcon, SendIcon } from "@/components/icons"
+import { Button } from "@/components/ui/button"
 import { CreateArticleLink } from "@/console/components/CreateArticleLink"
 import {
   ChartCard,
@@ -233,12 +234,9 @@ const ConsoleDashboardPage = async () => {
         actions={
           <>
             {canReadIntake && (
-              <Link
-                className="gf-console-focus inline-flex h-9 items-center rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] px-3.5 text-sm font-semibold text-[var(--console-ink)] no-underline transition-colors hover:bg-[var(--console-surface-muted)]"
-                href="/admin/inbox"
-              >
-                采集 / 导入
-              </Link>
+              <Button asChild className="rounded-xl" size="sm" type="button" variant="secondary">
+                <Link href="/admin/inbox">采集 / 导入</Link>
+              </Button>
             )}
             {canCreateEdition && <CreateArticleLink />}
           </>

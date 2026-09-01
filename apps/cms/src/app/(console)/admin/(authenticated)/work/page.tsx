@@ -142,7 +142,7 @@ const WorkbenchPage = async ({ searchParams }: WorkbenchPageProps) => {
             {failedCount > 0 && (
               <Button
                 asChild
-                className="border-rose-300 bg-rose-100 text-rose-800 hover:bg-rose-200"
+                className="border-rose-300 bg-rose-100 text-rose-800 hover:bg-rose-200 dark:border-rose-400/35 dark:bg-rose-400/15 dark:text-rose-200"
                 size="sm"
                 type="button"
                 variant="secondary"

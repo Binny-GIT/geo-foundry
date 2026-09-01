@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 
 import { CMS_ACTION } from "@/access/policy"
 import { CMS_ROLE } from "@/access/roles"
+import { Button } from "@/components/ui/button"
 import ArticleDetail from "@/console/components/ArticleDetail"
 import { ConsoleUrlRename } from "@/console/components/ConsoleUrlRename"
 import SiteDetail from "@/console/components/SiteDetail"
@@ -114,12 +115,11 @@ const ConsoleDocumentPage = async ({ params }: ConsoleDocumentPageProps) => {
   return (
     <div className="grid gap-6">
       <header className="grid gap-3">
-        <Link
-          className="gf-console-focus w-fit text-sm font-semibold text-indigo-700 no-underline hover:underline dark:text-indigo-300"
-          href={consoleRoute.collection(slug as ConsoleResourceSlug)}
-        >
-          ← 返回{resource.label.zh}
-        </Link>
+        <Button asChild className="w-fit" size="sm" type="button" variant="secondary">
+          <Link href={consoleRoute.collection(slug as ConsoleResourceSlug)}>
+            ← 返回{resource.label.zh}
+          </Link>
+        </Button>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="m-0 max-w-3xl break-words text-2xl font-bold tracking-tight text-[var(--console-ink)]">
             {title}
@@ -129,12 +129,11 @@ const ConsoleDocumentPage = async ({ params }: ConsoleDocumentPageProps) => {
               记录 {id}
             </span>
             {canEdit && (
-              <Link
-                className="gf-console-focus inline-flex h-9 items-center rounded-xl bg-[var(--console-accent)] px-3.5 text-sm font-semibold text-white no-underline transition-colors hover:bg-[var(--console-accent-hover)]"
-                href={`${consoleRoute.document(slug as ConsoleResourceSlug, id)}/edit`}
-              >
-                编辑{resource.label.zh}
-              </Link>
+              <Button asChild className="rounded-xl" size="sm" type="button">
+                <Link href={`${consoleRoute.document(slug as ConsoleResourceSlug, id)}/edit`}>
+                  编辑{resource.label.zh}
+                </Link>
+              </Button>
             )}
           </div>
         </div>

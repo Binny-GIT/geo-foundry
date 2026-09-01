@@ -85,7 +85,7 @@ export const ConsoleLoginForm = () => {
         </p>
       )}
       <a
-        className="gf-console-focus -mt-1 w-fit text-sm font-semibold text-indigo-700 no-underline hover:underline dark:text-indigo-300"
+        className="gf-console-focus -mt-1 w-fit text-sm font-semibold text-[var(--console-ink-muted)] no-underline hover:text-[var(--console-accent)]"
         href="/admin/forgot-password"
       >
         忘记密码？

@@ -1,4 +1,6 @@
 import Link from "next/link"
+
+import { Button } from "@/components/ui/button"
 import type { requireConsolePayloadContext } from "@/console/lib/payload.server"
 import { consoleRoute } from "@/console/lib/resources"
 
@@ -72,7 +74,7 @@ const PlanRow = ({ plan }: { readonly plan: PlanRecord }) => {
         </span>
       ) : (
         <Link
-          className="gf-console-focus min-w-0 flex-1 truncate text-sm font-semibold text-indigo-700 no-underline hover:underline dark:text-indigo-300"
+          className="gf-console-focus min-w-0 flex-1 truncate text-sm font-semibold text-[var(--console-ink)] no-underline hover:text-[var(--console-accent)]"
           href={consoleRoute.document("content-editions", String(record(edition)["id"] ?? id))}
         >
           {relationName(edition)}
@@ -158,18 +160,12 @@ export const PublicationPlansWorkspace = async ({
             </p>
           </div>
           <div className="flex gap-2">
-            <Link
-              className={`gf-console-focus inline-flex h-9 items-center rounded-lg border px-3 text-xs font-semibold no-underline ${view === "day" ? "border-indigo-300 bg-indigo-50 text-indigo-700 dark:border-indigo-400/40 dark:bg-indigo-400/15 dark:text-indigo-300" : "border-[var(--console-border)] bg-[var(--console-surface)] text-[var(--console-ink)]"}`}
-              href={`${consoleRoute.collection("publication-plans")}?view=day`}
-            >
-              按日
-            </Link>
-            <Link
-              className={`gf-console-focus inline-flex h-9 items-center rounded-lg border px-3 text-xs font-semibold no-underline ${view === "week" ? "border-indigo-300 bg-indigo-50 text-indigo-700 dark:border-indigo-400/40 dark:bg-indigo-400/15 dark:text-indigo-300" : "border-[var(--console-border)] bg-[var(--console-surface)] text-[var(--console-ink)]"}`}
-              href={`${consoleRoute.collection("publication-plans")}?view=week`}
-            >
-              按周
-            </Link>
+            <Button asChild size="sm" type="button" variant={view === "day" ? "default" : "secondary"}>
+              <Link href={`${consoleRoute.collection("publication-plans")}?view=day`}>按日</Link>
+            </Button>
+            <Button asChild size="sm" type="button" variant={view === "week" ? "default" : "secondary"}>
+              <Link href={`${consoleRoute.collection("publication-plans")}?view=week`}>按周</Link>
+            </Button>
           </div>
         </div>
         {sortedGroups.length === 0 ? (

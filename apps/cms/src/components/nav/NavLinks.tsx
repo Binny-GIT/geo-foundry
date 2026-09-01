@@ -231,33 +231,6 @@ export const NavLinks = ({ visibleSlugs }: NavLinksProps) => {
             >
               Geo Foundry
             </span>
-            {/* Desktop collapse toggle: narrows the sidebar to an icon rail.
-             * Quiet by default, brightens on hover — it must read as a rail
-             * control, not compete with the brand lockup next to it. */}
-            <button
-              aria-label={isZH ? "收起导航" : "Collapse navigation"}
-              className={cn(
-                "hidden size-7 items-center justify-center rounded-full bg-white/10 text-white/80 transition-colors hover:bg-white/20 hover:text-white min-[1441px]:flex",
-                collapsed && "min-[1441px]:mt-3",
-              )}
-              onClick={toggleCollapsed}
-              title={isZH ? "收起导航" : "Collapse navigation"}
-              type="button"
-            >
-              {/*
-               * Morphing collapse toggle (morphicons): the panel glyph glides
-               * between its close/open chevron instead of hard-swapping SVGs.
-               * Icon data comes from the lucide data package, matching the
-               * shapes in components/icons.
-               */}
-              <MorphIcon
-                icon={collapsed ? PanelLeftOpen : PanelLeftClose}
-                reducedMotion="user"
-                size={16}
-                spring="snappy"
-                strokeWidth={1.7}
-              />
-            </button>
             {/* Close button: only needed where the nav is a drawer. */}
             <button
               aria-label={t("general:close") + " " + t("general:menu")}
@@ -358,6 +331,28 @@ export const NavLinks = ({ visibleSlugs }: NavLinksProps) => {
                 <LogOutIcon size={16} strokeWidth={1.65} />
               </Link>
             </Button>
+          </div>
+          <div
+            className={cn(
+              "hidden shrink-0 justify-end border-t border-white/10 px-3 py-2.5 min-[1441px]:flex",
+              collapsed && "min-[1441px]:justify-center",
+            )}
+          >
+            <button
+              aria-label={collapsed ? (isZH ? "展开导航" : "Expand navigation") : isZH ? "收起导航" : "Collapse navigation"}
+              className="flex size-8 items-center justify-center rounded-xl bg-white/8 text-white/75 transition-colors hover:bg-white/16 hover:text-white"
+              onClick={toggleCollapsed}
+              title={collapsed ? (isZH ? "展开导航" : "Expand navigation") : isZH ? "收起导航" : "Collapse navigation"}
+              type="button"
+            >
+              <MorphIcon
+                icon={collapsed ? PanelLeftOpen : PanelLeftClose}
+                reducedMotion="user"
+                size={17}
+                spring="snappy"
+                strokeWidth={1.7}
+              />
+            </button>
           </div>
         </div>
       </aside>

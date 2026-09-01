@@ -1,5 +1,6 @@
 import Link from "next/link"
 
+import { Button } from "@/components/ui/button"
 import { consoleRoute } from "@/console/lib/resources"
 
 export type SiteRow = {
@@ -77,10 +78,10 @@ export const SitesWorkspace = ({
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr className="transition-colors hover:bg-indigo-50/45" key={row.id}>
+              <tr className="transition-colors hover:bg-[var(--console-surface-muted)]" key={row.id}>
                 <td className="border-b border-[var(--console-border)] px-5 py-4 text-sm">
                   <Link
-                    className="gf-console-focus font-semibold text-indigo-700 no-underline hover:underline"
+                    className="gf-console-focus font-semibold text-[var(--console-ink)] no-underline hover:text-[var(--console-accent)]"
                     href={consoleRoute.document("sites", String(row.id))}
                   >
                     {row.name}
@@ -106,12 +107,11 @@ export const SitesWorkspace = ({
                   </td>
                 )}
                 <td className="border-b border-[var(--console-border)] px-5 py-4 text-sm">
-                  <Link
-                    className="gf-console-focus text-xs font-semibold text-indigo-700 no-underline hover:underline"
-                    href={consoleRoute.document("sites", String(row.id))}
-                  >
-                    详情 · 文章 · 发布历史
-                  </Link>
+                  <Button asChild size="sm" type="button" variant="secondary">
+                    <Link href={consoleRoute.document("sites", String(row.id))}>
+                      详情 · 文章 · 发布历史
+                    </Link>
+                  </Button>
                 </td>
               </tr>
             ))}
@@ -124,20 +124,14 @@ export const SitesWorkspace = ({
         第 {page} / {Math.max(totalPages, 1)} 页
       </span>
       <div className="flex gap-2">
-        <Link
-          aria-disabled={page <= 1}
-          className="gf-console-focus inline-flex h-9 items-center rounded-lg border border-[var(--console-border)] px-3 text-xs font-semibold text-[var(--console-ink)] no-underline aria-disabled:pointer-events-none aria-disabled:opacity-40"
-          href={`${consoleRoute.collection("sites")}?page=${Math.max(page - 1, 1)}`}
-        >
-          上一页
-        </Link>
-        <Link
-          aria-disabled={page >= totalPages}
-          className="gf-console-focus inline-flex h-9 items-center rounded-lg border border-[var(--console-border)] px-3 text-xs font-semibold text-[var(--console-ink)] no-underline aria-disabled:pointer-events-none aria-disabled:opacity-40"
-          href={`${consoleRoute.collection("sites")}?page=${Math.min(page + 1, Math.max(totalPages, 1))}`}
-        >
-          下一页
-        </Link>
+        <Button asChild aria-disabled={page <= 1} size="sm" type="button" variant="secondary">
+          <Link href={`${consoleRoute.collection("sites")}?page=${Math.max(page - 1, 1)}`}>上一页</Link>
+        </Button>
+        <Button asChild aria-disabled={page >= totalPages} size="sm" type="button" variant="secondary">
+          <Link href={`${consoleRoute.collection("sites")}?page=${Math.min(page + 1, Math.max(totalPages, 1)}`}>
+            下一页
+          </Link>
+        </Button>
       </div>
     </footer>
   </section>

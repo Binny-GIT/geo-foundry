@@ -403,7 +403,7 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
                     key={String(edition["id"])}
                   >
                     <Link
-                      className="gf-console-focus min-w-0 flex-1 truncate text-sm font-semibold text-[var(--console-ink)] no-underline hover:text-indigo-600"
+                      className="gf-console-focus min-w-0 flex-1 truncate text-sm font-semibold text-[var(--console-ink)] no-underline hover:text-[var(--console-accent)]"
                       href={consoleRoute.document("content-editions", String(edition["id"]))}
                     >
                       {typeof edition["title"] === "string" && edition["title"].length > 0
@@ -515,7 +515,7 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
                   key={String(operation["operationId"] ?? operation["id"])}
                 >
                   <Link
-                    className="gf-console-focus text-sm font-semibold text-[var(--console-ink)] no-underline hover:text-indigo-600"
+                    className="gf-console-focus text-sm font-semibold text-[var(--console-ink)] no-underline hover:text-[var(--console-accent)]"
                     href={consoleRoute.document("operations", String(operation["id"]))}
                   >
                     {String(operation["operationType"] ?? "操作")}

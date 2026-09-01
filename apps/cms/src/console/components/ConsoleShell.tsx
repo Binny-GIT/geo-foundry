@@ -186,22 +186,6 @@ export const ConsoleShell = ({
           >
             Geo Foundry
           </span>
-          {/* Desktop collapse toggle, same morphing glyph as the admin sidebar. */}
-          <button
-            aria-label={collapsed ? "展开导航" : "收起导航"}
-            className="hidden size-7 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white/80 transition-colors hover:bg-white/20 hover:text-white lg:flex"
-            onClick={toggleCollapsed}
-            title={collapsed ? "展开导航" : "收起导航"}
-            type="button"
-          >
-            <MorphIcon
-              icon={collapsed ? PanelLeftOpen : PanelLeftClose}
-              reducedMotion="user"
-              size={16}
-              spring="snappy"
-              strokeWidth={1.7}
-            />
-          </button>
           <button
             aria-label="关闭导航"
             className="gf-console-focus grid size-10 place-items-center rounded-xl text-white/60 hover:bg-white/10 hover:text-white lg:hidden"
@@ -220,6 +204,28 @@ export const ConsoleShell = ({
             </>
           )}
         </nav>
+        <div
+          className={cn(
+            "hidden shrink-0 justify-end border-t border-white/10 px-3 py-2.5 lg:flex",
+            collapsed && "lg:justify-center",
+          )}
+        >
+          <button
+            aria-label={collapsed ? "展开导航" : "收起导航"}
+            className="gf-console-focus flex size-8 cursor-pointer items-center justify-center rounded-xl bg-white/8 text-white/75 transition-colors hover:bg-white/16 hover:text-white"
+            onClick={toggleCollapsed}
+            title={collapsed ? "展开导航" : "收起导航"}
+            type="button"
+          >
+            <MorphIcon
+              icon={collapsed ? PanelLeftOpen : PanelLeftClose}
+              reducedMotion="user"
+              size={17}
+              spring="snappy"
+              strokeWidth={1.7}
+            />
+          </button>
+        </div>
       </aside>
       <div className={cn("min-w-0 flex-1", isWorkbench && "flex min-h-0 flex-col")}>
         <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-[var(--console-border)] bg-[color-mix(in_srgb,var(--console-canvas)_92%,transparent)] px-4 backdrop-blur lg:px-8">

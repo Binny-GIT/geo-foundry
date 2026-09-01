@@ -204,7 +204,7 @@ const ReviewBoard = ({
                   cards.map((card) => (
                     <article className="gf-console-card grid gap-2.5 p-3.5" key={card.id}>
                       <Link
-                        className="gf-console-focus truncate text-sm font-semibold text-[var(--console-ink)] no-underline hover:text-indigo-600"
+                        className="gf-console-focus truncate text-sm font-semibold text-[var(--console-ink)] no-underline hover:text-[var(--console-accent)]"
                         href={consoleRoute.document("content-editions", String(card.id))}
                       >
                         {card.title}

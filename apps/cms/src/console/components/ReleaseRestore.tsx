@@ -123,11 +123,11 @@ export const ReleaseRestore = ({
                 取消
               </Button>
               <Button
-                className="bg-rose-600 hover:bg-rose-700"
                 disabled={pending}
                 onClick={() => void submit()}
                 size="lg"
                 type="button"
+                variant="danger"
               >
                 {pending ? "提交中…" : "确认恢复"}
               </Button>

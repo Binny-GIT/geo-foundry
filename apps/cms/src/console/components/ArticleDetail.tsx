@@ -312,7 +312,7 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
                     "受限站点"
                   ) : (
                     <Link
-                      className="font-semibold text-indigo-700 no-underline hover:underline"
+                      className="gf-console-focus font-semibold text-[var(--console-ink)] no-underline hover:text-[var(--console-accent)]"
                       href={consoleRoute.document("sites", String(siteId))}
                     >
                       {siteName ?? `站点 #${String(siteId)}`}
@@ -366,7 +366,7 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
               </p>
             ) : (
               <a
-                className="gf-console-focus break-all text-sm font-semibold text-indigo-700 no-underline hover:underline"
+                className="gf-console-focus break-all text-sm font-semibold text-[var(--console-ink)] no-underline hover:text-[var(--console-accent)]"
                 href={publicUrl}
                 rel="noreferrer"
                 target="_blank"

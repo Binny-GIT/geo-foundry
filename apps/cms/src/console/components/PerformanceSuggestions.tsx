@@ -65,7 +65,7 @@ export const PerformanceSuggestions = ({
           >
             <span className="min-w-0">
               <a
-                className="gf-console-focus truncate text-sm font-semibold text-[var(--console-ink)] no-underline hover:underline"
+                className="gf-console-focus truncate text-sm font-semibold text-[var(--console-ink)] no-underline hover:text-[var(--console-accent)]"
                 href={suggestion.href}
               >
                 {suggestion.title}

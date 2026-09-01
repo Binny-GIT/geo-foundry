@@ -303,11 +303,7 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
               </Button>
             )}
             {canCreateRollbackIntent && (
-              <Button
-                asChild
-                className="h-9 rounded-xl bg-rose-600 hover:bg-rose-700"
-                type="button"
-              >
+              <Button asChild className="h-9 rounded-xl" type="button" variant="danger">
                 <Link href="/admin/collections/rollback-intents/create">创建回滚意图</Link>
               </Button>
             )}
@@ -335,13 +331,9 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
                 此预览页已启用服务端权限范围读取；筛选、列偏好和写入功能将在下一批迁移中接入。
               </p>
             </div>
-            <button
-              className="gf-console-focus h-10 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-xs font-semibold text-[var(--console-ink-muted)]"
-              disabled
-              type="button"
-            >
+            <Button className="h-10 rounded-xl" disabled size="sm" type="button" variant="secondary">
               筛选即将接入
-            </button>
+            </Button>
           </div>
 
           {result.docs.length === 0 ? (
@@ -372,7 +364,7 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
                 <tbody>
                   {result.docs.map((doc, index) => (
                     <tr
-                      className="gf-row transition-colors hover:bg-indigo-50/45 dark:hover:bg-indigo-400/6"
+                      className="gf-row transition-colors hover:bg-[var(--console-surface-muted)]"
                       key={String(doc["id"] ?? index)}
                       style={{ animationDelay: `${Math.min(index, 8) * 35}ms` }}
                     >
@@ -385,7 +377,7 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
                           doc["id"] !== undefined &&
                           doc["id"] !== null ? (
                             <Link
-                              className="gf-console-focus block truncate font-semibold text-indigo-700 no-underline hover:underline dark:text-indigo-300"
+                              className="gf-console-focus block truncate font-semibold text-[var(--console-ink)] no-underline hover:text-[var(--console-accent)]"
                               href={consoleRoute.document(
                                 slug as ConsoleResourceSlug,
                                 String(doc["id"]),
@@ -418,20 +410,16 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
               第 {result.page} / {Math.max(result.totalPages, 1)} 页
             </span>
             <div className="flex gap-2">
-              <Link
-                aria-disabled={result.page <= 1}
-                className="gf-console-focus inline-flex h-9 items-center rounded-lg border border-[var(--console-border)] px-3 text-xs font-semibold text-[var(--console-ink)] no-underline aria-disabled:pointer-events-none aria-disabled:opacity-40"
-                href={`${consoleRoute.collection(slug as ConsoleResourceSlug)}?page=${Math.max(result.page - 1, 1)}`}
-              >
-                上一页
-              </Link>
-              <Link
-                aria-disabled={result.page >= result.totalPages}
-                className="gf-console-focus inline-flex h-9 items-center gap-1 rounded-lg border border-[var(--console-border)] px-3 text-xs font-semibold text-[var(--console-ink)] no-underline aria-disabled:pointer-events-none aria-disabled:opacity-40"
-                href={`${consoleRoute.collection(slug as ConsoleResourceSlug)}?page=${Math.min(result.page + 1, Math.max(result.totalPages, 1))}`}
-              >
-                下一页 <ChevronDownIcon size={13} />
-              </Link>
+              <Button asChild aria-disabled={result.page <= 1} size="sm" type="button" variant="secondary">
+                <Link href={`${consoleRoute.collection(slug as ConsoleResourceSlug)}?page=${Math.max(result.page - 1, 1)}`}>
+                  上一页
+                </Link>
+              </Button>
+              <Button asChild aria-disabled={result.page >= result.totalPages} size="sm" type="button" variant="secondary">
+                <Link href={`${consoleRoute.collection(slug as ConsoleResourceSlug)}?page=${Math.min(result.page + 1, Math.max(result.totalPages, 1))}`}>
+                  下一页 <ChevronDownIcon size={13} />
+                </Link>
+              </Button>
             </div>
           </footer>
         </section>

@@ -119,20 +119,23 @@ export const EditionsWorkspace = ({
         <span />
       )}
       <div className="flex items-center gap-2">
-        <Button type="submit">筛选</Button>
-        <Link
-          className="gf-console-focus inline-flex h-10 items-center rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] px-3 text-sm font-semibold text-[var(--console-ink)] no-underline hover:bg-[var(--console-surface-muted)]"
-          href={articleListHref({
-            ...query,
-            page: 1,
-            q: null,
-            site: null,
-            status: null,
-            tenant: null,
-          })}
-        >
-          重置
-        </Link>
+        <Button className="h-10 rounded-xl" type="submit">
+          筛选
+        </Button>
+        <Button asChild className="h-10 rounded-xl" type="button" variant="secondary">
+          <Link
+            href={articleListHref({
+              ...query,
+              page: 1,
+              q: null,
+              site: null,
+              status: null,
+              tenant: null,
+            })}
+          >
+            重置
+          </Link>
+        </Button>
       </div>
     </form>
 
@@ -177,10 +180,13 @@ export const EditionsWorkspace = ({
                   : "未命名稿件"
               const status = typeof doc["workflowStatus"] === "string" ? doc["workflowStatus"] : ""
               return (
-                <tr className="transition-colors hover:bg-indigo-50/45" key={String(id ?? index)}>
+                <tr
+                  className="transition-colors hover:bg-[var(--console-surface-muted)]"
+                  key={String(id ?? index)}
+                >
                   <td className="max-w-[320px] border-b border-[var(--console-border)] px-5 py-4 text-sm">
                     <Link
-                      className="gf-console-focus block truncate font-semibold text-indigo-700 no-underline hover:underline"
+                      className="gf-console-focus block truncate font-semibold text-[var(--console-ink)] no-underline hover:text-[var(--console-accent)]"
                       href={consoleRoute.document("content-editions", String(id))}
                     >
                       {title}
@@ -218,20 +224,14 @@ export const EditionsWorkspace = ({
         共 {totalDocs} 篇 · 第 {page} / {Math.max(totalPages, 1)} 页
       </span>
       <div className="flex gap-2">
-        <Link
-          aria-disabled={page <= 1}
-          className="gf-console-focus inline-flex h-9 items-center rounded-lg border border-[var(--console-border)] px-3 text-xs font-semibold text-[var(--console-ink)] no-underline aria-disabled:pointer-events-none aria-disabled:opacity-40"
-          href={articleListHref(query, { page: Math.max(page - 1, 1) })}
-        >
-          上一页
-        </Link>
-        <Link
-          aria-disabled={page >= totalPages}
-          className="gf-console-focus inline-flex h-9 items-center rounded-lg border border-[var(--console-border)] px-3 text-xs font-semibold text-[var(--console-ink)] no-underline aria-disabled:pointer-events-none aria-disabled:opacity-40"
-          href={articleListHref(query, { page: Math.min(page + 1, Math.max(totalPages, 1)) })}
-        >
-          下一页
-        </Link>
+        <Button asChild aria-disabled={page <= 1} size="sm" type="button" variant="secondary">
+          <Link href={articleListHref(query, { page: Math.max(page - 1, 1) })}>上一页</Link>
+        </Button>
+        <Button asChild aria-disabled={page >= totalPages} size="sm" type="button" variant="secondary">
+          <Link href={articleListHref(query, { page: Math.min(page + 1, Math.max(totalPages, 1)) })}>
+            下一页
+          </Link>
+        </Button>
       </div>
     </footer>
   </section>
