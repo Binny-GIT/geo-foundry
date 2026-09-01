@@ -32,6 +32,15 @@ Geo Foundry 是 Xllent AI、Dianordic、NKMed 等自有品牌共用的**内容�
 - S3 兼容对象存储保存媒体、稿源快照与发布产物
 - Lexical 编辑结构化正文，Zod 做运行时校验
 
+### UI 组件规范（shadcn/ui）
+
+管理界面基于 [shadcn/ui](https://ui.shadcn.com) 模式构建：组件源码归我们在 `apps/cms/src/components/ui/`，底层是 Radix UI 原语 + `class-variance-authority`，样式全部用 Tailwind CSS 工具类。写新界面时遵守：
+
+- **按钮一律用 `components/ui/button.tsx` 的 `Button`**（variant：`default` / `dark` / `secondary` / `danger` / `ghost` / `outline`），不要手写 `<button className="...">` 再自己拼圆角配色——那会重新出现边框过重、圆角不一、缺手势光标的问题。
+- 状态标签用 `Badge`，图标沿用 `components/icons` 里同一套线性图标（统一 `strokeWidth`）。
+- 间距、圆角、颜色只用 Tailwind 工具类和 `--gf-*` / `--theme-*` 设计变量，不引入新的硬编码色值。
+- 参考文档：<https://ui.shadcn.com/docs>（安装与组件用法）；新增 shadcn 组件时拷贝源码进 `components/ui/` 并按本项目变量改名，不走 npm 包。
+
 选型取舍与明确不采用的技术见[架构说明](docs/architecture.md)。
 
 ## 目录结构

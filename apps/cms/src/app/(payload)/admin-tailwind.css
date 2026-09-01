@@ -104,3 +104,18 @@
   --shadow-gfs-card: 0 1px 2px rgb(15 23 42 / 5%), 0 8px 24px -12px rgb(15 23 42 / 12%);
   --shadow-gfs-pop: 0 4px 8px -2px rgb(15 23 42 / 8%), 0 16px 40px -12px rgb(15 23 42 / 16%);
 }
+
+/*
+ * Pointer cursor for every interactive control (the shadcn/ui baseline).
+ * Browsers default <button> to `cursor: default`, which reads as broken on
+ * admin surfaces full of custom-styled buttons. Disabled controls keep the
+ * not-allowed hint by staying excluded here.
+ */
+button:not(:disabled),
+[role="button"]:not(:disabled),
+[role="tab"]:not(:disabled),
+summary:not(:disabled),
+select:not(:disabled) {
+  cursor: pointer;
+}
+

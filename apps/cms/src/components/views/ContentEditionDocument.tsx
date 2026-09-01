@@ -25,6 +25,7 @@ import { ContentEditionSetupFields } from "../content-edition/ContentEditionSetu
 import { EyeIcon, PencilIcon } from "../icons"
 import { uiLangOf } from "../i18n/ui-lang"
 import { Badge } from "../ui/Badge"
+import { Button } from "../ui/button"
 import { isWorkflowStatus, workflowStatusLabel, WORKFLOW_TONE } from "../workflow/workflow-actions-model"
 
 const COPY = {
@@ -111,9 +112,9 @@ const ContentEditionDocumentBody = ({ readOnly }: { readonly readOnly: boolean }
             <p className="m-0 mt-1 text-xs text-[var(--theme-elevation-600)]">{saveState}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button className={`inline-flex min-h-11 items-center gap-2 rounded-lg px-4 text-sm font-bold ${mode === "preview" ? "bg-[var(--gf-accent-600)] text-white" : "border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] text-[var(--theme-text)]"}`} onClick={() => { setSelectedVersion(null); setMode("preview") }} type="button"><EyeIcon size={16} /> {t.preview}</button>
-            {!readOnly && <button className={`inline-flex min-h-11 items-center gap-2 rounded-lg px-4 text-sm font-bold ${mode === "edit" ? "bg-[var(--gf-accent-600)] text-white" : "border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] text-[var(--theme-text)]"}`} onClick={() => { setSelectedVersion(null); setMode("edit") }} type="button"><PencilIcon size={16} /> {t.edit}</button>}
-            {!readOnly && <button className="min-h-11 rounded-lg bg-[var(--theme-text)] px-4 text-sm font-bold text-white hover:bg-[var(--theme-elevation-800)] disabled:cursor-wait disabled:opacity-60" disabled={processing} type="submit">{processing ? t.saving : t.save}</button>}
+            <Button aria-pressed={mode === "preview"} onClick={() => { setSelectedVersion(null); setMode("preview") }} size="lg" variant={mode === "preview" ? "default" : "secondary"} type="button"><EyeIcon size={16} /> {t.preview}</Button>
+            {!readOnly && <Button aria-pressed={mode === "edit"} onClick={() => { setSelectedVersion(null); setMode("edit") }} size="lg" variant={mode === "edit" ? "default" : "secondary"} type="button"><PencilIcon size={16} /> {t.edit}</Button>}
+            {!readOnly && <Button disabled={processing} size="lg" type="submit" variant="dark">{processing ? t.saving : t.save}</Button>}
           </div>
         </div>
       </header>

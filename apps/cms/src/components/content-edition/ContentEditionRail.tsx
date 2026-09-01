@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation"
 import { useEffect, useId, useState } from "react"
 
 import { CopyIcon, LayersIcon, RotateCcwIcon } from "../icons"
-import { IconBadge } from "../ui"
+import { Badge, IconBadge } from "../ui"
+import { Button } from "../ui/button"
 import { uiLangOf } from "../i18n/ui-lang"
-import { workflowStatusLabel, isWorkflowStatus } from "../workflow/workflow-actions-model"
+import { workflowStatusLabel, isWorkflowStatus, WORKFLOW_TONE } from "../workflow/workflow-actions-model"
 import { WorkflowActions } from "../workflow/WorkflowActions"
 import type { EditionVersionHistoryItem } from "../../services/edition-version-history"
 
@@ -49,6 +50,15 @@ const TEXT = {
 } as const
 
 export type VersionSelection = EditionVersionHistoryItem | null
+
+/** Compact `YYYY-MM-DD HH:mm` in UTC — seconds add noise, the full locale
+ * string stays available on hover via the `title` attribute. */
+const shortUtcStamp = (iso: string) => {
+  const date = new Date(iso)
+  if (Number.isNaN(date.valueOf())) return iso
+  const pad = (value: number) => String(value).padStart(2, "0")
+  return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`
+}
 
 export const ContentEditionRail = ({
   onSelectVersion,
@@ -164,8 +174,8 @@ export const ContentEditionRail = ({
 
       <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]">
         <div className="flex items-center gap-3"><IconBadge tone="neutral"><CopyIcon size={18} /></IconBadge><div><p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">{t.history}</p><strong className="mt-1 block text-sm text-[var(--theme-text)]">{versionCount} {t.version}</strong></div></div>
-        {loading ? <p className="m-0 mt-4 text-sm text-[var(--theme-elevation-600)]">{t.loading}</p> : versions.length === 0 ? <p className="m-0 mt-4 text-sm text-[var(--theme-elevation-600)]">{t.noVersions}</p> : <ol className="m-0 mt-4 flex list-none flex-col p-0">{versions.map((version) => <li className="border-t border-[var(--theme-elevation-100)] py-3 first:border-t-0 first:pt-0" key={version.id}><button className={`w-full rounded-lg p-2 text-left transition ${selectedVersion?.id === version.id ? "bg-[var(--gf-tone-accent-bg)]" : "hover:bg-[var(--theme-elevation-50)]"}`} onClick={() => onSelectVersion(selectedVersion?.id === version.id ? null : version)} type="button"><span className="block text-sm font-bold text-[var(--theme-text)]">{isWorkflowStatus(version.workflowStatus) ? workflowStatusLabel(version.workflowStatus, i18n.language) : lang === "zh" ? "已保存版本" : "Saved version"}</span><span className="mt-1 block text-xs text-[var(--theme-elevation-600)]">{new Date(version.updatedAt).toLocaleString(lang === "zh" ? "zh-CN" : "en-US", { timeZone: "UTC" })}</span></button></li>)}</ol>}
-        {selectedVersion !== null && <div className="mt-4 rounded-xl border border-[var(--gf-tone-warning-fg)] bg-[var(--gf-tone-warning-bg)] p-3"><p className="m-0 text-sm font-bold text-[var(--gf-tone-warning-fg)]">{t.selected}</p>{canRestore && <button className="mt-3 min-h-11 w-full rounded-lg bg-[var(--gf-accent-600)] px-3 text-sm font-bold text-white hover:bg-[var(--gf-accent-700)]" onClick={() => setRestoreOpen(true)} type="button">{t.restore}</button>}</div>}
+        {loading ? <p className="m-0 mt-4 text-sm text-[var(--theme-elevation-600)]">{t.loading}</p> : versions.length === 0 ? <p className="m-0 mt-4 text-sm text-[var(--theme-elevation-600)]">{t.noVersions}</p> : <ol className="m-0 mt-3 flex list-none flex-col gap-1 p-0">{versions.map((version, index) => { const isSelected = selectedVersion?.id === version.id; const tone = isWorkflowStatus(version.workflowStatus) ? WORKFLOW_TONE[version.workflowStatus] : "neutral"; const label = isWorkflowStatus(version.workflowStatus) ? workflowStatusLabel(version.workflowStatus, i18n.language) : lang === "zh" ? "已保存版本" : "Saved version"; return <li key={version.id}><button aria-pressed={isSelected} className={`flex w-full items-center gap-2.5 rounded-lg border px-2.5 py-2 text-left transition-colors ${isSelected ? "border-[var(--gf-accent-300)] bg-[var(--gf-tone-accent-bg)]" : "border-transparent hover:bg-[var(--theme-elevation-50)]"}`} onClick={() => onSelectVersion(isSelected ? null : version)} type="button"><span className="text-xs font-bold tabular-nums text-[var(--theme-elevation-500)]">#{versions.length - index}</span><Badge tone={tone}>{label}</Badge><span className="ml-auto text-xs tabular-nums text-[var(--theme-elevation-600)]" title={new Date(version.updatedAt).toLocaleString(lang === "zh" ? "zh-CN" : "en-US", { timeZone: "UTC" })}>{shortUtcStamp(version.updatedAt)}</span></button></li> })}</ol>}
+        {selectedVersion !== null && <div className="mt-4 rounded-xl border border-[var(--gf-tone-warning-fg)] bg-[var(--gf-tone-warning-bg)] p-3"><p className="m-0 text-sm font-bold text-[var(--gf-tone-warning-fg)]">{t.selected}</p>{canRestore && <Button className="mt-3 w-full" onClick={() => setRestoreOpen(true)} size="lg" type="button">{t.restore}</Button>}</div>}
       </section>
 
       <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]">
@@ -173,7 +183,7 @@ export const ContentEditionRail = ({
         <p className="m-0 mt-3 text-xs leading-5 text-[var(--theme-elevation-600)]">{t.apiHint}</p>
       </section>
 
-      {restoreOpen && selectedVersion !== null && <div aria-labelledby={`${reasonId}-title`} aria-modal="true" className="fixed inset-0 z-50 grid place-items-center bg-slate-950/45 p-4" role="dialog"><div className="w-full max-w-lg rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-6 shadow-2xl"><p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">{t.history}</p><h2 className="m-0 mt-1 text-xl font-bold tracking-tight text-[var(--theme-text)]" id={`${reasonId}-title`}>{t.restoreConfirm}</h2><p className="m-0 mt-3 text-sm leading-6 text-[var(--theme-elevation-700)]">{t.restoreHint}</p><label className="mt-5 block" htmlFor={reasonId}><span className="text-sm font-bold text-[var(--theme-text)]">{t.restoreReason} *</span><textarea aria-invalid={reasonError !== null} className="mt-2 min-h-24 w-full resize-y rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] p-3 text-sm text-[var(--theme-text)] outline-none focus:border-[var(--gf-accent-500)] focus:ring-2 focus:ring-[var(--gf-accent-200)]" id={reasonId} maxLength={500} onChange={(event) => { setReason(event.target.value); setReasonError(null) }} value={reason} />{reasonError !== null && <span className="mt-1 block text-xs font-semibold text-[var(--theme-error-700)]">{reasonError}</span>}</label><div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button className="min-h-11 rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-100)] px-4 text-sm font-bold text-[var(--theme-text)]" disabled={restoring} onClick={() => setRestoreOpen(false)} type="button">{lang === "zh" ? "取消" : "Cancel"}</button><button className="min-h-11 rounded-lg bg-[var(--gf-accent-600)] px-4 text-sm font-bold text-white disabled:opacity-70" disabled={restoring} onClick={() => void restore()} type="button">{restoring ? t.restoring : t.restoreConfirm}</button></div></div></div>}
+      {restoreOpen && selectedVersion !== null && <div aria-labelledby={`${reasonId}-title`} aria-modal="true" className="fixed inset-0 z-50 grid place-items-center bg-slate-950/45 p-4" role="dialog"><div className="w-full max-w-lg rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-6 shadow-2xl"><p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">{t.history}</p><h2 className="m-0 mt-1 text-xl font-bold tracking-tight text-[var(--theme-text)]" id={`${reasonId}-title`}>{t.restoreConfirm}</h2><p className="m-0 mt-3 text-sm leading-6 text-[var(--theme-elevation-700)]">{t.restoreHint}</p><label className="mt-5 block" htmlFor={reasonId}><span className="text-sm font-bold text-[var(--theme-text)]">{t.restoreReason} *</span><textarea aria-invalid={reasonError !== null} className="mt-2 min-h-24 w-full resize-y rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] p-3 text-sm text-[var(--theme-text)] outline-none focus:border-[var(--gf-accent-500)] focus:ring-2 focus:ring-[var(--gf-accent-200)]" id={reasonId} maxLength={500} onChange={(event) => { setReason(event.target.value); setReasonError(null) }} value={reason} />{reasonError !== null && <span className="mt-1 block text-xs font-semibold text-[var(--theme-error-700)]">{reasonError}</span>}</label><div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><Button disabled={restoring} onClick={() => setRestoreOpen(false)} size="lg" type="button" variant="secondary">{lang === "zh" ? "取消" : "Cancel"}</Button><Button disabled={restoring} onClick={() => void restore()} size="lg" type="button">{restoring ? t.restoring : t.restoreConfirm}</Button></div></div></div>}
     </aside>
   )
 }

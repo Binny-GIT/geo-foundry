@@ -202,6 +202,105 @@ export const ChevronDownIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) =>
   </svg>
 )
 
+/** Sidebar collapse / expand toggles. */
+export const PanelLeftCloseIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <rect height="18" rx="2" width="18" x="3" y="3" />
+    <path d="M9 3v18" />
+    <path d="m16 15-3-3 3-3" />
+  </svg>
+)
+
+export const PanelLeftOpenIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <rect height="18" rx="2" width="18" x="3" y="3" />
+    <path d="M9 3v18" />
+    <path d="m14 9 3 3-3 3" />
+  </svg>
+)
+
+export const PlugIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <path d="M12 22v-5" />
+    <path d="M9 8V2" />
+    <path d="M15 8V2" />
+    <path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z" />
+  </svg>
+)
+
+export const InboxIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
+    <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+  </svg>
+)
+
+export const FileClockIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <path d="M11.4 12H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-3" />
+    <path d="M16 2v4h6" />
+    <path d="M16 4h2a2 2 0 0 1 2 2v4h-6V4Z" />
+    <circle cx="16" cy="18" r="4" />
+    <path d="M16 16.5V18l1 1" />
+  </svg>
+)
+
+export const NewspaperIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2" />
+    <path d="M18 14h-8" />
+    <path d="M15 18h-5" />
+    <path d="M10 6h8v4h-8V6Z" />
+  </svg>
+)
+
+export const MessageSquareIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </svg>
+)
+
+export const CalendarClockIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5" />
+    <path d="M16 2v4" />
+    <path d="M8 2v4" />
+    <path d="M3 10h5" />
+    <circle cx="17" cy="17" r="5" />
+    <path d="M17 15v2h2" />
+  </svg>
+)
+
+export const ChartLineIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+    <polyline points="16 7 22 7 22 13" />
+  </svg>
+)
+
+export const ChartBarIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <path d="M3 3v18h18" />
+    <path d="M8 17v-5" />
+    <path d="M13 17V8" />
+    <path d="M18 17V5" />
+  </svg>
+)
+
+export const SendIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <path d="m22 2-7 20-4-9-9-4Z" />
+    <path d="M22 2 11 13" />
+  </svg>
+)
+
+export const KeyRoundIcon = ({ size = 20, strokeWidth = 1.75 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <path d="M2.59 17.42A2 2 0 0 0 2 18.83V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.17a2 2 0 0 0 1.42-.59l.81-.81a6.5 6.5 0 1 0-4-4z" />
+    <circle cx="16.5" cy="7.5" r="0.5" fill="currentColor" />
+  </svg>
+)
+
 /**
  * One nav icon per admin sidebar entry, keyed by collection slug. `sites`
  * and `domains` intentionally share GlobeIcon — a domain is a routing
@@ -220,4 +319,19 @@ export const NAV_ICON_BY_SLUG: Readonly<Record<string, ComponentType<IconProps>>
   tenants: LockIcon,
   "url-records": LinkIcon,
   users: UsersIcon,
+  // Intake and editorial-support collections.
+  "article-sources": NewspaperIcon,
+  connectors: PlugIcon,
+  "intake-items": InboxIcon,
+  "review-comments": MessageSquareIcon,
+  "source-snapshots": FileClockIcon,
+  // Release and analytics collections.
+  "api-usage-dailies": ChartBarIcon,
+  "outbox-events": SendIcon,
+  "performance-snapshots": ChartLineIcon,
+  "publication-plans": CalendarClockIcon,
+  // Internal bookkeeping tables — hidden from most roles, one glyph for all.
+  "edition-draft-restore-idempotency": KeyRoundIcon,
+  "idempotency-records": KeyRoundIcon,
+  "reviewer-edition-decision-idempotency": KeyRoundIcon,
 }

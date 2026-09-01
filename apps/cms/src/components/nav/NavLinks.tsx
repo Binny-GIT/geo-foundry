@@ -6,6 +6,7 @@ import { getTranslation } from "@payloadcms/translations"
 import { Link, useAuth, useConfig, useNav, useTranslation } from "@payloadcms/ui"
 import { EntityType, type NavGroupType } from "@payloadcms/ui/shared"
 import { usePathname } from "next/navigation"
+import { useEffect, useState } from "react"
 import { formatAdminURL } from "payload/shared"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -28,6 +29,8 @@ import {
   LogOutIcon,
   MenuIcon,
   NAV_ICON_BY_SLUG,
+  PanelLeftCloseIcon,
+  PanelLeftOpenIcon,
   XIcon,
 } from "../icons"
 
@@ -99,6 +102,26 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
   const { user } = useAuth()
   const adminRoute = config.routes.admin
 
+  /*
+   * Desktop icon-rail collapse. Payload's own `navOpen` only drives the
+   * <=1440px drawer; this is a separate, persisted narrow mode for large
+   * viewports. Initialized in an effect (not from localStorage during
+   * render) so SSR markup and the first client render stay identical —
+   * the width utility is applied afterwards as a pure style change.
+   * Breakpoint-prefixed classes keep the collapsed width desktop-only:
+   * in drawer mode the sidebar is either fully open or display:none.
+   */
+  const [collapsed, setCollapsed] = useState(false)
+  useEffect(() => {
+    setCollapsed(window.localStorage.getItem("gf-nav-collapsed") === "1")
+  }, [])
+  const toggleCollapsed = () => {
+    setCollapsed((previous) => {
+      window.localStorage.setItem("gf-nav-collapsed", previous ? "0" : "1")
+      return !previous
+    })
+  }
+
   const email = typeof user?.["email"] === "string" ? user["email"] : null
   const role = typeof user?.["role"] === "string" ? user["role"] : null
   const logoutHref = formatAdminURL({ adminRoute, path: config.admin.routes.logout })
@@ -112,6 +135,7 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
     cn(
       "relative flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-white/70 no-underline transition-colors",
       isActive ? "bg-white/10 font-medium text-white" : "hover:bg-white/5 hover:text-white",
+      collapsed && "min-[1441px]:justify-center min-[1441px]:gap-0 min-[1441px]:px-0",
     )
 
   return (
@@ -147,16 +171,28 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
           // `.nav__scroll` (layout) split — collapsing them onto one
           // element is what broke the footer pinning the first time).
           "gf-sidebar sticky top-0 h-screen w-[var(--nav-width)] shrink-0 overflow-hidden opacity-0",
+          collapsed && "min-[1441px]:w-[72px]",
           navOpen && "opacity-100",
-          shouldAnimate && "transition-opacity duration-150 ease-in-out",
+          shouldAnimate && "transition-[opacity,width] duration-150 ease-in-out",
           hydrated && "gf-sidebar--hydrated",
         )}
         inert={!navOpen}
       >
         <div className="flex h-full flex-col bg-gfs-ink-900 text-white">
-          <div className="flex items-center gap-2.5 px-5 pt-6 pb-5">
+          <div className={cn("flex items-center gap-2.5 px-5 pt-6 pb-5", collapsed && "min-[1441px]:justify-center min-[1441px]:gap-0 min-[1441px]:px-2")}>
             <GeoIcon size={26} />
-            <span className="flex-1 text-base font-bold tracking-tight">Geo Foundry</span>
+            <span className={cn("flex-1 text-base font-bold tracking-tight", collapsed && "min-[1441px]:hidden")}>Geo Foundry</span>
+            {/* Desktop collapse toggle: narrows the sidebar to an icon rail. */}
+            <button
+              aria-label={isZH ? "收起导航" : "Collapse navigation"}
+              className={cn(
+                "hidden size-8 items-center justify-center rounded-md text-white/60 transition-colors hover:bg-white/10 hover:text-white min-[1441px]:flex",
+              )}
+              onClick={toggleCollapsed}
+              type="button"
+            >
+              {collapsed ? <PanelLeftOpenIcon size={18} strokeWidth={1.8} /> : <PanelLeftCloseIcon size={18} strokeWidth={1.8} />}
+            </button>
             {/* Close button: only needed where the nav is a drawer. */}
             <button
               aria-label={t("general:close") + " " + t("general:menu")}
@@ -178,24 +214,25 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
                   href={adminRoute}
                   id="nav-dashboard"
                   prefetch={false}
+                  title={t("general:dashboard")}
                 >
                   {pathname === adminRoute && (
                     <span className="absolute inset-y-1 left-0 w-[3px] rounded-full bg-gfs-accent-500" />
                   )}
                   <LayoutGridIcon size={17} strokeWidth={1.8} />
-                  <span className="truncate">{t("general:dashboard")}</span>
+                  <span className={cn("truncate", collapsed && "min-[1441px]:hidden")}>{t("general:dashboard")}</span>
                 </Link>
                 {canUseWorkQueue && (
-                  <Link className={linkClassName(pathname === `${adminRoute}/work`)} href={`${adminRoute}/work`} prefetch={false}>
+                  <Link className={linkClassName(pathname === `${adminRoute}/work`)} href={`${adminRoute}/work`} prefetch={false} title={workLabel}>
                     <LayersIcon size={17} strokeWidth={1.8} />
-                    <span className="truncate">{workLabel}</span>
+                    <span className={cn("truncate", collapsed && "min-[1441px]:hidden")}>{workLabel}</span>
                   </Link>
                 )}
               </div>
 
               {groups.map((group) => (
                 <div className="flex flex-col gap-1" key={group.label}>
-                  <div className="px-3 text-[11px] font-semibold uppercase tracking-wider text-white/40">
+                  <div className={cn("px-3 text-[11px] font-semibold uppercase tracking-wider text-white/40", collapsed && "min-[1441px]:hidden")}>
                     {isZH ? (ZH_GROUP_LABEL[group.label] ?? group.label) : group.label}
                   </div>
                   <div className="flex flex-col gap-0.5">
@@ -214,23 +251,23 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
                         pathname.startsWith(href) &&
                         ["/", undefined].includes(pathname[href.length])
                       const Icon = NAV_ICON_BY_SLUG[entity.slug]
+                      const label = isZH
+                        ? (ZH_ENTITY_LABEL[entity.slug] ?? getTranslation(entity.label, i18n))
+                        : getTranslation(entity.label, i18n)
                       const content = (
                         <>
                           {isActive && (
                             <span className="absolute inset-y-1 left-0 w-[3px] rounded-full bg-gfs-accent-500" />
                           )}
                           {Icon !== undefined && <Icon size={17} strokeWidth={1.8} />}
-                          <span className="truncate">
-                            {isZH
-                              ? (ZH_ENTITY_LABEL[entity.slug] ??
-                                getTranslation(entity.label, i18n))
-                              : getTranslation(entity.label, i18n)}
+                          <span className={cn("truncate", collapsed && "min-[1441px]:hidden")}>
+                            {label}
                           </span>
                         </>
                       )
                       if (pathname === href) {
                         return (
-                          <div className={linkClassName(isActive)} id={id} key={entity.slug}>
+                          <div className={linkClassName(isActive)} id={id} key={entity.slug} title={label}>
                             {content}
                           </div>
                         )
@@ -242,6 +279,7 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
                           id={id}
                           key={entity.slug}
                           prefetch={false}
+                          title={label}
                         >
                           {content}
                         </Link>
@@ -255,13 +293,13 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
 
           <Separator className="mx-5 w-auto bg-white/10" />
 
-          <div className="flex items-center gap-2.5 px-5 py-4">
-            <Avatar className="bg-gfs-accent-500/20">
+          <div className={cn("flex items-center gap-2.5 px-5 py-4", collapsed && "min-[1441px]:flex-col min-[1441px]:justify-center min-[1441px]:gap-2 min-[1441px]:px-2")}>
+            <Avatar className="bg-gfs-accent-500/20" title={email ?? undefined}>
               <AvatarFallback className="bg-transparent text-gfs-accent-300">
                 {initialOf(email)}
               </AvatarFallback>
             </Avatar>
-            <div className="grid min-w-0 flex-1 gap-0.5">
+            <div className={cn("grid min-w-0 flex-1 gap-0.5", collapsed && "min-[1441px]:hidden")}>
               <strong className="truncate text-xs font-semibold text-white">
                 {email ?? (isZH ? "账户" : "Account")}
               </strong>
@@ -275,8 +313,10 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
              * official switchLanguage server action writes that cookie and
              * refreshes the tree, so selecting an item is the whole
              * mechanism. Opens upward — the toggle lives in the sidebar
-             * footer, there is no room below it.
+             * footer, there is no room below it. Hidden in the collapsed
+             * rail (72px); expand or use the account page to switch.
              */}
+            <div className={cn(collapsed && "min-[1441px]:hidden")}>
             <DropdownMenu>
               <DropdownMenuTrigger
                 aria-label={t("general:language")}
@@ -313,6 +353,7 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
+            </div>
             <Button asChild aria-label={t("authentication:logOut")} size="icon" variant="ghost">
               <Link href={logoutHref} prefetch={false} title={t("authentication:logOut")}>
                 <LogOutIcon size={16} strokeWidth={1.8} />
