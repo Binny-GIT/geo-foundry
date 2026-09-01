@@ -64,9 +64,13 @@ export const getConsoleSession = async (): Promise<ConsoleSession | null> => {
   }
 }
 
+export const isHumanConsoleSession = (
+  session: ConsoleSession | null,
+): session is ConsoleSession => session !== null && session.role !== CMS_ROLE.CONTENT_SERVICE
+
 export const requireConsoleSession = async (next = "/admin"): Promise<ConsoleSession> => {
   const session = await getConsoleSession()
-  if (session !== null && session.role !== CMS_ROLE.CONTENT_SERVICE) return session
+  if (isHumanConsoleSession(session)) return session
   redirect(`/admin/login?next=${encodeURIComponent(next)}`)
 }
 
@@ -83,7 +87,7 @@ export const requireEmergencySuperAdmin = async (): Promise<ConsoleSession> => {
  */
 export const requireEmergencySession = async (next = "/admin"): Promise<ConsoleSession> => {
   const session = await getConsoleSession()
-  if (session !== null && session.role !== CMS_ROLE.CONTENT_SERVICE) return session
+  if (isHumanConsoleSession(session)) return session
   redirect(`/admin/login?next=${encodeURIComponent(next)}`)
 }
 

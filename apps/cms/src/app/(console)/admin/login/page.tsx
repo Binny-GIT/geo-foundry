@@ -2,7 +2,7 @@ import { redirect } from "next/navigation"
 import { GeoIcon } from "@/components/branding/GeoIcon"
 import { ConsoleLoginForm } from "@/console/components/ConsoleLoginForm"
 import { consoleRoute } from "@/console/lib/resources"
-import { getConsoleSession } from "@/console/lib/session.server"
+import { getConsoleSession, isHumanConsoleSession } from "@/console/lib/session.server"
 
 export const metadata = {
   title: "登录 | Geo Foundry",
@@ -10,7 +10,9 @@ export const metadata = {
 
 const ConsoleLoginPage = async () => {
   const session = await getConsoleSession()
-  if (session !== null) redirect(consoleRoute.dashboard)
+  // 服务身份使用租户 API Key，而非人工 Console 会话；将其跳至 /admin
+  // 会被页面守卫送回这里，形成重定向循环。
+  if (isHumanConsoleSession(session)) redirect(consoleRoute.dashboard)
 
   return (
     <main

@@ -7,7 +7,7 @@ import { getPayload, type Payload, type Where } from "payload"
 import { CMS_ACTION, type CmsResource } from "@/access/policy"
 
 import { CONSOLE_RESOURCES, type ConsoleResourceSlug, isConsoleResourceSlug } from "./resources"
-import { type ConsoleSession, canConsole, getConsoleSession } from "./session.server"
+import { type ConsoleSession, canConsole, getConsoleSession, isHumanConsoleSession } from "./session.server"
 
 type RecordLike = Record<string, unknown>
 
@@ -21,7 +21,7 @@ export const requireConsolePayloadContext = async (): Promise<PayloadContext> =>
   const payload = await getPayload({ config })
   const result = await payload.auth({ headers: await headers() })
   const session = await getConsoleSession()
-  if (session === null || result.user === null || result.user === undefined) {
+  if (!isHumanConsoleSession(session) || result.user === null || result.user === undefined) {
     notFound()
   }
   return { payload, session, user: result.user }

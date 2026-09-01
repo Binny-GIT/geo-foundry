@@ -33,6 +33,9 @@ export const Users = {
     useAsTitle: "email",
   },
   auth: {
+    // 人工 Payload JWT / HTTP-only Console 会话：单位为秒，固定七天。
+    // API Key 保持独立，仍由按租户隔离的 Worker 使用。
+    tokenExpiration: 7 * 24 * 60 * 60,
     useAPIKey: true,
   },
   hooks: {

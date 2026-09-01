@@ -49,7 +49,7 @@ const login = async (browser, account) => {
   await page.locator('input[name="password"]').fill(account.password)
   await Promise.all([
     page.waitForURL(/\/admin(?:$|\?)/, { timeout: 30_000 }),
-    page.locator('button[aria-label="Login"]').click(),
+    page.getByRole("button", { name: /登录到管理中心|登录/i }).click(),
   ])
   return { context, page }
 }
