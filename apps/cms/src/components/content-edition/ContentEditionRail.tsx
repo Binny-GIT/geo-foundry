@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useId, useState } from "react"
 import type { EditionVersionHistoryItem } from "../../services/edition-version-history"
 import { uiLangOf } from "../i18n/ui-lang"
-import { CopyIcon, LayersIcon, RotateCcwIcon } from "../icons"
+import { CopyIcon, LayersIcon } from "../icons"
 import { Badge, IconBadge } from "../ui"
 import { Button } from "../ui/button"
 import { WorkflowActions } from "../workflow/WorkflowActions"
@@ -17,9 +17,6 @@ import {
 
 const TEXT = {
   en: {
-    api: "Document API",
-    apiHint:
-      "Browser-safe record summary. It never exposes internal service routes, credentials, or raw audit data.",
     current: "Current document",
     history: "Version history",
     loading: "Loading versions…",
@@ -36,8 +33,6 @@ const TEXT = {
     version: "Version",
   },
   zh: {
-    api: "文档接口摘要",
-    apiHint: "仅展示浏览器可安全读取的文档摘要，不包含内部服务路由、凭据或原始审计数据。",
     current: "当前文档",
     history: "版本历史",
     loading: "正在加载版本…",
@@ -272,22 +267,9 @@ export const ContentEditionRail = ({
         )}
       </section>
 
-      <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]">
-        <div className="flex items-center gap-3">
-          <IconBadge tone="neutral">
-            <RotateCcwIcon size={18} />
-          </IconBadge>
-          <div>
-            <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
-              {t.api}
-            </p>
-            <strong className="mt-1 block text-sm text-[var(--theme-text)]">
-              Content Editions · {id ?? "new"}
-            </strong>
-          </div>
-        </div>
-        <p className="m-0 mt-3 text-xs leading-5 text-[var(--theme-elevation-600)]">{t.apiHint}</p>
-      </section>
+      {/* The former "document API summary" card was removed: product.md's
+       * interface principles forbid surfacing technical identifiers
+       * (collection slug + raw id) in operator views. */}
 
       {restoreOpen && selectedVersion !== null && (
         <div

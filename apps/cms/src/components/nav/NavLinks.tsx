@@ -2,12 +2,10 @@
 
 import "./nav-layout.css"
 
-import { getTranslation } from "@payloadcms/translations"
 import { Link, useAuth, useConfig, useNav, useTranslation } from "@payloadcms/ui"
-import { EntityType, type NavGroupType } from "@payloadcms/ui/shared"
 import { usePathname } from "next/navigation"
 import { formatAdminURL } from "payload/shared"
-import { useEffect, useState } from "react"
+import { type ComponentType, useEffect, useState } from "react"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -22,21 +20,15 @@ import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 
 import { GeoIcon } from "../branding/GeoIcon"
+import type { IconProps } from "../icons"
 import {
   ChevronDownIcon,
-  LayersIcon,
-  LayoutGridIcon,
   LogOutIcon,
   MenuIcon,
-  NAV_ICON_BY_SLUG,
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
   XIcon,
 } from "../icons"
-
-type NavLinksProps = {
-  readonly groups: readonly NavGroupType[]
-}
 
 const initialOf = (email: string | null) =>
   email !== null && email.length > 0 ? email.charAt(0).toUpperCase() : "?"
@@ -55,36 +47,6 @@ const LANG_NATIVE_LABEL: Record<(typeof UI_LANGUAGES)[number], string> = {
   zh: "中文",
 }
 
-/*
- * Sidebar-local zh dictionary. Payload collection labels and admin.group
- * strings are plain config-level English — they don't flow through the
- * i18n translation pipeline (only Payload's own chrome does), so the
- * sidebar translates them here until the collections declare per-language
- * labels themselves. Keyed by slug / raw group string; unknown keys fall
- * back to the configured English label.
- */
-const ZH_GROUP_LABEL: Readonly<Record<string, string>> = {
-  Access: "访问控制",
-  "Sites & Domains": "站点与域名",
-  Content: "内容",
-  "Quality & Release": "质量与发布",
-}
-
-const ZH_ENTITY_LABEL: Readonly<Record<string, string>> = {
-  "content-editions": "内容版本",
-  contents: "内容条目",
-  domains: "域名",
-  media: "媒体库",
-  operations: "操作记录",
-  "quality-assessments": "质量评估",
-  releases: "发布版本",
-  "rollback-intents": "回滚意图",
-  sites: "站点",
-  tenants: "租户",
-  "url-records": "URL 记录",
-  users: "用户",
-}
-
 const ZH_ROLE_LABEL: Readonly<Record<string, string>> = {
   "content-service": "内容服务",
   editor: "编辑",
@@ -94,7 +56,18 @@ const ZH_ROLE_LABEL: Readonly<Record<string, string>> = {
   "tenant-admin": "租户管理员",
 }
 
-export const NavLinks = ({ groups }: NavLinksProps) => {
+export type UnifiedNavItem = Readonly<{
+  readonly href: string
+  readonly icon?: ComponentType<IconProps>
+  readonly label: string
+}>
+
+type NavLinksProps = {
+  readonly adminItems: readonly UnifiedNavItem[]
+  readonly businessItems: readonly UnifiedNavItem[]
+}
+
+export const NavLinks = ({ adminItems, businessItems }: NavLinksProps) => {
   const { hydrated, navOpen, navRef, setNavOpen, shouldAnimate } = useNav()
   const pathname = usePathname()
   const { i18n, switchLanguage, t } = useTranslation()
@@ -133,8 +106,6 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
   const currentLang = UI_LANGUAGES.find((lang) => lang === i18n.language) ?? "zh"
   const isZH = currentLang === "zh"
   const roleLabel = isZH && role !== null ? (ZH_ROLE_LABEL[role] ?? role) : role
-  const canUseWorkQueue = ["editor", "reviewer", "publisher"].includes(role ?? "")
-  const workLabel = isZH ? "我的工作" : "My work"
 
   const linkClassName = (isActive: boolean) =>
     cn(
@@ -142,6 +113,41 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
       isActive ? "bg-white/10 font-medium text-white" : "hover:bg-white/5 hover:text-white",
       collapsed && "min-[1441px]:justify-center min-[1441px]:gap-0 min-[1441px]:px-0",
     )
+
+  const renderItem = (item: UnifiedNavItem) => {
+    // Same active-link rule as Payload's own DefaultNavClient: an exact
+    // segment match, not a loose prefix match (dashboard vs /work etc.).
+    const isActive =
+      pathname.startsWith(item.href) && ["/", undefined].includes(pathname[item.href.length])
+    const Icon = item.icon
+    const content = (
+      <>
+        {isActive && (
+          <span className="absolute inset-y-1 left-0 w-[3px] rounded-full bg-gfs-accent-500" />
+        )}
+        {Icon !== undefined && <Icon size={17} strokeWidth={1.8} />}
+        <span className={cn("truncate", collapsed && "min-[1441px]:hidden")}>{item.label}</span>
+      </>
+    )
+    if (pathname === item.href) {
+      return (
+        <div className={linkClassName(isActive)} key={item.href} title={item.label}>
+          {content}
+        </div>
+      )
+    }
+    return (
+      <Link
+        className={linkClassName(isActive)}
+        href={item.href}
+        key={item.href}
+        prefetch={false}
+        title={item.label}
+      >
+        {content}
+      </Link>
+    )
+  }
 
   return (
     <>
@@ -232,106 +238,15 @@ export const NavLinks = ({ groups }: NavLinksProps) => {
           <Separator className="mx-5 w-auto bg-white/10" />
 
           <ScrollArea className="min-h-0 flex-1" viewportRef={navRef}>
-            <nav className="flex flex-col gap-5 px-3 py-4">
-              <div className="flex flex-col gap-0.5">
-                <Link
-                  className={linkClassName(pathname === adminRoute)}
-                  href={adminRoute}
-                  id="nav-dashboard"
-                  prefetch={false}
-                  title={t("general:dashboard")}
-                >
-                  {pathname === adminRoute && (
-                    <span className="absolute inset-y-1 left-0 w-[3px] rounded-full bg-gfs-accent-500" />
-                  )}
-                  <LayoutGridIcon size={17} strokeWidth={1.8} />
-                  <span className={cn("truncate", collapsed && "min-[1441px]:hidden")}>
-                    {t("general:dashboard")}
-                  </span>
-                </Link>
-                {canUseWorkQueue && (
-                  <Link
-                    className={linkClassName(pathname === `${adminRoute}/work`)}
-                    href={`${adminRoute}/work`}
-                    prefetch={false}
-                    title={workLabel}
-                  >
-                    <LayersIcon size={17} strokeWidth={1.8} />
-                    <span className={cn("truncate", collapsed && "min-[1441px]:hidden")}>
-                      {workLabel}
-                    </span>
-                  </Link>
-                )}
-              </div>
+            <nav className="flex flex-col gap-1 px-3 py-4">
+              <div className="flex flex-col gap-0.5">{businessItems.map(renderItem)}</div>
 
-              {groups.map((group) => (
-                <div className="flex flex-col gap-1" key={group.label}>
-                  <div
-                    className={cn(
-                      "px-3 text-[11px] font-semibold uppercase tracking-wider text-white/40",
-                      collapsed && "min-[1441px]:hidden",
-                    )}
-                  >
-                    {isZH ? (ZH_GROUP_LABEL[group.label] ?? group.label) : group.label}
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                    {group.entities.map((entity) => {
-                      const href =
-                        entity.type === EntityType.collection
-                          ? formatAdminURL({ adminRoute, path: `/collections/${entity.slug}` })
-                          : formatAdminURL({ adminRoute, path: `/globals/${entity.slug}` })
-                      const id =
-                        entity.type === EntityType.collection
-                          ? `nav-${entity.slug}`
-                          : `nav-global-${entity.slug}`
-                      // Same active-link rule as Payload's own DefaultNavClient:
-                      // an exact segment match, not a loose prefix match.
-                      const isActive =
-                        pathname.startsWith(href) &&
-                        ["/", undefined].includes(pathname[href.length])
-                      const Icon = NAV_ICON_BY_SLUG[entity.slug]
-                      const label = isZH
-                        ? (ZH_ENTITY_LABEL[entity.slug] ?? getTranslation(entity.label, i18n))
-                        : getTranslation(entity.label, i18n)
-                      const content = (
-                        <>
-                          {isActive && (
-                            <span className="absolute inset-y-1 left-0 w-[3px] rounded-full bg-gfs-accent-500" />
-                          )}
-                          {Icon !== undefined && <Icon size={17} strokeWidth={1.8} />}
-                          <span className={cn("truncate", collapsed && "min-[1441px]:hidden")}>
-                            {label}
-                          </span>
-                        </>
-                      )
-                      if (pathname === href) {
-                        return (
-                          <div
-                            className={linkClassName(isActive)}
-                            id={id}
-                            key={entity.slug}
-                            title={label}
-                          >
-                            {content}
-                          </div>
-                        )
-                      }
-                      return (
-                        <Link
-                          className={linkClassName(isActive)}
-                          href={href}
-                          id={id}
-                          key={entity.slug}
-                          prefetch={false}
-                          title={label}
-                        >
-                          {content}
-                        </Link>
-                      )
-                    })}
-                  </div>
-                </div>
-              ))}
+              {adminItems.length > 0 && (
+                <>
+                  <Separator className="mx-2 my-4 w-auto bg-white/10" />
+                  <div className="flex flex-col gap-0.5">{adminItems.map(renderItem)}</div>
+                </>
+              )}
             </nav>
           </ScrollArea>
 

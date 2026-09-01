@@ -168,7 +168,7 @@ const ContentEditionDocumentBody = ({ readOnly }: { readonly readOnly: boolean }
         </div>
       </header>
 
-      <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(240px,0.72fr)_minmax(0,1.55fr)_minmax(300px,0.86fr)]">
+      <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(240px,0.66fr)_minmax(0,1.68fr)_minmax(300px,0.8fr)]">
         {id !== undefined && id !== null && (
           <ContentEditionContextRail
             onSelectVersion={setSelectedVersion}

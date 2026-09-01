@@ -1,37 +1,57 @@
-import { type EntityToGroup, EntityType, groupNavItems } from "@payloadcms/ui/shared"
 import type { ServerProps } from "payload"
 
-import { NavLinks } from "./NavLinks"
+import {
+  CONSOLE_NAV,
+  CONSOLE_RESOURCES,
+  type ConsoleNavItem,
+  consoleRoute,
+} from "@/console/lib/resources"
 
-/**
- * Custom admin sidebar. Nav visibility is computed with Payload's own
- * `groupNavItems` — the same function the stock Nav uses — so RBAC and
- * tenant scoping stay byte-identical to the verified default behavior. The
- * presentation layer (NavLinks.tsx) is a from-scratch rebuild — Tailwind
- * utility classes and Radix-based shadcn primitives, no Payload `.nav*`
- * classes or `<NavGroup>`/`<Logout>` components — driven by section
- * grouping from each collection's `admin.group`, a brand header, and an
- * account footer. The mobile toggle button and the global open/close state
- * live outside this component (Payload's own template plus its
- * NavProvider) and are unaffected by replacing this component.
+import { NAV_ICON_BY_SLUG } from "../icons"
+import { NavLinks, type UnifiedNavItem } from "./NavLinks"
+
+/*
+ * Custom admin sidebar. Item list and grouping come from CONSOLE_NAV — the
+ * same curated registry the console shell renders — so both surfaces show an
+ * identical, pipeline-organized navigation instead of mirroring every
+ * collection table. Payload's own visibleEntities still RBAC-filters each
+ * resource entry, keeping tenant scoping identical to the stock Nav.
  */
 export const Nav = (props: ServerProps) => {
-  const { i18n, payload, permissions, visibleEntities } = props
-  if (payload?.config === undefined || permissions === undefined || visibleEntities === undefined) {
+  const { payload, visibleEntities } = props
+  if (payload?.config === undefined || visibleEntities === undefined) {
     return null
   }
-  const { collections, globals } = payload.config
-  const groups = groupNavItems(
-    [
-      ...collections
-        .filter((collection) => visibleEntities.collections.includes(collection.slug))
-        .map((collection): EntityToGroup => ({ entity: collection, type: EntityType.collection })),
-      ...globals
-        .filter((global) => visibleEntities.globals.includes(global.slug))
-        .map((global): EntityToGroup => ({ entity: global, type: EntityType.global })),
-    ],
-    permissions,
-    i18n,
+
+  const toItems = (entries: readonly ConsoleNavItem[]): readonly UnifiedNavItem[] =>
+    entries.flatMap((entry): readonly UnifiedNavItem[] => {
+      if (entry.kind === "static") {
+        return [
+          {
+            href: entry.href,
+            icon: entry.icon,
+            label: entry.label.zh,
+          },
+        ]
+      }
+      if (!visibleEntities.collections.includes(entry.slug)) {
+        return []
+      }
+      const resource = CONSOLE_RESOURCES[entry.slug]
+      const icon = NAV_ICON_BY_SLUG[entry.slug]
+      return [
+        {
+          href: consoleRoute.collection(entry.slug),
+          ...(icon !== undefined ? { icon } : {}),
+          label: resource.label.zh,
+        },
+      ]
+    })
+
+  return (
+    <NavLinks
+      adminItems={toItems(CONSOLE_NAV.admin)}
+      businessItems={toItems(CONSOLE_NAV.business)}
+    />
   )
-  return <NavLinks groups={groups} />
 }

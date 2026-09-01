@@ -6,6 +6,7 @@ import { useEffect, useId, useRef, useState } from "react"
 
 import { uiLangOf } from "../i18n/ui-lang"
 import { Badge } from "../ui/Badge"
+import { Button } from "../ui/button"
 import {
   isWorkflowStatus,
   workflowActionsFor,
@@ -221,12 +222,8 @@ export const WorkflowActions = () => {
         </div>
         <div className="flex flex-wrap justify-end gap-2">
           {actions.map((action) => (
-            <button
-              className={`min-h-11 rounded-lg px-4 text-sm font-bold transition-opacity ${
-                action.tone === "primary"
-                  ? "bg-[var(--gf-accent-600)] text-white hover:bg-[var(--gf-accent-700)]"
-                  : "border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-100)] text-[var(--theme-text)] hover:bg-[var(--theme-elevation-150)]"
-              } ${pending !== null ? "cursor-wait opacity-70" : "cursor-pointer"}`}
+            <Button
+              className={action.tone === "primary" ? "" : undefined}
               disabled={pending !== null}
               key={action.label}
               onClick={() => {
@@ -238,10 +235,12 @@ export const WorkflowActions = () => {
                 }
                 void run(action)
               }}
+              size="lg"
               type="button"
+              variant={action.tone === "primary" ? "default" : "secondary"}
             >
               {pending === action.label ? M.working : action.label}
-            </button>
+            </Button>
           ))}
         </div>
       </section>
@@ -295,23 +294,12 @@ export const WorkflowActions = () => {
             )}
 
             <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <button
-                className="min-h-11 rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-100)] px-4 text-sm font-bold text-[var(--theme-text)] hover:bg-[var(--theme-elevation-150)]"
-                disabled={pending !== null}
-                onClick={closeConfirmation}
-                type="button"
-              >
+              <Button disabled={pending !== null} onClick={closeConfirmation} size="lg" type="button" variant="secondary">
                 {M.cancel}
-              </button>
-              <button
-                className="min-h-11 rounded-lg bg-[var(--gf-accent-600)] px-4 text-sm font-bold text-white hover:bg-[var(--gf-accent-700)] disabled:cursor-wait disabled:opacity-70"
-                disabled={pending !== null}
-                onClick={confirm}
-                ref={confirmButton}
-                type="button"
-              >
+              </Button>
+              <Button disabled={pending !== null} onClick={confirm} ref={confirmButton} size="lg" type="button">
                 {pending === selectedAction.label ? M.working : M.confirm}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

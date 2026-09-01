@@ -44,12 +44,15 @@ type ButtonProps = ComponentProps<"button"> &
     readonly asChild?: boolean
   }
 
-const Button = ({ asChild = false, className, size, variant, ...props }: ButtonProps) => {
+/* React 19 passes `ref` as a regular prop; forward it so callers can
+ * autofocus buttons rendered through this component. */
+const Button = ({ asChild = false, className, ref, size, variant, ...props }: ButtonProps) => {
   const Comp = asChild ? Slot : "button"
   return (
     <Comp
       className={cn(buttonVariants({ className, size, variant }))}
       data-slot="button"
+      ref={ref}
       {...props}
     />
   )

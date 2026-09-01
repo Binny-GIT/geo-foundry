@@ -3,7 +3,8 @@
 import { useField } from "@payloadcms/ui"
 import { type ReactNode, useEffect, useState } from "react"
 
-import { ChevronDownIcon, PencilIcon, XIcon } from "../icons"
+import { Button } from "../ui/button"
+import { ChevronDownIcon, PencilIcon, PlusIcon, XIcon } from "../icons"
 
 const isRow = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
@@ -201,20 +202,12 @@ export const ContentEditionEditorCanvas = ({ readOnly }: { readonly readOnly: bo
         </div>
         {!readOnly && (
           <div className="flex flex-wrap gap-2">
-            <button
-              className="rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 py-2 text-sm font-bold text-[var(--theme-text)] hover:bg-[var(--theme-elevation-100)]"
-              onClick={() => add("paragraph")}
-              type="button"
-            >
-              + 段落
-            </button>
-            <button
-              className="rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 py-2 text-sm font-bold text-[var(--theme-text)] hover:bg-[var(--theme-elevation-100)]"
-              onClick={() => add("heading")}
-              type="button"
-            >
-              + 标题
-            </button>
+            <Button onClick={() => add("paragraph")} size="sm" type="button" variant="secondary">
+              <PlusIcon size={14} strokeWidth={2} /> 段落
+            </Button>
+            <Button onClick={() => add("heading")} size="sm" type="button" variant="secondary">
+              <PlusIcon size={14} strokeWidth={2} /> 标题
+            </Button>
           </div>
         )}
       </header>
@@ -296,13 +289,9 @@ const StructuredRowsField = ({
           </p>
         </div>
         {!readOnly && (
-          <button
-            className="rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-100)] px-3 py-2 text-sm font-bold text-[var(--theme-text)]"
-            onClick={add}
-            type="button"
-          >
+          <Button onClick={add} size="sm" type="button" variant="secondary">
             添加
-          </button>
+          </Button>
         )}
       </div>
       {rows.length === 0 ? (
@@ -366,7 +355,7 @@ const StructuredRowsField = ({
               </div>
               {!readOnly && (
                 <button
-                  className="justify-self-start text-xs font-bold text-[var(--gf-tone-danger-fg)] hover:underline"
+                  className="justify-self-start cursor-pointer rounded-md px-1 text-xs font-bold text-rose-600 transition-colors hover:bg-rose-50"
                   onClick={() => replace(rows.filter((_, rowIndex) => rowIndex !== index))}
                   type="button"
                 >
