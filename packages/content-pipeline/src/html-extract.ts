@@ -23,8 +23,14 @@ export type ExtractedBlock =
   | { readonly blockType: "code"; readonly code: string; readonly language: string }
   | { readonly blockType: "image"; readonly src: string; readonly alt: string }
 
+/*
+ * `blocks` stays mutable: the intake processor forwards
+ * `blocks.map(block => ({ ...block }))` into the zod-inferred
+ * completeIntakeFetch body, whose contentBlocks is a plain mutable array —
+ * a readonly element array fails that assignment.
+ */
 export type ExtractedPage = Readonly<{
-  blocks: readonly ExtractedBlock[]
+  blocks: ExtractedBlock[]
   summary: string
   text: string
   title: string
