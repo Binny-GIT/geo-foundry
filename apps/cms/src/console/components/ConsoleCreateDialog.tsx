@@ -22,20 +22,22 @@ import { ConsoleUserForm } from "./ConsoleUserForm"
  */
 export const ConsoleCreateDialog = ({
   actorRole,
-  label,
+  createLabel,
 }: {
   readonly actorRole: typeof CMS_ROLE.SUPER_ADMIN | typeof CMS_ROLE.TENANT_ADMIN
-  readonly label: string
+  /** Short noun for the trigger/title, e.g. "用户" — list labels like
+   * "系统用户管理" are page headings, not something you can 新建. */
+  readonly createLabel: string
 }) => (
   <Dialog>
     <DialogTrigger asChild>
       <Button className="h-10 rounded-xl" type="button">
-        <PlusIcon size={16} strokeWidth={2} /> 新建{label}
+        <PlusIcon size={16} strokeWidth={2} /> 新建{createLabel}
       </Button>
     </DialogTrigger>
     <DialogContent aria-describedby="create-dialog-desc" wide>
       <p className={dialogKickerClass}>创建记录</p>
-      <DialogTitle>新建{label}</DialogTitle>
+      <DialogTitle>新建{createLabel}</DialogTitle>
       <DialogDescription id="create-dialog-desc">
         可用角色与租户选择由当前会话决定；Payload API 仍会在服务端强制执行最终权限与租户规则。
       </DialogDescription>

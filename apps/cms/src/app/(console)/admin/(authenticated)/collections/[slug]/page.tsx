@@ -294,7 +294,7 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
           (context.session.role === CMS_ROLE.SUPER_ADMIN || context.session.role === CMS_ROLE.TENANT_ADMIN) ? (
             <ConsoleCreateDialog
               actorRole={context.session.role === CMS_ROLE.SUPER_ADMIN ? CMS_ROLE.SUPER_ADMIN : CMS_ROLE.TENANT_ADMIN}
-              label={resource.label.zh}
+              createLabel="用户"
             />
           ) : canCreate && createSupported && slug !== "users" ? (
             <Button asChild className="h-10 rounded-xl" type="button">
