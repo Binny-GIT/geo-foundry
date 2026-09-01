@@ -16,8 +16,9 @@ describe("console button and link style contract", () => {
 
     expect(button).toContain("no-underline")
     expect(button).toContain('data-slot="button"')
-    expect(consoleCss).toContain(".gf-console a {\n  text-decoration: none;")
+    expect(consoleCss).toContain('.gf-console a[data-slot="button"] {\n  text-decoration: none;')
     expect(consoleCss).toContain('.gf-console a:not([data-slot="button"])')
+    expect(consoleCss).not.toContain(".gf-console a {\n  text-decoration")
   })
 
   it("uses shadcn buttons for Console navigation actions and keeps entity links understated", async () => {

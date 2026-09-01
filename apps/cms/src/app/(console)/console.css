@@ -64,13 +64,13 @@ html[data-console-theme="dark"] .gf-console {
   font: inherit;
 }
 
-.gf-console a {
-  text-decoration: none;
-}
-
 /* Button renders a Link through Radix Slot when `asChild` is used. Its
    foreground comes from the shadcn variant, so generic console link coloring
    must not override `text-white` on primary actions. */
+.gf-console a[data-slot="button"] {
+  text-decoration: none;
+}
+
 .gf-console a:not([data-slot="button"]) {
   color: inherit;
 }
