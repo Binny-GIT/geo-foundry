@@ -21,7 +21,7 @@ const DialogClose = DialogPrimitive.Close
 const DialogOverlay = ({ className, ...props }: ComponentProps<typeof DialogPrimitive.Overlay>) => (
   <DialogPrimitive.Overlay
     className={cn(
-      "fixed inset-0 z-50 bg-slate-950/45 transition-opacity duration-150",
+      "fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-[2px] transition-opacity duration-150",
       "data-[state=closed]:opacity-0 data-[state=open]:opacity-100",
       className,
     )}
@@ -74,7 +74,7 @@ const DialogDescription = ({
   ...props
 }: ComponentProps<typeof DialogPrimitive.Description>) => (
   <DialogPrimitive.Description
-    className={cn("m-0 mt-2 text-sm leading-6 text-slate-500", className)}
+    className={cn("m-0 mt-3 text-sm leading-6 text-slate-500", className)}
     {...props}
   />
 )
