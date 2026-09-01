@@ -377,7 +377,7 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
             {timeline.length === 0 ? (
               <p className="m-0 text-sm text-[var(--console-ink-muted)]">暂无历史事件。</p>
             ) : (
-              <ol className="m-0 grid list-none gap-0 p-0">
+              <ol className="m-0 grid min-w-0 list-none gap-0 p-0">
                 {timeline.map((entry, index) => (
                   <li className="grid gap-1 border-l-2 border-[var(--console-border)] py-2.5 pl-4" key={`${entry.at}-${index}`}>
                     <span className="text-xs text-[var(--console-ink-muted)]">

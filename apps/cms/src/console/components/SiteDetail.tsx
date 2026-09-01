@@ -309,7 +309,7 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
               该站点还没有域名；发布前需要至少一个启用的规范域名。
             </p>
           ) : (
-            <ul className="m-0 grid list-none gap-2 p-0">
+            <ul className="m-0 grid min-w-0 list-none gap-2 p-0">
               {domains.map((domain) => (
                 <li
                   className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-4 py-3"
@@ -355,7 +355,7 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
               该站点还没有文章。
             </p>
           ) : (
-            <ul className="m-0 grid list-none gap-2 p-0">
+            <ul className="m-0 grid min-w-0 list-none gap-2 p-0">
               {recentEditions.map((edition) => {
                 const status = typeof edition["workflowStatus"] === "string" ? edition["workflowStatus"] : ""
                 return (
@@ -395,7 +395,7 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
               该站点还没有发布版本。
             </p>
           ) : (
-            <ul className="m-0 grid list-none gap-2 p-0">
+            <ul className="m-0 grid min-w-0 list-none gap-2 p-0">
               {releases.map((release) => {
                 const state = typeof release["state"] === "string" ? release["state"] : ""
                 const releaseId = String(release["releaseId"] ?? "")
@@ -463,7 +463,7 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
               该站点暂无操作记录。
             </p>
           ) : (
-            <ul className="m-0 grid list-none gap-2 p-0">
+            <ul className="m-0 grid min-w-0 list-none gap-2 p-0">
               {operations.map((operation) => (
                 <li
                   className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--console-border)] px-4 py-3"
