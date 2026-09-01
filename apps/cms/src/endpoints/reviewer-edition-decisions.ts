@@ -85,9 +85,7 @@ const errorResponseOf = (error: unknown, requestId: string): Response => {
 
 const reviewerEndpoint = (
   target: ReviewerDecisionTarget,
-  parseBody: (
-    body: unknown,
-  ) =>
+  parseBody: (body: unknown) =>
     | {
         readonly success: true
         readonly data: { readonly expectedRevision: number; readonly reason?: string }

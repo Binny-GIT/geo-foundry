@@ -172,7 +172,12 @@ export const ConsoleShell = ({
           )}
         >
           <GeoIcon size={22} />
-          <span className={cn("min-w-0 flex-1 truncate text-sm font-bold tracking-tight", collapsed && "lg:hidden")}>
+          <span
+            className={cn(
+              "min-w-0 flex-1 truncate text-sm font-bold tracking-tight",
+              collapsed && "lg:hidden",
+            )}
+          >
             Geo Foundry
           </span>
           {/* Desktop collapse toggle, same morphing glyph as the admin sidebar. */}
@@ -275,7 +280,10 @@ export const ConsoleShell = ({
               </div>
               <div className="my-1 h-px bg-slate-100" />
               <DropdownMenuItem asChild>
-                <Link className="flex cursor-pointer items-center gap-2 text-sm" href={consoleRoute.account}>
+                <Link
+                  className="flex cursor-pointer items-center gap-2 text-sm"
+                  href={consoleRoute.account}
+                >
                   <UserIcon size={15} /> 账户设置（修改密码）
                 </Link>
               </DropdownMenuItem>

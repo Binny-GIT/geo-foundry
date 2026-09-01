@@ -233,7 +233,13 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
   return (
     <div className="grid gap-6 [&>*]:min-w-0">
       <header className="grid gap-3">
-        <Button asChild className="gf-console-focus w-fit" size="sm" type="button" variant="secondary">
+        <Button
+          asChild
+          className="gf-console-focus w-fit"
+          size="sm"
+          type="button"
+          variant="secondary"
+        >
           <Link href={consoleRoute.collection("content-editions")}>← 返回文章列表</Link>
         </Button>
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -369,7 +375,13 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
               </a>
             )}
             {siteId !== null && (
-              <Button asChild className="gf-console-focus" size="sm" type="button" variant="secondary">
+              <Button
+                asChild
+                className="gf-console-focus"
+                size="sm"
+                type="button"
+                variant="secondary"
+              >
                 <Link href={consoleRoute.document("sites", String(siteId))}>
                   查看站点发布历史与恢复 →
                 </Link>

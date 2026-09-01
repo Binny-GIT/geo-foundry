@@ -224,7 +224,13 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
   return (
     <div className="grid gap-6 [&>*]:min-w-0">
       <header className="grid gap-3">
-        <Button asChild className="gf-console-focus w-fit" size="sm" type="button" variant="secondary">
+        <Button
+          asChild
+          className="gf-console-focus w-fit"
+          size="sm"
+          type="button"
+          variant="secondary"
+        >
           <Link href={consoleRoute.collection("sites")}>← 返回站点列表</Link>
         </Button>
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -370,7 +376,13 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
             <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">
               该站文章
             </h2>
-            <Button asChild className="gf-console-focus" size="sm" type="button" variant="secondary">
+            <Button
+              asChild
+              className="gf-console-focus"
+              size="sm"
+              type="button"
+              variant="secondary"
+            >
               <Link href={`/admin/collections/content-editions?site=${siteId}`}>
                 查看全部（筛选此站点）→
               </Link>
@@ -481,7 +493,13 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
             <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">
               该站操作日志
             </h2>
-            <Button asChild className="gf-console-focus" size="sm" type="button" variant="secondary">
+            <Button
+              asChild
+              className="gf-console-focus"
+              size="sm"
+              type="button"
+              variant="secondary"
+            >
               <Link href={consoleRoute.collection("operations")}>全部操作日志 →</Link>
             </Button>
           </div>
