@@ -33,7 +33,7 @@ try {
     limit: 100,
     overrideAccess: true,
     sort: "-id",
-    where: requested.length > 0 ? { id: { in: requested } } : { id: { gte: 567 } },
+    where: requested.length > 0 ? { id: { in: requested } } : { id: { greater_than_equal: 567 } },
   })
 
   for (const edition of editions.docs) {
