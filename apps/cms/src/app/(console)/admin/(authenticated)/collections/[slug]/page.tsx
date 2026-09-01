@@ -410,16 +410,28 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
               第 {result.page} / {Math.max(result.totalPages, 1)} 页
             </span>
             <div className="flex gap-2">
-              <Button asChild aria-disabled={result.page <= 1} size="sm" type="button" variant="secondary">
-                <Link href={`${consoleRoute.collection(slug as ConsoleResourceSlug)}?page=${Math.max(result.page - 1, 1)}`}>
+              {result.page <= 1 ? (
+                <Button disabled size="sm" type="button" variant="secondary">
                   上一页
-                </Link>
-              </Button>
-              <Button asChild aria-disabled={result.page >= result.totalPages} size="sm" type="button" variant="secondary">
-                <Link href={`${consoleRoute.collection(slug as ConsoleResourceSlug)}?page=${Math.min(result.page + 1, Math.max(result.totalPages, 1))}`}>
+                </Button>
+              ) : (
+                <Button asChild size="sm" type="button" variant="secondary">
+                  <Link href={`${consoleRoute.collection(slug as ConsoleResourceSlug)}?page=${result.page - 1}`}>
+                    上一页
+                  </Link>
+                </Button>
+              )}
+              {result.page >= result.totalPages ? (
+                <Button disabled size="sm" type="button" variant="secondary">
                   下一页 <ChevronDownIcon size={13} />
-                </Link>
-              </Button>
+                </Button>
+              ) : (
+                <Button asChild size="sm" type="button" variant="secondary">
+                  <Link href={`${consoleRoute.collection(slug as ConsoleResourceSlug)}?page=${result.page + 1}`}>
+                    下一页 <ChevronDownIcon size={13} />
+                  </Link>
+                </Button>
+              )}
             </div>
           </footer>
         </section>

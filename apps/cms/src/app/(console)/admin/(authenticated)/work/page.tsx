@@ -179,26 +179,24 @@ const WorkbenchPage = async ({ searchParams }: WorkbenchPageProps) => {
           当前期间内 {totalDocs} 条 · 第 {currentPage} / {totalPages} 页
         </span>
         <div className="flex items-center gap-2">
-          <Button
-            asChild
-            aria-disabled={currentPage <= 1}
-            size="sm"
-            type="button"
-            variant="secondary"
-          >
-            <Link href={workHref(query, { page: Math.max(1, currentPage - 1) })}>上一页</Link>
-          </Button>
-          <Button
-            asChild
-            aria-disabled={currentPage >= totalPages}
-            size="sm"
-            type="button"
-            variant="secondary"
-          >
-            <Link href={workHref(query, { page: Math.min(totalPages, currentPage + 1) })}>
+          {currentPage <= 1 ? (
+            <Button disabled size="sm" type="button" variant="secondary">
+              上一页
+            </Button>
+          ) : (
+            <Button asChild size="sm" type="button" variant="secondary">
+              <Link href={workHref(query, { page: currentPage - 1 })}>上一页</Link>
+            </Button>
+          )}
+          {currentPage >= totalPages ? (
+            <Button disabled size="sm" type="button" variant="secondary">
               下一页
-            </Link>
-          </Button>
+            </Button>
+          ) : (
+            <Button asChild size="sm" type="button" variant="secondary">
+              <Link href={workHref(query, { page: currentPage + 1 })}>下一页</Link>
+            </Button>
+          )}
         </div>
       </footer>
     </div>

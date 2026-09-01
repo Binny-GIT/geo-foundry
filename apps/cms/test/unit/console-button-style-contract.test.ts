@@ -40,6 +40,20 @@ describe("console button and link style contract", () => {
     expect(article).toContain("hover:text-[var(--console-accent)]")
   })
 
+  it("renders terminal pagination controls as real disabled buttons instead of disabled-looking links", async () => {
+    const [work, editions, sites, collections] = await Promise.all([
+      sourceOf("src/app/(console)/admin/(authenticated)/work/page.tsx"),
+      sourceOf("src/console/components/EditionsWorkspace.tsx"),
+      sourceOf("src/console/components/SitesWorkspace.tsx"),
+      sourceOf("src/app/(console)/admin/(authenticated)/collections/[slug]/page.tsx"),
+    ])
+
+    for (const source of [work, editions, sites, collections]) {
+      expect(source).toContain("<Button disabled")
+      expect(source).not.toContain("aria-disabled")
+    }
+  })
+
   it("places the morphing desktop collapse controls at the lower-right side of both nav shells", async () => {
     const [consoleShell, payloadNav] = await Promise.all([
       sourceOf("src/console/components/ConsoleShell.tsx"),

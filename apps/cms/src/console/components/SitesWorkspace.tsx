@@ -124,14 +124,24 @@ export const SitesWorkspace = ({
         第 {page} / {Math.max(totalPages, 1)} 页
       </span>
       <div className="flex gap-2">
-        <Button asChild aria-disabled={page <= 1} size="sm" type="button" variant="secondary">
-          <Link href={`${consoleRoute.collection("sites")}?page=${Math.max(page - 1, 1)}`}>上一页</Link>
-        </Button>
-        <Button asChild aria-disabled={page >= totalPages} size="sm" type="button" variant="secondary">
-          <Link href={`${consoleRoute.collection("sites")}?page=${Math.min(page + 1, Math.max(totalPages, 1))}`}>
+        {page <= 1 ? (
+          <Button disabled size="sm" type="button" variant="secondary">
+            上一页
+          </Button>
+        ) : (
+          <Button asChild size="sm" type="button" variant="secondary">
+            <Link href={`${consoleRoute.collection("sites")}?page=${page - 1}`}>上一页</Link>
+          </Button>
+        )}
+        {page >= totalPages ? (
+          <Button disabled size="sm" type="button" variant="secondary">
             下一页
-          </Link>
-        </Button>
+          </Button>
+        ) : (
+          <Button asChild size="sm" type="button" variant="secondary">
+            <Link href={`${consoleRoute.collection("sites")}?page=${page + 1}`}>下一页</Link>
+          </Button>
+        )}
       </div>
     </footer>
   </section>
