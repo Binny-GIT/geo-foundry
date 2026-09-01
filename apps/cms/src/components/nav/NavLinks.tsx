@@ -20,15 +20,22 @@ import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 
 import { GeoIcon } from "../branding/GeoIcon"
-import type { IconProps } from "../icons"
 import {
   ChevronDownIcon,
   LogOutIcon,
   MenuIcon,
+  NAV_ICON_BY_SLUG,
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
   XIcon,
 } from "../icons"
+import type { IconProps } from "../icons"
+import {
+  CONSOLE_NAV,
+  CONSOLE_RESOURCES,
+  consoleRoute,
+  type ConsoleNavItem,
+} from "@/console/lib/resources"
 
 const initialOf = (email: string | null) =>
   email !== null && email.length > 0 ? email.charAt(0).toUpperCase() : "?"
@@ -63,17 +70,40 @@ export type UnifiedNavItem = Readonly<{
 }>
 
 type NavLinksProps = {
-  readonly adminItems: readonly UnifiedNavItem[]
-  readonly businessItems: readonly UnifiedNavItem[]
+  readonly visibleSlugs: readonly string[]
 }
 
-export const NavLinks = ({ adminItems, businessItems }: NavLinksProps) => {
+const toUnifiedItems = (
+  entries: readonly ConsoleNavItem[],
+  visibleSlugs: readonly string[],
+): readonly UnifiedNavItem[] =>
+  entries.flatMap((entry): readonly UnifiedNavItem[] => {
+    if (entry.kind === "static") {
+      return [{ href: entry.href, icon: entry.icon, label: entry.label.zh }]
+    }
+    if (!visibleSlugs.includes(entry.slug)) {
+      return []
+    }
+    const resource = CONSOLE_RESOURCES[entry.slug]
+    const icon = NAV_ICON_BY_SLUG[entry.slug]
+    return [
+      {
+        href: consoleRoute.collection(entry.slug),
+        ...(icon !== undefined ? { icon } : {}),
+        label: resource.label.zh,
+      },
+    ]
+  })
+
+export const NavLinks = ({ visibleSlugs }: NavLinksProps) => {
   const { hydrated, navOpen, navRef, setNavOpen, shouldAnimate } = useNav()
   const pathname = usePathname()
   const { i18n, switchLanguage, t } = useTranslation()
   const { config } = useConfig()
   const { user } = useAuth()
   const adminRoute = config.routes.admin
+  const businessItems = toUnifiedItems(CONSOLE_NAV.business, visibleSlugs)
+  const adminItems = toUnifiedItems(CONSOLE_NAV.admin, visibleSlugs)
 
   /*
    * Desktop icon-rail collapse. Payload's own `navOpen` only drives the
