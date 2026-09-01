@@ -1,61 +1,9 @@
 import { XMLParser } from "fast-xml-parser"
-import { parse } from "parse5"
 
-type HtmlNode = Readonly<{
-  attrs?: readonly { readonly name?: unknown; readonly value?: unknown }[]
-  childNodes?: readonly HtmlNode[]
-  nodeName?: unknown
-  tagName?: unknown
-  value?: unknown
-}>
+export { extractStructuredArticle } from "@geo/content-pipeline"
+export type { ExtractedBlock, ExtractedPage } from "@geo/content-pipeline"
 
 const normalizeText = (value: string): string => value.replace(/\s+/g, " ").trim()
-
-const textOf = (node: HtmlNode): string => {
-  if (typeof node.value === "string") return node.value
-  return (node.childNodes ?? []).map(textOf).join(" ")
-}
-
-const tagOf = (node: HtmlNode): string =>
-  typeof node.tagName === "string" ? node.tagName : typeof node.nodeName === "string" ? node.nodeName : ""
-
-const findFirst = (node: HtmlNode, predicate: (candidate: HtmlNode) => boolean): HtmlNode | null => {
-  if (predicate(node)) return node
-  for (const child of node.childNodes ?? []) {
-    const found = findFirst(child, predicate)
-    if (found !== null) return found
-  }
-  return null
-}
-
-const visibleText = (node: HtmlNode): string => {
-  const tag = tagOf(node)
-  if (["script", "style", "noscript", "template", "svg"].includes(tag)) return ""
-  if (typeof node.value === "string") return node.value
-  return (node.childNodes ?? []).map(visibleText).join(" ")
-}
-
-export type ExtractedArticle = Readonly<{
-  summary: string
-  text: string
-  title: string
-}>
-
-/** Deterministic HTML-to-text extraction; scripts and styling never enter content. */
-export const extractArticle = (html: string): ExtractedArticle => {
-  const document = parse(html) as unknown as HtmlNode
-  const titleNode = findFirst(document, (node) => tagOf(node) === "title")
-  const main = findFirst(document, (node) => tagOf(node) === "article") ??
-    findFirst(document, (node) => tagOf(node) === "main") ??
-    findFirst(document, (node) => tagOf(node) === "body")
-  const text = normalizeText(main === null ? "" : visibleText(main))
-  if (text.length === 0) throw new Error("INTAKE_EXTRACTION_EMPTY")
-  return {
-    summary: text.slice(0, 500),
-    text,
-    title: normalizeText(titleNode === null ? "" : textOf(titleNode)) || text.slice(0, 160),
-  }
-}
 
 type XmlRecord = Record<string, unknown>
 

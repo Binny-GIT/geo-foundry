@@ -12,6 +12,7 @@ type IntakeRow = {
   readonly title: unknown
   readonly channel?: unknown
   readonly connector?: unknown
+  readonly contentBlocks?: unknown
   readonly summary?: unknown
   readonly sourceUrl?: unknown
   readonly normalizedUrl?: unknown
@@ -391,11 +392,18 @@ export const adoptIntakeItem = async (
   const title = text(intakeItem.title) ?? "Untitled intake"
   const summary = text(intakeItem.summary) ?? title
   const sourceUrl = text(intakeItem.sourceUrl)
+  const extractedBlocks = Array.isArray(intakeItem.contentBlocks)
+    ? (intakeItem.contentBlocks as unknown[])
+        .filter((block): block is Record<string, unknown> =>
+          typeof block === "object" && block !== null && typeof (block as Record<string, unknown>)["blockType"] === "string")
+        .slice(0, 200)
+    : []
+  const body: unknown = extractedBlocks.length > 0 ? [...extractedBlocks] : [{ blockType: "paragraph", text: summary }]
   const edition = await payload.create({
     collection: "content-editions",
     data: {
       angle: title,
-      body: [{ blockType: "paragraph", text: summary }],
+      body: body as never,
       citations:
         sourceUrl === undefined
           ? []

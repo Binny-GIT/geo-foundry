@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { extractArticle, extractRssEntries } from "../../src/intake/extract.js"
+import { extractRssEntries, extractStructuredArticle } from "../../src/intake/extract.js"
 import { isPublicAddress, pinnedLookupResult } from "../../src/intake/safe-fetch.js"
 import { snapshotStorageKeyOf } from "../../src/intake/snapshot-store.js"
 
@@ -34,16 +34,34 @@ describe("intake pinned DNS lookup", () => {
 })
 
 describe("intake extraction", () => {
-  it("extracts visible article text without scripts or styles", () => {
-    expect(
-      extractArticle(
-        "<html><head><title>Article title</title><script>secret()</script></head><body><article><h1>Heading</h1><p>Readable body.</p><style>.hidden{}</style></article></body></html>",
-      ),
-    ).toEqual({
-      summary: "Heading Readable body.",
-      text: "Heading Readable body.",
-      title: "Article title",
-    })
+  it("extracts structured blocks, summary, and title from article HTML", () => {
+    const page = extractStructuredArticle(
+      `<html><head><title>Article title</title><meta name="description" content="Meta summary"/>
+      <script>secret()</script></head><body><article>
+      <h1>Top heading</h1><p>This paragraph is long enough to serve as a summary fallback.</p>
+      <ul><li>First point</li><li>Second point</li></ul>
+      <img src="/img/hero.png" alt="Hero"/>
+      <pre><code>console.log(1)</code></pre>
+      <style>.hidden{}</style>
+      </article></body></html>`,
+      "https://source.test/post/1",
+    )
+    expect(page.title).toBe("Article title")
+    expect(page.blocks).toEqual([
+      { blockType: "heading", level: "2", text: "Top heading" },
+      { blockType: "paragraph", text: "This paragraph is long enough to serve as a summary fallback." },
+      { blockType: "list", items: [{ text: "First point" }, { text: "Second point" }], style: "unordered" },
+      { alt: "Hero", blockType: "image", src: "https://source.test/img/hero.png" },
+      { blockType: "code", code: "console.log(1)", language: "text" },
+    ])
+  })
+
+  it("falls back to the first paragraph when no meta description exists", () => {
+    const page = extractStructuredArticle(
+      "<html><head><title>T</title></head><body><main><p>This paragraph is long enough to become the fallback summary for the page.</p></main></body></html>",
+      "https://source.test/x",
+    )
+    expect(page.summary).toContain("fallback summary")
   })
 
   it("parses RSS and Atom links into bounded URL intake entries", () => {

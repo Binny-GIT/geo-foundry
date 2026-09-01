@@ -302,6 +302,15 @@ export interface IntakeItem {
   channel: 'manual' | 'url' | 'webhook' | 'rss';
   title: string;
   summary?: string | null;
+  contentBlocks?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   sourceUrl?: string | null;
   normalizedUrl?: string | null;
   status: 'new' | 'fetching' | 'ready' | 'failed' | 'ignored' | 'duplicate' | 'adopted' | 'merged';
@@ -1329,6 +1338,7 @@ export interface IntakeItemsSelect<T extends boolean = true> {
   channel?: T;
   title?: T;
   summary?: T;
+  contentBlocks?: T;
   sourceUrl?: T;
   normalizedUrl?: T;
   status?: T;

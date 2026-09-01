@@ -107,8 +107,15 @@ const intakeSnapshotSchema = z
   })
   .strict()
 
+export const intakeContentBlockBodySchema = z
+  .object({
+    blockType: z.enum(["heading", "paragraph", "list", "quote", "code", "image"]),
+  })
+  .passthrough()
+
 export const intakeFetchCompleteBodySchema = z
   .object({
+    contentBlocks: z.array(intakeContentBlockBodySchema).max(200).optional(),
     extracted: intakeSnapshotSchema,
     raw: intakeSnapshotSchema,
     summary: z.string().min(1).max(20_000),

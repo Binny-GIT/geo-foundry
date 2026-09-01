@@ -24,7 +24,8 @@
     "@geo/content-client": "workspace:*",
     "@geo/quality-rules": "workspace:*",
     "@geo/schema": "workspace:*",
-    "zod": "4.4.3"
+    "zod": "4.4.3",
+    "parse5": "8.0.1"
   },
   "devDependencies": {
     "@types/node": "24.13.3",

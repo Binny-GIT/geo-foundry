@@ -134,6 +134,12 @@ export const IntakeItems = {
       type: "textarea",
     },
     {
+      name: "contentBlocks",
+      label: localized("Extracted blocks", "提取的结构化内容"),
+      type: "json",
+      admin: { hidden: true },
+    },
+    {
       name: "sourceUrl",
       label: localized("Source URL", "来源 URL"),
       type: "text",

@@ -200,6 +200,7 @@ export const readIntakeFetchInput = async (
 }
 
 export type IntakeFetchCompletion = Readonly<{
+  readonly contentBlocks?: readonly Record<string, unknown>[] | undefined
   readonly extracted: {
     readonly contentHash: string
     readonly contentLength: number
@@ -246,6 +247,7 @@ export const completeIntakeFetch = async (
   await payload.update({
     collection: "intake-items",
     data: {
+      contentBlocks: input.contentBlocks ? [...input.contentBlocks] : [],
       contentHash: input.extracted.contentHash,
       failureCode: null,
       failureReason: null,

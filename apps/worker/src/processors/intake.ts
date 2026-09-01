@@ -3,7 +3,7 @@ import { TextDecoder, TextEncoder } from "node:util"
 import { ContentClientError, type ContentServiceClient } from "@geo/content-client"
 import type { Job } from "bullmq"
 
-import { extractArticle, extractRssEntries } from "../intake/extract.js"
+import { extractRssEntries, extractStructuredArticle } from "../intake/extract.js"
 import { fetchPublicUrl, IntakeFetchError } from "../intake/safe-fetch.js"
 import type { StoredSnapshot } from "../intake/snapshot-store.js"
 import type { WorkerLogger } from "./types.js"
@@ -138,8 +138,8 @@ export const createIntakeProcessor = (options: {
         throw new IntakeFetchError("INTAKE_CONTENT_TYPE_UNSUPPORTED", false)
       }
       const article = isHtml(response.contentType)
-        ? extractArticle(sourceText)
-        : { summary: sourceText.slice(0, 500), text: sourceText.trim(), title: sourceText.trim().slice(0, 160) }
+        ? extractStructuredArticle(sourceText, response.finalUrl)
+        : { blocks: [], summary: sourceText.slice(0, 500), text: sourceText.trim(), title: sourceText.trim().slice(0, 160) }
       if (article.text.length === 0 || article.title.length === 0) throw new IntakeFetchError("INTAKE_EXTRACTION_EMPTY", false)
       const extracted = await snapshots.put({
         body: new TextEncoder().encode(article.text),
@@ -149,6 +149,7 @@ export const createIntakeProcessor = (options: {
         tenantId: input.tenantId,
       })
       await client.completeIntakeFetch(input.intakeItemId, {
+        ...(article.blocks.length === 0 ? {} : { contentBlocks: article.blocks }),
         extracted,
         raw,
         summary: article.summary,

@@ -91,7 +91,14 @@ const intakeSnapshotSchema = z.object({
   storageKey: z.string().min(1).max(1_000),
 })
 
+export const intakeContentBlockSchema = z
+  .object({
+    blockType: z.enum(["heading", "paragraph", "list", "quote", "code", "image"]),
+  })
+  .passthrough()
+
 export const completeIntakeFetchRequestSchema = z.object({
+  contentBlocks: z.array(intakeContentBlockSchema).max(200).optional(),
   extracted: intakeSnapshotSchema,
   raw: intakeSnapshotSchema,
   summary: z.string().min(1).max(20_000),

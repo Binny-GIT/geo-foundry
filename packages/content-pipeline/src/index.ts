@@ -1,3 +1,5 @@
+export { extractStructuredArticle } from "./html-extract.js"
+export type { ExtractedBlock, ExtractedPage } from "./html-extract.js"
 export { canonicalJson, sha256Hex } from "./canonical.js"
 export {
   runSemanticCheck,

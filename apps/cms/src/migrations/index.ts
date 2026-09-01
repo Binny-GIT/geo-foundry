@@ -26,6 +26,7 @@ import * as migration_20260831_230000_user_site_scope from "./20260831_230000_us
 import * as migration_20260901_000000_api_usage_daily from "./20260901_000000_api_usage_daily"
 import * as migration_20260901_001000_api_usage_locked_rels from "./20260901_001000_api_usage_locked_rels"
 import * as migration_20260901_002000_reading_city from "./20260901_002000_reading_city"
+import * as migration_20260901_003000_intake_content_blocks from "./20260901_003000_intake_content_blocks"
 
 export const migrations = [
   {
@@ -167,5 +168,10 @@ export const migrations = [
     up: migration_20260901_002000_reading_city.up,
     down: migration_20260901_002000_reading_city.down,
     name: "20260901_002000_reading_city",
+  },
+  {
+    up: migration_20260901_003000_intake_content_blocks.up,
+    down: migration_20260901_003000_intake_content_blocks.down,
+    name: "20260901_003000_intake_content_blocks",
   },
 ]
