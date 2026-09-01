@@ -14,7 +14,7 @@ export const PageHeader = ({
   title,
 }: {
   readonly actions?: ReactNode
-  readonly icon?: ComponentType<IconProps>
+  readonly icon?: ComponentType<IconProps> | undefined
   readonly meta?: ReactNode
   readonly title: ReactNode
 }) => (

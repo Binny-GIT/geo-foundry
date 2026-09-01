@@ -233,7 +233,7 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
     return (
       <div className="grid gap-6 [&>*]:min-w-0">
         <PageHeader
-          icon={NAV_ICON_BY_SLUG.sites}
+          icon={NAV_ICON_BY_SLUG["sites"]}
           meta={
             <span className="rounded-full border border-[var(--console-border)] bg-[var(--console-surface)] px-3 py-1 text-xs font-semibold text-[var(--console-ink-muted)]">
               {result.totalDocs} 个站点
