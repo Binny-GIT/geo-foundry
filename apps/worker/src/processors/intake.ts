@@ -149,7 +149,7 @@ export const createIntakeProcessor = (options: {
         tenantId: input.tenantId,
       })
       await client.completeIntakeFetch(input.intakeItemId, {
-        ...(article.blocks.length === 0 ? {} : { contentBlocks: article.blocks }),
+        ...(article.blocks.length === 0 ? {} : { contentBlocks: article.blocks.map(block => ({ ...block })) }),
         extracted,
         raw,
         summary: article.summary,
