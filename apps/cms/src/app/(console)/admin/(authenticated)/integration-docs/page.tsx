@@ -12,7 +12,7 @@ const IntegrationDocsPage = async () => {
   await requireConsoleSession("/admin/integration-docs")
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-6 [&>*]:min-w-0">
       <header>
         <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">系统</p>
         <h1 className="m-0 pt-1 text-3xl font-semibold tracking-tight text-[var(--console-ink)]">

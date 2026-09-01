@@ -200,7 +200,7 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
   }
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-6 [&>*]:min-w-0">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           <Link

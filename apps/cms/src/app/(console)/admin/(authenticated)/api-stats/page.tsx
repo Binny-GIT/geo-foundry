@@ -75,7 +75,7 @@ const ApiStatsPage = async () => {
     .slice(0, 10)
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-6 [&>*]:min-w-0">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">系统</p>

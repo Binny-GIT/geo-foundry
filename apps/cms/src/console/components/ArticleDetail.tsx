@@ -216,7 +216,7 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
     .slice(0, 6)
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-6 [&>*]:min-w-0">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           <Link

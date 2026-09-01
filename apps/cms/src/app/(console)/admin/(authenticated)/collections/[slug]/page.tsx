@@ -143,7 +143,7 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
         : Promise.resolve([] as readonly FilterOption[]),
     ])
     return (
-      <div className="grid gap-6">
+      <div className="grid gap-6 [&>*]:min-w-0">
         <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">文章</p>
@@ -235,7 +235,7 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
       }),
     )
     return (
-      <div className="grid gap-6">
+      <div className="grid gap-6 [&>*]:min-w-0">
         <header>
           <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">站点</p>
           <h1 className="m-0 pt-1 text-3xl font-semibold tracking-tight text-[var(--console-ink)]">
@@ -270,7 +270,7 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
     slug === "rollback-intents" && context.session.role === CMS_ROLE.PUBLISHER
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-6 [&>*]:min-w-0">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">

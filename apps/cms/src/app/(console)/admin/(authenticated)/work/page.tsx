@@ -139,7 +139,7 @@ const WorkbenchPage = async () => {
   })
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-6 [&>*]:min-w-0">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">运营</p>
