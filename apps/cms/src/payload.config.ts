@@ -7,25 +7,24 @@ import { s3Storage } from "@payloadcms/storage-s3"
 import { en as enLanguage, enTranslations } from "@payloadcms/translations/languages/en"
 import { zh as zhLanguage, zhTranslations } from "@payloadcms/translations/languages/zh"
 import { buildConfig } from "payload"
-
-import { ArticleSources } from "./collections/ArticleSources"
 import { ApiUsageDaily } from "./collections/ApiUsageDaily"
+import { ArticleSources } from "./collections/ArticleSources"
 import { Connectors } from "./collections/Connectors"
 import { ContentEditions } from "./collections/ContentEditions"
-import { EditionDraftRestoreIdempotency } from "./collections/EditionDraftRestoreIdempotency"
 import { Contents } from "./collections/Contents"
 import { Domains } from "./collections/Domains"
+import { EditionDraftRestoreIdempotency } from "./collections/EditionDraftRestoreIdempotency"
 import { IdempotencyRecords } from "./collections/IdempotencyRecords"
 import { IntakeItems } from "./collections/IntakeItems"
-import { ReviewerEditionDecisionIdempotency } from "./collections/ReviewerEditionDecisionIdempotency"
-import { ReviewComments } from "./collections/ReviewComments"
 import { Media } from "./collections/Media"
 import { Operations } from "./collections/Operations"
-import { PublicationPlans } from "./collections/PublicationPlans"
-import { PerformanceSnapshots } from "./collections/PerformanceSnapshots"
 import { OutboxEvents } from "./collections/OutboxEvents"
+import { PerformanceSnapshots } from "./collections/PerformanceSnapshots"
+import { PublicationPlans } from "./collections/PublicationPlans"
 import { QualityAssessments } from "./collections/QualityAssessments"
 import { Releases } from "./collections/Releases"
+import { ReviewComments } from "./collections/ReviewComments"
+import { ReviewerEditionDecisionIdempotency } from "./collections/ReviewerEditionDecisionIdempotency"
 import { RollbackIntents } from "./collections/RollbackIntents"
 import { Sites } from "./collections/Sites"
 import { SourceSnapshots } from "./collections/SourceSnapshots"
@@ -35,21 +34,19 @@ import { Users } from "./collections/Users"
 import { createPostgresAdapterOptions } from "./config/database"
 import { parseCmsEnvironment } from "./config/environment"
 import { PAGE_DOCUMENT_BLOCKS } from "./editor/page-document-blocks"
+import { addArticleSourceEndpoint } from "./endpoints/article-sources"
+import { deliveryArticleEndpoint, deliveryArticlesEndpoint } from "./endpoints/delivery"
+import {
+  editionVersionHistoryEndpoint,
+  restoreEditionDraftEndpoint,
+} from "./endpoints/edition-version-history"
 import {
   createDraftFromPublishedEndpoint,
   submitPublishOperationEndpoint,
   transitionEditionEndpoint,
 } from "./endpoints/edition-workflow"
-import {
-  reviewerApproveEditionEndpoint,
-  reviewerRequestChangesEditionEndpoint,
-} from "./endpoints/reviewer-edition-decisions"
-import {
-  editionVersionHistoryEndpoint,
-  restoreEditionDraftEndpoint,
-} from "./endpoints/edition-version-history"
 import { editionWorkspaceContextEndpoint } from "./endpoints/edition-workspace-context"
-import { addArticleSourceEndpoint } from "./endpoints/article-sources"
+import { submitEditorEvaluationEndpoint } from "./endpoints/editor-evaluation"
 import {
   adoptIntakeItemEndpoint,
   createIntakeItemEndpoint,
@@ -57,15 +54,24 @@ import {
   mergeIntakeItemEndpoint,
 } from "./endpoints/intake"
 import { retryIntakeItemEndpoint } from "./endpoints/intake-retry"
-import { createSiteVariantEndpoint } from "./endpoints/site-variants"
-import { acceptPerformanceSuggestionEndpoint, importPerformanceSnapshotsEndpoint, performanceSuggestionsEndpoint } from "./endpoints/performance-snapshots"
-import { cancelPublicationPlanEndpoint, createPublicationPlanEndpoint } from "./endpoints/publication-plans"
 import { allInternalEndpoints } from "./endpoints/internal/index"
+import {
+  acceptPerformanceSuggestionEndpoint,
+  importPerformanceSnapshotsEndpoint,
+  performanceSuggestionsEndpoint,
+} from "./endpoints/performance-snapshots"
+import {
+  cancelPublicationPlanEndpoint,
+  createPublicationPlanEndpoint,
+} from "./endpoints/publication-plans"
 import { createReviewCommentEndpoint } from "./endpoints/review-comments"
+import {
+  reviewerApproveEditionEndpoint,
+  reviewerRequestChangesEditionEndpoint,
+} from "./endpoints/reviewer-edition-decisions"
 import { createRollbackIntentEndpoint } from "./endpoints/rollback-intents"
+import { createSiteVariantEndpoint } from "./endpoints/site-variants"
 import { renameUrlRecordEndpoint } from "./endpoints/url-records"
-import { submitEditorEvaluationEndpoint } from "./endpoints/editor-evaluation"
-import { deliveryArticleEndpoint, deliveryArticlesEndpoint } from "./endpoints/delivery"
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 const environment = parseCmsEnvironment(process.env)

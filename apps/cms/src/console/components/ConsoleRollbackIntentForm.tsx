@@ -56,7 +56,9 @@ export const ConsoleRollbackIntentForm = () => {
         return
       }
       window.location.assign(
-        body.id === undefined ? consoleRoute.collection("rollback-intents") : consoleRoute.document("rollback-intents", body.id),
+        body.id === undefined
+          ? consoleRoute.collection("rollback-intents")
+          : consoleRoute.document("rollback-intents", body.id),
       )
     } catch {
       setError("暂时无法连接到服务，请稍后重试。")
@@ -68,7 +70,8 @@ export const ConsoleRollbackIntentForm = () => {
   return (
     <form className="grid gap-5" onSubmit={submit}>
       <p className="m-0 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-        回滚会提交一条不可变、可审计的命令意图，而非直接切换发布指针。请从当前 release 详情中准确复制预条件；服务端会在创建时再次核验。
+        回滚会提交一条不可变、可审计的命令意图，而非直接切换发布指针。请从当前 release
+        详情中准确复制预条件；服务端会在创建时再次核验。
       </p>
       <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
         站点 ID
@@ -127,7 +130,10 @@ export const ConsoleRollbackIntentForm = () => {
         />
       </label>
       {error !== null && (
-        <p className="m-0 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm leading-6 text-rose-700" role="alert">
+        <p
+          className="m-0 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm leading-6 text-rose-700"
+          role="alert"
+        >
           {error}
         </p>
       )}

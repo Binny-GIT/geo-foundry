@@ -5,8 +5,8 @@ import { useState } from "react"
 
 import {
   isWorkflowStatus,
-  workflowActionsFor,
   type WorkflowAction,
+  workflowActionsFor,
 } from "@/components/workflow/workflow-actions-model"
 import {
   editionActionErrorMessage,
@@ -166,8 +166,7 @@ const ArticleWorkflowPanel = ({
 
   const showQuality =
     role === "editor" && ["draft", "generating", "review"].includes(workflowStatus)
-  const showSchedule =
-    role === "publisher" && ["approved", "compiled"].includes(workflowStatus)
+  const showSchedule = role === "publisher" && ["approved", "compiled"].includes(workflowStatus)
   const hasActions = actions.length > 0 || showQuality || showSchedule
 
   return (
@@ -242,7 +241,10 @@ const ArticleWorkflowPanel = ({
       )}
 
       <div className="grid gap-2 border-t border-[var(--console-border)] pt-4">
-        <label className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]" htmlFor="article-comment">
+        <label
+          className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]"
+          htmlFor="article-comment"
+        >
           添加评论
         </label>
         <textarea
@@ -329,7 +331,9 @@ const ArticleWorkflowPanel = ({
               创建发布排期 · {title}
             </h2>
             <label className="mt-4 block">
-              <span className="text-sm font-bold text-[var(--console-ink)]">发布时间（本地时区）</span>
+              <span className="text-sm font-bold text-[var(--console-ink)]">
+                发布时间（本地时区）
+              </span>
               <input
                 className="mt-2 h-11 w-full rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-sm text-[var(--console-ink)]"
                 onChange={(event) => setScheduledFor(event.target.value)}

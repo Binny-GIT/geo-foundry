@@ -1,8 +1,8 @@
 "use client"
 
 import { useAuth, useTranslation } from "@payloadcms/ui"
-import { useEffect, useState } from "react"
 import type { DefaultCellComponentProps } from "payload"
+import { useEffect, useState } from "react"
 
 import { uiLangOf } from "../i18n/ui-lang"
 import { editionHrefOf, editionReferenceOf } from "./edition-cell-model"

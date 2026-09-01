@@ -35,7 +35,9 @@ const positiveInt = (value: string | null): number | null => {
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null
 }
 
-export const parseArticleListQuery = (searchParams: Record<string, string | string[] | undefined>): ArticleListQuery => {
+export const parseArticleListQuery = (
+  searchParams: Record<string, string | string[] | undefined>,
+): ArticleListQuery => {
   const page = positiveInt(first(searchParams["page"])) ?? 1
   const statusRaw = first(searchParams["status"])
   const qRaw = first(searchParams["q"])?.trim() ?? ""

@@ -1,4 +1,4 @@
-import { isCmsRole, CMS_ROLE, type CmsRole } from "./roles"
+import { CMS_ROLE, type CmsRole, isCmsRole } from "./roles"
 
 export type TenantRef = string | number
 

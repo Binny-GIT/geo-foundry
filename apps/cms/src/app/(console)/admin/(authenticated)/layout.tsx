@@ -1,12 +1,12 @@
-import type { ReactNode } from "react"
 import Script from "next/script"
+import type { ReactNode } from "react"
 
 import { CMS_ACTION } from "@/access/policy"
 import { ConsoleShell } from "@/console/components/ConsoleShell"
 import {
   CONSOLE_RESOURCES,
-  VISIBLE_RESOURCE_SLUGS,
   type ConsoleResourceSlug,
+  VISIBLE_RESOURCE_SLUGS,
 } from "@/console/lib/resources"
 import { canConsole, requireConsoleSession } from "@/console/lib/session.server"
 

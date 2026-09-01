@@ -6,8 +6,8 @@ import { CMS_ROLE } from "@/access/roles"
 import ArticleBody from "@/console/components/ArticleBody"
 import ArticleWorkflowPanel from "@/console/components/ArticleWorkflowPanel"
 import { RankedBars, TrendBars, type TrendPoint } from "@/console/components/charts"
-import { consoleRoute } from "@/console/lib/resources"
 import { requireConsolePayloadContext } from "@/console/lib/payload.server"
+import { consoleRoute } from "@/console/lib/resources"
 import { canConsole } from "@/console/lib/session.server"
 
 const WORKFLOW_LABELS: Readonly<Record<string, string>> = {
@@ -77,9 +77,10 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
     notFound()
   }
 
-  const siteId = typeof edition["site"] === "object" && edition["site"] !== null
-    ? (edition["site"] as Record<string, unknown>)["id"]
-    : null
+  const siteId =
+    typeof edition["site"] === "object" && edition["site"] !== null
+      ? (edition["site"] as Record<string, unknown>)["id"]
+      : null
   const contentId =
     typeof edition["content"] === "object" && edition["content"] !== null
       ? (edition["content"] as Record<string, unknown>)["id"]
@@ -88,8 +89,12 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
   const siteTimezone = relationText(edition["site"], "timezone")
   const tenantName = relationText(edition["tenant"], "name")
   const ownerEmail = relationText(edition["owner"], "email")
-  const workflowStatus = typeof edition["workflowStatus"] === "string" ? edition["workflowStatus"] : ""
-  const title = typeof edition["title"] === "string" && edition["title"].length > 0 ? edition["title"] : "未命名稿件"
+  const workflowStatus =
+    typeof edition["workflowStatus"] === "string" ? edition["workflowStatus"] : ""
+  const title =
+    typeof edition["title"] === "string" && edition["title"].length > 0
+      ? edition["title"]
+      : "未命名稿件"
 
   const [urlRecord, domain, comments, snapshots] = await Promise.all([
     payload
@@ -100,10 +105,7 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
         overrideAccess: false,
         user,
         where: {
-          and: [
-            { content: { equals: contentId } },
-            { state: { equals: "active" } },
-          ],
+          and: [{ content: { equals: contentId } }, { state: { equals: "active" } }],
         },
       })
       .then((result) => (result.docs[0] ?? null) as Record<string, unknown> | null)
@@ -156,8 +158,14 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
       : null,
   ])
 
-  const pathname = urlRecord === null ? null : typeof urlRecord["pathname"] === "string" ? urlRecord["pathname"] : null
-  const hostname = domain === null ? null : typeof domain["hostname"] === "string" ? domain["hostname"] : null
+  const pathname =
+    urlRecord === null
+      ? null
+      : typeof urlRecord["pathname"] === "string"
+        ? urlRecord["pathname"]
+        : null
+  const hostname =
+    domain === null ? null : typeof domain["hostname"] === "string" ? domain["hostname"] : null
   const publicUrl = pathname !== null && hostname !== null ? `https://${hostname}${pathname}` : null
 
   const audit = Array.isArray(edition["auditLog"]) ? edition["auditLog"] : []
@@ -168,7 +176,8 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
       const action = typeof row["action"] === "string" ? row["action"] : null
       const at = typeof row["at"] === "string" ? row["at"] : ""
       if (action === null || at.length === 0) return []
-      const reason = typeof row["reason"] === "string" && row["reason"].length > 0 ? row["reason"] : null
+      const reason =
+        typeof row["reason"] === "string" && row["reason"].length > 0 ? row["reason"] : null
       return [
         {
           at,
@@ -207,10 +216,14 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
       if (day === todayKey) todayVisits += visits
       if (readingDays.has(day)) readingDays.set(day, (readingDays.get(day) ?? 0) + visits)
     }
-    const city = typeof snapshot["city"] === "string" && snapshot["city"].length > 0 ? snapshot["city"] : null
+    const city =
+      typeof snapshot["city"] === "string" && snapshot["city"].length > 0 ? snapshot["city"] : null
     if (city !== null) readingCities.set(city, (readingCities.get(city) ?? 0) + visits)
   }
-  const readingTrend: readonly TrendPoint[] = [...readingDays.entries()].map(([date, value]) => ({ date, value }))
+  const readingTrend: readonly TrendPoint[] = [...readingDays.entries()].map(([date, value]) => ({
+    date,
+    value,
+  }))
   const cityItems = [...readingCities.entries()]
     .map(([label, value]) => ({ label, value }))
     .sort((left, right) => right.value - left.value)
@@ -270,10 +283,14 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="grid min-w-0 gap-6">
           <section className="gf-console-card grid gap-4 p-5 sm:p-6">
-            <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">基础信息</h2>
+            <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">
+              基础信息
+            </h2>
             <dl className="m-0 grid gap-4 border-t border-[var(--console-border)] pt-4 sm:grid-cols-2">
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">摘要</dt>
+                <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">
+                  摘要
+                </dt>
                 <dd className="m-0 pt-1 text-sm leading-6 text-[var(--console-ink)]">
                   {typeof edition["summary"] === "string" && edition["summary"].length > 0
                     ? edition["summary"]
@@ -281,11 +298,17 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
                 </dd>
               </div>
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">负责人</dt>
-                <dd className="m-0 pt-1 text-sm text-[var(--console-ink)]">{ownerEmail ?? "未分配"}</dd>
+                <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">
+                  负责人
+                </dt>
+                <dd className="m-0 pt-1 text-sm text-[var(--console-ink)]">
+                  {ownerEmail ?? "未分配"}
+                </dd>
               </div>
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">所属站点</dt>
+                <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">
+                  所属站点
+                </dt>
                 <dd className="m-0 pt-1 text-sm text-[var(--console-ink)]">
                   {siteId === null ? (
                     "受限站点"
@@ -298,12 +321,16 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
                     </Link>
                   )}
                   {siteTimezone !== null && (
-                    <span className="pl-2 text-xs text-[var(--console-ink-muted)]">{siteTimezone}</span>
+                    <span className="pl-2 text-xs text-[var(--console-ink-muted)]">
+                      {siteTimezone}
+                    </span>
                   )}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">来源</dt>
+                <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">
+                  来源
+                </dt>
                 <dd className="m-0 pt-1 text-sm text-[var(--console-ink)]">
                   {typeof edition["creationOrigin"] === "string" ? edition["creationOrigin"] : "—"}
                 </dd>
@@ -312,7 +339,9 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
           </section>
 
           <section className="gf-console-card grid gap-5 p-5 sm:p-6">
-            <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">正文</h2>
+            <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">
+              正文
+            </h2>
             <ArticleBody body={edition["body"]} />
           </section>
         </div>
@@ -330,7 +359,9 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
           />
 
           <section className="gf-console-card grid gap-3 p-5">
-            <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">站点文章入口</h2>
+            <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">
+              站点文章入口
+            </h2>
             {publicUrl === null ? (
               <p className="m-0 text-sm leading-6 text-[var(--console-ink-muted)]">
                 该文章尚未发布或缺少生效的站点 URL；发布后这里会显示线上入口。
@@ -357,16 +388,21 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
 
           <section className="gf-console-card grid gap-4 p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">阅读分析</h2>
+              <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">
+                阅读分析
+              </h2>
               <span className="text-xs font-semibold text-[var(--console-ink-muted)]">
                 今日 {todayVisits} · 累计 {totalVisits}
               </span>
             </div>
             {snapshots === null ? (
-              <p className="m-0 text-sm leading-6 text-[var(--console-ink-muted)]">当前角色无权读取流量统计。</p>
+              <p className="m-0 text-sm leading-6 text-[var(--console-ink-muted)]">
+                当前角色无权读取流量统计。
+              </p>
             ) : totalVisits === 0 ? (
               <p className="m-0 text-sm leading-6 text-[var(--console-ink-muted)]">
-                暂无流量统计数据；由站点或 n8n 上报后，这里将展示今日阅读、近 30 天趋势与访问城市排行。
+                暂无流量统计数据；由站点或 n8n 上报后，这里将展示今日阅读、近 30
+                天趋势与访问城市排行。
               </p>
             ) : (
               <>
@@ -392,13 +428,20 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
             ) : (
               <ol className="m-0 grid min-w-0 list-none gap-0 p-0">
                 {timeline.map((entry, index) => (
-                  <li className="grid gap-1 border-l-2 border-[var(--console-border)] py-2.5 pl-4" key={`${entry.at}-${index}`}>
+                  <li
+                    className="grid gap-1 border-l-2 border-[var(--console-border)] py-2.5 pl-4"
+                    key={`${entry.at}-${index}`}
+                  >
                     <span className="text-xs text-[var(--console-ink-muted)]">
                       {formatInstant(entry.at)}（UTC）
                     </span>
-                    <span className="text-sm font-semibold text-[var(--console-ink)]">{entry.title}</span>
+                    <span className="text-sm font-semibold text-[var(--console-ink)]">
+                      {entry.title}
+                    </span>
                     {entry.detail !== null && (
-                      <span className="text-sm leading-6 text-[var(--console-ink-muted)]">{entry.detail}</span>
+                      <span className="text-sm leading-6 text-[var(--console-ink-muted)]">
+                        {entry.detail}
+                      </span>
                     )}
                   </li>
                 ))}

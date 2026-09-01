@@ -92,10 +92,7 @@ export const consumeRollbackIntent = async (
       throw new RollbackIntentError("ROLLBACK_INTENT_MISMATCH", input.rollbackIntentId)
     }
     const assignedOperationId = textOf(intent.operationId)
-    if (
-      assignedOperationId !== null &&
-      assignedOperationId !== input.operationId
-    ) {
+    if (assignedOperationId !== null && assignedOperationId !== input.operationId) {
       throw new RollbackIntentError("ROLLBACK_INTENT_MISMATCH", input.rollbackIntentId)
     }
     if (intent.consumedAt !== null && intent.consumedAt !== undefined) {

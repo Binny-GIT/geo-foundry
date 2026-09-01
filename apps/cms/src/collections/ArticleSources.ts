@@ -35,7 +35,9 @@ export const ensureArticleSourceTenantConsistency: CollectionBeforeChangeHook = 
   req,
 }) => {
   const tenant = valueOf(data, originalDoc as Record<string, unknown> | undefined, "tenant")
-  const editionId = idOf(valueOf(data, originalDoc as Record<string, unknown> | undefined, "edition"))
+  const editionId = idOf(
+    valueOf(data, originalDoc as Record<string, unknown> | undefined, "edition"),
+  )
   const intakeItemId = idOf(
     valueOf(data, originalDoc as Record<string, unknown> | undefined, "intakeItem"),
   )

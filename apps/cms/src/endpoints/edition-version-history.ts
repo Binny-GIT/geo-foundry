@@ -2,12 +2,12 @@ import type { Endpoint, PayloadRequest } from "payload"
 import { z } from "zod"
 
 import { resolveSessionClaims } from "../access/session"
-import { EditionWorkflowError } from "../services/edition-workflow"
 import {
-  editionVersionHistory,
   EditionVersionHistoryError,
+  editionVersionHistory,
   restoreEditionDraft,
 } from "../services/edition-version-history"
+import { EditionWorkflowError } from "../services/edition-workflow"
 import { IDEMPOTENCY_KEY_PATTERN, REQUEST_ID_PATTERN } from "./internal/contracts"
 
 const restoreBodySchema = z
@@ -41,11 +41,18 @@ const response = (status: number, body: unknown, requestId?: string): Response =
 }
 
 const notFound = (requestId: string): Response =>
-  response(404, { error: { code: "EDITION_VERSION_NOT_FOUND", message: "edition not found" } }, requestId)
+  response(
+    404,
+    { error: { code: "EDITION_VERSION_NOT_FOUND", message: "edition not found" } },
+    requestId,
+  )
 
 const errorResponseOf = (error: unknown, requestId: string): Response => {
   if (error instanceof EditionWorkflowError) {
-    if (error.code === "EDITION_WORKFLOW_NOT_FOUND" || error.code === "EDITION_WORKFLOW_TENANT_MISMATCH") {
+    if (
+      error.code === "EDITION_WORKFLOW_NOT_FOUND" ||
+      error.code === "EDITION_WORKFLOW_TENANT_MISMATCH"
+    ) {
       return notFound(requestId)
     }
     if (error.code === "EDITION_WORKFLOW_REVISION_CONFLICT") {
@@ -53,10 +60,16 @@ const errorResponseOf = (error: unknown, requestId: string): Response => {
     }
   }
   if (error instanceof EditionVersionHistoryError) {
-    if (error.code === "EDITION_VERSION_NOT_FOUND" || error.code === "EDITION_DRAFT_RESTORE_VERSION_NOT_FOUND") {
+    if (
+      error.code === "EDITION_VERSION_NOT_FOUND" ||
+      error.code === "EDITION_DRAFT_RESTORE_VERSION_NOT_FOUND"
+    ) {
       return notFound(requestId)
     }
-    if (error.code === "EDITION_VERSION_UNAUTHENTICATED" || error.code === "EDITION_DRAFT_RESTORE_UNAUTHENTICATED") {
+    if (
+      error.code === "EDITION_VERSION_UNAUTHENTICATED" ||
+      error.code === "EDITION_DRAFT_RESTORE_UNAUTHENTICATED"
+    ) {
       return response(401, { error: { code: error.code } }, requestId)
     }
     if (error.code === "EDITION_DRAFT_RESTORE_EDITOR_REQUIRED") {
@@ -80,7 +93,8 @@ export const editionVersionHistoryEndpoint: Endpoint = {
     const editionId = editionIdOf(req)
     const requestId = requestIdOf(req)
     if (editionId === null) return response(400, { error: { code: "EDITION_VERSION_ID_INVALID" } })
-    if (requestId === null) return response(400, { error: { code: "EDITION_VERSION_REQUEST_ID_INVALID" } })
+    if (requestId === null)
+      return response(400, { error: { code: "EDITION_VERSION_REQUEST_ID_INVALID" } })
     if (resolveSessionClaims(req.user) === null) {
       return response(401, { error: { code: "EDITION_VERSION_UNAUTHENTICATED" } }, requestId)
     }
@@ -99,8 +113,10 @@ export const restoreEditionDraftEndpoint: Endpoint = {
   handler: async (req) => {
     const editionId = editionIdOf(req)
     const requestId = requestIdOf(req)
-    if (editionId === null) return response(400, { error: { code: "EDITION_DRAFT_RESTORE_ID_INVALID" } })
-    if (requestId === null) return response(400, { error: { code: "EDITION_DRAFT_RESTORE_REQUEST_ID_INVALID" } })
+    if (editionId === null)
+      return response(400, { error: { code: "EDITION_DRAFT_RESTORE_ID_INVALID" } })
+    if (requestId === null)
+      return response(400, { error: { code: "EDITION_DRAFT_RESTORE_REQUEST_ID_INVALID" } })
     const claims = resolveSessionClaims(req.user)
     if (claims === null) {
       return response(401, { error: { code: "EDITION_DRAFT_RESTORE_UNAUTHENTICATED" } }, requestId)
@@ -110,7 +126,11 @@ export const restoreEditionDraftEndpoint: Endpoint = {
     }
     const idempotencyKey = idempotencyKeyOf(req)
     if (idempotencyKey === null) {
-      return response(400, { error: { code: "EDITION_DRAFT_RESTORE_IDEMPOTENCY_KEY_INVALID" } }, requestId)
+      return response(
+        400,
+        { error: { code: "EDITION_DRAFT_RESTORE_IDEMPOTENCY_KEY_INVALID" } },
+        requestId,
+      )
     }
     let body: unknown
     try {

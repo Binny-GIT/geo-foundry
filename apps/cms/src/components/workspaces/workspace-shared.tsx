@@ -1,6 +1,5 @@
 import type { ReactNode } from "react"
-
-import { ActionLink, Badge, IconBadge, type Tone } from "../ui"
+import { type HasLanguage, uiLangOf } from "../i18n/ui-lang"
 import {
   AlertTriangleIcon,
   CheckCircleIcon,
@@ -9,7 +8,7 @@ import {
   SearchIcon,
   SendIcon,
 } from "../icons"
-import { uiLangOf, type HasLanguage } from "../i18n/ui-lang"
+import { ActionLink, Badge, IconBadge, type Tone } from "../ui"
 
 export type WorkspaceLanguage = "en" | "zh"
 
@@ -61,7 +60,9 @@ export const WorkspaceShell = ({
   const t = WORKSPACE_TEXT[workspaceText(i18n)]
   return (
     <main className="gf-command-dashboard mx-auto flex box-border w-full min-w-0 max-w-[1440px] flex-col gap-8 p-8 md:p-6">
-      <header className={`${cardClass} flex flex-col gap-4 p-6 sm:flex-row sm:items-end sm:justify-between`}>
+      <header
+        className={`${cardClass} flex flex-col gap-4 p-6 sm:flex-row sm:items-end sm:justify-between`}
+      >
         <div>
           <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
             {kicker}
@@ -139,6 +140,10 @@ export const WorkspaceAction = ({
   </ActionLink>
 )
 
-export const StatusBadge = ({ label, state }: { readonly label: string; readonly state: string }) => (
-  <Badge tone={toneFor(state)}>{label}</Badge>
-)
+export const StatusBadge = ({
+  label,
+  state,
+}: {
+  readonly label: string
+  readonly state: string
+}) => <Badge tone={toneFor(state)}>{label}</Badge>

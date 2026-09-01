@@ -97,7 +97,14 @@ export const IntakeItems = {
     singular: localized("Intake item", "稿源条目"),
   },
   admin: {
-    defaultColumns: ["title", "status", "duplicateStatus", "suggestedSite", "connector", "updatedAt"],
+    defaultColumns: [
+      "title",
+      "status",
+      "duplicateStatus",
+      "suggestedSite",
+      "connector",
+      "updatedAt",
+    ],
     group: localized("Sources", "稿源"),
     useAsTitle: "title",
   },

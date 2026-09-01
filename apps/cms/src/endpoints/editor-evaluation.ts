@@ -63,7 +63,11 @@ const errorResponseOf = (error: unknown, requestId: string): Response => {
     return response(400, { error: { code: error.code } }, requestId)
   }
   if (error instanceof OperationsLedgerError) {
-    return response(error.code === "IDEMPOTENCY_KEY_REUSED" ? 409 : 400, { error: { code: error.code } }, requestId)
+    return response(
+      error.code === "IDEMPOTENCY_KEY_REUSED" ? 409 : 400,
+      { error: { code: error.code } },
+      requestId,
+    )
   }
   throw error
 }
@@ -72,7 +76,8 @@ const errorResponseOf = (error: unknown, requestId: string): Response => {
 export const submitEditorEvaluationEndpoint: Endpoint = {
   handler: async (req) => {
     const editionId = editionIdOf(req)
-    if (editionId === null) return response(400, { error: { code: "EDITOR_EVALUATION_ID_INVALID" } })
+    if (editionId === null)
+      return response(400, { error: { code: "EDITOR_EVALUATION_ID_INVALID" } })
     const requestId = requestIdOf(req)
     if (requestId === null) {
       return response(400, { error: { code: "EDITOR_EVALUATION_REQUEST_ID_INVALID" } })
@@ -86,7 +91,11 @@ export const submitEditorEvaluationEndpoint: Endpoint = {
     }
     const idempotencyKey = idempotencyKeyOf(req)
     if (idempotencyKey === null) {
-      return response(400, { error: { code: "EDITOR_EVALUATION_IDEMPOTENCY_KEY_INVALID" } }, requestId)
+      return response(
+        400,
+        { error: { code: "EDITOR_EVALUATION_IDEMPOTENCY_KEY_INVALID" } },
+        requestId,
+      )
     }
     let body: unknown
     try {

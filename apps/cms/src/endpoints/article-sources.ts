@@ -3,8 +3,8 @@ import { z } from "zod"
 
 import { resolveSessionClaims } from "../access/session"
 import {
-  addArticleSource,
   ArticleSourcesError,
+  addArticleSource,
   removeArticleSource,
 } from "../services/article-sources"
 
@@ -45,7 +45,8 @@ const errorResponse = (error: unknown): Response => {
 export const addArticleSourceEndpoint: Endpoint = {
   handler: async (req) => {
     const editionId = positiveId(req.routeParams?.["id"])
-    if (editionId === null) return response(400, { error: { code: "ARTICLE_SOURCE_EDITION_ID_INVALID" } })
+    if (editionId === null)
+      return response(400, { error: { code: "ARTICLE_SOURCE_EDITION_ID_INVALID" } })
     if (resolveSessionClaims(req.user) === null) {
       return response(401, { error: { code: "ARTICLE_SOURCE_UNAUTHENTICATED" } })
     }

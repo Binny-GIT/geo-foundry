@@ -1,7 +1,10 @@
 import { getPayload } from "payload"
-
+import {
+  createOutboxQueue,
+  dispatchPendingOutbox,
+  parseOutboxRedisOptions,
+} from "./outbox/dispatcher"
 import config from "./payload.config"
-import { createOutboxQueue, dispatchPendingOutbox, parseOutboxRedisOptions } from "./outbox/dispatcher"
 import { pollDueRssConnectors } from "./services/connector-polling"
 
 const OUTBOX_INTERVAL_MS = 1_000

@@ -2,7 +2,7 @@ import type { Payload } from "payload"
 
 import type { TransactionScope } from "../outbox/outbox"
 import { slugify } from "./compile-snapshot-mappers"
-import { reserveUrlRecord, activateUrlRecord } from "./url-registry"
+import { activateUrlRecord, reserveUrlRecord } from "./url-registry"
 
 type Row = Record<string, unknown>
 

@@ -1,6 +1,6 @@
-import { PageHeader } from "@/console/components/PageHeader"
 import { ChartBarIcon } from "@/components/icons"
 import { ChartCard, RankedBars, TrendBars, type TrendPoint } from "@/console/components/charts"
+import { PageHeader } from "@/console/components/PageHeader"
 import { requireConsolePayloadContext } from "@/console/lib/payload.server"
 
 export const metadata = { title: "接口统计 | Geo Foundry" }
@@ -51,7 +51,9 @@ const ApiStatsPage = async () => {
     sites.flatMap((site) => {
       const id = site["id"]
       const name = site["name"]
-      return typeof id === "number" && typeof name === "string" ? ([[id, name] as const] as const) : []
+      return typeof id === "number" && typeof name === "string"
+        ? ([[id, name] as const] as const)
+        : []
     }),
   )
 
@@ -66,11 +68,15 @@ const ApiStatsPage = async () => {
       byDay.set(date, (byDay.get(date) ?? 0) + count)
     }
     const siteId = row["siteId"]
-    const siteKey = typeof siteId === "number" ? (siteNames.get(siteId) ?? `站点 #${String(siteId)}`) : "未知站点"
+    const siteKey =
+      typeof siteId === "number" ? (siteNames.get(siteId) ?? `站点 #${String(siteId)}`) : "未知站点"
     bySite.set(siteKey, (bySite.get(siteKey) ?? 0) + count)
   }
 
-  const trend: readonly TrendPoint[] = days.map((day) => ({ date: day, value: byDay.get(day) ?? 0 }))
+  const trend: readonly TrendPoint[] = days.map((day) => ({
+    date: day,
+    value: byDay.get(day) ?? 0,
+  }))
   const siteItems = [...bySite.entries()]
     .map(([label, value]) => ({ label, value }))
     .sort((left, right) => right.value - left.value)

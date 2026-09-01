@@ -1,4 +1,4 @@
-import { CMS_ROLE, isCmsRole, type CmsRole } from "./roles"
+import { CMS_ROLE, type CmsRole, isCmsRole } from "./roles"
 import type { SessionClaims } from "./session"
 
 const ASSIGNABLE_BY_TENANT_ADMIN: readonly CmsRole[] = [

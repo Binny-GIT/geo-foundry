@@ -1,8 +1,4 @@
-import {
-  type MigrateDownArgs,
-  type MigrateUpArgs,
-  sql,
-} from "@payloadcms/db-postgres";
+import { type MigrateDownArgs, type MigrateUpArgs, sql } from "@payloadcms/db-postgres"
 
 export async function up({ db }: MigrateUpArgs): Promise<void> {
   await db.execute(sql`
@@ -158,7 +154,7 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
     CREATE INDEX "payload_locked_documents_rels_connectors_id_idx" ON "geo_foundry"."payload_locked_documents_rels" USING btree ("connectors_id");
     CREATE INDEX "payload_locked_documents_rels_intake_items_id_idx" ON "geo_foundry"."payload_locked_documents_rels" USING btree ("intake_items_id");
     CREATE INDEX "payload_locked_documents_rels_source_snapshots_id_idx" ON "geo_foundry"."payload_locked_documents_rels" USING btree ("source_snapshots_id");
-  `);
+  `)
 }
 
 export async function down({ db }: MigrateDownArgs): Promise<void> {
@@ -191,5 +187,5 @@ export async function down({ db }: MigrateDownArgs): Promise<void> {
     DROP TYPE "geo_foundry"."enum_intake_items_channel";
     DROP TYPE "geo_foundry"."enum_connectors_status";
     DROP TYPE "geo_foundry"."enum_connectors_type";
-  `);
+  `)
 }

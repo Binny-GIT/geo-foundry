@@ -25,7 +25,8 @@ const response = (status: number, body: unknown): Response =>
 export const createReviewCommentEndpoint: Endpoint = {
   handler: async (req) => {
     const editionId = editionIdOf(req)
-    if (editionId === null) return response(400, { error: { code: "REVIEW_COMMENT_EDITION_ID_INVALID" } })
+    if (editionId === null)
+      return response(400, { error: { code: "REVIEW_COMMENT_EDITION_ID_INVALID" } })
     if (resolveSessionClaims(req.user) === null) {
       return response(401, { error: { code: "REVIEW_COMMENT_UNAUTHENTICATED" } })
     }

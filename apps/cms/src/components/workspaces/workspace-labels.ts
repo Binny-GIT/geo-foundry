@@ -1,7 +1,10 @@
 import type { UiLang } from "../i18n/ui-lang"
 
-const labelOf = (labels: Record<UiLang, Record<string, string>>, value: unknown, language: UiLang): string =>
-  typeof value === "string" ? (labels[language][value] ?? value) : "—"
+const labelOf = (
+  labels: Record<UiLang, Record<string, string>>,
+  value: unknown,
+  language: UiLang,
+): string => (typeof value === "string" ? (labels[language][value] ?? value) : "—")
 
 const ASSESSMENT = {
   en: { error: "Error", failed: "Failed", passed: "Passed", pending: "Pending" },
@@ -9,8 +12,20 @@ const ASSESSMENT = {
 } as const
 
 const OPERATION_STATE = {
-  en: { cancelled: "Cancelled", failed: "Failed", queued: "Queued", running: "Running", succeeded: "Succeeded" },
-  zh: { cancelled: "已取消", failed: "失败", queued: "排队中", running: "运行中", succeeded: "成功" },
+  en: {
+    cancelled: "Cancelled",
+    failed: "Failed",
+    queued: "Queued",
+    running: "Running",
+    succeeded: "Succeeded",
+  },
+  zh: {
+    cancelled: "已取消",
+    failed: "失败",
+    queued: "排队中",
+    running: "运行中",
+    succeeded: "成功",
+  },
 } as const
 
 const OPERATION_TYPE = {
@@ -75,7 +90,8 @@ export const operationTypeLabel = (value: unknown, language: UiLang): string =>
 export const releaseStateLabel = (value: unknown, language: UiLang): string =>
   labelOf(RELEASE_STATE, value, language)
 
-export const roleLabel = (value: unknown, language: UiLang): string => labelOf(ROLE, value, language)
+export const roleLabel = (value: unknown, language: UiLang): string =>
+  labelOf(ROLE, value, language)
 
 export const siteStatusLabel = (value: unknown, language: UiLang): string =>
   labelOf(SITE_STATUS, value, language)

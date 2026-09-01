@@ -2,17 +2,17 @@ import type { Endpoint, PayloadRequest } from "payload"
 import { z } from "zod"
 
 import { resolveSessionClaims } from "../access/session"
-import { enqueueIntakeFetchFromEnvironment } from "../services/intake-queue"
 import {
   adoptIntakeItem,
   createIntakeItem,
-  ignoreIntakeItem,
+  type IntakeChannel,
   IntakeError,
+  ignoreIntakeItem,
   markIntakeQueueUnavailable,
   mergeIntakeItems,
   scheduleIntakeFetch,
-  type IntakeChannel,
 } from "../services/intake"
+import { enqueueIntakeFetchFromEnvironment } from "../services/intake-queue"
 
 const idSchema = z.coerce.number().int().positive()
 const channelSchema = z.enum(["manual", "url", "webhook", "rss"])
@@ -46,7 +46,11 @@ const intakeItemIdOf = (req: PayloadRequest): number | null => {
 const editableClaims = (req: PayloadRequest) => {
   const claims = resolveSessionClaims(req.user)
   if (claims === null) return null
-  if (claims.role === "editor" || claims.role === "tenant-admin" || claims.role === "content-service") {
+  if (
+    claims.role === "editor" ||
+    claims.role === "tenant-admin" ||
+    claims.role === "content-service"
+  ) {
     return claims
   }
   return false
@@ -68,10 +72,10 @@ const intakeErrorResponse = (error: IntakeError): Response => {
           error.code === "INTAKE_EDITOR_REQUIRED" ||
           error.code === "INTAKE_ACTOR_INVALID"
         ? 403
-          : error.code === "INTAKE_MERGE_SELF_REFERENCE" ||
-              error.code === "INTAKE_FETCH_STATE_INVALID"
-            ? 409
-            : 400
+        : error.code === "INTAKE_MERGE_SELF_REFERENCE" ||
+            error.code === "INTAKE_FETCH_STATE_INVALID"
+          ? 409
+          : 400
   return response(status, { error: { code: error.code } })
 }
 
@@ -100,8 +104,12 @@ export const createIntakeItemEndpoint: Endpoint = {
           channel: parsed.data.channel as IntakeChannel,
           tenantId: Number(claims.tenantId),
           title: parsed.data.title,
-          ...(parsed.data.connectorId === undefined ? {} : { connectorId: parsed.data.connectorId }),
-          ...(parsed.data.contentHash === undefined ? {} : { contentHash: parsed.data.contentHash }),
+          ...(parsed.data.connectorId === undefined
+            ? {}
+            : { connectorId: parsed.data.connectorId }),
+          ...(parsed.data.contentHash === undefined
+            ? {}
+            : { contentHash: parsed.data.contentHash }),
           ...(parsed.data.sourceUrl === undefined ? {} : { sourceUrl: parsed.data.sourceUrl }),
           ...(parsed.data.suggestedSiteId === undefined
             ? {}
@@ -156,7 +164,9 @@ export const ignoreIntakeItemEndpoint: Endpoint = {
     const intakeItemId = intakeItemIdOf(req)
     if (intakeItemId === null) return response(400, { error: { code: "INTAKE_ITEM_ID_INVALID" } })
     try {
-      return response(200, { intakeItem: await ignoreIntakeItem(req.payload, intakeItemId, req.user) })
+      return response(200, {
+        intakeItem: await ignoreIntakeItem(req.payload, intakeItemId, req.user),
+      })
     } catch (error) {
       if (error instanceof IntakeError) return intakeErrorResponse(error)
       throw error

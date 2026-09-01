@@ -93,8 +93,10 @@ export const editionWorkspaceContextEndpoint: Endpoint = {
   handler: async (req) => {
     const editionId = editionIdOf(req)
     const claims = resolveSessionClaims(req.user)
-    if (editionId === null) return response(400, { error: { code: "EDITION_WORKSPACE_ID_INVALID" } })
-    if (claims === null) return response(401, { error: { code: "EDITION_WORKSPACE_UNAUTHENTICATED" } })
+    if (editionId === null)
+      return response(400, { error: { code: "EDITION_WORKSPACE_ID_INVALID" } })
+    if (claims === null)
+      return response(401, { error: { code: "EDITION_WORKSPACE_UNAUTHENTICATED" } })
 
     const editionResult = await req.payload.find({
       collection: "content-editions",
@@ -106,7 +108,8 @@ export const editionWorkspaceContextEndpoint: Endpoint = {
       where: { id: { equals: editionId } },
     })
     const edition = editionResult.docs[0]
-    if (edition === undefined) return response(404, { error: { code: "EDITION_WORKSPACE_NOT_FOUND" } })
+    if (edition === undefined)
+      return response(404, { error: { code: "EDITION_WORKSPACE_NOT_FOUND" } })
     const tenantId = idOf(record(edition)["tenant"])
 
     const contentId = idOf(record(edition)["content"])
@@ -160,20 +163,24 @@ export const editionWorkspaceContextEndpoint: Endpoint = {
             sort: "-updatedAt",
             user: req.user,
             where: {
-              and: [
-                { content: { equals: contentId } },
-                { id: { not_equals: editionId } },
-              ],
+              and: [{ content: { equals: contentId } }, { id: { not_equals: editionId } }],
             },
           }),
     ])
 
     const siteId = idOf(record(edition)["site"])
-    const site = siteId === null
-      ? null
-      : await req.payload
-          .findByID({ collection: "sites", depth: 0, id: siteId, overrideAccess: false, user: req.user })
-          .catch(() => null)
+    const site =
+      siteId === null
+        ? null
+        : await req.payload
+            .findByID({
+              collection: "sites",
+              depth: 0,
+              id: siteId,
+              overrideAccess: false,
+              user: req.user,
+            })
+            .catch(() => null)
 
     return response(200, {
       assignees: users.docs.map((user) => ({

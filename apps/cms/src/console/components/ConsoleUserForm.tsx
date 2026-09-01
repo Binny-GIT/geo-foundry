@@ -5,13 +5,8 @@ import { useEffect, useState } from "react"
 import { CMS_ROLE, type CmsRole } from "@/access/roles"
 import { PlusIcon } from "@/components/icons"
 import { Button } from "@/components/ui/button"
-
-import {
-  assignableUserRoles,
-  userFormPayload,
-  type UserFormActorRole,
-} from "../lib/user-form"
 import { consoleRoute } from "../lib/resources"
+import { assignableUserRoles, type UserFormActorRole, userFormPayload } from "../lib/user-form"
 
 type TenantOption = {
   readonly id: number | string
@@ -144,11 +139,7 @@ export const ConsoleUserForm = ({
       tenantId: String(form.get("tenant") ?? ""),
     })
     if (data === null || (isCreate && !("password" in data))) {
-      setError(
-        needsTenant
-          ? "请为非超级管理员选择租户。"
-          : "请填写有效的邮箱、角色和新账户密码。",
-      )
+      setError(needsTenant ? "请为非超级管理员选择租户。" : "请填写有效的邮箱、角色和新账户密码。")
       setLoading(false)
       return
     }
@@ -284,14 +275,23 @@ export const ConsoleUserForm = ({
       )}
 
       {error !== null && (
-        <p className="m-0 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm leading-6 text-rose-700" role="alert">
+        <p
+          className="m-0 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm leading-6 text-rose-700"
+          role="alert"
+        >
           {error}
         </p>
       )}
 
       <div className="flex flex-wrap justify-end gap-3 border-t border-[var(--console-border)] pt-5">
         <Button asChild size="lg" variant="secondary">
-          <a href={isCreate ? consoleRoute.collection("users") : consoleRoute.document("users", documentId)}>
+          <a
+            href={
+              isCreate
+                ? consoleRoute.collection("users")
+                : consoleRoute.document("users", documentId)
+            }
+          >
             取消
           </a>
         </Button>

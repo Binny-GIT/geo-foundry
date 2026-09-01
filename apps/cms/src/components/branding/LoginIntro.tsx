@@ -1,4 +1,4 @@
-import { uiLangOf, type HasLanguage } from "../i18n/ui-lang"
+import { type HasLanguage, uiLangOf } from "../i18n/ui-lang"
 
 type LoginIntroProps = {
   /** Passed by Payload's login view (ServerProps slice); defaults to zh. */

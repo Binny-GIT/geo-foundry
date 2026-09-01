@@ -1,20 +1,19 @@
 import Link from "next/link"
 
 import { CMS_ACTION, CMS_RESOURCE } from "@/access/policy"
-import { AlertTriangleIcon } from "@/components/icons"
-import ReviewBoard from "@/console/components/ReviewBoard"
+import { AlertTriangleIcon, LayersIcon } from "@/components/icons"
 import { CreateArticleLink } from "@/console/components/CreateArticleLink"
 import { PageHeader } from "@/console/components/PageHeader"
-import { LayersIcon } from "@/components/icons"
 import {
-  PerformanceSuggestions,
   type PerformanceSuggestion,
+  PerformanceSuggestions,
 } from "@/console/components/PerformanceSuggestions"
+import ReviewBoard from "@/console/components/ReviewBoard"
 import { groupBoardCards } from "@/console/lib/board-model"
-import { consoleRoute } from "@/console/lib/resources"
-import { siteScopeWhere } from "@/console/lib/site-scope"
 import { requireConsolePayloadContext } from "@/console/lib/payload.server"
+import { consoleRoute } from "@/console/lib/resources"
 import { canConsole } from "@/console/lib/session.server"
+import { siteScopeWhere } from "@/console/lib/site-scope"
 import { performanceSuggestions } from "@/services/performance-snapshots"
 
 export const metadata = { title: "工作台 | Geo Foundry" }

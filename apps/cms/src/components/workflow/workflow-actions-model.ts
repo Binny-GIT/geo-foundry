@@ -1,4 +1,4 @@
-import { uiLangOf, type UiLang } from "../i18n/ui-lang"
+import { type UiLang, uiLangOf } from "../i18n/ui-lang"
 import type { Tone } from "../ui/tone"
 
 export type WorkflowStatus =
@@ -91,19 +91,65 @@ type ActionTemplate = {
 
 const ACTION_TEMPLATES: readonly ActionTemplate[] = [
   // editor: draft → generating
-  { en: "Start generating", target: "generating", tone: "primary", type: "transition", zh: "开始生成" },
+  {
+    en: "Start generating",
+    target: "generating",
+    tone: "primary",
+    type: "transition",
+    zh: "开始生成",
+  },
   // editor: generating → review / back to draft
-  { en: "Submit for review", target: "review", tone: "primary", type: "transition", zh: "提交审核" },
+  {
+    en: "Submit for review",
+    target: "review",
+    tone: "primary",
+    type: "transition",
+    zh: "提交审核",
+  },
   { en: "Return to draft", target: "draft", tone: "secondary", type: "transition", zh: "退回草稿" },
   // reviewer: review → approved / back to draft
-  { confirm: true, en: "Approve edition", target: "approved", tone: "primary", type: "reviewer-approve", zh: "批准版本" },
-  { confirm: true, en: "Request changes", reasonRequired: true, target: "draft", tone: "secondary", type: "reviewer-request-changes", zh: "退回修改" },
+  {
+    confirm: true,
+    en: "Approve edition",
+    target: "approved",
+    tone: "primary",
+    type: "reviewer-approve",
+    zh: "批准版本",
+  },
+  {
+    confirm: true,
+    en: "Request changes",
+    reasonRequired: true,
+    target: "draft",
+    tone: "secondary",
+    type: "reviewer-request-changes",
+    zh: "退回修改",
+  },
   // publisher: compiled → publish
-  { confirm: true, en: "Publish edition", tone: "primary", type: "publish-operation", zh: "发布版本" },
+  {
+    confirm: true,
+    en: "Publish edition",
+    tone: "primary",
+    type: "publish-operation",
+    zh: "发布版本",
+  },
   // publisher: published → archived
-  { confirm: true, en: "Archive edition", target: "archived", tone: "secondary", type: "transition", zh: "归档版本" },
+  {
+    confirm: true,
+    en: "Archive edition",
+    target: "archived",
+    tone: "secondary",
+    type: "transition",
+    zh: "归档版本",
+  },
   // editor: published → new draft
-  { confirm: true, en: "Create next draft", tone: "primary", type: "draft-from-published", zh: "创建新草稿" },
+  {
+    confirm: true,
+    en: "Create next draft",
+    tone: "primary",
+    type: "draft-from-published",
+    zh: "创建新草稿",
+  },
 ]
 
 const TEMPLATE_KEYS: Record<string, readonly number[]> = {

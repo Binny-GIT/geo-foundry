@@ -2,9 +2,13 @@ import type { Payload } from "payload"
 
 import { CMS_ROLE } from "../../access/roles"
 import { recordsOf } from "../dashboard/operations-model"
-import { lifecycleWorkspaceQueues } from "../workspaces/lifecycle-workspace-model"
-import { workspaceUserOf, type WorkspaceServerContext } from "../workspaces/workspace-server-context"
+import { type HasLanguage, uiLangOf } from "../i18n/ui-lang"
 import { workflowStatusLabel } from "../workflow/workflow-actions-model"
+import { lifecycleWorkspaceQueues } from "../workspaces/lifecycle-workspace-model"
+import {
+  type WorkspaceServerContext,
+  workspaceUserOf,
+} from "../workspaces/workspace-server-context"
 import {
   cardClass,
   StatusBadge,
@@ -13,7 +17,6 @@ import {
   WorkspaceEmpty,
   WorkspaceShell,
 } from "../workspaces/workspace-shared"
-import { uiLangOf, type HasLanguage } from "../i18n/ui-lang"
 
 export type WorkQueueProps = WorkspaceServerContext & {
   readonly i18n?: HasLanguage
@@ -33,7 +36,8 @@ const TEXT = {
     editor: "Production queue",
     editorHint: "Drafts and active generation work that need editorial ownership.",
     publisher: "Publishing queue",
-    publisherHint: "Approved editions waiting for compilation, plus compiled editions ready for release control.",
+    publisherHint:
+      "Approved editions waiting for compilation, plus compiled editions ready for release control.",
     reviewer: "Review queue",
     reviewerHint: "Editions waiting for an evidence-based review decision.",
     openRecord: "Open record",
@@ -111,7 +115,9 @@ export const WorkQueue = async ({ i18n, initPageResult, payload, user }: WorkQue
   return (
     <WorkspaceShell i18n={i18n} kicker="Geo Foundry" title={t.work}>
       <section className={`${cardClass} flex flex-col gap-2 p-5`}>
-        <h2 className="m-0 text-xl font-bold tracking-tight text-[var(--theme-text)]">{roleTitle}</h2>
+        <h2 className="m-0 text-xl font-bold tracking-tight text-[var(--theme-text)]">
+          {roleTitle}
+        </h2>
         <p className="m-0 text-sm text-[var(--theme-elevation-600)]">{roleHint}</p>
       </section>
 
@@ -120,17 +126,24 @@ export const WorkQueue = async ({ i18n, initPageResult, payload, user }: WorkQue
       ) : (
         <section aria-label={roleTitle} className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {queue.map((edition) => (
-            <article className={`${cardClass} flex min-w-0 flex-col gap-4 p-5`} key={edition.editionId}>
+            <article
+              className={`${cardClass} flex min-w-0 flex-col gap-4 p-5`}
+              key={edition.editionId}
+            >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <h3 className="m-0 truncate text-base font-bold text-[var(--theme-text)]">
-                    {edition.title ?? `${lang === "zh" ? "内容版本" : "Edition"} ${edition.editionId}`}
+                    {edition.title ??
+                      `${lang === "zh" ? "内容版本" : "Edition"} ${edition.editionId}`}
                   </h3>
                   <p className="m-0 mt-1 text-xs text-[var(--theme-elevation-600)]">
                     {t.updated} · {dateOf(edition.updatedAt, lang)}
                   </p>
                 </div>
-                <StatusBadge label={workflowStatusLabel(edition.workflowStatus, lang)} state={edition.workflowStatus} />
+                <StatusBadge
+                  label={workflowStatusLabel(edition.workflowStatus, lang)}
+                  state={edition.workflowStatus}
+                />
               </div>
               <dl className="m-0 grid grid-cols-2 gap-3 border-t border-[var(--theme-elevation-100)] pt-3">
                 <div>
@@ -141,7 +154,9 @@ export const WorkQueue = async ({ i18n, initPageResult, payload, user }: WorkQue
                 </div>
                 <div>
                   <dt className="text-xs text-[var(--theme-elevation-600)]">{t.identifier}</dt>
-                  <dd className="m-0 mt-1 truncate font-mono text-sm text-[var(--theme-text)]">{edition.editionId}</dd>
+                  <dd className="m-0 mt-1 truncate font-mono text-sm text-[var(--theme-text)]">
+                    {edition.editionId}
+                  </dd>
                 </div>
               </dl>
               <div className="flex flex-wrap gap-2">

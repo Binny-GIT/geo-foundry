@@ -1,5 +1,11 @@
-import { dispatchDuePublicationPlans, PublicationPlansError } from "../../services/publication-plans"
-import { dispatchDuePublicationPlansBodySchema, type DispatchDuePublicationPlansBody } from "./contracts"
+import {
+  dispatchDuePublicationPlans,
+  PublicationPlansError,
+} from "../../services/publication-plans"
+import {
+  type DispatchDuePublicationPlansBody,
+  dispatchDuePublicationPlansBodySchema,
+} from "./contracts"
 import { internalJsonResponse, withInternalGuards } from "./guards"
 
 const handleDispatchDuePublicationPlans = withInternalGuards(

@@ -29,20 +29,28 @@ const ConsoleAccountPage = async () => {
           </span>
           <div>
             <h2 className="m-0 text-base font-semibold text-[var(--console-ink)]">账户身份</h2>
-            <p className="m-0 pt-1 text-sm text-[var(--console-ink-muted)]">来自当前 Payload 会话</p>
+            <p className="m-0 pt-1 text-sm text-[var(--console-ink-muted)]">
+              来自当前 Payload 会话
+            </p>
           </div>
         </div>
         <dl className="m-0 grid gap-4 border-t border-[var(--console-border)] pt-5 sm:grid-cols-2">
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">邮箱</dt>
-            <dd className="m-0 pt-1 text-sm font-medium text-[var(--console-ink)]">{session.email}</dd>
+            <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">
+              邮箱
+            </dt>
+            <dd className="m-0 pt-1 text-sm font-medium text-[var(--console-ink)]">
+              {session.email}
+            </dd>
           </div>
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">所属租户</dt>
+            <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">
+              所属租户
+            </dt>
             <dd className="m-0 pt-1 text-sm font-medium text-[var(--console-ink)]">
               {session.tenantId === null
                 ? "全部租户（跨租户读取）"
-                : session.tenantName ?? `租户 #${String(session.tenantId)}`}
+                : (session.tenantName ?? `租户 #${String(session.tenantId)}`)}
             </dd>
           </div>
         </dl>
@@ -54,11 +62,14 @@ const ConsoleAccountPage = async () => {
           </span>
           <div>
             <h2 className="m-0 text-base font-semibold text-[var(--console-ink)]">{role.label}</h2>
-            <p className="m-0 pt-1 text-sm leading-6 text-[var(--console-ink-muted)]">{role.detail}</p>
+            <p className="m-0 pt-1 text-sm leading-6 text-[var(--console-ink-muted)]">
+              {role.detail}
+            </p>
           </div>
         </div>
         <p className="m-0 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] p-4 text-sm leading-6 text-[var(--console-ink-muted)]">
-          界面上的可见操作仅用于说明权限范围；每一次读取与写入仍会由 Payload 集合访问策略和工作流端点在服务端再次验证。
+          界面上的可见操作仅用于说明权限范围；每一次读取与写入仍会由 Payload
+          集合访问策略和工作流端点在服务端再次验证。
         </p>
       </section>
     </div>

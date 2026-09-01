@@ -1,8 +1,7 @@
 import type { Endpoint, PayloadRequest } from "payload"
-
-import { enqueueIntakeFetchFromEnvironment } from "../services/intake-queue"
-import { IntakeError, scheduleIntakeFetch } from "../services/intake"
 import { resolveSessionClaims } from "../access/session"
+import { IntakeError, scheduleIntakeFetch } from "../services/intake"
+import { enqueueIntakeFetchFromEnvironment } from "../services/intake-queue"
 
 const response = (status: number, body: unknown): Response =>
   new Response(JSON.stringify(body), {
@@ -34,7 +33,11 @@ export const retryIntakeItemEndpoint: Endpoint = {
   handler: async (req) => {
     const claims = resolveSessionClaims(req.user)
     if (claims === null) return response(401, { error: { code: "INTAKE_UNAUTHENTICATED" } })
-    if (claims.role !== "editor" && claims.role !== "tenant-admin" && claims.role !== "content-service") {
+    if (
+      claims.role !== "editor" &&
+      claims.role !== "tenant-admin" &&
+      claims.role !== "content-service"
+    ) {
       return response(403, { error: { code: "INTAKE_EDITOR_REQUIRED" } })
     }
     const intakeItemId = intakeItemIdOf(req)

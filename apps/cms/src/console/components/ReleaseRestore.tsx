@@ -105,7 +105,10 @@ export const ReleaseRestore = ({
               />
             </label>
             {notice !== null && (
-              <p className="m-0 mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700" role="alert">
+              <p
+                className="m-0 mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700"
+                role="alert"
+              >
                 {notice}
               </p>
             )}

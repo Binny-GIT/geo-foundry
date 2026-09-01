@@ -4,7 +4,11 @@ import type { Payload } from "payload"
 
 import { resolveSessionClaims } from "../access/session"
 import { runOutboxScopedTransaction } from "../outbox/outbox"
-import { assertEditionTenantScope, EditionWorkflowError, loadWorkflowEdition } from "./edition-workflow"
+import {
+  assertEditionTenantScope,
+  EditionWorkflowError,
+  loadWorkflowEdition,
+} from "./edition-workflow"
 import { getOperation, submitEditionPublishOperation } from "./operations-ledger"
 
 export class PublicationPlansError extends Error {
@@ -122,7 +126,13 @@ export const createPublicationPlan = async (
     }
     const siteId = numberOf(edition.site)
     if (siteId === null) throw fail("PUBLICATION_PLAN_SITE_INVALID")
-    const site = await payload.findByID({ collection: "sites", depth: 0, id: siteId, overrideAccess: true, req })
+    const site = await payload.findByID({
+      collection: "sites",
+      depth: 0,
+      id: siteId,
+      overrideAccess: true,
+      req,
+    })
     if (
       numberOf(site.tenant) !== numberOf(edition.tenant) ||
       site.timezone !== timezone.value.value
@@ -170,7 +180,10 @@ export const cancelPublicationPlan = async (
   })
   const plan = docOf(found.docs[0])
   const tenantId = numberOf(plan["tenant"])
-  if (tenantId === null || (claims.role !== "super-admin" && String(claims.tenantId) !== String(tenantId))) {
+  if (
+    tenantId === null ||
+    (claims.role !== "super-admin" && String(claims.tenantId) !== String(tenantId))
+  ) {
     throw fail("PUBLICATION_PLAN_NOT_FOUND")
   }
   if (!(await updatePlan(payload, plan, { status: "cancelled" }, "pending"))) {
@@ -184,7 +197,8 @@ export type DuePublicationPlan = Readonly<{
 }>
 
 const resumableClaim = (plan: Record<string, unknown>, now: string): boolean => {
-  const claimedAt = typeof plan["claimedAt"] === "string" ? Date.parse(plan["claimedAt"]) : Number.NaN
+  const claimedAt =
+    typeof plan["claimedAt"] === "string" ? Date.parse(plan["claimedAt"]) : Number.NaN
   return Number.isNaN(claimedAt) || claimedAt + CLAIM_LEASE_MS <= Date.parse(now)
 }
 
@@ -208,7 +222,9 @@ const settleRunningPlans = async (
     const operation = await getOperation(payload, operationId, user).catch(() => null)
     if (
       operation === null ||
-      (operation.state !== "succeeded" && operation.state !== "failed" && operation.state !== "cancelled")
+      (operation.state !== "succeeded" &&
+        operation.state !== "failed" &&
+        operation.state !== "cancelled")
     ) {
       continue
     }
@@ -265,7 +281,12 @@ const attachPublishOperation = async (
     .findByID({ collection: "users", depth: 0, id: requestedById, overrideAccess: true })
     .catch(() => null)
   if (publisher === null) {
-    await updatePlan(payload, plan, { lastError: "PUBLICATION_PLAN_REQUESTER_NOT_FOUND", status: "failed" }, "running")
+    await updatePlan(
+      payload,
+      plan,
+      { lastError: "PUBLICATION_PLAN_REQUESTER_NOT_FOUND", status: "failed" },
+      "running",
+    )
     return null
   }
   try {
@@ -274,7 +295,12 @@ const attachPublishOperation = async (
       reason: `Scheduled publication ${planId}`,
       user: publisher,
     })
-    const attached = await updatePlan(payload, plan, { operationId: outcome.operationId }, "running")
+    const attached = await updatePlan(
+      payload,
+      plan,
+      { operationId: outcome.operationId },
+      "running",
+    )
     if (attached) return { operationId: outcome.operationId, planId }
     return operationAttachedToPlan(payload, planId)
   } catch (error) {

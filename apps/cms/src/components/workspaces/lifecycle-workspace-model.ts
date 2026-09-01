@@ -96,7 +96,9 @@ const textOf = (value: unknown): string | null =>
   typeof value === "string" && value.length > 0 ? value : null
 
 const recordOf = (value: unknown): RecordLike | null =>
-  typeof value === "object" && value !== null && !Array.isArray(value) ? (value as RecordLike) : null
+  typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as RecordLike)
+    : null
 
 const timestampRank = (value: string | null): number => {
   if (value === null) return 0
@@ -104,14 +106,15 @@ const timestampRank = (value: string | null): number => {
   return Number.isNaN(timestamp) ? 0 : timestamp
 }
 
-const newestFirst = <T extends { readonly recordedAt?: string | null; readonly updatedAt?: string | null }>(
+const newestFirst = <
+  T extends { readonly recordedAt?: string | null; readonly updatedAt?: string | null },
+>(
   rows: readonly T[],
 ): T[] =>
   [...rows].sort(
     (left, right) =>
       timestampRank(right.recordedAt ?? right.updatedAt ?? null) -
-        timestampRank(left.recordedAt ?? left.updatedAt ?? null) ||
-      0,
+        timestampRank(left.recordedAt ?? left.updatedAt ?? null) || 0,
   )
 
 export const isEditionWorkflowState = (value: unknown): value is EditionWorkflowState =>
@@ -235,7 +238,8 @@ export const operationTimelineDisplayOf = (
   const operationId = textOf(operation["operationId"])
   const operationType = operation["operationType"]
   const state = operation["state"]
-  if (operationId === null || !isOperationType(operationType) || !isOperationState(state)) return null
+  if (operationId === null || !isOperationType(operationType) || !isOperationState(state))
+    return null
 
   const timeline = Array.isArray(operation["auditLog"])
     ? operation["auditLog"]
@@ -285,8 +289,7 @@ export const releaseHistoryForSite = (
       .map(releaseHistoryItemOf)
       .filter((release): release is ReleaseHistoryItem => release !== null)
       .filter(
-        (release) =>
-          release.siteId === String(siteId) && release.tenantId === String(tenantId),
+        (release) => release.siteId === String(siteId) && release.tenantId === String(tenantId),
       ),
   )
 

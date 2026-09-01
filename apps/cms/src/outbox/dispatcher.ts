@@ -1,4 +1,4 @@
-import { parseQueuePrefix, DEFAULT_QUEUE_PREFIX } from "@geo/domain"
+import { DEFAULT_QUEUE_PREFIX, parseQueuePrefix } from "@geo/domain"
 import { Queue } from "bullmq"
 import type { Payload } from "payload"
 

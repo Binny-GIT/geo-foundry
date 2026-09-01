@@ -47,10 +47,7 @@ export const pollDueRssConnectors = async (
         { type: { equals: "rss" } },
         { status: { equals: "active" } },
         {
-          or: [
-            { lastPolledAt: { exists: false } },
-            { lastPolledAt: { less_than: dueBefore } },
-          ],
+          or: [{ lastPolledAt: { exists: false } }, { lastPolledAt: { less_than: dueBefore } }],
         },
       ],
     },
@@ -63,7 +60,8 @@ export const pollDueRssConnectors = async (
     const connectorId = idOf(connector["id"])
     const tenantId = idOf(connector["tenant"])
     if (connectorId === null || tenantId === null) continue
-    const endpoint = typeof connector["sourceEndpoint"] === "string" ? connector["sourceEndpoint"].trim() : ""
+    const endpoint =
+      typeof connector["sourceEndpoint"] === "string" ? connector["sourceEndpoint"].trim() : ""
     const markPolled = async () =>
       payload.update({
         collection: "connectors",
@@ -84,10 +82,7 @@ export const pollDueRssConnectors = async (
         limit: 1,
         overrideAccess: true,
         where: {
-          and: [
-            { role: { equals: "content-service" } },
-            { tenant: { equals: tenantId } },
-          ],
+          and: [{ role: { equals: "content-service" } }, { tenant: { equals: tenantId } }],
         },
       })
       const actor = serviceUsers.docs[0]
@@ -113,7 +108,8 @@ export const pollDueRssConnectors = async (
       })
       let parent = existing.docs[0] as Record<string, unknown> | undefined
       if (parent === undefined) {
-        const name = typeof connector["name"] === "string" ? connector["name"] : `Connector ${connectorId}`
+        const name =
+          typeof connector["name"] === "string" ? connector["name"] : `Connector ${connectorId}`
         const created = await createIntakeItem(
           payload,
           { channel: "rss", connectorId, tenantId, title: `RSS: ${name}` },

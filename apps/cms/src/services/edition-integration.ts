@@ -318,4 +318,3 @@ export async function recordCompileResult(
     return { releaseId: input.releaseId, workflowStatus: "compiled" }
   })
 }
-

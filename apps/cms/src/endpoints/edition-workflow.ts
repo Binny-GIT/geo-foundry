@@ -7,10 +7,7 @@ import {
   EditionWorkflowError,
   transitionEdition,
 } from "../services/edition-workflow"
-import {
-  OperationsLedgerError,
-  submitEditionPublishOperation,
-} from "../services/operations-ledger"
+import { OperationsLedgerError, submitEditionPublishOperation } from "../services/operations-ledger"
 
 const reasonSchema = z.string().trim().min(1).max(500)
 
@@ -56,10 +53,7 @@ export const createDraftFromPublishedEndpoint: Endpoint = {
     } catch {
       return response(400, { error: { code: "EDITION_WORKFLOW_BODY_INVALID" } })
     }
-    const parsed = z
-      .object({ reason: reasonSchema.optional() })
-      .strict()
-      .safeParse(body)
+    const parsed = z.object({ reason: reasonSchema.optional() }).strict().safeParse(body)
     if (!parsed.success) {
       return response(400, { error: { code: "EDITION_WORKFLOW_BODY_INVALID" } })
     }

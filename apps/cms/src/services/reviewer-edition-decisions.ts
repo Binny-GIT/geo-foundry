@@ -143,8 +143,7 @@ const decisionRequestOf = (input: ReviewerEditionDecisionInput): Record<string, 
   ...(input.reason === undefined ? {} : { reason: input.reason }),
 })
 
-const idempotencyKeyHashOf = (key: string): string =>
-  createHash("sha256").update(key).digest("hex")
+const idempotencyKeyHashOf = (key: string): string => createHash("sha256").update(key).digest("hex")
 
 /**
  * Synchronous, tenant-scoped reviewer transition with exact replay. A stored

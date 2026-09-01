@@ -3,7 +3,7 @@ import pg from "pg"
 import { z } from "zod"
 
 import type { CmsEnvironment } from "../config/environment"
-import { DEPENDENCY_CODES, DependencyProbeError, type DependencyProbe } from "./types"
+import { DEPENDENCY_CODES, type DependencyProbe, DependencyProbeError } from "./types"
 
 const postgresErrorSchema = z.object({
   code: z.string(),

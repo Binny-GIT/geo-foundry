@@ -8,9 +8,9 @@ import {
   parseSiteId,
   parseTenantId,
   parseUrlId,
-  urlUniqueKey,
-  type UrlRoute,
   type UrlRegistry,
+  type UrlRoute,
+  urlUniqueKey,
 } from "@geo/domain"
 
 import { UrlRegistryError } from "./url-registry-errors"

@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
+import { useEffect, useState } from "react"
 
 const safeNext = (value: string | null): string =>
   value !== null && value.startsWith("/admin") && !value.startsWith("//") ? value : "/admin"
@@ -43,7 +43,12 @@ export const ConsoleLoginForm = () => {
   }
 
   return (
-    <form className="grid gap-5" data-ready={hydrated ? "true" : "false"} method="post" onSubmit={submit}>
+    <form
+      className="grid gap-5"
+      data-ready={hydrated ? "true" : "false"}
+      method="post"
+      onSubmit={submit}
+    >
       <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
         邮箱
         <input
@@ -70,11 +75,17 @@ export const ConsoleLoginForm = () => {
         />
       </label>
       {error !== null && (
-        <p className="m-0 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-700" role="alert">
+        <p
+          className="m-0 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-700"
+          role="alert"
+        >
           {error}
         </p>
       )}
-      <a className="gf-console-focus -mt-1 w-fit text-sm font-semibold text-indigo-700 no-underline hover:underline dark:text-indigo-300" href="/admin/forgot-password">
+      <a
+        className="gf-console-focus -mt-1 w-fit text-sm font-semibold text-indigo-700 no-underline hover:underline dark:text-indigo-300"
+        href="/admin/forgot-password"
+      >
         忘记密码？
       </a>
       <button

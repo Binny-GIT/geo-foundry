@@ -1,4 +1,5 @@
 import {
+  type ActiveUrlRoute,
   markUrlGone,
   parseContentId,
   parseSiteId,
@@ -8,7 +9,6 @@ import {
   renameUrl,
   reserveUrl,
   retainActiveUrlForContentUpdate,
-  type ActiveUrlRoute,
   type UrlRegistry,
 } from "@geo/domain"
 import {
@@ -111,43 +111,48 @@ export const reserveUrlRecord = async (
   input: ReserveInput,
   scope?: TransactionScope,
 ): Promise<number> =>
-  runUrlRegistryOperation(payload, input.siteId, async (registry, req) => {
-    const parsedUrlId = parseUrlId(crypto.randomUUID())
-    const siteId = parseSiteId(String(input.siteId))
-    const tenantId = parseTenantId(String(input.tenantId))
-    const contentId = parseContentId(String(input.contentId))
-    if (!parsedUrlId.ok || !siteId.ok || !tenantId.ok || !contentId.ok) {
-      throw fail("URL_REGISTRY_INPUT_INVALID", "site/tenant/content identity")
-    }
-    const result = reserveUrl(registry, {
-      contentId: contentId.value,
-      expectedRevision: registry.revision,
-      locale: input.locale,
-      ownership: { scope: "site", siteId: siteId.value, tenantId: tenantId.value },
-      pathname: input.pathname,
-      urlId: parsedUrlId.value,
-    })
-    if (!result.ok) {
-      throw new UrlRegistryError(result.error.code, result.error.message)
-    }
-    const created = await payload.create({
-      collection: "url-records",
-      data: {
-        site: input.siteId,
-        tenant: input.tenantId,
-        content: input.contentId,
-        locale: result.value.reserved.locale.value,
-        pathname: result.value.reserved.pathname.value,
-        uniqueKey: result.value.reserved.key.value,
-        state: "reserved",
-        revision: 0,
-      },
-      depth: 0,
-      overrideAccess: true,
-      req,
-    })
-    return created.id
-  }, scope)
+  runUrlRegistryOperation(
+    payload,
+    input.siteId,
+    async (registry, req) => {
+      const parsedUrlId = parseUrlId(crypto.randomUUID())
+      const siteId = parseSiteId(String(input.siteId))
+      const tenantId = parseTenantId(String(input.tenantId))
+      const contentId = parseContentId(String(input.contentId))
+      if (!parsedUrlId.ok || !siteId.ok || !tenantId.ok || !contentId.ok) {
+        throw fail("URL_REGISTRY_INPUT_INVALID", "site/tenant/content identity")
+      }
+      const result = reserveUrl(registry, {
+        contentId: contentId.value,
+        expectedRevision: registry.revision,
+        locale: input.locale,
+        ownership: { scope: "site", siteId: siteId.value, tenantId: tenantId.value },
+        pathname: input.pathname,
+        urlId: parsedUrlId.value,
+      })
+      if (!result.ok) {
+        throw new UrlRegistryError(result.error.code, result.error.message)
+      }
+      const created = await payload.create({
+        collection: "url-records",
+        data: {
+          site: input.siteId,
+          tenant: input.tenantId,
+          content: input.contentId,
+          locale: result.value.reserved.locale.value,
+          pathname: result.value.reserved.pathname.value,
+          uniqueKey: result.value.reserved.key.value,
+          state: "reserved",
+          revision: 0,
+        },
+        depth: 0,
+        overrideAccess: true,
+        req,
+      })
+      return created.id
+    },
+    scope,
+  )
 
 const rowOfRecord = async (
   payload: Payload,
@@ -183,32 +188,37 @@ export const activateUrlRecord = async (
   scope?: TransactionScope,
 ): Promise<void> => {
   const row = await rowOfRecord(payload, recordId, scope)
-  await runUrlRegistryOperation(payload, row.site, async (registry, req) => {
-    const urlId = parseUrlId(String(recordId))
-    if (!urlId.ok) {
-      throw fail("URL_REGISTRY_INPUT_INVALID", "url identity")
-    }
-    const result = publishUrl(registry, {
-      expectedRevision: registry.revision,
-      hostname,
-      urlId: urlId.value,
-    })
-    if (!result.ok) {
-      throw new UrlRegistryError(result.error.code, result.error.message)
-    }
-    await payload.update({
-      collection: "url-records",
-      id: recordId,
-      data: {
-        canonicalUrl: result.value.active.canonicalUrl.value,
-        state: "active",
-        revision: row.revision + 1,
-      },
-      depth: 0,
-      overrideAccess: true,
-      req,
-    })
-  }, scope)
+  await runUrlRegistryOperation(
+    payload,
+    row.site,
+    async (registry, req) => {
+      const urlId = parseUrlId(String(recordId))
+      if (!urlId.ok) {
+        throw fail("URL_REGISTRY_INPUT_INVALID", "url identity")
+      }
+      const result = publishUrl(registry, {
+        expectedRevision: registry.revision,
+        hostname,
+        urlId: urlId.value,
+      })
+      if (!result.ok) {
+        throw new UrlRegistryError(result.error.code, result.error.message)
+      }
+      await payload.update({
+        collection: "url-records",
+        id: recordId,
+        data: {
+          canonicalUrl: result.value.active.canonicalUrl.value,
+          state: "active",
+          revision: row.revision + 1,
+        },
+        depth: 0,
+        overrideAccess: true,
+        req,
+      })
+    },
+    scope,
+  )
 }
 
 export const retainActiveUrl = async (

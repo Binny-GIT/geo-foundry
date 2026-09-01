@@ -1,17 +1,17 @@
 import { createHash } from "node:crypto"
 import {
+  type Clock,
   createServiceAuditActor,
+  type Operation,
+  type OperationState,
+  type Ownership,
   parseInstant,
   parseOperationId,
   parseSha256Hash,
   parseSiteId,
   parseTenantId,
-  transitionOperation,
-  type Clock,
-  type Operation,
-  type OperationState,
-  type Ownership,
   type ServiceAuditActor,
+  transitionOperation,
 } from "@geo/domain"
 import type { Payload } from "payload"
 
@@ -29,8 +29,8 @@ import {
   loadWorkflowEdition,
   parseWorkflowStatus,
   requireServiceIdentity,
-  serializedActorOf,
   type SerializedAuditActor,
+  serializedActorOf,
 } from "./edition-workflow"
 
 export class OperationsLedgerError extends Error {
@@ -533,7 +533,8 @@ export async function loadPublishOperationCreator(
 }
 
 const evaluationThresholdsSchema = {
-  dimensionMin: (value: unknown): boolean => typeof value === "number" && value >= 0 && value <= 100,
+  dimensionMin: (value: unknown): boolean =>
+    typeof value === "number" && value >= 0 && value <= 100,
   overallMin: (value: unknown): boolean => typeof value === "number" && value >= 0 && value <= 100,
 }
 
@@ -541,7 +542,10 @@ const normalizedEvaluationThresholds = (
   thresholds: { readonly dimensionMin: number; readonly overallMin: number } | undefined,
 ): { readonly dimensionMin: number; readonly overallMin: number } | undefined => {
   if (thresholds === undefined) return undefined
-  if (!evaluationThresholdsSchema.dimensionMin(thresholds.dimensionMin) || !evaluationThresholdsSchema.overallMin(thresholds.overallMin)) {
+  if (
+    !evaluationThresholdsSchema.dimensionMin(thresholds.dimensionMin) ||
+    !evaluationThresholdsSchema.overallMin(thresholds.overallMin)
+  ) {
     throw fail("EVALUATION_THRESHOLDS_INVALID", "thresholds")
   }
   return { dimensionMin: thresholds.dimensionMin, overallMin: thresholds.overallMin }
@@ -574,7 +578,11 @@ export async function submitEditionEvaluationOperation(
       )
     }
     const workflowStatus = parseWorkflowStatus(doc.workflowStatus)
-    if (workflowStatus !== "draft" && workflowStatus !== "generating" && workflowStatus !== "review") {
+    if (
+      workflowStatus !== "draft" &&
+      workflowStatus !== "generating" &&
+      workflowStatus !== "review"
+    ) {
       throw new EditionWorkflowError(
         "EDITION_WORKFLOW_EVALUATION_NOT_ALLOWED",
         `edition ${input.editionId} is ${workflowStatus}`,
@@ -595,7 +603,10 @@ export async function submitEditionEvaluationOperation(
     const existing = await loadRecordByUniqueKey(payload, uniqueKey, req)
     if (existing !== null) {
       if (existing.requestHash !== requestHash) {
-        throw fail("IDEMPOTENCY_KEY_REUSED", `edition ${input.editionId} evaluation key already bound to a different request`)
+        throw fail(
+          "IDEMPOTENCY_KEY_REUSED",
+          `edition ${input.editionId} evaluation key already bound to a different request`,
+        )
       }
       return {
         created: false,
@@ -604,7 +615,10 @@ export async function submitEditionEvaluationOperation(
     }
     const actor = serializedActorOf(input.user)
     if (actor === null) {
-      throw new EditionWorkflowError("EDITION_WORKFLOW_ACTOR_INVALID", "session has no serializable actor")
+      throw new EditionWorkflowError(
+        "EDITION_WORKFLOW_ACTOR_INVALID",
+        "session has no serializable actor",
+      )
     }
     const operationId = crypto.randomUUID()
     const entry: LedgerAuditEntry = {

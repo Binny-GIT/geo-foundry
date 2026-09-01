@@ -1,11 +1,10 @@
 import { handleServerFunctions, RootLayout } from "@payloadcms/next/layouts"
 import "@payloadcms/next/css"
-import Script from "next/script"
-import type { ReactNode } from "react"
-import type { ServerFunctionClient } from "payload"
-
-import { importMap } from "../../../../(payload)/admin/importMap"
 import config from "@payload-config"
+import Script from "next/script"
+import type { ServerFunctionClient } from "payload"
+import type { ReactNode } from "react"
+import { importMap } from "../../../../(payload)/admin/importMap"
 
 import "../../../../(payload)/admin-theme.css"
 import "../../../../(payload)/admin-tailwind.css"

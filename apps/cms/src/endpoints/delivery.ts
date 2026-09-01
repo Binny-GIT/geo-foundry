@@ -61,7 +61,8 @@ const activeCanonicalSite = async (
   const domainDoc = found.docs[0] as unknown as Record<string, unknown> | undefined
   if (domainDoc === undefined) return null
   const site = domainDoc["site"]
-  const siteId = typeof site === "object" && site !== null ? (site as Record<string, unknown>)["id"] : site
+  const siteId =
+    typeof site === "object" && site !== null ? (site as Record<string, unknown>)["id"] : site
   if (typeof siteId !== "number") return null
   const siteDoc = (await req.payload.findByID({
     collection: "sites",
@@ -73,7 +74,7 @@ const activeCanonicalSite = async (
   const tenant = siteDoc["tenant"]
   const tenantId =
     typeof tenant === "object" && tenant !== null
-      ? ((tenant as Record<string, unknown>)["id"] as number | undefined) ?? null
+      ? (((tenant as Record<string, unknown>)["id"] as number | undefined) ?? null)
       : typeof tenant === "number"
         ? tenant
         : null
@@ -136,10 +137,7 @@ const activePathnameByContent = async (
     limit: 500,
     overrideAccess: true,
     where: {
-      and: [
-        { site: { equals: siteId } },
-        { state: { equals: "active" } },
-      ],
+      and: [{ site: { equals: siteId } }, { state: { equals: "active" } }],
     },
   })
   for (const record of records.docs as unknown as Record<string, unknown>[]) {
@@ -170,7 +168,8 @@ const publicEdition = (
 
 export const deliveryArticlesEndpoint: Endpoint = {
   handler: async (req) => {
-    if (rateLimited(clientKeyOf(req))) return json(429, { error: { code: "DELIVERY_RATE_LIMITED" } })
+    if (rateLimited(clientKeyOf(req)))
+      return json(429, { error: { code: "DELIVERY_RATE_LIMITED" } })
     const domain = String(req.routeParams?.["domain"] ?? "")
     const site = await activeCanonicalSite(req, domain)
     if (site === null) return json(404, { error: { code: "DELIVERY_SITE_NOT_FOUND" } }, 60)
@@ -231,7 +230,8 @@ export const deliveryArticlesEndpoint: Endpoint = {
 
 export const deliveryArticleEndpoint: Endpoint = {
   handler: async (req) => {
-    if (rateLimited(clientKeyOf(req))) return json(429, { error: { code: "DELIVERY_RATE_LIMITED" } })
+    if (rateLimited(clientKeyOf(req)))
+      return json(429, { error: { code: "DELIVERY_RATE_LIMITED" } })
     const id = Number(req.routeParams?.["id"])
     if (!Number.isSafeInteger(id) || id <= 0) {
       return json(400, { error: { code: "DELIVERY_ARTICLE_ID_INVALID" } })

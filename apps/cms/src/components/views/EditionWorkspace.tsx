@@ -1,17 +1,26 @@
 import type { Payload } from "payload"
 
 import { CMS_ROLE, type CmsRole } from "../../access/roles"
-import { formatDate, idOf, recordsOf, stringOf, type RecordLike } from "../dashboard/operations-model"
-import { Badge, IconBadge } from "../ui"
+import {
+  formatDate,
+  idOf,
+  type RecordLike,
+  recordsOf,
+  stringOf,
+} from "../dashboard/operations-model"
+import { type HasLanguage, uiLangOf } from "../i18n/ui-lang"
 import { AlertTriangleIcon, LayersIcon, ShieldCheckIcon } from "../icons"
+import { Badge, IconBadge } from "../ui"
 import { isWorkflowStatus, workflowStatusLabel } from "../workflow/workflow-actions-model"
-import { uiLangOf, type HasLanguage } from "../i18n/ui-lang"
 import {
   assessmentStateLabel,
   operationStateLabel,
   releaseStateLabel,
 } from "../workspaces/workspace-labels"
-import { workspaceUserOf, type WorkspaceServerContext } from "../workspaces/workspace-server-context"
+import {
+  type WorkspaceServerContext,
+  workspaceUserOf,
+} from "../workspaces/workspace-server-context"
 import {
   cardClass,
   StatusBadge,
@@ -120,13 +129,20 @@ const assessmentTone = (state: unknown) => {
   return "warning" as const
 }
 
-export const EditionWorkspace = async ({ i18n, initPageResult, params, payload, user }: EditionWorkspaceProps) => {
+export const EditionWorkspace = async ({
+  i18n,
+  initPageResult,
+  params,
+  payload,
+  user,
+}: EditionWorkspaceProps) => {
   const lang = uiLangOf(i18n?.language)
   const t = TEXT[lang]
   const id = documentIdOf(params)
   const currentUser = workspaceUserOf({ initPageResult, user })
   const role = currentUser?.role as CmsRole | undefined
-  if (id === null || role === undefined || !readableRoles.has(role)) return <WorkspaceDenied i18n={i18n} />
+  if (id === null || role === undefined || !readableRoles.has(role))
+    return <WorkspaceDenied i18n={i18n} />
 
   const editionResult = await safeFind(payload, currentUser, "content-editions", {
     draft: true,
@@ -161,7 +177,10 @@ export const EditionWorkspace = async ({ i18n, initPageResult, params, payload, 
     return Array.isArray(targets) && targets.map(String).includes(editionId)
   })
   const compiledRelease = stringOf(edition["compiledRelease"], "")
-  const release = compiledRelease.length > 0 ? releases.find((row) => row["releaseId"] === compiledRelease) : undefined
+  const release =
+    compiledRelease.length > 0
+      ? releases.find((row) => row["releaseId"] === compiledRelease)
+      : undefined
   const assessmentMatches =
     latestAssessment !== undefined &&
     typeof latestAssessment["inputHash"] === "string" &&
@@ -169,7 +188,9 @@ export const EditionWorkspace = async ({ i18n, initPageResult, params, payload, 
 
   return (
     <WorkspaceShell i18n={i18n} kicker="Geo Foundry" title={t.edition}>
-      <section className={`${cardClass} grid gap-5 p-5 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]`}>
+      <section
+        className={`${cardClass} grid gap-5 p-5 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]`}
+      >
         <div className="min-w-0">
           <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
             {t.content}
@@ -203,7 +224,13 @@ export const EditionWorkspace = async ({ i18n, initPageResult, params, payload, 
       <section className="grid gap-4 xl:grid-cols-2">
         <article className={`${cardClass} flex flex-col gap-4 p-5`}>
           <div className="flex items-center gap-3">
-            <IconBadge tone={latestAssessment === undefined ? "neutral" : assessmentTone(latestAssessment["state"])}>
+            <IconBadge
+              tone={
+                latestAssessment === undefined
+                  ? "neutral"
+                  : assessmentTone(latestAssessment["state"])
+              }
+            >
               <ShieldCheckIcon size={18} />
             </IconBadge>
             <div>
@@ -222,16 +249,22 @@ export const EditionWorkspace = async ({ i18n, initPageResult, params, payload, 
               <div>
                 <dt className="text-xs text-[var(--theme-elevation-600)]">{t.current}</dt>
                 <dd className="m-0 mt-1">
-                  <Badge tone={assessmentTone(latestAssessment["state"])}>{assessmentStateLabel(latestAssessment["state"], lang)}</Badge>
+                  <Badge tone={assessmentTone(latestAssessment["state"])}>
+                    {assessmentStateLabel(latestAssessment["state"], lang)}
+                  </Badge>
                 </dd>
               </div>
               <div>
                 <dt className="text-xs text-[var(--theme-elevation-600)]">{t.score}</dt>
-                <dd className="m-0 mt-1 text-sm font-bold text-[var(--theme-text)]">{String(latestAssessment["overall"] ?? "—")}</dd>
+                <dd className="m-0 mt-1 text-sm font-bold text-[var(--theme-text)]">
+                  {String(latestAssessment["overall"] ?? "—")}
+                </dd>
               </div>
             </dl>
           )}
-          <WorkspaceAction href="/admin/collections/quality-assessments">{t.openRecord}</WorkspaceAction>
+          <WorkspaceAction href="/admin/collections/quality-assessments">
+            {t.openRecord}
+          </WorkspaceAction>
         </article>
 
         <article className={`${cardClass} flex flex-col gap-4 p-5`}>
@@ -242,18 +275,26 @@ export const EditionWorkspace = async ({ i18n, initPageResult, params, payload, 
             <div>
               <h2 className="m-0 text-base font-bold text-[var(--theme-text)]">{t.operation}</h2>
               <p className="m-0 mt-0.5 text-xs text-[var(--theme-elevation-600)]">
-                {canReadOperations ? stringOf(latestOperation?.["currentStage"], "—") : t.operationRestricted}
+                {canReadOperations
+                  ? stringOf(latestOperation?.["currentStage"], "—")
+                  : t.operationRestricted}
               </p>
             </div>
           </div>
           {canReadOperations && latestOperation !== undefined && (
             <div className="flex items-center justify-between gap-3 border-t border-[var(--theme-elevation-100)] pt-3">
-              <Badge tone={latestOperation["state"] === "failed" ? "danger" : "neutral"}>{operationStateLabel(latestOperation["state"], lang)}</Badge>
-              <span className="text-xs text-[var(--theme-elevation-600)]">{formatDate(latestOperation["updatedAt"], lang)}</span>
+              <Badge tone={latestOperation["state"] === "failed" ? "danger" : "neutral"}>
+                {operationStateLabel(latestOperation["state"], lang)}
+              </Badge>
+              <span className="text-xs text-[var(--theme-elevation-600)]">
+                {formatDate(latestOperation["updatedAt"], lang)}
+              </span>
             </div>
           )}
           {canReadOperations && latestOperation !== undefined && (
-            <WorkspaceAction href={`/admin/work/operations/${idOf(latestOperation) ?? ""}`}>{t.openRecord}</WorkspaceAction>
+            <WorkspaceAction href={`/admin/work/operations/${idOf(latestOperation) ?? ""}`}>
+              {t.openRecord}
+            </WorkspaceAction>
           )}
         </article>
       </section>
@@ -263,17 +304,40 @@ export const EditionWorkspace = async ({ i18n, initPageResult, params, payload, 
           <h2 className="m-0 text-base font-bold text-[var(--theme-text)]">{t.publishing}</h2>
           {canReadReleases ? (
             <dl className="m-0 grid gap-3">
-              <div className="flex items-center justify-between gap-3"><dt className="text-sm text-[var(--theme-elevation-600)]">{t.release}</dt><dd className="m-0 truncate font-mono text-sm text-[var(--theme-text)]">{stringOf(release?.["releaseId"], compiledRelease || "—")}</dd></div>
-              <div className="flex items-center justify-between gap-3"><dt className="text-sm text-[var(--theme-elevation-600)]">{t.current}</dt><dd className="m-0"><Badge tone={release?.["state"] === "current" ? "success" : "neutral"}>{releaseStateLabel(release?.["state"], lang)}</Badge></dd></div>
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-sm text-[var(--theme-elevation-600)]">{t.release}</dt>
+                <dd className="m-0 truncate font-mono text-sm text-[var(--theme-text)]">
+                  {stringOf(release?.["releaseId"], compiledRelease || "—")}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-sm text-[var(--theme-elevation-600)]">{t.current}</dt>
+                <dd className="m-0">
+                  <Badge tone={release?.["state"] === "current" ? "success" : "neutral"}>
+                    {releaseStateLabel(release?.["state"], lang)}
+                  </Badge>
+                </dd>
+              </div>
             </dl>
-          ) : <p className="m-0 text-sm text-[var(--theme-elevation-600)]">{t.releaseRestricted}</p>}
-          {canReadReleases && <WorkspaceAction href="/admin/collections/releases">{t.openRecord}</WorkspaceAction>}
+          ) : (
+            <p className="m-0 text-sm text-[var(--theme-elevation-600)]">{t.releaseRestricted}</p>
+          )}
+          {canReadReleases && (
+            <WorkspaceAction href="/admin/collections/releases">{t.openRecord}</WorkspaceAction>
+          )}
         </article>
 
         <article className={`${cardClass} flex flex-col gap-4 p-5`}>
-          <div className="flex items-center gap-3"><IconBadge tone="neutral"><AlertTriangleIcon size={18} /></IconBadge><h2 className="m-0 text-base font-bold text-[var(--theme-text)]">{t.audit}</h2></div>
+          <div className="flex items-center gap-3">
+            <IconBadge tone="neutral">
+              <AlertTriangleIcon size={18} />
+            </IconBadge>
+            <h2 className="m-0 text-base font-bold text-[var(--theme-text)]">{t.audit}</h2>
+          </div>
           <p className="m-0 text-sm text-[var(--theme-elevation-600)]">{t.diagnostics}</p>
-          <WorkspaceAction href={`/admin/collections/content-editions/${editionId}`}>{t.openRecord}</WorkspaceAction>
+          <WorkspaceAction href={`/admin/collections/content-editions/${editionId}`}>
+            {t.openRecord}
+          </WorkspaceAction>
         </article>
       </section>
     </WorkspaceShell>

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react"
 import { PlusIcon } from "@/components/icons"
 import { Button } from "@/components/ui/button"
 
-import { consoleRoute, type ConsoleResourceSlug } from "../lib/resources"
+import { type ConsoleResourceSlug, consoleRoute } from "../lib/resources"
 
 type SiteOption = {
   readonly id: number | string
@@ -199,7 +199,10 @@ export const ConsoleCreateForm = ({ slug }: { readonly slug: ConsoleResourceSlug
         </>
       )}
       {error !== null && (
-        <p className="m-0 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm leading-6 text-rose-700" role="alert">
+        <p
+          className="m-0 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm leading-6 text-rose-700"
+          role="alert"
+        >
           {error}
         </p>
       )}

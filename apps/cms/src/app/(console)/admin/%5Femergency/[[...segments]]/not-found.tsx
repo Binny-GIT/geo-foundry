@@ -1,5 +1,5 @@
-import { NotFoundPage, generatePageMetadata } from "@payloadcms/next/views"
 import config from "@payload-config"
+import { generatePageMetadata, NotFoundPage } from "@payloadcms/next/views"
 import type { Metadata } from "next"
 
 import { requireEmergencySuperAdmin } from "@/console/lib/session.server"

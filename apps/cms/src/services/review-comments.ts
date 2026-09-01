@@ -14,7 +14,8 @@ export class ReviewCommentsError extends Error {
 const fail = (code: string): ReviewCommentsError => new ReviewCommentsError(code)
 
 const numberOf = (value: unknown): number | null => {
-  const parsed = typeof value === "number" ? value : typeof value === "string" ? Number(value) : Number.NaN
+  const parsed =
+    typeof value === "number" ? value : typeof value === "string" ? Number(value) : Number.NaN
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null
 }
 
@@ -48,16 +49,21 @@ export const createReviewComment = async (
     req,
   })
   const tenantId = numberOf(edition.tenant)
-  if (tenantId === null || (claims.role !== "super-admin" && String(tenantId) !== String(claims.tenantId))) {
+  if (
+    tenantId === null ||
+    (claims.role !== "super-admin" && String(tenantId) !== String(claims.tenantId))
+  ) {
     throw fail("REVIEW_COMMENT_TENANT_MISMATCH")
   }
 
   const created = await payload.create({
     collection: "review-comments",
     data: {
-      author: numberOf(claims.userId) ?? (() => {
-        throw fail("REVIEW_COMMENT_ACTOR_INVALID")
-      })(),
+      author:
+        numberOf(claims.userId) ??
+        (() => {
+          throw fail("REVIEW_COMMENT_ACTOR_INVALID")
+        })(),
       body,
       edition: input.editionId,
       kind: input.kind ?? "comment",

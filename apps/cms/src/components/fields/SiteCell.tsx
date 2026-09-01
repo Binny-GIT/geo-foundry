@@ -1,8 +1,8 @@
 "use client"
 
 import { useAuth, useTranslation } from "@payloadcms/ui"
-import { useEffect, useState } from "react"
 import type { DefaultCellComponentProps } from "payload"
+import { useEffect, useState } from "react"
 
 import { uiLangOf } from "../i18n/ui-lang"
 import { siteHrefOf, siteReferenceOf } from "./site-cell-model"
@@ -41,7 +41,9 @@ export const SiteCell = ({ cellData }: DefaultCellComponentProps) => {
   const t = TEXT[uiLangOf(i18n.language)]
   const reference = siteReferenceOf(cellData)
   const [name, setName] = useState(reference.name)
-  const [resolution, setResolution] = useState<Resolution>(reference.name === null ? "idle" : "loading")
+  const [resolution, setResolution] = useState<Resolution>(
+    reference.name === null ? "idle" : "loading",
+  )
 
   useEffect(() => {
     setName(reference.name)
@@ -62,7 +64,9 @@ export const SiteCell = ({ cellData }: DefaultCellComponentProps) => {
       fetch(`/api/sites/${encodeURIComponent(String(reference.id))}?depth=0`, {
         credentials: "same-origin",
       })
-        .then(async (response) => (response.ok ? siteNameFromResponse(await response.json()) : null))
+        .then(async (response) =>
+          response.ok ? siteNameFromResponse(await response.json()) : null,
+        )
         .catch(() => null)
     siteNameRequests.set(key, request)
 

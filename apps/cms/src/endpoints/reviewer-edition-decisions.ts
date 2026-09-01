@@ -2,22 +2,18 @@ import type { Endpoint, PayloadRequest } from "payload"
 import { z } from "zod"
 
 import { resolveSessionClaims } from "../access/session"
+import { EditionWorkflowError } from "../services/edition-workflow"
 import {
-  EditionWorkflowError,
-} from "../services/edition-workflow"
-import {
+  type ReviewerDecisionTarget,
   ReviewerEditionDecisionError,
   submitReviewerEditionDecision,
-  type ReviewerDecisionTarget,
 } from "../services/reviewer-edition-decisions"
 import { IDEMPOTENCY_KEY_PATTERN, REQUEST_ID_PATTERN } from "./internal/contracts"
 
 const expectedRevisionSchema = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER)
 const reasonSchema = z.string().trim().min(1).max(500)
 
-const approveBodySchema = z
-  .object({ expectedRevision: expectedRevisionSchema })
-  .strict()
+const approveBodySchema = z.object({ expectedRevision: expectedRevisionSchema }).strict()
 
 const requestChangesBodySchema = z
   .object({
@@ -89,8 +85,13 @@ const errorResponseOf = (error: unknown, requestId: string): Response => {
 
 const reviewerEndpoint = (
   target: ReviewerDecisionTarget,
-  parseBody: (body: unknown) =>
-    | { readonly success: true; readonly data: { readonly expectedRevision: number; readonly reason?: string } }
+  parseBody: (
+    body: unknown,
+  ) =>
+    | {
+        readonly success: true
+        readonly data: { readonly expectedRevision: number; readonly reason?: string }
+      }
     | { readonly success: false },
 ): Endpoint => ({
   handler: async (req) => {
@@ -111,7 +112,11 @@ const reviewerEndpoint = (
     }
     const idempotencyKey = idempotencyKeyOf(req)
     if (idempotencyKey === null) {
-      return response(400, { error: { code: "REVIEWER_EDITION_IDEMPOTENCY_KEY_INVALID" } }, requestId)
+      return response(
+        400,
+        { error: { code: "REVIEWER_EDITION_IDEMPOTENCY_KEY_INVALID" } },
+        requestId,
+      )
     }
     let body: unknown
     try {

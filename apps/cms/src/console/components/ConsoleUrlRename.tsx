@@ -40,12 +40,15 @@ export const ConsoleUrlRename = ({ id, initialLocale, initialPathname }: RenameP
     setError(null)
     setLoading(true)
     try {
-      const response = await fetch(`/api/url-record-operations/${encodeURIComponent(String(id))}/rename`, {
-        body: JSON.stringify({ locale, pathname }),
-        credentials: "same-origin",
-        headers: { "content-type": "application/json" },
-        method: "POST",
-      })
+      const response = await fetch(
+        `/api/url-record-operations/${encodeURIComponent(String(id))}/rename`,
+        {
+          body: JSON.stringify({ locale, pathname }),
+          credentials: "same-origin",
+          headers: { "content-type": "application/json" },
+          method: "POST",
+        },
+      )
       const body = (await response.json().catch(() => ({}))) as { error?: { code?: unknown } }
       if (!response.ok) {
         setError(messageFor(body.error?.code))
@@ -83,7 +86,10 @@ export const ConsoleUrlRename = ({ id, initialLocale, initialPathname }: RenameP
         />
       </label>
       {error !== null && (
-        <p className="m-0 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-700" role="alert">
+        <p
+          className="m-0 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-700"
+          role="alert"
+        >
           {error}
         </p>
       )}

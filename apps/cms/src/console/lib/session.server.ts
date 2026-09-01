@@ -1,13 +1,12 @@
 import "server-only"
 
+import config from "@payload-config"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { getPayload } from "payload"
-
-import { CMS_ACTION, decideAccess, type CmsAction, type CmsResource } from "@/access/policy"
+import { CMS_ACTION, type CmsAction, type CmsResource, decideAccess } from "@/access/policy"
 import { CMS_ROLE, type CmsRole } from "@/access/roles"
 import { resolveSessionClaims, type SessionClaims } from "@/access/session"
-import config from "@payload-config"
 
 export type ConsoleSession = {
   readonly email: string
@@ -25,8 +24,7 @@ const sessionFromClaims = (user: unknown, claims: SessionClaims): ConsoleSession
   if (typeof user !== "object" || user === null) return null
   const email = stringValue((user as Record<string, unknown>)["email"])
   if (email === null) return null
-  const unrestricted =
-    claims.role === CMS_ROLE.SUPER_ADMIN || claims.role === CMS_ROLE.TENANT_ADMIN
+  const unrestricted = claims.role === CMS_ROLE.SUPER_ADMIN || claims.role === CMS_ROLE.TENANT_ADMIN
   const rawSites = (user as Record<string, unknown>)["sites"]
   const siteIds = Array.isArray(rawSites)
     ? rawSites.filter((id): id is number => typeof id === "number" && id > 0)

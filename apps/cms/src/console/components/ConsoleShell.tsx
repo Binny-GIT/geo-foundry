@@ -1,24 +1,19 @@
 "use client"
 
+import { Moon, Sun } from "lucide"
+import { MorphIcon } from "morphicons/react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { Moon, Sun } from "lucide"
-import { MorphIcon } from "morphicons/react"
 
 import { GeoIcon } from "@/components/branding/GeoIcon"
-import {
-  ChevronDownIcon,
-  LogOutIcon,
-  MenuIcon,
-  XIcon,
-} from "@/components/icons"
+import { ChevronDownIcon, LogOutIcon, MenuIcon, XIcon } from "@/components/icons"
 import {
   CONSOLE_NAV,
   CONSOLE_RESOURCES,
-  consoleRoute,
   type ConsoleNavItem,
   type ConsoleResourceSlug,
+  consoleRoute,
 } from "@/console/lib/resources"
 import { cn } from "@/lib/utils"
 
@@ -60,7 +55,10 @@ const resolveNavItems = (
     ]
   })
 
-export const ConsoleShell = ({ children, navigation }: React.PropsWithChildren<{
+export const ConsoleShell = ({
+  children,
+  navigation,
+}: React.PropsWithChildren<{
   readonly navigation: ConsoleNavigation
 }>) => {
   const pathname = usePathname()
@@ -133,7 +131,9 @@ export const ConsoleShell = ({ children, navigation }: React.PropsWithChildren<{
       >
         <div className="flex h-14 shrink-0 items-center gap-2.5 border-b border-white/10 px-4">
           <GeoIcon size={22} />
-          <span className="min-w-0 flex-1 truncate text-sm font-bold tracking-tight">Geo Foundry</span>
+          <span className="min-w-0 flex-1 truncate text-sm font-bold tracking-tight">
+            Geo Foundry
+          </span>
           <button
             aria-label="关闭导航"
             className="gf-console-focus grid size-10 place-items-center rounded-xl text-white/60 hover:bg-white/10 hover:text-white lg:hidden"
@@ -158,10 +158,14 @@ export const ConsoleShell = ({ children, navigation }: React.PropsWithChildren<{
               {initialOf(navigation.session.email)}
             </span>
             <Link className="min-w-0 flex-1 no-underline" href={consoleRoute.account}>
-              <strong className="block truncate text-xs font-semibold">{navigation.session.email}</strong>
+              <strong className="block truncate text-xs font-semibold">
+                {navigation.session.email}
+              </strong>
               <span className="block truncate pt-0.5 text-[11px] text-white/50">
                 {navigation.session.roleLabel}
-                {navigation.session.tenantName === null ? "" : ` · ${navigation.session.tenantName}`}
+                {navigation.session.tenantName === null
+                  ? ""
+                  : ` · ${navigation.session.tenantName}`}
               </span>
             </Link>
             <button

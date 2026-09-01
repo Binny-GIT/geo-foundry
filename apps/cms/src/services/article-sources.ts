@@ -26,7 +26,11 @@ const requireTenantUser = (user: unknown) => {
   return claims
 }
 
-const assertEditionTenant = async (payload: Payload, editionId: number, user: unknown): Promise<number> => {
+const assertEditionTenant = async (
+  payload: Payload,
+  editionId: number,
+  user: unknown,
+): Promise<number> => {
   const claims = requireTenantUser(user)
   const edition = await payload.findByID({
     collection: "content-editions",
@@ -36,7 +40,10 @@ const assertEditionTenant = async (payload: Payload, editionId: number, user: un
     overrideAccess: true,
   })
   const tenantId = numberOf(edition.tenant)
-  if (tenantId === null || (claims.role !== "super-admin" && String(tenantId) !== String(claims.tenantId))) {
+  if (
+    tenantId === null ||
+    (claims.role !== "super-admin" && String(tenantId) !== String(claims.tenantId))
+  ) {
     throw fail("ARTICLE_SOURCE_TENANT_MISMATCH")
   }
   return tenantId
@@ -50,7 +57,10 @@ export type AddArticleSourceInput = {
   readonly user: unknown
 }
 
-export const addArticleSource = async (payload: Payload, input: AddArticleSourceInput): Promise<number> => {
+export const addArticleSource = async (
+  payload: Payload,
+  input: AddArticleSourceInput,
+): Promise<number> => {
   const tenant = await assertEditionTenant(payload, input.editionId, input.user)
   const intakeItem = await payload.findByID({
     collection: "intake-items",

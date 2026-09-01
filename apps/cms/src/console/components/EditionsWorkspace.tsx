@@ -1,11 +1,10 @@
 import Link from "next/link"
-
+import { Button } from "@/components/ui/button"
 import {
   ARTICLE_STATUS_OPTIONS,
-  articleListHref,
   type ArticleListQuery,
+  articleListHref,
 } from "@/console/lib/article-filters"
-import { Button } from "@/components/ui/button"
 import { consoleRoute } from "@/console/lib/resources"
 
 type RecordLike = Record<string, unknown>
@@ -76,7 +75,12 @@ export const EditionsWorkspace = ({
         placeholder="搜索标题…"
         type="search"
       />
-      <select aria-label="站点筛选" className={inputClass} defaultValue={query.site === null ? "" : String(query.site)} name="site">
+      <select
+        aria-label="站点筛选"
+        className={inputClass}
+        defaultValue={query.site === null ? "" : String(query.site)}
+        name="site"
+      >
         <option value="">全部站点</option>
         {siteOptions.map((site) => (
           <option key={site.id} value={String(site.id)}>
@@ -84,7 +88,12 @@ export const EditionsWorkspace = ({
           </option>
         ))}
       </select>
-      <select aria-label="状态筛选" className={inputClass} defaultValue={query.status ?? ""} name="status">
+      <select
+        aria-label="状态筛选"
+        className={inputClass}
+        defaultValue={query.status ?? ""}
+        name="status"
+      >
         <option value="">全部状态</option>
         {ARTICLE_STATUS_OPTIONS.map((option) => (
           <option key={option.key} value={option.key}>
@@ -110,12 +119,17 @@ export const EditionsWorkspace = ({
         <span />
       )}
       <div className="flex items-center gap-2">
-        <Button type="submit">
-          筛选
-        </Button>
+        <Button type="submit">筛选</Button>
         <Link
           className="gf-console-focus inline-flex h-10 items-center rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] px-3 text-sm font-semibold text-[var(--console-ink)] no-underline hover:bg-[var(--console-surface-muted)]"
-          href={articleListHref({ ...query, page: 1, q: null, site: null, status: null, tenant: null })}
+          href={articleListHref({
+            ...query,
+            page: 1,
+            q: null,
+            site: null,
+            status: null,
+            tenant: null,
+          })}
         >
           重置
         </Link>
@@ -136,7 +150,14 @@ export const EditionsWorkspace = ({
         <table className="w-full min-w-[760px] border-collapse text-left">
           <thead className="bg-[var(--console-surface-muted)]">
             <tr>
-              {["标题", "站点", "状态", "负责人", ...(isSuperAdmin ? ["租户"] : []), "更新时间"].map((label) => (
+              {[
+                "标题",
+                "站点",
+                "状态",
+                "负责人",
+                ...(isSuperAdmin ? ["租户"] : []),
+                "更新时间",
+              ].map((label) => (
                 <th
                   className="whitespace-nowrap border-b border-[var(--console-border)] px-5 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--console-ink-muted)]"
                   key={label}
@@ -150,7 +171,10 @@ export const EditionsWorkspace = ({
           <tbody>
             {docs.map((doc, index) => {
               const id = doc["id"]
-              const title = typeof doc["title"] === "string" && doc["title"].length > 0 ? doc["title"] : "未命名稿件"
+              const title =
+                typeof doc["title"] === "string" && doc["title"].length > 0
+                  ? doc["title"]
+                  : "未命名稿件"
               const status = typeof doc["workflowStatus"] === "string" ? doc["workflowStatus"] : ""
               return (
                 <tr className="transition-colors hover:bg-indigo-50/45" key={String(id ?? index)}>

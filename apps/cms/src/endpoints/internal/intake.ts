@@ -5,16 +5,16 @@ import {
   completeIntakeFetch,
   createRssIntakeEntries,
   failIntakeFetch,
-  readIntakeFetchInput,
   type IntakeFetchCompletion,
+  readIntakeFetchInput,
 } from "../../services/intake-fetch"
 import {
-  intakeFetchCompleteBodySchema,
-  intakeFetchFailedBodySchema,
-  intakeRssEntriesBodySchema,
   type IntakeFetchCompleteBody,
   type IntakeFetchFailedBody,
   type IntakeRssEntriesBody,
+  intakeFetchCompleteBodySchema,
+  intakeFetchFailedBodySchema,
+  intakeRssEntriesBodySchema,
 } from "./contracts"
 import { internalJsonResponse, withInternalGuards } from "./guards"
 
@@ -55,11 +55,7 @@ const handleCompleteIntakeFetch = withInternalGuards(
 const handleFailIntakeFetch = withInternalGuards(
   { bodySchema: intakeFetchFailedBodySchema, operation: "failIntakeFetch" },
   async (req, ctx, body: IntakeFetchFailedBody) => {
-    await failIntakeFetch(
-      req.payload,
-      { ...body, intakeItemId: intakeItemIdOf(req) },
-      req.user,
-    )
+    await failIntakeFetch(req.payload, { ...body, intakeItemId: intakeItemIdOf(req) }, req.user)
     return internalJsonResponse(200, { failed: true }, ctx.requestId, null)
   },
 )

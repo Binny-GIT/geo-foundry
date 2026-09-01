@@ -1,4 +1,4 @@
-import { CMS_ROLE, CMS_ROLES, isCmsRole, type CmsRole } from "../../access/roles"
+import { CMS_ROLE, CMS_ROLES, type CmsRole, isCmsRole } from "../../access/roles"
 
 export type UserFormActorRole = typeof CMS_ROLE.SUPER_ADMIN | typeof CMS_ROLE.TENANT_ADMIN
 

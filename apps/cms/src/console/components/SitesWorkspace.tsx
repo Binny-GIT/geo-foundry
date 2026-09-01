@@ -86,7 +86,9 @@ export const SitesWorkspace = ({
                     {row.name}
                   </Link>
                   {row.locale !== null && (
-                    <span className="pl-2 text-xs text-[var(--console-ink-muted)]">{row.locale}</span>
+                    <span className="pl-2 text-xs text-[var(--console-ink-muted)]">
+                      {row.locale}
+                    </span>
                   )}
                 </td>
                 <td className="border-b border-[var(--console-border)] px-5 py-4 text-sm text-[var(--console-ink)]">

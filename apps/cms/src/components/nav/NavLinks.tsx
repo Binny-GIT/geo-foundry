@@ -3,11 +3,11 @@
 import "./nav-layout.css"
 
 import { Link, useAuth, useConfig, useNav, useTranslation } from "@payloadcms/ui"
+import { PanelLeftClose, PanelLeftOpen } from "lucide"
+import { MorphIcon } from "morphicons/react"
 import { usePathname } from "next/navigation"
 import { formatAdminURL } from "payload/shared"
 import { type ComponentType, useEffect, useState } from "react"
-import { PanelLeftClose, PanelLeftOpen } from "lucide"
-import { MorphIcon } from "morphicons/react"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -19,17 +19,16 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import { cn } from "@/lib/utils"
-
-import { GeoIcon } from "../branding/GeoIcon"
-import { ChevronDownIcon, LogOutIcon, MenuIcon, NAV_ICON_BY_SLUG, XIcon } from "../icons"
-import type { IconProps } from "../icons"
 import {
   CONSOLE_NAV,
   CONSOLE_RESOURCES,
-  consoleRoute,
   type ConsoleNavItem,
+  consoleRoute,
 } from "@/console/lib/resources"
+import { cn } from "@/lib/utils"
+import { GeoIcon } from "../branding/GeoIcon"
+import type { IconProps } from "../icons"
+import { ChevronDownIcon, LogOutIcon, MenuIcon, NAV_ICON_BY_SLUG, XIcon } from "../icons"
 
 const initialOf = (email: string | null) =>
   email !== null && email.length > 0 ? email.charAt(0).toUpperCase() : "?"

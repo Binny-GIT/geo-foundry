@@ -1,4 +1,4 @@
-import { createUserAuditActor, parseUserId, type AuditActor } from "@geo/domain"
+import { type AuditActor, createUserAuditActor, parseUserId } from "@geo/domain"
 
 import { CMS_ROLE } from "./roles"
 import type { SessionClaims } from "./session"

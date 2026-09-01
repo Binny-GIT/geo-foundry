@@ -18,7 +18,10 @@ const idOf = (reference: unknown): number | string | null => {
 }
 
 /** A snapshot must always remain attached to an intake item in the same tenant. */
-export const ensureSourceSnapshotTenantConsistency: CollectionBeforeChangeHook = async ({ data, req }) => {
+export const ensureSourceSnapshotTenantConsistency: CollectionBeforeChangeHook = async ({
+  data,
+  req,
+}) => {
   const intakeItemId = idOf(data["intakeItem"])
   const snapshotTenantId = idOf(data["tenant"])
   if (intakeItemId === null || snapshotTenantId === null) {

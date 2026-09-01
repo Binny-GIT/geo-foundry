@@ -18,7 +18,10 @@ export const siteScopeWhere = (session: ConsoleSession): Where | undefined =>
 export const sitesIdScopeWhere = (session: ConsoleSession): Where | undefined =>
   unrestricted(session) ? undefined : { id: { in: [...(session.siteIds ?? [])] } }
 
-export const combineWhere = (left: Where | undefined, right: Where | undefined): Where | undefined => {
+export const combineWhere = (
+  left: Where | undefined,
+  right: Where | undefined,
+): Where | undefined => {
   if (left === undefined) return right
   if (right === undefined) return left
   return { and: [left, right] }

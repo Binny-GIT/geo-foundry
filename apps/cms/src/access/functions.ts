@@ -1,6 +1,6 @@
 import type { Access, Where } from "payload"
 
-import { CMS_ACTION, decideAccess, readScope, type CmsResource } from "./policy"
+import { CMS_ACTION, type CmsResource, decideAccess, readScope } from "./policy"
 import { CMS_ROLE } from "./roles"
 import { resolveSessionClaims, type SessionClaims, type TenantRef } from "./session"
 

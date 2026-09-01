@@ -289,10 +289,7 @@ const transitionEditionInScope = async (
   const doc = await loadWorkflowEdition(payload, options.editionId, req, true)
   const claims = assertEditionTenantScope(options.user, doc)
   const aggregate = aggregateOf(doc)
-  if (
-    options.expectedRevision !== undefined &&
-    options.expectedRevision !== aggregate.revision
-  ) {
+  if (options.expectedRevision !== undefined && options.expectedRevision !== aggregate.revision) {
     throw fail("EDITION_WORKFLOW_REVISION_CONFLICT", `edition ${options.editionId}`)
   }
   const reason = stringField(options.reason)?.trim()
@@ -448,7 +445,9 @@ export async function transitionEdition(
   payload: Payload,
   options: TransitionOptions,
 ): Promise<ContentEditionState> {
-  return runOutboxScopedTransaction(payload, (req) => transitionEditionInScope(payload, options, req))
+  return runOutboxScopedTransaction(payload, (req) =>
+    transitionEditionInScope(payload, options, req),
+  )
 }
 
 export const transitionEditionWithinTransaction = transitionEditionInScope

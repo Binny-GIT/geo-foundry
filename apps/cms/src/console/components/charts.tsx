@@ -29,7 +29,13 @@ export const DonutChart = ({
   let offset = 0
 
   return (
-    <svg aria-label="状态分布" height={size} role="img" viewBox={`0 0 ${size} ${size}`} width={size}>
+    <svg
+      aria-label="状态分布"
+      height={size}
+      role="img"
+      viewBox={`0 0 ${size} ${size}`}
+      width={size}
+    >
       <circle
         cx={center}
         cy={center}
@@ -147,10 +153,22 @@ export const TrendBars = ({
       <text fill="var(--console-ink-muted)" fontSize={11} x={2} y={height - 8}>
         {data[0]?.date.slice(5) ?? ""}
       </text>
-      <text fill="var(--console-ink-muted)" fontSize={11} textAnchor="end" x={width - 2} y={height - 8}>
+      <text
+        fill="var(--console-ink-muted)"
+        fontSize={11}
+        textAnchor="end"
+        x={width - 2}
+        y={height - 8}
+      >
         {data[data.length - 1]?.date.slice(5) ?? ""}
       </text>
-      <text fill="var(--console-ink-muted)" fontSize={11} textAnchor="end" x={width - 2} y={top + 8}>
+      <text
+        fill="var(--console-ink-muted)"
+        fontSize={11}
+        textAnchor="end"
+        x={width - 2}
+        y={top + 8}
+      >
         峰值 {max}
       </text>
     </svg>
@@ -209,7 +227,9 @@ export const ChartCard = ({
 }) => (
   <section className="gf-console-card grid gap-4 p-5 sm:p-6">
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">{title}</h2>
+      <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">
+        {title}
+      </h2>
       {action}
     </div>
     {children}

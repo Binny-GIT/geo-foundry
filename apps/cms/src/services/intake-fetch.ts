@@ -1,7 +1,7 @@
 import type { Payload } from "payload"
 
 import { resolveSessionClaims } from "../access/session"
-import { IntakeError, createIntakeItem, normalizeIntakeUrl } from "./intake"
+import { createIntakeItem, IntakeError, normalizeIntakeUrl } from "./intake"
 
 type IntakeId = number
 
@@ -143,7 +143,8 @@ export const claimIntakeFetch = async (
   if (tenantId === null) throw new IntakeError("INTAKE_ITEM_TENANT_INVALID", String(item.id))
   requireService(user, tenantId)
   if (item.status === "fetching") return
-  if (item.status !== "new") throw new IntakeError("INTAKE_FETCH_STATE_INVALID", String(item.status))
+  if (item.status !== "new")
+    throw new IntakeError("INTAKE_FETCH_STATE_INVALID", String(item.status))
   await payload.update({
     collection: "intake-items",
     data: { failureCode: null, failureReason: null, status: "fetching" },
@@ -179,7 +180,9 @@ export const readIntakeFetchInput = async (
     throw new IntakeError("INTAKE_FETCH_CHANNEL_INVALID", String(item.channel))
   }
   if (item.channel === "url") {
-    const sourceUrl = normalizeIntakeUrl(text(item.normalizedUrl) ?? text(item.sourceUrl) ?? undefined)
+    const sourceUrl = normalizeIntakeUrl(
+      text(item.normalizedUrl) ?? text(item.sourceUrl) ?? undefined,
+    )
     if (sourceUrl === undefined) throw new IntakeError("INTAKE_SOURCE_URL_REQUIRED")
     return { channel: "url", intakeItemId: item.id, sourceUrl, tenantId }
   }
@@ -311,7 +314,8 @@ export const createRssIntakeEntries = async (
   const connectorId = idOf(parent.connector)
   if (tenantId === null || connectorId === null) throw new IntakeError("INTAKE_CONNECTOR_REQUIRED")
   requireService(user, tenantId)
-  if (parent.channel !== "rss") throw new IntakeError("INTAKE_FETCH_CHANNEL_INVALID", String(parent.channel))
+  if (parent.channel !== "rss")
+    throw new IntakeError("INTAKE_FETCH_CHANNEL_INVALID", String(parent.channel))
   const suggestedSiteId = idOf(parent.suggestedSite)
   const bounded = input.entries.slice(0, 20)
   const normalizedUrls = [
@@ -327,10 +331,7 @@ export const createRssIntakeEntries = async (
             limit: 100,
             overrideAccess: true,
             where: {
-              and: [
-                { tenant: { equals: tenantId } },
-                { normalizedUrl: { in: normalizedUrls } },
-              ],
+              and: [{ tenant: { equals: tenantId } }, { normalizedUrl: { in: normalizedUrls } }],
             },
           })
         ).docs.flatMap((row) => {

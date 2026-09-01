@@ -1,24 +1,25 @@
-import { PageHeader } from "@/console/components/PageHeader"
 import { notFound } from "next/navigation"
-
 import { CMS_ACTION } from "@/access/policy"
 import { CMS_ROLE } from "@/access/roles"
 import { ConsoleEditForm } from "@/console/components/ConsoleEditForm"
 import { ConsoleSiteForm } from "@/console/components/ConsoleSiteForm"
 import { ConsoleUserForm } from "@/console/components/ConsoleUserForm"
+import { PageHeader } from "@/console/components/PageHeader"
+import { findConsoleDocument } from "@/console/lib/payload.server"
 import {
   CONSOLE_RESOURCES,
+  type ConsoleResourceSlug,
   isConsoleResourceSlug,
   isFirstWaveMutableResource,
-  type ConsoleResourceSlug,
 } from "@/console/lib/resources"
-import { findConsoleDocument } from "@/console/lib/payload.server"
-import { siteFormValuesFromDocument } from "@/console/lib/site-form"
 import { canConsole, requireConsoleSession } from "@/console/lib/session.server"
+import { siteFormValuesFromDocument } from "@/console/lib/site-form"
 
 type UserAdministratorRole = typeof CMS_ROLE.SUPER_ADMIN | typeof CMS_ROLE.TENANT_ADMIN
 
-const userAdministratorRole = (role: typeof CMS_ROLE[keyof typeof CMS_ROLE]): UserAdministratorRole => {
+const userAdministratorRole = (
+  role: (typeof CMS_ROLE)[keyof typeof CMS_ROLE],
+): UserAdministratorRole => {
   if (role === CMS_ROLE.SUPER_ADMIN || role === CMS_ROLE.TENANT_ADMIN) return role
   notFound()
 }
@@ -51,9 +52,16 @@ const ConsoleEditPage = async ({ params }: EditPageProps) => {
       <PageHeader title={`编辑${resource.label.zh}`} />
       <section className="gf-console-card p-5 sm:p-6">
         {slug === "users" ? (
-          <ConsoleUserForm actorRole={userAdministratorRole(session.role)} document={{ ...document, id }} />
+          <ConsoleUserForm
+            actorRole={userAdministratorRole(session.role)}
+            document={{ ...document, id }}
+          />
         ) : slug === "sites" ? (
-          <ConsoleSiteForm id={id} initialValues={siteFormValuesFromDocument(document)} mode="edit" />
+          <ConsoleSiteForm
+            id={id}
+            initialValues={siteFormValuesFromDocument(document)}
+            mode="edit"
+          />
         ) : (
           <ConsoleEditForm
             document={document}

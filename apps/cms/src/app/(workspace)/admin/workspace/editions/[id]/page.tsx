@@ -1,5 +1,5 @@
-import { RootPage } from "@payloadcms/next/views"
 import config from "@payload-config"
+import { RootPage } from "@payloadcms/next/views"
 import { notFound } from "next/navigation"
 
 import { CMS_ACTION, CMS_RESOURCE } from "@/access/policy"
@@ -18,7 +18,11 @@ const WorkspaceEditionPage = async ({ params, searchParams }: WorkspaceEditionPa
   const { id } = await params
   const editionId = Number(id)
   const session = await requireConsoleSession(`/admin/workspace/editions/${encodeURIComponent(id)}`)
-  if (!Number.isInteger(editionId) || editionId <= 0 || !canConsole(session, CMS_RESOURCE.EDITIONS, CMS_ACTION.READ)) {
+  if (
+    !Number.isInteger(editionId) ||
+    editionId <= 0 ||
+    !canConsole(session, CMS_RESOURCE.EDITIONS, CMS_ACTION.READ)
+  ) {
     notFound()
   }
   return RootPage({

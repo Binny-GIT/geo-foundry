@@ -13,7 +13,8 @@ type PayloadError = {
 }
 
 const messageFor = (payload: PayloadError): string => {
-  const raw = payload.errors?.find((error) => typeof error.message === "string")?.message ?? payload.message
+  const raw =
+    payload.errors?.find((error) => typeof error.message === "string")?.message ?? payload.message
   if (raw?.includes("CMS_MEDIA_FILE_TOO_LARGE")) return "文件超过 5 MB 限制。"
   if (raw?.includes("CMS_MEDIA_TYPE_UNSUPPORTED")) return "只支持 PNG、JPEG、WebP 和 GIF 图片。"
   return raw ?? "上传失败，请检查文件和替代文本后重试。"
@@ -49,7 +50,9 @@ export const ConsoleMediaUploadForm = () => {
       }
       const id = payload.doc?.id
       window.location.assign(
-        id === undefined || id === null ? consoleRoute.collection("media") : consoleRoute.document("media", id),
+        id === undefined || id === null
+          ? consoleRoute.collection("media")
+          : consoleRoute.document("media", id),
       )
     } catch {
       setError("暂时无法连接到服务，请稍后重试。")
@@ -97,7 +100,10 @@ export const ConsoleMediaUploadForm = () => {
         />
       </label>
       {error !== null && (
-        <p className="m-0 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm leading-6 text-rose-700" role="alert">
+        <p
+          className="m-0 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm leading-6 text-rose-700"
+          role="alert"
+        >
           {error}
         </p>
       )}

@@ -1,31 +1,31 @@
 import type { PayloadRequest } from "payload"
 
 import {
-  OperationsLedgerError,
   cancelOperation,
   completeOperationStage,
   getOperation,
   listNonTerminalOperations,
+  OperationsLedgerError,
+  type OperationType,
   operationRequestHashOf,
   startOperationStage,
   submitOperation,
-  type OperationType,
 } from "../../services/operations-ledger"
 import {
-  cancelOperationBodySchema,
-  completeOperationStageBodySchema,
-  evaluateOperationBodySchema,
-  generateOperationBodySchema,
-  rollbackOperationBodySchema,
-  startOperationStageBodySchema,
-  submitOperationBodySchema,
   type CancelOperationBody,
   type CompleteOperationStageBody,
+  cancelOperationBodySchema,
+  completeOperationStageBodySchema,
   type EvaluateOperationBody,
+  evaluateOperationBodySchema,
   type GenerateOperationBody,
+  generateOperationBodySchema,
   type RollbackOperationBody,
+  rollbackOperationBodySchema,
   type StartOperationStageBody,
   type SubmitOperationBody,
+  startOperationStageBodySchema,
+  submitOperationBodySchema,
 } from "./contracts"
 import { internalJsonResponse, withInternalGuards } from "./guards"
 
@@ -37,10 +37,7 @@ const publicOperationIdOf = (req: PayloadRequest): string => {
   return raw
 }
 
-type ContentOperationBody =
-  | EvaluateOperationBody
-  | GenerateOperationBody
-  | RollbackOperationBody
+type ContentOperationBody = EvaluateOperationBody | GenerateOperationBody | RollbackOperationBody
 
 const INTERNAL_OPERATION_ENDPOINT_BY_TYPE: Readonly<
   Record<Exclude<OperationType, "publish">, string>

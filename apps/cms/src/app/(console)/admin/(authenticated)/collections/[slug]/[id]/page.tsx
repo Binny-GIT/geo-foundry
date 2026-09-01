@@ -4,16 +4,16 @@ import { notFound } from "next/navigation"
 import { CMS_ACTION } from "@/access/policy"
 import { CMS_ROLE } from "@/access/roles"
 import ArticleDetail from "@/console/components/ArticleDetail"
-import SiteDetail from "@/console/components/SiteDetail"
 import { ConsoleUrlRename } from "@/console/components/ConsoleUrlRename"
+import SiteDetail from "@/console/components/SiteDetail"
+import { findConsoleDocument, requireConsolePayloadContext } from "@/console/lib/payload.server"
 import {
   CONSOLE_RESOURCES,
+  type ConsoleResourceSlug,
   consoleRoute,
   isConsoleResourceSlug,
   isFirstWaveMutableResource,
-  type ConsoleResourceSlug,
 } from "@/console/lib/resources"
-import { findConsoleDocument, requireConsolePayloadContext } from "@/console/lib/payload.server"
 import { canConsole } from "@/console/lib/session.server"
 
 const formatValue = (value: unknown, relationship = false): string => {

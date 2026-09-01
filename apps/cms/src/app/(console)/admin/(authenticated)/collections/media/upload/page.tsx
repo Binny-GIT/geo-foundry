@@ -1,8 +1,7 @@
-import { PageHeader } from "@/console/components/PageHeader"
 import { notFound } from "next/navigation"
-
 import { CMS_ACTION, CMS_RESOURCE } from "@/access/policy"
 import { ConsoleMediaUploadForm } from "@/console/components/ConsoleMediaUploadForm"
+import { PageHeader } from "@/console/components/PageHeader"
 import { canConsole, requireConsoleSession } from "@/console/lib/session.server"
 
 const ConsoleMediaUploadPage = async () => {

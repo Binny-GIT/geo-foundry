@@ -13,7 +13,10 @@ const searchOf = (value: string | undefined): string | null => {
   return query === undefined || query.length === 0 ? null : query.slice(0, 200)
 }
 
-export const parseConsoleListQuery = (query: { readonly page?: string; readonly q?: string }): ConsoleListQuery => ({
+export const parseConsoleListQuery = (query: {
+  readonly page?: string
+  readonly q?: string
+}): ConsoleListQuery => ({
   page: pageOf(query.page),
   search: searchOf(query.q),
 })

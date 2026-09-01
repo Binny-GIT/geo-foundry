@@ -3,8 +3,8 @@ import type { ZodType } from "zod"
 
 import { resolveSessionClaims, type SessionClaims } from "../../access/session"
 import { EditionWorkflowError } from "../../services/edition-workflow"
-import { IntakeError } from "../../services/intake"
 import { EmbeddingStoreError } from "../../services/embedding-store"
+import { IntakeError } from "../../services/intake"
 import { OperationsLedgerError } from "../../services/operations-ledger"
 import { ReleaseRegistryError } from "../../services/release-registry"
 import { RollbackIntentError } from "../../services/rollback-intents"
@@ -289,10 +289,22 @@ const intakeErrorToResponse = (
   allowOrigin: string | null,
 ): Response => {
   if (error.code === "INTAKE_ITEM_NOT_FOUND" || error.code === "INTAKE_TENANT_MISMATCH") {
-    return internalErrorResponse(404, "INTAKE_ITEM_NOT_FOUND", "intake item not found", requestId, allowOrigin)
+    return internalErrorResponse(
+      404,
+      "INTAKE_ITEM_NOT_FOUND",
+      "intake item not found",
+      requestId,
+      allowOrigin,
+    )
   }
   const status = INTAKE_STATUS_BY_CODE[error.code] ?? 400
-  return internalErrorResponse(status, error.code, error.detail ?? error.code, requestId, allowOrigin)
+  return internalErrorResponse(
+    status,
+    error.code,
+    error.detail ?? error.code,
+    requestId,
+    allowOrigin,
+  )
 }
 
 const EMBEDDING_STATUS_BY_CODE: Readonly<Record<string, number>> = {

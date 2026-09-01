@@ -1,7 +1,6 @@
 import Link from "next/link"
-
+import type { requireConsolePayloadContext } from "@/console/lib/payload.server"
 import { consoleRoute } from "@/console/lib/resources"
-import { requireConsolePayloadContext } from "@/console/lib/payload.server"
 
 type PlanRecord = Readonly<Record<string, unknown>>
 
@@ -68,7 +67,9 @@ const PlanRow = ({ plan }: { readonly plan: PlanRecord }) => {
         {scheduledFor.length > 0 ? `${timeLabel(scheduledFor)} UTC` : "—"}
       </span>
       {id === null ? (
-        <span className="min-w-0 flex-1 truncate text-sm text-[var(--console-ink)]">{relationName(edition)}</span>
+        <span className="min-w-0 flex-1 truncate text-sm text-[var(--console-ink)]">
+          {relationName(edition)}
+        </span>
       ) : (
         <Link
           className="gf-console-focus min-w-0 flex-1 truncate text-sm font-semibold text-indigo-700 no-underline hover:underline dark:text-indigo-300"
@@ -77,13 +78,22 @@ const PlanRow = ({ plan }: { readonly plan: PlanRecord }) => {
           {relationName(edition)}
         </Link>
       )}
-      <span className="min-w-0 truncate text-xs text-[var(--console-ink-muted)]">{relationName(plan["site"])}</span>
-      <span className="shrink-0 text-xs text-[var(--console-ink-muted)]">{text(plan["timezone"]) || "UTC"}</span>
-      <span className={`shrink-0 rounded-full px-2 py-1 text-[11px] font-semibold ${STATUS_TONE[status] ?? STATUS_TONE["pending"]}`}>
+      <span className="min-w-0 truncate text-xs text-[var(--console-ink-muted)]">
+        {relationName(plan["site"])}
+      </span>
+      <span className="shrink-0 text-xs text-[var(--console-ink-muted)]">
+        {text(plan["timezone"]) || "UTC"}
+      </span>
+      <span
+        className={`shrink-0 rounded-full px-2 py-1 text-[11px] font-semibold ${STATUS_TONE[status] ?? STATUS_TONE["pending"]}`}
+      >
         {status}
       </span>
       {lastError.length > 0 && (
-        <span className="w-full truncate pt-1 text-xs text-rose-600 dark:text-rose-300" title={lastError}>
+        <span
+          className="w-full truncate pt-1 text-xs text-rose-600 dark:text-rose-300"
+          title={lastError}
+        >
           {lastError}
         </span>
       )}
@@ -91,7 +101,10 @@ const PlanRow = ({ plan }: { readonly plan: PlanRecord }) => {
   )
 }
 
-export const PublicationPlansWorkspace = async ({ context, view }: PublicationPlansWorkspaceProps) => {
+export const PublicationPlansWorkspace = async ({
+  context,
+  view,
+}: PublicationPlansWorkspaceProps) => {
   const payload = context.payload
   const user = context.user
   const [active, terminal] = await Promise.all([
@@ -137,7 +150,9 @@ export const PublicationPlansWorkspace = async ({ context, view }: PublicationPl
       <section className="gf-console-card overflow-hidden">
         <div className="flex flex-col gap-3 border-b border-[var(--console-border)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="m-0 text-sm font-semibold text-[var(--console-ink)]">排期列表（按{view === "week" ? "周" : "日"}分组，UTC）</h2>
+            <h2 className="m-0 text-sm font-semibold text-[var(--console-ink)]">
+              排期列表（按{view === "week" ? "周" : "日"}分组，UTC）
+            </h2>
             <p className="m-0 pt-1 text-xs text-[var(--console-ink-muted)]">
               待执行与执行中的发布计划；创建排期请在稿件工作台右侧由 publisher 提交。
             </p>
@@ -160,7 +175,9 @@ export const PublicationPlansWorkspace = async ({ context, view }: PublicationPl
         {sortedGroups.length === 0 ? (
           <div className="grid min-h-48 place-items-center px-5 text-center">
             <div className="grid max-w-sm gap-2">
-              <strong className="text-sm text-[var(--console-ink)]">当前范围内没有待执行的发布计划</strong>
+              <strong className="text-sm text-[var(--console-ink)]">
+                当前范围内没有待执行的发布计划
+              </strong>
               <span className="text-sm leading-6 text-[var(--console-ink-muted)]">
                 在稿件工作台右侧「创建发布排期」提交后，计划会按 UTC 时间出现在这里。
               </span>
@@ -188,7 +205,9 @@ export const PublicationPlansWorkspace = async ({ context, view }: PublicationPl
         <section className="gf-console-card overflow-hidden">
           <div className="border-b border-[var(--console-border)] px-5 py-4">
             <h2 className="m-0 text-sm font-semibold text-[var(--console-ink)]">最近完成</h2>
-            <p className="m-0 pt-1 text-xs text-[var(--console-ink-muted)]">已成功、失败或取消的计划（最近 10 条）。</p>
+            <p className="m-0 pt-1 text-xs text-[var(--console-ink-muted)]">
+              已成功、失败或取消的计划（最近 10 条）。
+            </p>
           </div>
           <ul className="m-0 list-none divide-y divide-[var(--console-border)] p-0">
             {(terminal.docs as unknown as PlanRecord[]).map((plan) => (

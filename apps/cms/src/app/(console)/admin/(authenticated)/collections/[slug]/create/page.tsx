@@ -1,22 +1,20 @@
-import { PageHeader } from "@/console/components/PageHeader"
 import { notFound } from "next/navigation"
-
 import { CMS_ACTION } from "@/access/policy"
 import { CMS_ROLE } from "@/access/roles"
 import { ConsoleCreateForm } from "@/console/components/ConsoleCreateForm"
 import { ConsoleSiteForm } from "@/console/components/ConsoleSiteForm"
 import { ConsoleUserForm } from "@/console/components/ConsoleUserForm"
-import {
-  CONSOLE_RESOURCES,
-  isConsoleResourceSlug,
-} from "@/console/lib/resources"
+import { PageHeader } from "@/console/components/PageHeader"
+import { CONSOLE_RESOURCES, isConsoleResourceSlug } from "@/console/lib/resources"
 import { canConsole, requireConsoleSession } from "@/console/lib/session.server"
 
 const CREATE_SUPPORTED = new Set(["contents", "domains", "sites", "tenants", "users"])
 
 type UserAdministratorRole = typeof CMS_ROLE.SUPER_ADMIN | typeof CMS_ROLE.TENANT_ADMIN
 
-const userAdministratorRole = (role: typeof CMS_ROLE[keyof typeof CMS_ROLE]): UserAdministratorRole => {
+const userAdministratorRole = (
+  role: (typeof CMS_ROLE)[keyof typeof CMS_ROLE],
+): UserAdministratorRole => {
   if (role === CMS_ROLE.SUPER_ADMIN || role === CMS_ROLE.TENANT_ADMIN) return role
   notFound()
 }

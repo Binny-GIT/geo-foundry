@@ -1,8 +1,8 @@
+import { redirect } from "next/navigation"
 import { GeoIcon } from "@/components/branding/GeoIcon"
 import { ConsoleLoginForm } from "@/console/components/ConsoleLoginForm"
-import { getConsoleSession } from "@/console/lib/session.server"
 import { consoleRoute } from "@/console/lib/resources"
-import { redirect } from "next/navigation"
+import { getConsoleSession } from "@/console/lib/session.server"
 
 export const metadata = {
   title: "登录 | Geo Foundry",
@@ -26,12 +26,18 @@ const ConsoleLoginPage = async () => {
             <GeoIcon size={25} />
           </span>
           <div>
-            <p className="m-0 text-sm font-bold tracking-tight text-[var(--console-ink)]">Geo Foundry</p>
-            <p className="m-0 pt-0.5 text-xs text-[var(--console-ink-muted)]">GF Studio · 内容运营管理中心</p>
+            <p className="m-0 text-sm font-bold tracking-tight text-[var(--console-ink)]">
+              Geo Foundry
+            </p>
+            <p className="m-0 pt-0.5 text-xs text-[var(--console-ink-muted)]">
+              GF Studio · 内容运营管理中心
+            </p>
           </div>
         </div>
         <section className="gf-console-card p-6 shadow-2xl shadow-indigo-950/10 sm:p-8">
-          <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">安全访问</p>
+          <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">
+            安全访问
+          </p>
           <h1 className="m-0 pt-2 text-2xl font-semibold tracking-tight text-[var(--console-ink)]">
             登录管理中心
           </h1>

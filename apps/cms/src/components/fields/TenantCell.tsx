@@ -1,8 +1,8 @@
 "use client"
 
 import { useAuth, useTranslation } from "@payloadcms/ui"
-import { useEffect, useState } from "react"
 import type { DefaultCellComponentProps } from "payload"
+import { useEffect, useState } from "react"
 
 import { uiLangOf } from "../i18n/ui-lang"
 import { tenantHrefOf, tenantReferenceOf } from "./tenant-cell-model"
@@ -45,7 +45,9 @@ export const TenantCell = ({ cellData }: DefaultCellComponentProps) => {
   const reference = tenantReferenceOf(cellData)
   const isSuperAdmin = user?.["role"] === "super-admin"
   const [name, setName] = useState(reference.name)
-  const [resolution, setResolution] = useState<Resolution>(reference.name === null ? "idle" : "loading")
+  const [resolution, setResolution] = useState<Resolution>(
+    reference.name === null ? "idle" : "loading",
+  )
 
   useEffect(() => {
     setName(reference.name)
@@ -66,7 +68,9 @@ export const TenantCell = ({ cellData }: DefaultCellComponentProps) => {
       fetch(`/api/tenants/${encodeURIComponent(String(reference.id))}?depth=0`, {
         credentials: "same-origin",
       })
-        .then(async (response) => (response.ok ? tenantNameFromResponse(await response.json()) : null))
+        .then(async (response) =>
+          response.ok ? tenantNameFromResponse(await response.json()) : null,
+        )
         .catch(() => null)
     tenantNameRequests.set(key, request)
 

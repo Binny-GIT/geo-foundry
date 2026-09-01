@@ -1,6 +1,8 @@
+import { CMS_ACTION, CMS_RESOURCE, type CmsResource } from "../../access/policy"
 import {
   CheckCircleIcon,
   GlobeIcon,
+  type IconProps,
   ImageIcon,
   LayersIcon,
   LayoutGridIcon,
@@ -9,9 +11,7 @@ import {
   SearchIcon,
   SendIcon,
   UsersIcon,
-  type IconProps,
 } from "../../components/icons"
-import { CMS_ACTION, CMS_RESOURCE, type CmsResource } from "../../access/policy"
 
 export const VISIBLE_RESOURCE_SLUGS = [
   "users",
@@ -78,7 +78,10 @@ export const CONSOLE_RESOURCES: Readonly<Record<ConsoleResourceSlug, ConsoleReso
     icon: UsersIcon,
     label: { en: "Tenants", zh: "租户" },
     resource: CMS_RESOURCE.TENANTS,
-    subtitle: { en: "Isolated data boundaries grouping sites and users", zh: "隔离的数据边界（站点与用户的分组）" },
+    subtitle: {
+      en: "Isolated data boundaries grouping sites and users",
+      zh: "隔离的数据边界（站点与用户的分组）",
+    },
   },
   sites: {
     apiSlug: "sites",
@@ -88,7 +91,10 @@ export const CONSOLE_RESOURCES: Readonly<Record<ConsoleResourceSlug, ConsoleReso
     label: { en: "Sites", zh: "站点列表" },
     relationshipColumns: ["tenant"],
     resource: CMS_RESOURCE.SITES,
-    subtitle: { en: "Publishing targets that read articles from this system", zh: "读取文章的发布目标网站" },
+    subtitle: {
+      en: "Publishing targets that read articles from this system",
+      zh: "读取文章的发布目标网站",
+    },
   },
   domains: {
     apiSlug: "domains",
@@ -117,7 +123,10 @@ export const CONSOLE_RESOURCES: Readonly<Record<ConsoleResourceSlug, ConsoleReso
     label: { en: "Articles", zh: "文章列表" },
     relationshipColumns: ["content", "site", "tenant"],
     resource: CMS_RESOURCE.EDITIONS,
-    subtitle: { en: "Every article: filter, search, and lifecycle", zh: "全部文章的筛选、搜索与生命周期管理" },
+    subtitle: {
+      en: "Every article: filter, search, and lifecycle",
+      zh: "全部文章的筛选、搜索与生命周期管理",
+    },
   },
   media: {
     apiSlug: "media",
@@ -136,7 +145,10 @@ export const CONSOLE_RESOURCES: Readonly<Record<ConsoleResourceSlug, ConsoleReso
     label: { en: "URL Records", zh: "URL 记录" },
     relationshipColumns: ["content", "site", "targetUrl"],
     resource: CMS_RESOURCE.URL_RECORDS,
-    subtitle: { en: "Read-only URL registry and controlled renames", zh: "只读 URL 台账与受控重命名" },
+    subtitle: {
+      en: "Read-only URL registry and controlled renames",
+      zh: "只读 URL 台账与受控重命名",
+    },
   },
   "quality-assessments": {
     apiSlug: "quality-assessments",
@@ -166,7 +178,10 @@ export const CONSOLE_RESOURCES: Readonly<Record<ConsoleResourceSlug, ConsoleReso
     label: { en: "Traffic Statistics", zh: "流量统计" },
     relationshipColumns: ["edition", "site", "tenant"],
     resource: CMS_RESOURCE.PERFORMANCE_SNAPSHOTS,
-    subtitle: { en: "Imported traffic observations for reading analytics", zh: "导入的流量统计数据（阅读分析的数据源）" },
+    subtitle: {
+      en: "Imported traffic observations for reading analytics",
+      zh: "导入的流量统计数据（阅读分析的数据源）",
+    },
   },
   "publication-plans": {
     apiSlug: "publication-plans",
@@ -176,7 +191,10 @@ export const CONSOLE_RESOURCES: Readonly<Record<ConsoleResourceSlug, ConsoleReso
     label: { en: "Publication Plans", zh: "发布排期" },
     relationshipColumns: ["edition", "site", "tenant"],
     resource: CMS_RESOURCE.PUBLICATION_PLANS,
-    subtitle: { en: "UTC schedules and publisher-authorized release execution", zh: "UTC 排期与发布者授权执行" },
+    subtitle: {
+      en: "UTC schedules and publisher-authorized release execution",
+      zh: "UTC 排期与发布者授权执行",
+    },
   },
   "rollback-intents": {
     apiSlug: "rollback-intents",
@@ -195,7 +213,10 @@ export const CONSOLE_RESOURCES: Readonly<Record<ConsoleResourceSlug, ConsoleReso
     icon: SendIcon,
     label: { en: "Operation Log", zh: "操作日志" },
     resource: CMS_RESOURCE.OPERATIONS,
-    subtitle: { en: "Auditable async operations and failure triage", zh: "可审计的异步操作与失败排查" },
+    subtitle: {
+      en: "Auditable async operations and failure triage",
+      zh: "可审计的异步操作与失败排查",
+    },
   },
 }
 
@@ -265,10 +286,11 @@ export const consoleRoute = {
   account: "/admin/account",
   collection: (slug: ConsoleResourceSlug) => `/admin/collections/${slug}`,
   dashboard: "/admin",
-  document: (slug: ConsoleResourceSlug, id: number | string) =>
-    `/admin/collections/${slug}/${id}`,
+  document: (slug: ConsoleResourceSlug, id: number | string) => `/admin/collections/${slug}/${id}`,
   login: "/admin/login",
 } as const
 
-export const canCreateResource = (resource: ConsoleResource, can: (resource: CmsResource, action: typeof CMS_ACTION.CREATE) => boolean) =>
-  resource.resource !== null && can(resource.resource, CMS_ACTION.CREATE)
+export const canCreateResource = (
+  resource: ConsoleResource,
+  can: (resource: CmsResource, action: typeof CMS_ACTION.CREATE) => boolean,
+) => resource.resource !== null && can(resource.resource, CMS_ACTION.CREATE)

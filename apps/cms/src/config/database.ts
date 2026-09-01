@@ -1,7 +1,6 @@
 import type { PostgresAdapterArgs } from "@payloadcms/db-postgres"
-
-import type { CmsEnvironment } from "./environment"
 import { migrations } from "../migrations"
+import type { CmsEnvironment } from "./environment"
 
 export const createPostgresAdapterOptions = (
   environment: CmsEnvironment,

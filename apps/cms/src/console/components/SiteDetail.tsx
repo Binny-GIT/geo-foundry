@@ -4,8 +4,8 @@ import { notFound } from "next/navigation"
 import { CMS_ACTION, CMS_RESOURCE } from "@/access/policy"
 import { CMS_ROLE } from "@/access/roles"
 import { ReleaseRestore } from "@/console/components/ReleaseRestore"
-import { consoleRoute } from "@/console/lib/resources"
 import { requireConsolePayloadContext } from "@/console/lib/payload.server"
+import { consoleRoute } from "@/console/lib/resources"
 import { canConsole } from "@/console/lib/session.server"
 
 const WORKFLOW_STATES = [
@@ -75,7 +75,10 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
     notFound()
   }
 
-  const name = typeof site["name"] === "string" && site["name"].length > 0 ? site["name"] : `站点 #${String(siteId)}`
+  const name =
+    typeof site["name"] === "string" && site["name"].length > 0
+      ? site["name"]
+      : `站点 #${String(siteId)}`
   const tenantName = relationText(site["tenant"], "name")
   const canReadEditions = canConsole(session, CMS_RESOURCE.EDITIONS, CMS_ACTION.READ)
   const canReadDomains = canConsole(session, CMS_RESOURCE.DOMAINS, CMS_ACTION.READ)
@@ -84,7 +87,15 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
   const isPublisher = session.role === CMS_ROLE.PUBLISHER || session.role === CMS_ROLE.SUPER_ADMIN
   const canCreateDomain = canConsole(session, CMS_RESOURCE.DOMAINS, CMS_ACTION.CREATE)
 
-  const [statusCounts, domains, canonicalDomain, recentEditions, releases, operations, siteSnapshots] = await Promise.all([
+  const [
+    statusCounts,
+    domains,
+    canonicalDomain,
+    recentEditions,
+    releases,
+    operations,
+    siteSnapshots,
+  ] = await Promise.all([
     canReadEditions
       ? Promise.all(
           WORKFLOW_STATES.map((state) =>
@@ -93,7 +104,9 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
                 collection: "content-editions",
                 overrideAccess: false,
                 user,
-                where: { and: [{ site: { equals: siteId } }, { workflowStatus: { equals: state.key } }] },
+                where: {
+                  and: [{ site: { equals: siteId } }, { workflowStatus: { equals: state.key } }],
+                },
               })
               .then((result) => result.totalDocs ?? 0),
           ),
@@ -191,13 +204,21 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
       : null,
   ])
 
-  const hostname = canonicalDomain === null ? null : typeof canonicalDomain["hostname"] === "string" ? canonicalDomain["hostname"] : null
+  const hostname =
+    canonicalDomain === null
+      ? null
+      : typeof canonicalDomain["hostname"] === "string"
+        ? canonicalDomain["hostname"]
+        : null
   const entryUrl = hostname === null ? null : `https://${hostname}`
   const currentRelease = (releases ?? []).find((release) => release["state"] === "current")
-  const currentRestore = currentRelease === undefined ? null : {
-    manifestSha256: String(currentRelease["manifestSha256"] ?? ""),
-    releaseId: String(currentRelease["releaseId"] ?? ""),
-  }
+  const currentRestore =
+    currentRelease === undefined
+      ? null
+      : {
+          manifestSha256: String(currentRelease["manifestSha256"] ?? ""),
+          releaseId: String(currentRelease["releaseId"] ?? ""),
+        }
 
   return (
     <div className="grid gap-6 [&>*]:min-w-0">
@@ -261,30 +282,39 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
         </h2>
         <dl className="m-0 grid gap-4 border-t border-[var(--console-border)] pt-4 sm:grid-cols-2 xl:grid-cols-4">
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">站点入口</dt>
+            <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">
+              站点入口
+            </dt>
             <dd className="m-0 break-all pt-1 text-sm text-[var(--console-ink)]">
               {entryUrl ?? "尚未配置启用的规范域名"}
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">文章入口前缀</dt>
+            <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">
+              文章入口前缀
+            </dt>
             <dd className="m-0 break-all pt-1 text-sm text-[var(--console-ink)]">
               {entryUrl === null ? "—" : `${entryUrl}/articles/`}
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">交付 API</dt>
+            <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">
+              交付 API
+            </dt>
             <dd className="m-0 break-all pt-1 font-mono text-xs leading-5 text-[var(--console-ink)]">
               {hostname === null ? "—" : `/api/delivery/sites/${hostname}/articles`}
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">累计阅读</dt>
+            <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">
+              累计阅读
+            </dt>
             <dd className="m-0 pt-1 text-sm text-[var(--console-ink)]">
               {siteSnapshots === null
                 ? "当前角色无权读取流量统计"
                 : `${siteSnapshots.reduce(
-                    (sum, snapshot) => sum + (typeof snapshot["visits"] === "number" ? snapshot["visits"] : 0),
+                    (sum, snapshot) =>
+                      sum + (typeof snapshot["visits"] === "number" ? snapshot["visits"] : 0),
                     0,
                   )} 次（流量统计上报后累计）`}
             </dd>
@@ -295,7 +325,9 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
       {domains !== null && (
         <section className="gf-console-card grid gap-4 p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">域名管理</h2>
+            <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">
+              域名管理
+            </h2>
             {canCreateDomain && (
               <Link
                 className="gf-console-focus inline-flex h-9 items-center rounded-xl bg-[var(--console-accent)] px-3 text-xs font-semibold text-white no-underline hover:bg-[var(--console-accent-hover)]"
@@ -343,7 +375,9 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
       {recentEditions !== null && (
         <section className="gf-console-card grid gap-4 p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">该站文章</h2>
+            <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">
+              该站文章
+            </h2>
             <Link
               className="gf-console-focus text-sm font-semibold text-indigo-700 no-underline hover:underline"
               href={`/admin/collections/content-editions?site=${siteId}`}
@@ -358,7 +392,8 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
           ) : (
             <ul className="m-0 grid min-w-0 list-none gap-2 p-0">
               {recentEditions.map((edition) => {
-                const status = typeof edition["workflowStatus"] === "string" ? edition["workflowStatus"] : ""
+                const status =
+                  typeof edition["workflowStatus"] === "string" ? edition["workflowStatus"] : ""
                 return (
                   <li
                     className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--console-border)] px-4 py-3"
@@ -418,7 +453,8 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
                         {releaseId.slice(0, 28)}…
                       </span>
                       <span className="text-xs text-[var(--console-ink-muted)]">
-                        {formatInstant(release["createdAt"])}（UTC） · manifest {manifestSha256.slice(0, 12)}…
+                        {formatInstant(release["createdAt"])}（UTC） · manifest{" "}
+                        {manifestSha256.slice(0, 12)}…
                       </span>
                     </span>
                     <span className="flex shrink-0 items-center gap-2">
@@ -451,7 +487,9 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
       {operations !== null && (
         <section className="gf-console-card grid gap-4 p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">该站操作日志</h2>
+            <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">
+              该站操作日志
+            </h2>
             <Link
               className="gf-console-focus text-sm font-semibold text-indigo-700 no-underline hover:underline"
               href={consoleRoute.collection("operations")}

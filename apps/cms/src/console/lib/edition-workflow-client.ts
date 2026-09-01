@@ -35,6 +35,7 @@ export const editionWorkflowEndpointOf = (action: WorkflowAction, id: number): s
 export const editionEvaluationEndpointOf = (id: number): string =>
   `/api/workspaces/editor/editions/${id}/evaluation-operations`
 
-export const editionCommentEndpointOf = (id: number): string => `/api/editions/${id}/review-comments`
+export const editionCommentEndpointOf = (id: number): string =>
+  `/api/editions/${id}/review-comments`
 
 export const publicationPlanEndpoint = "/api/publication-plan-operations"

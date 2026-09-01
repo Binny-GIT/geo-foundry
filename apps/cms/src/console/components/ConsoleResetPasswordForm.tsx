@@ -54,7 +54,10 @@ export const ConsoleResetPasswordForm = () => {
         />
       </label>
       {error !== null && (
-        <p className="m-0 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-700" role="alert">
+        <p
+          className="m-0 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-700"
+          role="alert"
+        >
           {error}
         </p>
       )}

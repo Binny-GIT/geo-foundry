@@ -3,8 +3,8 @@ import "@payloadcms/next/css"
 import "./admin-theme.css"
 import "./admin-tailwind.css"
 import config from "@payload-config"
-import type { ReactNode } from "react"
 import type { ServerFunctionClient } from "payload"
+import type { ReactNode } from "react"
 
 import { importMap } from "./admin/importMap"
 

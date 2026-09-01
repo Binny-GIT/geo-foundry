@@ -6,6 +6,7 @@ import {
 import type { Payload } from "payload"
 
 import { runOutboxScopedTransaction, type TransactionScope } from "../outbox/outbox"
+import { activatePublishedEditionUrl } from "./edition-url-lifecycle"
 import {
   loadWorkflowEdition,
   parseWorkflowStatus,
@@ -13,7 +14,6 @@ import {
   transitionEditionWithinTransaction,
 } from "./edition-workflow"
 import { loadPublishOperationCreator } from "./operations-ledger"
-import { activatePublishedEditionUrl } from "./edition-url-lifecycle"
 import {
   assertReleaseIdentity,
   assertTenant,
@@ -23,9 +23,9 @@ import {
   releaseOf,
   releaseRuntimeSiteId,
   releaseStoreOf,
+  type SiteDoc,
   siteOf,
   updateRelease,
-  type SiteDoc,
 } from "./release-registry-support"
 
 export { ReleaseRegistryError } from "./release-registry-support"

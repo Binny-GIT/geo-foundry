@@ -19,4 +19,5 @@ export const tenantReferenceOf = (value: unknown): TenantReference => {
   }
 }
 
-export const tenantHrefOf = (id: number | string): string => `/admin/collections/tenants/${String(id)}`
+export const tenantHrefOf = (id: number | string): string =>
+  `/admin/collections/tenants/${String(id)}`

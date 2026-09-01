@@ -1,5 +1,5 @@
-import { PageHeader } from "@/console/components/PageHeader"
 import { LinkIcon } from "@/components/icons"
+import { PageHeader } from "@/console/components/PageHeader"
 import { requireConsoleSession } from "@/console/lib/session.server"
 
 export const metadata = { title: "接入文档 | Geo Foundry" }
@@ -31,8 +31,12 @@ const IntegrationDocsPage = async () => {
         </h2>
         <CodeBlock>{`GET /api/delivery/sites/{canonical-domain}/articles?page=1&limit=20&q=关键词`}</CodeBlock>
         <ul className="m-0 grid list-disc gap-1.5 pl-6 text-sm leading-6 text-[var(--console-ink-muted)]">
-          <li><code>page</code> / <code>limit</code>：分页，limit 上限 50，默认 20。</li>
-          <li><code>q</code>：标题关键词（可选）。</li>
+          <li>
+            <code>page</code> / <code>limit</code>：分页，limit 上限 50，默认 20。
+          </li>
+          <li>
+            <code>q</code>：标题关键词（可选）。
+          </li>
           <li>域名必须是该站点「启用状态的规范域名」。</li>
         </ul>
         <CodeBlock>{`{
@@ -74,7 +78,8 @@ const IntegrationDocsPage = async () => {
 const { docs } = await res.json()
 // docs[i].title / summary / pathname(用于拼站点内链接) / publishedAt`}</CodeBlock>
         <p className="m-0 text-sm leading-6 text-[var(--console-ink-muted)]">
-          建议站点按 5–15 分钟增量拉取列表、按需拉取详情；错误码：404 站点/文章不存在，429 触发限流（每 IP 每分钟 60 次）。
+          建议站点按 5–15 分钟增量拉取列表、按需拉取详情；错误码：404 站点/文章不存在，429
+          触发限流（每 IP 每分钟 60 次）。
         </p>
       </section>
     </div>

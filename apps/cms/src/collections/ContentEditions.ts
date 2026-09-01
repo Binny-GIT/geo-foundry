@@ -1,4 +1,9 @@
-import { APIError, type CollectionBeforeChangeHook, type CollectionConfig, type Where } from "payload"
+import {
+  APIError,
+  type CollectionBeforeChangeHook,
+  type CollectionConfig,
+  type Where,
+} from "payload"
 
 import { claimsFromRequest, collectionAccess } from "../access/functions"
 import { CMS_RESOURCE, readScope } from "../access/policy"
@@ -34,7 +39,11 @@ const CONTENT_VERSION_FIELDS = [
 
 const contentModifiedAt = (): string => new Date().toISOString()
 
-const editionVersionReadScope = ({ req }: { readonly req: { readonly user: unknown } }): boolean | Where => {
+const editionVersionReadScope = ({
+  req,
+}: {
+  readonly req: { readonly user: unknown }
+}): boolean | Where => {
   const claims = claimsFromRequest(req)
   const scope = readScope(claims, CMS_RESOURCE.EDITIONS)
   if (scope === false || scope === true) return scope
@@ -126,7 +135,9 @@ const ensureTenantConsistency: CollectionBeforeChangeHook = async ({ data, req, 
     }
   }
 
-  const ownerId = idOf(fieldValue(data, originalDoc as Record<string, unknown> | undefined, "owner"))
+  const ownerId = idOf(
+    fieldValue(data, originalDoc as Record<string, unknown> | undefined, "owner"),
+  )
   if (ownerId !== null) {
     const owner = await req.payload.findByID({
       collection: "users",
@@ -135,7 +146,9 @@ const ensureTenantConsistency: CollectionBeforeChangeHook = async ({ data, req, 
       overrideAccess: true,
     })
     const ownerTenantId = idOf(owner.tenant)
-    const editionTenantId = idOf(fieldValue(data, originalDoc as Record<string, unknown> | undefined, "tenant"))
+    const editionTenantId = idOf(
+      fieldValue(data, originalDoc as Record<string, unknown> | undefined, "tenant"),
+    )
     if (
       ownerTenantId === null ||
       editionTenantId === null ||

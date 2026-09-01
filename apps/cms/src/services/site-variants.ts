@@ -13,7 +13,8 @@ export class SiteVariantError extends Error {
 const fail = (code: string): SiteVariantError => new SiteVariantError(code)
 const idOf = (value: unknown): number | null => {
   if (typeof value === "number" && Number.isInteger(value) && value > 0) return value
-  if (typeof value === "object" && value !== null) return idOf((value as Record<string, unknown>)["id"])
+  if (typeof value === "object" && value !== null)
+    return idOf((value as Record<string, unknown>)["id"])
   return null
 }
 
@@ -44,7 +45,13 @@ export const createSiteVariant = async (
     throw fail("SITE_VARIANT_EDITOR_REQUIRED")
   }
   const source = await payload
-    .findByID({ collection: "content-editions", depth: 0, draft: true, id: input.editionId, overrideAccess: true })
+    .findByID({
+      collection: "content-editions",
+      depth: 0,
+      draft: true,
+      id: input.editionId,
+      overrideAccess: true,
+    })
     .catch(() => null)
   const site = await payload
     .findByID({ collection: "sites", depth: 0, id: input.siteId, overrideAccess: true })

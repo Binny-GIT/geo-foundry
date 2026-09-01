@@ -1,16 +1,21 @@
 import type { Payload } from "payload"
 
 import { resolveSessionClaims } from "../access/session"
-import { appendOutboxEvent, OUTBOX_EVENT, runOutboxScopedTransaction, type TransactionScope } from "../outbox/outbox"
+import {
+  appendOutboxEvent,
+  OUTBOX_EVENT,
+  runOutboxScopedTransaction,
+  type TransactionScope,
+} from "../outbox/outbox"
 import { canonicalize } from "./edition-input-hash"
 import {
+  type AuditEntry,
   assertEditionTenantScope,
   EditionWorkflowError,
   loadWorkflowEdition,
   numberFieldOf,
   parseWorkflowStatus,
   serializedActorOf,
-  type AuditEntry,
   type WorkflowEditionDoc,
 } from "./edition-workflow"
 import { operationRequestHashOf, operationUniqueKeyOf } from "./operations-ledger"
@@ -120,7 +125,13 @@ const historyItemOf = (value: StoredVersion): EditionVersionHistoryItem | null =
   const version = recordOf(value.version)
   const createdAt = textOf(value.createdAt)
   const updatedAt = textOf(value.updatedAt)
-  if (snapshot === null || id === null || version === null || createdAt === null || updatedAt === null) {
+  if (
+    snapshot === null ||
+    id === null ||
+    version === null ||
+    createdAt === null ||
+    updatedAt === null
+  ) {
     return null
   }
   let workflowStatus = "draft"
@@ -142,7 +153,9 @@ const historyItemOf = (value: StoredVersion): EditionVersionHistoryItem | null =
 
 const versionStore = (payload: Payload) =>
   payload as unknown as {
-    findVersions(options: Record<string, unknown>): Promise<{ readonly docs: readonly StoredVersion[] }>
+    findVersions(
+      options: Record<string, unknown>,
+    ): Promise<{ readonly docs: readonly StoredVersion[] }>
   }
 
 const restoreStore = (payload: Payload) =>
@@ -188,7 +201,9 @@ export const editionVersionHistory = async (
     user: input.user,
     where: { parent: { equals: input.editionId } },
   })
-  return versions.docs.map(historyItemOf).filter((item): item is EditionVersionHistoryItem => item !== null)
+  return versions.docs
+    .map(historyItemOf)
+    .filter((item): item is EditionVersionHistoryItem => item !== null)
 }
 
 export type RestoreEditionDraftInput = Readonly<{
@@ -220,7 +235,8 @@ type RestoreRecord = Readonly<{
   responsePayload: unknown
 }>
 
-const restoreEndpointOf = (editionId: number): string => `/workspaces/editions/${editionId}/restore-draft`
+const restoreEndpointOf = (editionId: number): string =>
+  `/workspaces/editions/${editionId}/restore-draft`
 
 const loadRestoreRecord = async (
   payload: Payload,
@@ -249,7 +265,10 @@ const responseOf = (value: unknown): RestoreEditionDraftResponse => {
   return { editionId, restoredVersionId, updatedAt }
 }
 
-const replay = async (payload: Payload, record: RestoreRecord): Promise<RestoreEditionDraftOutcome> => {
+const replay = async (
+  payload: Payload,
+  record: RestoreRecord,
+): Promise<RestoreEditionDraftOutcome> => {
   await restoreStore(payload).update({
     collection: "edition-draft-restore-idempotency",
     data: { replayCount: (numberOf(record.replayCount) ?? 0) + 1 },
@@ -260,7 +279,9 @@ const replay = async (payload: Payload, record: RestoreRecord): Promise<RestoreE
   return { created: false, response: responseOf(record.responsePayload) }
 }
 
-export const restorableEditionFieldsOf = (snapshot: EditionVersionSnapshot): Record<string, unknown> => ({
+export const restorableEditionFieldsOf = (
+  snapshot: EditionVersionSnapshot,
+): Record<string, unknown> => ({
   angle: snapshot.angle,
   body: clone(snapshot.body),
   citations: clone(snapshot.citations),
@@ -274,7 +295,8 @@ export const restorableEditionFieldsOf = (snapshot: EditionVersionSnapshot): Rec
 
 const editorClaimsOf = (user: unknown) => {
   const claims = resolveSessionClaims(user)
-  if (claims === null) throw fail("EDITION_DRAFT_RESTORE_UNAUTHENTICATED", "session has no valid claims")
+  if (claims === null)
+    throw fail("EDITION_DRAFT_RESTORE_UNAUTHENTICATED", "session has no valid claims")
   if (claims.kind !== "user" || claims.role !== "editor" || claims.tenantId === null) {
     throw fail("EDITION_DRAFT_RESTORE_EDITOR_REQUIRED", "editor identity is required")
   }
@@ -322,7 +344,10 @@ export async function restoreEditionDraft(
       assertEditionTenantScope(input.user, doc)
       const revision = numberFieldOf(doc.workflowRevision)
       if (revision === null || revision !== input.expectedRevision) {
-        throw new EditionWorkflowError("EDITION_WORKFLOW_REVISION_CONFLICT", `edition ${input.editionId}`)
+        throw new EditionWorkflowError(
+          "EDITION_WORKFLOW_REVISION_CONFLICT",
+          `edition ${input.editionId}`,
+        )
       }
       if (parseWorkflowStatus(doc.workflowStatus) !== "draft") {
         throw fail("EDITION_DRAFT_RESTORE_DRAFT_REQUIRED", `edition ${input.editionId}`)
@@ -343,12 +368,15 @@ export async function restoreEditionDraft(
       })
       const source = versions.docs[0]
       const snapshot = source === undefined ? null : snapshotOf(source.version)
-      if (snapshot === null) throw fail("EDITION_DRAFT_RESTORE_VERSION_NOT_FOUND", String(input.versionId))
+      if (snapshot === null)
+        throw fail("EDITION_DRAFT_RESTORE_VERSION_NOT_FOUND", String(input.versionId))
 
       const actor = serializedActorOf(input.user)
-      if (actor === null) throw fail("EDITION_DRAFT_RESTORE_UNAUTHENTICATED", "actor is not serializable")
+      if (actor === null)
+        throw fail("EDITION_DRAFT_RESTORE_UNAUTHENTICATED", "actor is not serializable")
       const normalizedReason = input.reason.trim()
-      if (normalizedReason.length === 0) throw fail("EDITION_DRAFT_RESTORE_REASON_REQUIRED", "reason is required")
+      if (normalizedReason.length === 0)
+        throw fail("EDITION_DRAFT_RESTORE_REASON_REQUIRED", "reason is required")
       const existingAudit = Array.isArray(doc.auditLog) ? (doc.auditLog as AuditEntry[]) : []
       const previousState = parseWorkflowStatus(doc.workflowStatus)
       const audit: AuditEntry = {
@@ -429,7 +457,8 @@ export async function restoreEditionDraft(
       return { created: true, response }
     })
   } catch (error) {
-    const stale = error instanceof EditionVersionHistoryError && error.code === "EDITION_DRAFT_RESTORE_STALE"
+    const stale =
+      error instanceof EditionVersionHistoryError && error.code === "EDITION_DRAFT_RESTORE_STALE"
     if (!isUniqueViolation(error) && !stale) throw error
     const winner = await loadRestoreRecord(payload, uniqueKey)
     if (winner === null) throw error

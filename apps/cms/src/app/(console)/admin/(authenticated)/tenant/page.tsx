@@ -5,7 +5,11 @@ import { requireConsoleSession } from "@/console/lib/session.server"
 
 const LegacyTenantWorkspacePage = async () => {
   const session = await requireConsoleSession("/admin/tenant")
-  redirect(session.role === CMS_ROLE.SUPER_ADMIN ? "/admin/collections/tenants" : "/admin/collections/sites")
+  redirect(
+    session.role === CMS_ROLE.SUPER_ADMIN
+      ? "/admin/collections/tenants"
+      : "/admin/collections/sites",
+  )
 }
 
 export default LegacyTenantWorkspacePage

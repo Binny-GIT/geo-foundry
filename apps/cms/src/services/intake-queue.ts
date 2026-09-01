@@ -57,7 +57,12 @@ export const enqueueIntakeFetch = async (
   const existing = await queue.getJob(jobId)
   if (existing !== null && existing !== undefined) {
     const state = await existing.getState()
-    if (state === "active" || state === "delayed" || state === "prioritized" || state === "waiting") {
+    if (
+      state === "active" ||
+      state === "delayed" ||
+      state === "prioritized" ||
+      state === "waiting"
+    ) {
       return jobId
     }
     await existing.remove()

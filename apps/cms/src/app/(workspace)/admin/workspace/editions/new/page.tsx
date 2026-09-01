@@ -1,5 +1,5 @@
-import { RootPage } from "@payloadcms/next/views"
 import config from "@payload-config"
+import { RootPage } from "@payloadcms/next/views"
 import { notFound } from "next/navigation"
 
 import { CMS_ACTION, CMS_RESOURCE } from "@/access/policy"

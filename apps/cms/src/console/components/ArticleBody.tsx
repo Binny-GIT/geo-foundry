@@ -17,7 +17,9 @@ const Block = ({ raw }: { readonly raw: unknown }) => {
   const block = previewBlockOf(raw) as Row
   const type = text(block["type"])
   if (type === "paragraph") {
-    return <p className="m-0 text-[15px] leading-7 text-[var(--console-ink)]">{text(block["text"])}</p>
+    return (
+      <p className="m-0 text-[15px] leading-7 text-[var(--console-ink)]">{text(block["text"])}</p>
+    )
   }
   if (type === "heading") {
     const level = Number(block["level"])
@@ -62,7 +64,10 @@ const Block = ({ raw }: { readonly raw: unknown }) => {
             {rows.map((cells, rowIndex) => (
               <tr key={rowIndex}>
                 {cells.map((cell, cellIndex) => (
-                  <td className="border-b border-[var(--console-border)] px-3 py-2 text-[var(--console-ink)]" key={cellIndex}>
+                  <td
+                    className="border-b border-[var(--console-border)] px-3 py-2 text-[var(--console-ink)]"
+                    key={cellIndex}
+                  >
                     {cell}
                   </td>
                 ))}
@@ -74,14 +79,14 @@ const Block = ({ raw }: { readonly raw: unknown }) => {
     )
   }
   if (type === "faq") {
-    const items = Array.isArray(block["items"])
-      ? block["items"].map((item) => item as Row)
-      : []
+    const items = Array.isArray(block["items"]) ? block["items"].map((item) => item as Row) : []
     return (
       <dl className="m-0 grid gap-3">
         {items.map((item, index) => (
           <div className="rounded-xl bg-[var(--console-surface-muted)] p-4" key={index}>
-            <dt className="m-0 text-sm font-bold text-[var(--console-ink)]">{text(item["question"])}</dt>
+            <dt className="m-0 text-sm font-bold text-[var(--console-ink)]">
+              {text(item["question"])}
+            </dt>
             <dd className="m-0 pt-1.5 text-sm leading-6 text-[var(--console-ink-muted)]">
               {text(item["answer"])}
             </dd>
@@ -152,9 +157,7 @@ const Block = ({ raw }: { readonly raw: unknown }) => {
     )
   }
   if (type === "references") {
-    const items = Array.isArray(block["items"])
-      ? block["items"].map((item) => item as Row)
-      : []
+    const items = Array.isArray(block["items"]) ? block["items"].map((item) => item as Row) : []
     return (
       <ul className="m-0 grid list-none gap-1 p-0 text-sm text-[var(--console-ink-muted)]">
         {items.map((item, index) => (

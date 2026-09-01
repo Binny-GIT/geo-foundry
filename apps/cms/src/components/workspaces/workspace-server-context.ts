@@ -18,5 +18,8 @@ export type WorkspaceServerContext = {
  * admin path views receive it under `initPageResult.req`. Normalize both
  * Payload server-prop shapes before any role check or access-scoped query.
  */
-export const workspaceUserOf = ({ initPageResult, user }: WorkspaceServerContext): WorkspaceUser | undefined =>
+export const workspaceUserOf = ({
+  initPageResult,
+  user,
+}: WorkspaceServerContext): WorkspaceUser | undefined =>
   user ?? initPageResult?.req?.user ?? undefined

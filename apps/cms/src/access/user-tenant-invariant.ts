@@ -1,4 +1,4 @@
-import { CMS_ROLE, isCmsRole, type CmsRole } from "./roles"
+import { CMS_ROLE, type CmsRole, isCmsRole } from "./roles"
 
 const tenantIdOf = (value: unknown): string | number | null => {
   if (typeof value === "string" || typeof value === "number") {

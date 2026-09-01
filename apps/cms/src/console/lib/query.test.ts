@@ -12,9 +12,9 @@ describe("Console list query", () => {
   })
 
   it("Given a list state, when generating href, then it preserves only approved query keys", () => {
-    expect(consoleListHref({ base: "/admin/collections/sites", page: 2, search: "embed site" })).toBe(
-      "/admin/collections/sites?page=2&q=embed+site",
-    )
+    expect(
+      consoleListHref({ base: "/admin/collections/sites", page: 2, search: "embed site" }),
+    ).toBe("/admin/collections/sites?page=2&q=embed+site")
     expect(consoleListHref({ base: "/admin/collections/sites", page: 1, search: null })).toBe(
       "/admin/collections/sites",
     )

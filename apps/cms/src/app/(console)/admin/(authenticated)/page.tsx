@@ -2,15 +2,15 @@ import Link from "next/link"
 
 import { CMS_ACTION, CMS_RESOURCE, type CmsResource } from "@/access/policy"
 import { AlertTriangleIcon, CheckCircleIcon, SendIcon } from "@/components/icons"
+import { CreateArticleLink } from "@/console/components/CreateArticleLink"
 import {
   ChartCard,
+  type ChartSegment,
   DonutChart,
   RankedBars,
   TrendBars,
-  type ChartSegment,
   type TrendPoint,
 } from "@/console/components/charts"
-import { CreateArticleLink } from "@/console/components/CreateArticleLink"
 import { PageHeader } from "@/console/components/PageHeader"
 import { requireConsolePayloadContext } from "@/console/lib/payload.server"
 import { canConsole } from "@/console/lib/session.server"
@@ -36,14 +36,15 @@ const utcDay = (instant: string): string => instant.slice(0, 10)
 const emptyTrend = (): readonly TrendPoint[] => {
   const days: TrendPoint[] = []
   for (let offset = TREND_DAYS - 1; offset >= 0; offset -= 1) {
-    days.push({ date: new Date(Date.now() - offset * 86_400_000).toISOString().slice(0, 10), value: 0 })
+    days.push({
+      date: new Date(Date.now() - offset * 86_400_000).toISOString().slice(0, 10),
+      value: 0,
+    })
   }
   return days
 }
 
-const bucketByDay = (
-  docs: readonly Record<string, unknown>[],
-): readonly TrendPoint[] => {
+const bucketByDay = (docs: readonly Record<string, unknown>[]): readonly TrendPoint[] => {
   const byDay = new Map<string, number>()
   for (const doc of docs) {
     const createdAt = doc["createdAt"]
@@ -69,88 +70,89 @@ const ConsoleDashboardPage = async () => {
   const canReadSites = canRead(CMS_RESOURCE.SITES)
   const canReadSnapshots = canRead(CMS_RESOURCE.PERFORMANCE_SNAPSHOTS)
 
-  const [statusCounts, intakeDocs, releaseDocs, failedOperations, sites, snapshotDocs] = await Promise.all([
-    canReadEditions
-      ? Promise.all(
-          WORKFLOW_STATES.map((state) =>
-            payload
-              .count({
-                collection: "content-editions",
-                overrideAccess: false,
-                user,
-                where: { workflowStatus: { equals: state.key } },
-              })
-              .then((result) => result.totalDocs ?? 0),
-          ),
-        )
-      : null,
-    canReadIntake
-      ? payload
-          .find({
-            collection: "intake-items",
-            depth: 0,
-            limit: 1000,
-            overrideAccess: false,
-            pagination: false,
-            select: { createdAt: true },
-            sort: "-createdAt",
-            user,
-            where: { createdAt: { greater_than_equal: cutoff } },
-          })
-          .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
-      : null,
-    canReadReleases
-      ? payload
-          .find({
-            collection: "releases",
-            depth: 0,
-            limit: 1000,
-            overrideAccess: false,
-            pagination: false,
-            select: { createdAt: true },
-            sort: "-createdAt",
-            user,
-            where: { createdAt: { greater_than_equal: cutoff } },
-          })
-          .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
-      : null,
-    canReadOperations
-      ? payload
-          .count({
-            collection: "operations",
-            overrideAccess: false,
-            user,
-            where: { state: { equals: "failed" } },
-          })
-          .then((result) => result.totalDocs ?? 0)
-      : null,
-    canReadSites
-      ? payload
-          .find({
-            collection: "sites",
-            depth: 0,
-            limit: 12,
-            overrideAccess: false,
-            sort: "name",
-            user,
-          })
-          .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
-      : null,
-    canReadSnapshots
-      ? payload
-          .find({
-            collection: "performance-snapshots",
-            depth: 0,
-            limit: 1000,
-            overrideAccess: false,
-            select: { observedAt: true, visits: true },
-            sort: "-observedAt",
-            user,
-            where: { observedAt: { greater_than_equal: cutoff } },
-          })
-          .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
-      : null,
-  ])
+  const [statusCounts, intakeDocs, releaseDocs, failedOperations, sites, snapshotDocs] =
+    await Promise.all([
+      canReadEditions
+        ? Promise.all(
+            WORKFLOW_STATES.map((state) =>
+              payload
+                .count({
+                  collection: "content-editions",
+                  overrideAccess: false,
+                  user,
+                  where: { workflowStatus: { equals: state.key } },
+                })
+                .then((result) => result.totalDocs ?? 0),
+            ),
+          )
+        : null,
+      canReadIntake
+        ? payload
+            .find({
+              collection: "intake-items",
+              depth: 0,
+              limit: 1000,
+              overrideAccess: false,
+              pagination: false,
+              select: { createdAt: true },
+              sort: "-createdAt",
+              user,
+              where: { createdAt: { greater_than_equal: cutoff } },
+            })
+            .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
+        : null,
+      canReadReleases
+        ? payload
+            .find({
+              collection: "releases",
+              depth: 0,
+              limit: 1000,
+              overrideAccess: false,
+              pagination: false,
+              select: { createdAt: true },
+              sort: "-createdAt",
+              user,
+              where: { createdAt: { greater_than_equal: cutoff } },
+            })
+            .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
+        : null,
+      canReadOperations
+        ? payload
+            .count({
+              collection: "operations",
+              overrideAccess: false,
+              user,
+              where: { state: { equals: "failed" } },
+            })
+            .then((result) => result.totalDocs ?? 0)
+        : null,
+      canReadSites
+        ? payload
+            .find({
+              collection: "sites",
+              depth: 0,
+              limit: 12,
+              overrideAccess: false,
+              sort: "name",
+              user,
+            })
+            .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
+        : null,
+      canReadSnapshots
+        ? payload
+            .find({
+              collection: "performance-snapshots",
+              depth: 0,
+              limit: 1000,
+              overrideAccess: false,
+              select: { observedAt: true, visits: true },
+              sort: "-observedAt",
+              user,
+              where: { observedAt: { greater_than_equal: cutoff } },
+            })
+            .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
+        : null,
+    ])
 
   const segments: readonly ChartSegment[] | null =
     statusCounts === null
@@ -166,7 +168,10 @@ const ConsoleDashboardPage = async () => {
     return Promise.all(
       sites.map(async (site) => {
         const siteId = site["id"] as number
-        const name = typeof site["name"] === "string" && site["name"].length > 0 ? site["name"] : `站点 #${String(siteId)}`
+        const name =
+          typeof site["name"] === "string" && site["name"].length > 0
+            ? site["name"]
+            : `站点 #${String(siteId)}`
         const result = await payload.count({
           collection: "content-editions",
           overrideAccess: false,
@@ -241,7 +246,9 @@ const ConsoleDashboardPage = async () => {
         meta={
           <span className="rounded-full border border-[var(--console-border)] bg-[var(--console-surface)] px-3 py-1 text-xs font-semibold text-[var(--console-ink-muted)]">
             {session.role}
-            {session.tenantId === null ? "" : ` · ${session.tenantName ?? `租户 #${String(session.tenantId)}`}`}
+            {session.tenantId === null
+              ? ""
+              : ` · ${session.tenantName ?? `租户 #${String(session.tenantId)}`}`}
           </span>
         }
         title="控制台"
@@ -261,7 +268,9 @@ const ConsoleDashboardPage = async () => {
               <strong className="block text-3xl font-semibold tracking-tight tabular-nums text-[var(--console-ink)]">
                 {card.value === null ? "受限" : card.value}
               </strong>
-              <span className="block pt-1 text-sm font-medium text-[var(--console-ink)]">{card.label}</span>
+              <span className="block pt-1 text-sm font-medium text-[var(--console-ink)]">
+                {card.label}
+              </span>
             </div>
           </Link>
         ))}
@@ -283,7 +292,9 @@ const ConsoleDashboardPage = async () => {
                       className="size-2.5 shrink-0 rounded-full"
                       style={{ backgroundColor: segment.color }}
                     />
-                    <span className="min-w-0 flex-1 text-[var(--console-ink)]">{segment.label}</span>
+                    <span className="min-w-0 flex-1 text-[var(--console-ink)]">
+                      {segment.label}
+                    </span>
                     <span className="font-semibold tabular-nums text-[var(--console-ink)]">
                       {segment.value}
                     </span>
@@ -310,7 +321,11 @@ const ConsoleDashboardPage = async () => {
               <span className="text-sm text-[var(--console-ink-muted)]">{restrictedNote}</span>
             </div>
           ) : (
-            <TrendBars color="#10b981" data={bucketByDay(releaseDocs)} emptyLabel="近 30 天暂无发布" />
+            <TrendBars
+              color="#10b981"
+              data={bucketByDay(releaseDocs)}
+              emptyLabel="近 30 天暂无发布"
+            />
           )}
         </ChartCard>
 

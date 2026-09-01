@@ -3,12 +3,12 @@ import type { Payload } from "payload"
 
 import {
   anchorOf,
-  EmbeddingStoreError,
   EMBEDDING_STORE_ERROR,
-  validateVector,
   type EmbeddingEditionAnchor,
   type EmbeddingScope,
+  EmbeddingStoreError,
   type SemanticComparison,
+  validateVector,
 } from "./embedding-store"
 
 export type SimilarityQueryInput = {

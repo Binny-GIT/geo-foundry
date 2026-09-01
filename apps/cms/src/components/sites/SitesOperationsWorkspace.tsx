@@ -1,21 +1,21 @@
 import type { Payload } from "payload"
 
 import { CMS_ROLE, type CmsRole } from "../../access/roles"
-import { uiLangOf, type HasLanguage } from "../i18n/ui-lang"
-import { ActionLink } from "../ui/ActionLink"
-import { Badge } from "../ui/Badge"
-import { IconBadge } from "../ui/IconBadge"
-import { AlertTriangleIcon, GlobeIcon, PackageIcon, SendIcon } from "../icons"
 import {
   formatDate,
   groupBySite,
-  recordsOf,
   idOf,
+  type RecordLike,
+  recordsOf,
   stringOf,
   summarizeDomains,
   workflowCounts,
-  type RecordLike,
 } from "../dashboard/operations-model"
+import { type HasLanguage, uiLangOf } from "../i18n/ui-lang"
+import { AlertTriangleIcon, GlobeIcon, PackageIcon, SendIcon } from "../icons"
+import { ActionLink } from "../ui/ActionLink"
+import { Badge } from "../ui/Badge"
+import { IconBadge } from "../ui/IconBadge"
 
 type SitesWorkspaceProps = {
   /** Passed by Payload's beforeList hook (ServerProps slice); defaults to zh. */
@@ -53,7 +53,8 @@ const TEXT = {
     editConfig: "Edit configuration →",
     emptyHeadline: "No sites visible in your current scope.",
     emptyBody: "Create or select a configured site record for this tenant to begin operations.",
-    footerNote: "The registry table below still handles search, filters, column prefs, and bulk actions.",
+    footerNote:
+      "The registry table below still handles search, filters, column prefs, and bulk actions.",
     headline: "Sites workspace",
     manageDomains: "Manage domains →",
     missingCanonical: "No canonical hostname",
@@ -73,7 +74,13 @@ const TEXT = {
     updatedAt: "Updated",
     viewEditions: "View editions →",
     workload: "Workload",
-    workloadLine: (c: { approved: number; compiled: number; draft: number; published: number; review: number }) =>
+    workloadLine: (c: {
+      approved: number
+      compiled: number
+      draft: number
+      published: number
+      review: number
+    }) =>
       `${c.draft} draft · ${c.review} in review · ${c.approved} approved · ${c.compiled} compiled · ${c.published} published`,
   },
   zh: {
@@ -111,7 +118,13 @@ const TEXT = {
     updatedAt: "更新于",
     viewEditions: "查看版本 →",
     workload: "工作流",
-    workloadLine: (c: { approved: number; compiled: number; draft: number; published: number; review: number }) =>
+    workloadLine: (c: {
+      approved: number
+      compiled: number
+      draft: number
+      published: number
+      review: number
+    }) =>
       `${c.draft} 草稿 · ${c.review} 待审核 · ${c.approved} 已批准 · ${c.compiled} 已编译 · ${c.published} 已发布`,
   },
 }
@@ -327,7 +340,9 @@ export const SitesOperationsWorkspace = async ({ i18n, payload, user }: SitesWor
                   </ActionLink>
                 )}
                 {canEditSite(role) && (
-                  <ActionLink href={`/admin/collections/sites/${siteId}`}>{t.editConfig}</ActionLink>
+                  <ActionLink href={`/admin/collections/sites/${siteId}`}>
+                    {t.editConfig}
+                  </ActionLink>
                 )}
               </div>
             </article>
@@ -336,9 +351,7 @@ export const SitesOperationsWorkspace = async ({ i18n, payload, user }: SitesWor
       </div>
 
       {sites.length === 0 && (
-        <div
-          className={`${cardClass} flex items-start gap-3 p-5 text-[var(--theme-warning-700)]`}
-        >
+        <div className={`${cardClass} flex items-start gap-3 p-5 text-[var(--theme-warning-700)]`}>
           <AlertTriangleIcon size={20} strokeWidth={1.65} />
           <div className="grid gap-0.5">
             <strong className="text-sm text-[var(--theme-text)]">{t.emptyHeadline}</strong>

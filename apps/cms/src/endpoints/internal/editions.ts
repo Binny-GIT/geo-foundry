@@ -1,24 +1,23 @@
 import type { PayloadRequest } from "payload"
-
-import { findSimilarEditions } from "../../services/embedding-similarity"
-import { storeEditionEmbedding } from "../../services/embedding-store"
 import {
   readEditionInput,
   recordCompileResult,
   writeGeneratedDraft,
 } from "../../services/edition-integration"
 import { EditionWorkflowError, recordAssessment } from "../../services/edition-workflow"
+import { findSimilarEditions } from "../../services/embedding-similarity"
+import { storeEditionEmbedding } from "../../services/embedding-store"
 import {
-  assessmentBodySchema,
-  compileResultBodySchema,
-  draftVersionBodySchema,
-  embeddingStoreBodySchema,
-  similarityQueryBodySchema,
   type AssessmentBody,
+  assessmentBodySchema,
   type CompileResultBody,
+  compileResultBodySchema,
   type DraftVersionBody,
+  draftVersionBodySchema,
   type EmbeddingStoreBody,
+  embeddingStoreBodySchema,
   type SimilarityQueryBody,
+  similarityQueryBodySchema,
 } from "./contracts"
 import { internalJsonResponse, withInternalGuards } from "./guards"
 

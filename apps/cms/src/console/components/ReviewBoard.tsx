@@ -3,11 +3,12 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-
+import { ShieldCheckIcon } from "@/components/icons"
+import { Button } from "@/components/ui/button"
 import {
   isWorkflowStatus,
-  workflowActionsFor,
   type WorkflowAction,
+  workflowActionsFor,
 } from "@/components/workflow/workflow-actions-model"
 import { BOARD_COLUMNS, type BoardCard, type BoardColumnKey } from "@/console/lib/board-model"
 import {
@@ -16,8 +17,6 @@ import {
   editionWorkflowEndpointOf,
   publicationPlanEndpoint,
 } from "@/console/lib/edition-workflow-client"
-import { ShieldCheckIcon } from "@/components/icons"
-import { Button } from "@/components/ui/button"
 import { consoleRoute } from "@/console/lib/resources"
 
 type BoardData = Readonly<Record<BoardColumnKey, readonly BoardCard[]>>
@@ -44,13 +43,7 @@ const formatDate = (value: string | null): string => {
       }).format(date)
 }
 
-const ReviewBoard = ({
-  board,
-  role,
-}: {
-  readonly board: BoardData
-  readonly role: string
-}) => {
+const ReviewBoard = ({ board, role }: { readonly board: BoardData; readonly role: string }) => {
   const router = useRouter()
   const [pendingKey, setPendingKey] = useState<string | null>(null)
   const [notice, setNotice] = useState<{ readonly ok: boolean; readonly text: string } | null>(null)
@@ -157,9 +150,7 @@ const ReviewBoard = ({
   }
 
   const cardActions = (card: BoardCard): readonly WorkflowAction[] =>
-    isWorkflowStatus(card.workflowStatus)
-      ? workflowActionsFor(role, card.workflowStatus, "zh")
-      : []
+    isWorkflowStatus(card.workflowStatus) ? workflowActionsFor(role, card.workflowStatus, "zh") : []
 
   return (
     <div className="grid gap-5">
@@ -184,7 +175,10 @@ const ReviewBoard = ({
               <div className="grid content-start gap-3" key={column.key}>
                 <header className="sticky top-0 z-10 flex items-center justify-between gap-2 rounded-xl bg-[var(--console-surface-muted)] px-3 py-2">
                   <h2 className="m-0 flex items-center gap-2 text-sm font-bold text-[var(--console-ink)]">
-                    <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${COLUMN_DOTS[column.key] ?? "bg-slate-400"}`} />
+                    <span
+                      aria-hidden="true"
+                      className={`size-2 shrink-0 rounded-full ${COLUMN_DOTS[column.key] ?? "bg-slate-400"}`}
+                    />
                     {column.label}
                   </h2>
                   <span className="grid min-w-6 place-items-center rounded-full bg-[var(--console-surface)] px-1.5 text-xs font-bold tabular-nums text-[var(--console-ink-muted)]">
@@ -197,10 +191,7 @@ const ReviewBoard = ({
                   </p>
                 ) : (
                   cards.map((card) => (
-                    <article
-                      className="gf-console-card grid gap-2.5 p-3.5"
-                      key={card.id}
-                    >
+                    <article className="gf-console-card grid gap-2.5 p-3.5" key={card.id}>
                       <Link
                         className="gf-console-focus truncate text-sm font-semibold text-[var(--console-ink)] no-underline hover:text-indigo-600"
                         href={consoleRoute.document("content-editions", String(card.id))}
@@ -354,7 +345,9 @@ const ReviewBoard = ({
               创建发布排期 · {scheduling.title}
             </h2>
             <label className="mt-4 block">
-              <span className="text-sm font-bold text-[var(--console-ink)]">发布时间（本地时区）</span>
+              <span className="text-sm font-bold text-[var(--console-ink)]">
+                发布时间（本地时区）
+              </span>
               <input
                 className="mt-2 h-11 w-full rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-sm text-[var(--console-ink)]"
                 onChange={(event) => setScheduledFor(event.target.value)}
