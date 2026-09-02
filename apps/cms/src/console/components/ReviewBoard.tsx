@@ -394,7 +394,7 @@ const ReviewBoard = ({
                 disabled={pendingKey !== null}
                 onClick={() => {
                   if (confirming.action.reasonRequired === true && reason.trim().length === 0) {
-                    setNotice({ ok: false, text: "退回修改前请填写原因。" })
+                    setNotice({ ok: false, text: "审核不通过需填写原因。" })
                     return
                   }
                   void runAction(confirming.action, confirming.card, reason)

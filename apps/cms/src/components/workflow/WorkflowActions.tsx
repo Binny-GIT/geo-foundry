@@ -67,7 +67,7 @@ const MESSAGE = {
     publishSubmitted: "已提交发布请求，将在后台完成。",
     reason: "原因",
     reasonHint: "该说明会写入受保护的审计记录。",
-    reasonRequired: "退回修改前请填写原因。",
+    reasonRequired: "审核不通过需填写原因。",
     requestChangesImpact: "版本将退回草稿，供编辑修改。必须填写原因，并将其写入审计记录。",
     stale: "该版本已在别处发生变化，请刷新后重试。",
     transitioned: (status: string) => `版本已流转至 ${status}。`,

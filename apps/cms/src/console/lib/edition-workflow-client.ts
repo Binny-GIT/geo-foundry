@@ -10,7 +10,7 @@ export const EDITION_ACTION_ERRORS: Readonly<Record<string, string>> = {
   EDITION_WORKFLOW_ASSESSMENT_REQUIRED: "需要先通过一次质量评估。",
   EDITION_WORKFLOW_ASSESSMENT_NOT_PASSED: "质量评估未通过，无法执行此操作。",
   EDITION_WORKFLOW_STALE_ASSESSMENT: "质量评估已过期，请重新运行质量检查。",
-  EDITION_WORKFLOW_REASON_REQUIRED: "退回修改前请填写原因。",
+  EDITION_WORKFLOW_REASON_REQUIRED: "审核不通过需填写原因。",
   EDITION_WORKFLOW_STALE: "该稿件已在别处变化，请刷新后重试。",
   EDITION_WORKFLOW_REVISION_CONFLICT: "该稿件已在别处变化，请刷新后重试。",
   EDITION_WORKFLOW_NOT_COMPILED: "该稿件尚未编译。",

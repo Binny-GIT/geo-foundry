@@ -114,7 +114,7 @@ const ACTION_TEMPLATES: readonly ActionTemplate[] = [
     target: "approved",
     tone: "primary",
     type: "reviewer-approve",
-    zh: "批准版本",
+    zh: "审核通过",
   },
   {
     confirm: true,
@@ -123,7 +123,7 @@ const ACTION_TEMPLATES: readonly ActionTemplate[] = [
     target: "draft",
     tone: "secondary",
     type: "reviewer-request-changes",
-    zh: "退回修改",
+    zh: "审核不通过",
   },
   // publisher: compiled → publish
   {

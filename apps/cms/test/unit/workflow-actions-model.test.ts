@@ -35,8 +35,8 @@ describe("workflowActionsFor", () => {
 
   it("keeps reviewer and publisher actions scoped to their workflow states", () => {
     expect(workflowActionsFor("reviewer", "review")).toEqual([
-      expect.objectContaining({ label: "批准版本", type: "reviewer-approve" }),
-      expect.objectContaining({ label: "退回修改", type: "reviewer-request-changes" }),
+      expect.objectContaining({ label: "审核通过", type: "reviewer-approve" }),
+      expect.objectContaining({ label: "审核不通过", type: "reviewer-request-changes" }),
     ])
     expect(workflowActionsFor("publisher", "compiled")).toEqual([
       { confirm: true, label: "发布版本", tone: "primary", type: "publish-operation" },
@@ -50,8 +50,8 @@ describe("workflowActionsFor", () => {
     const reviewerActions = workflowActionsFor("reviewer", "review")
     expect(reviewerActions).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ confirm: true, label: "批准版本" }),
-        expect.objectContaining({ confirm: true, label: "退回修改", reasonRequired: true }),
+        expect.objectContaining({ confirm: true, label: "审核通过" }),
+        expect.objectContaining({ confirm: true, label: "审核不通过", reasonRequired: true }),
       ]),
     )
     expect(workflowActionsFor("editor", "draft")[0]).not.toHaveProperty("confirm")

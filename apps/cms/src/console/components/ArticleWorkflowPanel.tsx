@@ -180,17 +180,25 @@ const ArticleWorkflowPanel = ({
   const showSchedule = role === "publisher" && ["approved", "compiled"].includes(workflowStatus)
   const hasActions = actions.length > 0 || showQuality || showSchedule
   /*
-   * Role gate for the empty-state hint: which role owns the next legal move
-   * for this status (mirrors workflow-actions-model's matrix).
+   * Role gate for the read-only decision list: when the current role cannot
+   * act in this status, still surface the full status×role action matrix as
+   * disabled buttons (mirrors workflow-actions-model) so operators always see
+   * the decision set, e.g. 待审核 → 审核通过 / 审核不通过（审阅）.
    */
-  const nextRoleHint =
-    workflowStatus === "draft" || workflowStatus === "generating"
-      ? "编辑"
-      : workflowStatus === "review"
-        ? "审阅"
-        : workflowStatus === "approved" || workflowStatus === "compiled"
-          ? "发布"
-          : null
+  const WORKFLOW_ROLES = ["editor", "reviewer", "publisher"] as const
+  const ROLE_BADGES: Readonly<Record<string, string>> = {
+    editor: "编辑",
+    publisher: "发布",
+    reviewer: "审阅",
+  }
+  const statusActions = isWorkflowStatus(workflowStatus)
+    ? WORKFLOW_ROLES.flatMap((workflowRole) =>
+        workflowActionsFor(workflowRole, workflowStatus, "zh").map((action) => ({
+          action,
+          role: workflowRole,
+        })),
+      )
+    : []
 
   return (
     <section className="gf-console-card grid gap-4 p-5">
@@ -265,10 +273,32 @@ const ArticleWorkflowPanel = ({
             </Button>
           )}
         </div>
+      ) : statusActions.length > 0 ? (
+        <div className="grid gap-2 border-t border-[var(--console-border)] pt-4">
+          <p className="m-0 text-sm leading-6 text-[var(--console-ink-muted)]">
+            当前角色在此状态下没有可执行的操作；本状态的流转操作如下。
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {statusActions.map(({ action, role: actionRole }) => (
+              <Button
+                aria-label={`${action.label}（${ROLE_BADGES[actionRole] ?? actionRole}）`}
+                className="gf-console-focus"
+                disabled
+                key={`${actionRole}-${action.type}-${action.label}`}
+                size="lg"
+                type="button"
+                variant={action.tone === "primary" ? "default" : "secondary"}
+              >
+                {action.label}（{ROLE_BADGES[actionRole] ?? actionRole}）
+              </Button>
+            ))}
+          </div>
+        </div>
       ) : (
         <p className="m-0 border-t border-[var(--console-border)] pt-4 text-sm leading-6 text-[var(--console-ink-muted)]">
-          当前角色在此状态下没有可执行的操作。
-          {nextRoleHint !== null ? ` 下一步流转通常由${nextRoleHint}角色操作。` : ""}
+          {workflowStatus === "archived"
+            ? "该稿件已归档，没有后续流转操作。"
+            : "当前角色在此状态下没有可执行的操作。"}
         </p>
       )}
 
@@ -342,7 +372,7 @@ const ArticleWorkflowPanel = ({
                 disabled={pending !== null}
                 onClick={() => {
                   if (confirming.reasonRequired === true && reason.trim().length === 0) {
-                    setNotice({ ok: false, text: "退回修改前请填写原因。" })
+                    setNotice({ ok: false, text: "审核不通过需填写原因。" })
                     return
                   }
                   void runAction(confirming, reason)

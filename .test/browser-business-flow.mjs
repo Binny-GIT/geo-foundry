@@ -257,14 +257,14 @@ try {
   reviewerContext = reviewer.context
   const reviewerPage = reviewer.page
   await reviewerPage.goto(`${base}/admin/workspace/editions/${editionId}`, { waitUntil: "domcontentloaded", timeout: 60_000 })
-  await reviewerDecision(reviewerPage, editionId, "退回修改", `${marker} needs a clearer opening`, "draft")
+  await reviewerDecision(reviewerPage, editionId, "审核不通过", `${marker} needs a clearer opening`, "draft")
 
   await editorPage.goto(`${base}/admin/workspace/editions/${editionId}`, { waitUntil: "domcontentloaded", timeout: 60_000 })
   await transition(editorPage, editionId, "开始生成", "generating")
   await transition(editorPage, editionId, "提交审核", "review")
 
   await reviewerPage.goto(`${base}/admin/workspace/editions/${editionId}`, { waitUntil: "domcontentloaded", timeout: 60_000 })
-  await reviewerDecision(reviewerPage, editionId, "批准版本", undefined, "approved")
+  await reviewerDecision(reviewerPage, editionId, "审核通过", undefined, "approved")
 
   const publisher = await login(browser, credentials.publisher)
   publisherContext = publisher.context
@@ -282,7 +282,7 @@ try {
   await transition(editorPage, editionId, "开始生成", "generating")
   await transition(editorPage, editionId, "提交审核", "review")
   await reviewerPage.goto(`${base}/admin/workspace/editions/${editionId}`, { waitUntil: "domcontentloaded", timeout: 60_000 })
-  await reviewerDecision(reviewerPage, editionId, "批准版本", undefined, "approved")
+  await reviewerDecision(reviewerPage, editionId, "审核通过", undefined, "approved")
   await publisherPage.goto(`${base}/admin/workspace/editions/${editionId}`, { waitUntil: "domcontentloaded", timeout: 60_000 })
   const secondPlan = await schedule(publisherPage, editionId, site.timezone)
   if (typeof secondPlan.planId !== "string") throw new Error("BROWSER_BUSINESS_SECOND_PLAN_ID_MISSING")

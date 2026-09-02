@@ -5,6 +5,7 @@ import { CMS_ACTION, CMS_RESOURCE } from "@/access/policy"
 import { CMS_ROLE } from "@/access/roles"
 import { ArrowLeftIcon } from "@/components/icons"
 import { Button } from "@/components/ui/button"
+import ArticleAssignmentPanel from "@/console/components/ArticleAssignmentPanel"
 import ArticleBody from "@/console/components/ArticleBody"
 import ArticleWorkflowPanel from "@/console/components/ArticleWorkflowPanel"
 import { RankedBars, TrendBars, type TrendPoint } from "@/console/components/charts"
@@ -25,17 +26,34 @@ const WORKFLOW_LABELS: Readonly<Record<string, string>> = {
 const AUDIT_LABELS: Readonly<Record<string, string>> = {
   "content-edition.draft.generating": "开始生成",
   "content-edition.generating.review": "提交审核",
-  "content-edition.review.draft": "退回修改",
+  "content-edition.review.draft": "审核不通过",
   "content-edition.review.approved": "审核通过",
   "content-edition.approved.compiled": "编译完成",
   "content-edition.compiled.published": "发布上线",
   "content-edition.published.archived": "归档下线",
 }
 
+const CREATION_ORIGIN_LABELS: Readonly<Record<string, string>> = {
+  ai: "AI 生成",
+  hybrid: "人机协作",
+  human: "人工创作",
+}
+
 const relationText = (value: unknown, field: string): string | null => {
   if (typeof value !== "object" || value === null) return null
   const text = (value as Record<string, unknown>)[field]
   return typeof text === "string" && text.length > 0 ? text : null
+}
+
+const relationIdOf = (value: unknown): number | null => {
+  if (typeof value === "number" && Number.isInteger(value) && value > 0) return value
+  if (typeof value === "string" && value.length > 0) {
+    const parsed = Number(value)
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : null
+  }
+  if (typeof value === "object" && value !== null)
+    return relationIdOf((value as Record<string, unknown>)["id"])
+  return null
 }
 
 const formatInstant = (value: unknown): string => {
@@ -49,7 +67,7 @@ const formatInstant = (value: unknown): string => {
         minute: "2-digit",
         month: "short",
         year: "numeric",
-        timeZone: "UTC",
+        timeZone: "Asia/Shanghai",
       }).format(date)
 }
 
@@ -57,78 +75,6 @@ type TimelineEntry = {
   readonly at: string
   readonly detail: string | null
   readonly title: string
-}
-
-const WORKFLOW_STEPS = [
-  { key: "draft", label: "草稿" },
-  { key: "generating", label: "生成" },
-  { key: "review", label: "待审" },
-  { key: "approved", label: "通过" },
-  { key: "compiled", label: "编译" },
-  { key: "published", label: "发布" },
-  { key: "archived", label: "归档" },
-] as const
-
-const lastAuditActionOf = (edition: Record<string, unknown>): string | null => {
-  const audit = edition["auditLog"]
-  if (!Array.isArray(audit)) return null
-  for (let index = audit.length - 1; index >= 0; index -= 1) {
-    const entry = audit[index]
-    if (typeof entry === "object" && entry !== null) {
-      const action = (entry as Record<string, unknown>)["action"]
-      if (typeof action === "string" && action.startsWith("content-edition.")) return action
-    }
-  }
-  return null
-}
-
-/*
- * Read-only progress strip under the article header: highlights where the
- * edition sits on the canonical pipeline and flags the "sent back to draft
- * by review" branch so operators see why a finished-looking card is back at
- * 草稿 (same derivation as the board's rejected column).
- */
-const WorkflowStepper = ({
-  edition,
-  workflowStatus,
-}: {
-  readonly edition: Record<string, unknown>
-  readonly workflowStatus: string
-}) => {
-  const currentIndex = WORKFLOW_STEPS.findIndex((step) => step.key === workflowStatus)
-  const wasRejected =
-    workflowStatus === "draft" && lastAuditActionOf(edition) === "content-edition.review.draft"
-  return (
-    <div className="grid gap-1.5 pt-1">
-      <ol aria-label="工作流进度" className="m-0 flex list-none flex-wrap items-center gap-1 p-0">
-        {WORKFLOW_STEPS.map((step, index) => (
-          <li className="flex items-center gap-1" key={step.key}>
-            {index > 0 && (
-              <span aria-hidden className="px-0.5 text-xs text-slate-300">
-                →
-              </span>
-            )}
-            <span
-              className={
-                index === currentIndex
-                  ? "rounded-full bg-indigo-500 px-2.5 py-0.5 text-xs font-semibold text-white"
-                  : index < currentIndex
-                    ? "rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-600"
-                    : "rounded-full border border-[var(--console-border)] px-2.5 py-0.5 text-xs font-medium text-[var(--console-ink-muted)]"
-              }
-            >
-              {step.label}
-            </span>
-          </li>
-        ))}
-      </ol>
-      {wasRejected && (
-        <p className="m-0 rounded-xl bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-700">
-          上次审核被退回：修改后需重新提交审核（审阅角色批准或再次退回）
-        </p>
-      )}
-    </div>
-  )
 }
 
 const ArticleDetail = async ({ id }: { readonly id: string }) => {
@@ -162,7 +108,6 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
   const siteName = relationText(edition["site"], "name")
   const siteTimezone = relationText(edition["site"], "timezone")
   const tenantName = relationText(edition["tenant"], "name")
-  const ownerEmail = relationText(edition["owner"], "email")
   const workflowStatus =
     typeof edition["workflowStatus"] === "string" ? edition["workflowStatus"] : ""
   const title =
@@ -206,7 +151,7 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
     payload
       .find({
         collection: "review-comments",
-        depth: 1,
+        depth: 0,
         limit: 50,
         overrideAccess: false,
         sort: "-createdAt",
@@ -273,6 +218,128 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
     session.role === CMS_ROLE.TENANT_ADMIN ||
     session.role === CMS_ROLE.SUPER_ADMIN
 
+  const canAssign = canEdit
+  const siteLocked = !["draft", "generating", "review", "approved"].includes(workflowStatus)
+  const ownerId = relationIdOf(edition["owner"])
+  const editionTenantId = relationIdOf(edition["tenant"])
+
+  const [userOptions, siteOptions, coveredSiteIds, updatedByEmail] = await Promise.all([
+    canAssign && editionTenantId !== null
+      ? payload
+          .find({
+            collection: "users",
+            depth: 0,
+            limit: 100,
+            overrideAccess: true,
+            select: { email: true },
+            sort: "email",
+            where: {
+              and: [
+                { tenant: { equals: editionTenantId } },
+                { role: { not_equals: "content-service" } },
+              ],
+            },
+          })
+          .then((result) =>
+            result.docs.flatMap((doc) => {
+              const userId = relationIdOf(doc.id)
+              if (userId === null) return []
+              return [
+                {
+                  id: userId,
+                  label:
+                    typeof doc.email === "string" && doc.email.length > 0
+                      ? doc.email
+                      : `用户 #${String(userId)}`,
+                },
+              ]
+            }),
+          )
+          .catch(() => [] as readonly { readonly id: number; readonly label: string }[])
+      : Promise.resolve([] as readonly { readonly id: number; readonly label: string }[]),
+    editionTenantId !== null
+      ? payload
+          .find({
+            collection: "sites",
+            depth: 0,
+            limit: 100,
+            overrideAccess: false,
+            select: { name: true },
+            sort: "name",
+            user,
+            where: { tenant: { equals: editionTenantId } },
+          })
+          .then((result) =>
+            result.docs.flatMap((doc) => {
+              const siteOptionId = relationIdOf(doc.id)
+              if (siteOptionId === null) return []
+              return [
+                {
+                  id: siteOptionId,
+                  label: relationText(doc, "name") ?? `站点 #${String(siteOptionId)}`,
+                },
+              ]
+            }),
+          )
+          .catch(() => [] as readonly { readonly id: number; readonly label: string }[])
+      : Promise.resolve([] as readonly { readonly id: number; readonly label: string }[]),
+    payload
+      .find({
+        collection: "content-editions",
+        depth: 0,
+        limit: 100,
+        overrideAccess: false,
+        select: { site: true },
+        user,
+        where: { content: { equals: contentId } },
+      })
+      .then((result) =>
+        result.docs.flatMap((doc) => {
+          const editionSiteId = relationIdOf(doc.site)
+          return editionSiteId === null ? [] : [editionSiteId]
+        }),
+      )
+      .catch(() => [] as readonly number[]),
+    /*
+     * 更新人：审计与评审评论里最近一位真实用户。审计 actor 由工作流服务
+     * 串行写入，评论按 createdAt 倒序，两者按时间取最新。
+     */
+    (async (): Promise<string | null> => {
+      const activities: readonly { readonly at: string; readonly userId: number }[] = [
+        ...audit.flatMap((entry) => {
+          if (typeof entry !== "object" || entry === null) return []
+          const row = entry as Record<string, unknown>
+          const actor = row["actor"]
+          if (typeof actor !== "object" || actor === null) return []
+          const actorRow = actor as Record<string, unknown>
+          if (actorRow["kind"] !== "user") return []
+          const actorUserId = relationIdOf(actorRow["userId"])
+          const at = typeof row["at"] === "string" ? row["at"] : ""
+          return actorUserId === null || at.length === 0 ? [] : [{ at, userId: actorUserId }]
+        }),
+        ...comments.flatMap((comment) => {
+          const authorId = relationIdOf(comment["author"])
+          const at = typeof comment["createdAt"] === "string" ? comment["createdAt"] : ""
+          return authorId === null || at.length === 0 ? [] : [{ at, userId: authorId }]
+        }),
+      ].sort((left, right) => (left.at < right.at ? 1 : -1))
+      const latest = activities[0]
+      if (latest === undefined) return null
+      const actorDoc = await payload
+        .find({
+          collection: "users",
+          depth: 0,
+          limit: 1,
+          overrideAccess: true,
+          select: { email: true },
+          where: { id: { equals: latest.userId } },
+        })
+        .then((result) => result.docs[0] ?? null)
+        .catch(() => null)
+      return actorDoc !== null && typeof actorDoc.email === "string" ? actorDoc.email : null
+    })(),
+  ])
+
   const todayKey = new Date().toISOString().slice(0, 10)
   const readingDays = new Map<string, number>()
   const readingCities = new Map<string, number>()
@@ -336,10 +403,10 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
                 </Link>
               )}
               <span className="rounded-full border border-[var(--console-border)] bg-[var(--console-surface)] px-3 py-1 text-xs font-semibold text-[var(--console-ink-muted)]">
-                来源：{typeof edition["creationOrigin"] === "string" ? edition["creationOrigin"] : "—"}
-              </span>
-              <span className="rounded-full border border-[var(--console-border)] bg-[var(--console-surface)] px-3 py-1 text-xs font-semibold text-[var(--console-ink-muted)]">
-                负责人：{ownerEmail ?? "未分配"}
+                创作方式：
+                {typeof edition["creationOrigin"] === "string"
+                  ? (CREATION_ORIGIN_LABELS[edition["creationOrigin"]] ?? edition["creationOrigin"])
+                  : "—"}
               </span>
               {session.role === CMS_ROLE.SUPER_ADMIN && tenantName !== null && (
                 <span className="rounded-full bg-[var(--console-surface-muted)] px-3 py-1 text-xs font-semibold text-[var(--console-ink-muted)]">
@@ -347,10 +414,10 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
                 </span>
               )}
               <span className="text-xs text-[var(--console-ink-muted)]">
-                更新于 {formatInstant(edition["updatedAt"])}（UTC）
+                更新于 {formatInstant(edition["updatedAt"])}
+                {updatedByEmail !== null ? ` · 更新人 ${updatedByEmail}` : ""}
               </span>
             </div>
-            <WorkflowStepper edition={edition} workflowStatus={workflowStatus} />
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {canEdit && (
@@ -375,26 +442,11 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
             <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">
               基础信息
             </h2>
-            <div className="grid gap-4 border-t border-[var(--console-border)] pt-4 sm:grid-cols-2">
-              <div>
-                <p className="m-0 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">
-                  摘要
-                </p>
-                <p className="m-0 pt-1 text-sm leading-6 text-[var(--console-ink)]">
-                  {typeof edition["summary"] === "string" && edition["summary"].length > 0
-                    ? edition["summary"]
-                    : "—"}
-                </p>
-              </div>
-              <div>
-                <p className="m-0 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">
-                  站点时区
-                </p>
-                <p className="m-0 pt-1 text-sm text-[var(--console-ink)]">
-                  {siteTimezone ?? "—"}
-                </p>
-              </div>
-            </div>
+            <p className="m-0 border-t border-[var(--console-border)] pt-4 text-sm leading-7 text-[var(--console-ink)]">
+              {typeof edition["summary"] === "string" && edition["summary"].length > 0
+                ? edition["summary"]
+                : "暂无摘要；可在编辑页补充。"}
+            </p>
           </section>
 
           <section className="gf-console-card grid gap-5 p-5 sm:p-6">
@@ -415,6 +467,17 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
               typeof edition["workflowRevision"] === "number" ? edition["workflowRevision"] : 0
             }
             workflowStatus={workflowStatus}
+          />
+
+          <ArticleAssignmentPanel
+            canAssign={canAssign}
+            coveredSiteIds={coveredSiteIds}
+            editionId={numericId}
+            owner={ownerId === null ? "" : String(ownerId)}
+            site={siteId === null ? "" : String(siteId)}
+            siteLocked={siteLocked}
+            sites={siteOptions}
+            users={userOptions}
           />
 
           <section className="gf-console-card grid gap-3 p-5">
@@ -497,7 +560,7 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
                     key={`${entry.at}-${index}`}
                   >
                     <span className="text-xs text-[var(--console-ink-muted)]">
-                      {formatInstant(entry.at)}（UTC）
+                      {formatInstant(entry.at)}
                     </span>
                     <span className="text-sm font-semibold text-[var(--console-ink)]">
                       {entry.title}
