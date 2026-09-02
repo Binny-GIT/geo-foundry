@@ -31,9 +31,9 @@ const buttonVariants = cva(
           "bg-[var(--gf-btn-primary,#6366f1)] text-white shadow-sm hover:bg-[var(--gf-btn-primary-hover,#4f46e5)]",
         dark: "bg-slate-900 text-white hover:bg-slate-800",
         secondary:
-          "bg-[var(--gf-btn-secondary,#f1f5f9)] text-[var(--gf-btn-secondary-text,#0f172a)] shadow-sm hover:bg-[var(--gf-btn-secondary-hover,#e2e8f0)]",
+          "bg-[var(--gf-btn-secondary,#f1f5f9)] text-[var(--gf-btn-secondary-text,#0f172a)] hover:bg-[var(--gf-btn-secondary-hover,#e2e8f0)]",
         danger:
-          "bg-[var(--gf-btn-danger,#fef2f2)] text-[var(--gf-btn-danger-text,#be123c)] shadow-sm hover:brightness-[.97]",
+          "bg-[var(--gf-btn-danger,#fef2f2)] text-[var(--gf-btn-danger-text,#be123c)] hover:brightness-[.97]",
         ghost:
           "text-[var(--gf-btn-secondary-text,#334155)] hover:bg-[var(--gf-btn-secondary,#f1f5f9)]",
         outline:

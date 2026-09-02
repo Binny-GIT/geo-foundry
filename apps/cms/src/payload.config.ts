@@ -45,6 +45,7 @@ import {
   submitPublishOperationEndpoint,
   transitionEditionEndpoint,
 } from "./endpoints/edition-workflow"
+import { editionAssignmentEndpoint } from "./endpoints/edition-assignment"
 import { editionWorkspaceContextEndpoint } from "./endpoints/edition-workspace-context"
 import { submitEditorEvaluationEndpoint } from "./endpoints/editor-evaluation"
 import {
@@ -194,6 +195,7 @@ export default buildConfig({
     editionVersionHistoryEndpoint,
     restoreEditionDraftEndpoint,
     editionWorkspaceContextEndpoint,
+    editionAssignmentEndpoint,
     renameUrlRecordEndpoint,
     createIntakeItemEndpoint,
     ignoreIntakeItemEndpoint,

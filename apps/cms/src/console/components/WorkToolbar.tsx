@@ -131,7 +131,7 @@ export const WorkToolbar = ({
           ))}
         </select>
         {failedCount > 0 && (
-          <Button asChild size="sm" type="button" variant="danger">
+          <Button asChild type="button" variant="danger">
             <Link href={consoleRoute.collection("operations")}>
               <AlertTriangleIcon size={15} />
               {failedCount} 个失败操作
@@ -142,11 +142,15 @@ export const WorkToolbar = ({
           <Button
             aria-label={filterOpen ? "隐藏过滤栏" : "显示过滤栏"}
             aria-pressed={filterOpen}
+            className={cn(
+              filterOpen &&
+                "bg-[var(--console-accent)]/10 text-[var(--gf-btn-primary)] hover:bg-[var(--console-accent)]/15",
+            )}
             onClick={() => setFilterOpen((open) => !open)}
             size="icon"
             title={filterOpen ? "隐藏过滤栏" : "显示过滤栏"}
             type="button"
-            variant={filterOpen ? "default" : "secondary"}
+            variant="secondary"
           >
             <FilterIcon size={16} />
           </Button>
