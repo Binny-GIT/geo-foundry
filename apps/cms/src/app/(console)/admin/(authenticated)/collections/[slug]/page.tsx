@@ -303,7 +303,7 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
               </Button>
             )}
             {canCreateRollbackIntent && (
-              <Button asChild size="sm" type="button" variant="danger">
+              <Button asChild size="sm" type="button" variant="destructive">
                 <Link href="/admin/collections/rollback-intents/create">创建回滚意图</Link>
               </Button>
             )}

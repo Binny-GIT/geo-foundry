@@ -187,7 +187,7 @@ export const IntakeInbox = ({
           <label className="grid gap-1 text-xs font-semibold text-[var(--console-ink-muted)]">
             Channel
             <select
-              className="gf-console-focus h-10 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] px-3 text-sm text-[var(--console-ink)]"
+              className="gf-console-focus h-10 rounded-md border border-[var(--console-border)] bg-[var(--console-surface)] px-3 text-sm text-[var(--console-ink)]"
               disabled={isPending}
               onChange={(event) => setFilter("channel", event.target.value)}
               value={initialChannel}
@@ -202,7 +202,7 @@ export const IntakeInbox = ({
           <label className="grid gap-1 text-xs font-semibold text-[var(--console-ink-muted)]">
             Status
             <select
-              className="gf-console-focus h-10 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] px-3 text-sm text-[var(--console-ink)]"
+              className="gf-console-focus h-10 rounded-md border border-[var(--console-border)] bg-[var(--console-surface)] px-3 text-sm text-[var(--console-ink)]"
               disabled={isPending}
               onChange={(event) => setFilter("status", event.target.value)}
               value={initialStatus}
@@ -231,7 +231,7 @@ export const IntakeInbox = ({
           <label className="grid gap-1.5 text-sm font-medium text-[var(--console-ink)]">
             稿源标题
             <input
-              className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-base text-[var(--console-ink)] outline-none"
+              className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-base text-[var(--console-ink)] outline-none"
               name="title"
               placeholder="例如：官方产品更新"
               required
@@ -241,7 +241,7 @@ export const IntakeInbox = ({
             公开 URL
             <input
               autoCapitalize="none"
-              className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-base text-[var(--console-ink)] outline-none"
+              className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-base text-[var(--console-ink)] outline-none"
               inputMode="url"
               name="sourceUrl"
               placeholder="https://example.com/article"
@@ -252,7 +252,7 @@ export const IntakeInbox = ({
           <label className="grid gap-1.5 text-sm font-medium text-[var(--console-ink)]">
             目标站点
             <select
-              className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-base text-[var(--console-ink)] outline-none disabled:cursor-not-allowed disabled:opacity-60"
+              className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-base text-[var(--console-ink)] outline-none disabled:cursor-not-allowed disabled:opacity-60"
               disabled={sites.length === 0 || importing}
               name="suggestedSiteId"
               required
@@ -271,7 +271,7 @@ export const IntakeInbox = ({
           </Button>
           {importError !== null && (
             <p
-              className="sm:col-span-full m-0 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm leading-6 text-rose-700"
+              className="sm:col-span-full m-0 rounded-md border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm leading-6 text-rose-700"
               role="alert"
             >
               {importError}
@@ -362,7 +362,7 @@ export const IntakeInbox = ({
                   {text(selected["status"])}
                 </span>
               </div>
-              <dl className="m-0 grid gap-3 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] p-4 text-sm sm:grid-cols-2">
+              <dl className="m-0 grid gap-3 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] p-4 text-sm sm:grid-cols-2">
                 <div>
                   <dt className="text-xs font-semibold text-[var(--console-ink-muted)]">
                     Received
@@ -398,7 +398,7 @@ export const IntakeInbox = ({
               )}
               {typeof selected["failureReason"] === "string" &&
                 selected["failureReason"].length > 0 && (
-                  <div className="flex gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800 dark:border-rose-400/25 dark:bg-rose-400/10 dark:text-rose-200">
+                  <div className="flex gap-2 rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800 dark:border-rose-400/25 dark:bg-rose-400/10 dark:text-rose-200">
                     <AlertTriangleIcon size={18} />
                     <span>{selected["failureReason"]}</span>
                   </div>
@@ -448,7 +448,7 @@ export const IntakeInbox = ({
                       Merge target intake item ID
                     </label>
                     <input
-                      className="gf-console-focus h-10 min-w-0 flex-1 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] px-3 text-sm text-[var(--console-ink)]"
+                      className="gf-console-focus h-10 min-w-0 flex-1 rounded-md border border-[var(--console-border)] bg-[var(--console-surface)] px-3 text-sm text-[var(--console-ink)]"
                       id="merge-target"
                       onChange={(event) => setMergeTarget(event.target.value)}
                       placeholder="Target intake item ID"

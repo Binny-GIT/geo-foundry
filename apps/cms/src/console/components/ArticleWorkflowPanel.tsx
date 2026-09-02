@@ -206,7 +206,7 @@ const ArticleWorkflowPanel = ({
 
       {notice !== null && (
         <p
-          className={`m-0 rounded-xl border px-3.5 py-2.5 text-sm ${
+          className={`m-0 rounded-md border px-3.5 py-2.5 text-sm ${
             notice.ok
               ? "border-emerald-200 bg-emerald-50 text-emerald-800"
               : "border-rose-200 bg-rose-50 text-rose-700"
@@ -310,7 +310,7 @@ const ArticleWorkflowPanel = ({
           添加评论
         </label>
         <textarea
-          className="gf-console-focus min-h-20 w-full resize-y rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] p-3 text-sm text-[var(--console-ink)]"
+          className="gf-console-focus min-h-20 w-full resize-y rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] p-3 text-sm text-[var(--console-ink)]"
           id="article-comment"
           maxLength={2000}
           onChange={(event) => setComment(event.target.value)}
@@ -345,7 +345,7 @@ const ArticleWorkflowPanel = ({
                 原因{confirming.reasonRequired === true ? " *" : ""}
               </span>
               <textarea
-                className="mt-2 min-h-24 w-full resize-y rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] p-3 text-sm text-[var(--console-ink)]"
+                className="mt-2 min-h-24 w-full resize-y rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] p-3 text-sm text-[var(--console-ink)]"
                 maxLength={500}
                 onChange={(event) => setReason(event.target.value)}
                 value={reason}
@@ -403,7 +403,7 @@ const ArticleWorkflowPanel = ({
                 发布时间（本地时区）
               </span>
               <input
-                className="mt-2 h-11 w-full rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-sm text-[var(--console-ink)]"
+                className="mt-2 h-11 w-full rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-sm text-[var(--console-ink)]"
                 onChange={(event) => setScheduledFor(event.target.value)}
                 type="datetime-local"
                 value={scheduledFor}

@@ -69,14 +69,14 @@ export const ConsoleRollbackIntentForm = () => {
 
   return (
     <form className="grid gap-5" onSubmit={submit}>
-      <p className="m-0 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+      <p className="m-0 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
         回滚会提交一条不可变、可审计的命令意图，而非直接切换发布指针。请从当前 release
         详情中准确复制预条件；服务端会在创建时再次核验。
       </p>
       <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
         站点 ID
         <input
-          className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
+          className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
           inputMode="numeric"
           min="1"
           name="siteId"
@@ -88,7 +88,7 @@ export const ConsoleRollbackIntentForm = () => {
       <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
         当前 release ID
         <input
-          className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 font-mono text-sm text-[var(--console-ink)] outline-none"
+          className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 font-mono text-sm text-[var(--console-ink)] outline-none"
           name="expectedCurrentReleaseId"
           required
         />
@@ -96,7 +96,7 @@ export const ConsoleRollbackIntentForm = () => {
       <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
         当前 manifest SHA-256
         <input
-          className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 font-mono text-sm text-[var(--console-ink)] outline-none"
+          className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 font-mono text-sm text-[var(--console-ink)] outline-none"
           maxLength={64}
           name="expectedCurrentManifestSha256"
           pattern="[0-9a-f]{64}"
@@ -106,7 +106,7 @@ export const ConsoleRollbackIntentForm = () => {
       <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
         目标 release ID
         <input
-          className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 font-mono text-sm text-[var(--console-ink)] outline-none"
+          className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 font-mono text-sm text-[var(--console-ink)] outline-none"
           name="targetReleaseId"
           required
         />
@@ -114,7 +114,7 @@ export const ConsoleRollbackIntentForm = () => {
       <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
         目标 manifest SHA-256
         <input
-          className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 font-mono text-sm text-[var(--console-ink)] outline-none"
+          className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 font-mono text-sm text-[var(--console-ink)] outline-none"
           maxLength={64}
           name="expectedManifestSha256"
           pattern="[0-9a-f]{64}"
@@ -124,14 +124,14 @@ export const ConsoleRollbackIntentForm = () => {
       <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
         回滚原因（可选）
         <textarea
-          className="gf-console-focus min-h-24 resize-y rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 py-3 text-base leading-6 text-[var(--console-ink)] outline-none"
+          className="gf-console-focus min-h-24 resize-y rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 py-3 text-base leading-6 text-[var(--console-ink)] outline-none"
           maxLength={500}
           name="reason"
         />
       </label>
       {error !== null && (
         <p
-          className="m-0 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm leading-6 text-rose-700"
+          className="m-0 rounded-md border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm leading-6 text-rose-700"
           role="alert"
         >
           {error}

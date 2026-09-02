@@ -39,7 +39,7 @@ const formatInstant = (value: unknown): string => {
 }
 
 const inputClass =
-  "gf-console-focus h-10 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-sm text-[var(--console-ink)] outline-none"
+  "gf-console-focus h-10 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-sm text-[var(--console-ink)] outline-none"
 
 export const EditionsWorkspace = ({
   docs,

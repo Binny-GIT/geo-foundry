@@ -192,7 +192,7 @@ const ConsoleDocumentPage = async ({ params }: ConsoleDocumentPageProps) => {
         </section>
       )}
 
-      <p className="m-0 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] p-4 text-sm leading-6 text-[var(--console-ink-muted)]">
+      <p className="m-0 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] p-4 text-sm leading-6 text-[var(--console-ink-muted)]">
         编辑、工作流、上传、版本恢复和账本操作会使用各资源的专项安全界面；不会在这里通过通用表单绕过服务端领域规则。
       </p>
     </div>

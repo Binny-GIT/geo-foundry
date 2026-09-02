@@ -21,7 +21,7 @@ describe("console button and link style contract", () => {
     expect(consoleCss).not.toContain(".gf-console a {\n  text-decoration")
   })
 
-  it("themes Button variants through shared tokens with a restrained shadcn look", async () => {
+  it("mirrors the official shadcn v4 button spec with theme tokens", async () => {
     const [button, consoleCss, login, panel] = await Promise.all([
       sourceOf("src/components/ui/button.tsx"),
       sourceOf("src/app/(console)/console.css"),
@@ -29,19 +29,31 @@ describe("console button and link style contract", () => {
       sourceOf("src/console/components/ArticleWorkflowPanel.tsx"),
     ])
 
-    // Token-driven variants; secondary is a solid chip (no cheap hairline).
-    expect(button).toContain("var(--gf-btn-primary,#6366f1)")
-    expect(button).toContain("shadow-sm")
-    expect(button).not.toContain("border-slate-200")
-    expect(button).not.toContain("bg-indigo-500 ")
-    expect(consoleCss).toContain("--gf-btn-primary: #4f46e5;")
-    expect(consoleCss).toContain("html[data-console-theme=\"dark\"] .gf-console {\n  --gf-btn-primary: #6366f1;")
+    // Official v4 spec: rounded-md, font-medium, 3px focus ring, svg padding.
+    expect(button).toContain("rounded-md text-sm font-medium")
+    expect(button).toContain("focus-visible:ring-[3px]")
+    expect(button).toContain("has-[>svg]:px-3")
+    expect(button).toContain('lg: "h-10 rounded-md px-6 has-[>svg]:px-4"')
+    expect(button).toContain('data-variant={variant}')
+    expect(button).toContain("destructive")
+    expect(button).toContain("outline")
+    expect(button).toContain("link:")
 
-    // No per-page glow/radius overrides on the shared design.
+    // Token-driven colors; no cheap hairline secondary, no bright overrides.
+    expect(button).toContain("var(--gf-btn-primary,#6366f1)")
+    expect(button).not.toContain("border-slate-200")
+    expect(consoleCss).toContain("--gf-btn-ring: rgb(99 102 241 / 50%);")
+    expect(consoleCss).toContain("--gf-btn-destructive: #dc2626;")
+
+    // No per-page glow overrides; auxiliary comment stays secondary.
     expect(login).not.toContain("shadow-lg")
-    expect(panel).toContain('提交评论')
+    expect(login).not.toContain("h-11")
     const commentButton = panel.slice(panel.indexOf("提交评论") - 700, panel.indexOf("提交评论"))
     expect(commentButton).toContain('variant="secondary"')
+
+    // Console form controls share the button radius.
+    const editions = await sourceOf("src/console/components/EditionsWorkspace.tsx")
+    expect(editions).toContain("rounded-md border border-[var(--console-border)]")
   })
 
   it("uses shadcn buttons for Console navigation actions and keeps entity links understated", async () => {

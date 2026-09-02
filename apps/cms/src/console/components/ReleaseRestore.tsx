@@ -98,7 +98,7 @@ export const ReleaseRestore = ({
             <label className="mt-4 block">
               <span className="text-sm font-bold text-[var(--console-ink)]">恢复原因 *</span>
               <textarea
-                className="mt-2 min-h-24 w-full resize-y rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] p-3 text-sm text-[var(--console-ink)]"
+                className="mt-2 min-h-24 w-full resize-y rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] p-3 text-sm text-[var(--console-ink)]"
                 maxLength={500}
                 onChange={(event) => setReason(event.target.value)}
                 value={reason}
@@ -106,7 +106,7 @@ export const ReleaseRestore = ({
             </label>
             {notice !== null && (
               <p
-                className="m-0 mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700"
+                className="m-0 mt-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700"
                 role="alert"
               >
                 {notice}
@@ -127,7 +127,7 @@ export const ReleaseRestore = ({
                 onClick={() => void submit()}
                 size="lg"
                 type="button"
-                variant="danger"
+                variant="destructive"
               >
                 {pending ? "提交中…" : "确认恢复"}
               </Button>

@@ -53,7 +53,7 @@ export const ConsoleLoginForm = () => {
         邮箱
         <input
           autoComplete="email"
-          className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none placeholder:text-[var(--console-ink-muted)]"
+          className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none placeholder:text-[var(--console-ink-muted)]"
           name="email"
           onChange={(event) => setEmail(event.target.value)}
           placeholder="name@example.com"
@@ -66,7 +66,7 @@ export const ConsoleLoginForm = () => {
         密码
         <input
           autoComplete="current-password"
-          className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none placeholder:text-[var(--console-ink-muted)]"
+          className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none placeholder:text-[var(--console-ink-muted)]"
           name="password"
           onChange={(event) => setPassword(event.target.value)}
           required
@@ -76,7 +76,7 @@ export const ConsoleLoginForm = () => {
       </label>
       {error !== null && (
         <p
-          className="m-0 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-700"
+          className="m-0 rounded-md border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-700"
           role="alert"
         >
           {error}
@@ -90,7 +90,7 @@ export const ConsoleLoginForm = () => {
       </a>
       <Button
         aria-label="登录"
-        className="mt-1 h-11 w-full disabled:cursor-wait"
+        className="mt-1 w-full disabled:cursor-wait"
         disabled={loading || !hydrated}
         size="lg"
         type="submit"

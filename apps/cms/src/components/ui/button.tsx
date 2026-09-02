@@ -6,8 +6,14 @@ import type { ComponentProps } from "react"
 
 import { cn } from "@/lib/utils"
 
+/*
+ * Mirrors the official shadcn/ui v4 button (rounded-md, font-medium, 3px
+ * focus ring, has-[>svg] padding) with semantic colors mapped to --gf-btn-*
+ * tokens so the console light/dark themes (and the Payload admin tree via the
+ * palette fallbacks) both render correctly.
+ */
 const buttonVariants = cva(
-  "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold no-underline outline-none transition-[colors,transform] duration-150 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-indigo-400/60 disabled:pointer-events-none disabled:opacity-55 aria-disabled:pointer-events-none aria-disabled:opacity-40 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+  "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap no-underline transition-all outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--gf-btn-ring,rgb(99_102_241_/_50%))] disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     defaultVariants: {
       size: "default",
@@ -15,29 +21,31 @@ const buttonVariants = cva(
     },
     variants: {
       size: {
-        default: "h-9 px-4 py-2",
+        default: "h-9 px-4 py-2 has-[>svg]:px-3",
+        xs: "h-6 gap-1 rounded-md px-2 text-xs has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3",
+        sm: "h-8 gap-1.5 rounded-md px-3 has-[>svg]:px-2.5",
+        md: "h-10 px-3.5 py-2 has-[>svg]:px-3",
+        lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
         icon: "size-9",
-        lg: "min-h-11 px-4 py-2",
-        md: "h-10 px-3.5 py-2",
-        sm: "h-8 gap-1.5 px-3 text-[13px]",
+        "icon-xs": "size-6 rounded-md [&_svg:not([class*='size-'])]:size-3",
+        "icon-sm": "size-8",
+        "icon-lg": "size-10",
       },
       variant: {
-        /*
-         * Theme-aware via --gf-btn-* tokens (var fallbacks keep the Payload
-         * admin tree on the standard palette): console.css redefines them per
-         * light/dark theme, so secondary stays solid and readable in both.
-         */
         default:
-          "bg-[var(--gf-btn-primary,#6366f1)] text-white shadow-sm hover:bg-[var(--gf-btn-primary-hover,#4f46e5)]",
-        dark: "bg-slate-900 text-white hover:bg-slate-800",
+          "bg-[var(--gf-btn-primary,#6366f1)] text-white hover:bg-[var(--gf-btn-primary-hover,#4f46e5)]",
+        destructive:
+          "bg-[var(--gf-btn-destructive,#dc2626)] text-white hover:bg-[var(--gf-btn-destructive-hover,#b91c1c)] focus-visible:ring-[var(--gf-btn-destructive-ring,rgb(220_38_38_/_30%))]",
         secondary:
           "bg-[var(--gf-btn-secondary,#f1f5f9)] text-[var(--gf-btn-secondary-text,#0f172a)] hover:bg-[var(--gf-btn-secondary-hover,#e2e8f0)]",
+        /* Quiet tinted danger for non-destructive warnings (failed-ops chip). */
         danger:
           "bg-[var(--gf-btn-danger,#fef2f2)] text-[var(--gf-btn-danger-text,#be123c)] hover:brightness-[.97]",
-        ghost:
-          "text-[var(--gf-btn-secondary-text,#334155)] hover:bg-[var(--gf-btn-secondary,#f1f5f9)]",
         outline:
-          "border border-[var(--gf-btn-border,#e2e8f0)] text-[var(--gf-btn-secondary-text,#334155)] hover:bg-[var(--gf-btn-secondary,#f1f5f9)]",
+          "border border-[var(--gf-btn-border,#e2e8f0)] shadow-xs hover:bg-[var(--gf-btn-secondary,#f1f5f9)]",
+        ghost: "hover:bg-[var(--gf-btn-secondary,#f1f5f9)]",
+        link: "text-[var(--gf-btn-primary,#4f46e5)] underline-offset-4 hover:underline",
+        dark: "bg-slate-900 text-white hover:bg-slate-800",
       },
     },
   },
@@ -55,7 +63,9 @@ const Button = ({ asChild = false, className, ref, size, variant, ...props }: Bu
   return (
     <Comp
       className={cn(buttonVariants({ className, size, variant }))}
+      data-size={size}
       data-slot="button"
+      data-variant={variant}
       ref={ref}
       {...props}
     />

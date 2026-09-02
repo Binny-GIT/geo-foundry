@@ -99,7 +99,7 @@ export const ConsoleCreateForm = ({ slug }: { readonly slug: ConsoleResourceSlug
           租户名称
           <input
             autoComplete="organization"
-            className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
+            className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
             name="name"
             placeholder="例如：Northstar Media"
             required
@@ -111,7 +111,7 @@ export const ConsoleCreateForm = ({ slug }: { readonly slug: ConsoleResourceSlug
           <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
             内容主题
             <input
-              className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
+              className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
               name="topic"
               placeholder="例如：企业内容治理"
               required
@@ -120,7 +120,7 @@ export const ConsoleCreateForm = ({ slug }: { readonly slug: ConsoleResourceSlug
           <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
             内容意图
             <textarea
-              className="gf-console-focus min-h-28 resize-y rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 py-3 text-base leading-6 text-[var(--console-ink)] outline-none"
+              className="gf-console-focus min-h-28 resize-y rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 py-3 text-base leading-6 text-[var(--console-ink)] outline-none"
               name="intent"
               placeholder="描述受众、目标和希望达成的结果。"
               required
@@ -129,7 +129,7 @@ export const ConsoleCreateForm = ({ slug }: { readonly slug: ConsoleResourceSlug
           <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
             创建来源
             <select
-              className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
+              className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
               defaultValue="human"
               name="createdBy"
             >
@@ -147,7 +147,7 @@ export const ConsoleCreateForm = ({ slug }: { readonly slug: ConsoleResourceSlug
             <input
               autoCapitalize="none"
               autoComplete="off"
-              className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
+              className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
               name="hostname"
               placeholder="example.com"
               required
@@ -159,7 +159,7 @@ export const ConsoleCreateForm = ({ slug }: { readonly slug: ConsoleResourceSlug
           <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
             所属站点
             <select
-              className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none disabled:cursor-not-allowed disabled:opacity-60"
+              className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none disabled:cursor-not-allowed disabled:opacity-60"
               disabled={sites.length === 0}
               name="site"
               required
@@ -176,7 +176,7 @@ export const ConsoleCreateForm = ({ slug }: { readonly slug: ConsoleResourceSlug
             <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
               域名角色
               <select
-                className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
+                className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
                 defaultValue="canonical"
                 name="role"
               >
@@ -187,7 +187,7 @@ export const ConsoleCreateForm = ({ slug }: { readonly slug: ConsoleResourceSlug
             <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
               状态
               <select
-                className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
+                className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
                 defaultValue="active"
                 name="status"
               >
@@ -200,7 +200,7 @@ export const ConsoleCreateForm = ({ slug }: { readonly slug: ConsoleResourceSlug
       )}
       {error !== null && (
         <p
-          className="m-0 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm leading-6 text-rose-700"
+          className="m-0 rounded-md border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm leading-6 text-rose-700"
           role="alert"
         >
           {error}

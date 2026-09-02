@@ -67,7 +67,7 @@ const ConsoleAccountPage = async () => {
             </p>
           </div>
         </div>
-        <p className="m-0 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] p-4 text-sm leading-6 text-[var(--console-ink-muted)]">
+        <p className="m-0 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] p-4 text-sm leading-6 text-[var(--console-ink-muted)]">
           界面上的可见操作仅用于说明权限范围；每一次读取与写入仍会由 Payload
           集合访问策略和工作流端点在服务端再次验证。
         </p>

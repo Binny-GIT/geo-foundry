@@ -67,7 +67,7 @@ export const ConsoleMediaUploadForm = () => {
         图片文件
         <input
           accept="image/png,image/jpeg,image/webp,image/gif"
-          className="gf-console-focus min-h-28 rounded-xl border border-dashed border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 py-4 text-sm text-[var(--console-ink)] file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-indigo-700"
+          className="gf-console-focus min-h-28 rounded-md border border-dashed border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 py-4 text-sm text-[var(--console-ink)] file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-indigo-700"
           name="file"
           onChange={(event) => setSelected(event.target.files?.[0]?.name ?? null)}
           required
@@ -78,14 +78,14 @@ export const ConsoleMediaUploadForm = () => {
         </small>
       </label>
       {selected !== null && (
-        <p className="m-0 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 py-2 text-sm text-[var(--console-ink-muted)]">
+        <p className="m-0 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 py-2 text-sm text-[var(--console-ink-muted)]">
           已选择：{selected}
         </p>
       )}
       <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
         替代文本
         <input
-          className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
+          className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
           name="alt"
           placeholder="描述图片内容，供无障碍阅读使用"
           required
@@ -94,14 +94,14 @@ export const ConsoleMediaUploadForm = () => {
       <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
         图片说明（可选）
         <textarea
-          className="gf-console-focus min-h-24 resize-y rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 py-3 text-base leading-6 text-[var(--console-ink)] outline-none"
+          className="gf-console-focus min-h-24 resize-y rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 py-3 text-base leading-6 text-[var(--console-ink)] outline-none"
           name="caption"
           placeholder="可选的展示说明"
         />
       </label>
       {error !== null && (
         <p
-          className="m-0 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm leading-6 text-rose-700"
+          className="m-0 rounded-md border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm leading-6 text-rose-700"
           role="alert"
         >
           {error}

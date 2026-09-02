@@ -45,7 +45,7 @@ export const ConsoleResetPasswordForm = () => {
         新密码
         <input
           autoComplete="new-password"
-          className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
+          className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
           name="password"
           onChange={(event) => setPassword(event.target.value)}
           required
@@ -55,7 +55,7 @@ export const ConsoleResetPasswordForm = () => {
       </label>
       {error !== null && (
         <p
-          className="m-0 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-700"
+          className="m-0 rounded-md border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-700"
           role="alert"
         >
           {error}

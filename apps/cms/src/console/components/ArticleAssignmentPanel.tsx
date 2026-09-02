@@ -34,7 +34,7 @@ const errorTextOf = (map: Readonly<Record<string, string>>, code: unknown): stri
   (typeof code === "string" ? map[code] : undefined) ?? "操作未能完成，请刷新后重试。"
 
 const selectClass =
-  "gf-console-focus h-10 w-full rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-sm text-[var(--console-ink)] outline-none disabled:cursor-not-allowed disabled:opacity-60"
+  "gf-console-focus h-10 w-full rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-sm text-[var(--console-ink)] outline-none disabled:cursor-not-allowed disabled:opacity-60"
 
 /**
  * Article detail assignment panel: reassign the owning editor and site through
@@ -147,7 +147,7 @@ const ArticleAssignmentPanel = ({
 
       {notice !== null && (
         <p
-          className={`m-0 rounded-xl border px-3.5 py-2.5 text-sm ${
+          className={`m-0 rounded-md border px-3.5 py-2.5 text-sm ${
             notice.ok
               ? "border-emerald-200 bg-emerald-50 text-emerald-800"
               : "border-rose-200 bg-rose-50 text-rose-700"

@@ -36,7 +36,7 @@ type StoredFilters = {
 const hasQueryParams = (): boolean => window.location.search.length > 0
 
 const selectClass =
-  "gf-console-focus h-9 cursor-pointer rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] px-2.5 text-sm text-[var(--console-ink)] outline-none"
+  "gf-console-focus h-9 cursor-pointer rounded-md border border-[var(--console-border)] bg-[var(--console-surface)] px-2.5 text-sm text-[var(--console-ink)] outline-none"
 
 export const WorkToolbar = ({
   canCreate,
@@ -181,7 +181,7 @@ export const WorkToolbar = ({
           >
             <input
               aria-label="搜索标题"
-              className="gf-console-focus h-9 min-w-0 flex-1 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-sm text-[var(--console-ink)] outline-none placeholder:text-[var(--console-ink-muted)]"
+              className="gf-console-focus h-9 min-w-0 flex-1 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-sm text-[var(--console-ink)] outline-none placeholder:text-[var(--console-ink-muted)]"
               onChange={(event) => setSearch(event.target.value)}
               placeholder="搜索标题…"
               value={search}
@@ -256,14 +256,14 @@ export const WorkToolbar = ({
           )}
           <input
             aria-label="起始日期"
-            className="gf-console-focus h-9 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-sm text-[var(--console-ink)] outline-none"
+            className="gf-console-focus h-9 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-sm text-[var(--console-ink)] outline-none"
             name="from"
             required
             type="date"
           />
           <input
             aria-label="结束日期"
-            className="gf-console-focus h-9 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-sm text-[var(--console-ink)] outline-none"
+            className="gf-console-focus h-9 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-sm text-[var(--console-ink)] outline-none"
             name="to"
             required
             type="date"

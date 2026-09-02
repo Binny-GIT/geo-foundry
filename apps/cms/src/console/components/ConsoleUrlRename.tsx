@@ -67,7 +67,7 @@ export const ConsoleUrlRename = ({ id, initialLocale, initialPathname }: RenameP
       <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
         语言
         <input
-          className="gf-console-focus h-10 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-sm text-[var(--console-ink)] outline-none"
+          className="gf-console-focus h-10 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-sm text-[var(--console-ink)] outline-none"
           maxLength={64}
           onChange={(event) => setLocale(event.target.value)}
           required
@@ -77,7 +77,7 @@ export const ConsoleUrlRename = ({ id, initialLocale, initialPathname }: RenameP
       <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
         路径
         <input
-          className="gf-console-focus h-10 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-sm text-[var(--console-ink)] outline-none"
+          className="gf-console-focus h-10 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-sm text-[var(--console-ink)] outline-none"
           maxLength={2000}
           onChange={(event) => setPathname(event.target.value)}
           placeholder="/example"
@@ -87,7 +87,7 @@ export const ConsoleUrlRename = ({ id, initialLocale, initialPathname }: RenameP
       </label>
       {error !== null && (
         <p
-          className="m-0 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-700"
+          className="m-0 rounded-md border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-700"
           role="alert"
         >
           {error}

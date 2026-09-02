@@ -231,7 +231,7 @@ export const ConsoleShell = ({
         <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-[var(--console-border)] bg-[color-mix(in_srgb,var(--console-canvas)_92%,transparent)] px-4 backdrop-blur lg:px-8">
           <button
             aria-label="打开导航"
-            className="gf-console-focus grid size-9 place-items-center rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] text-[var(--console-ink)] lg:hidden"
+            className="gf-console-focus grid size-9 place-items-center rounded-md border border-[var(--console-border)] bg-[var(--console-surface)] text-[var(--console-ink)] lg:hidden"
             onClick={() => setMenuOpen(true)}
             type="button"
           >
@@ -247,7 +247,7 @@ export const ConsoleShell = ({
            * modes; text-free icon button keeps the mobile header tight. */}
           <button
             aria-label={theme === "light" ? "切换深色主题" : "切换浅色主题"}
-            className="gf-console-focus flex size-9 items-center justify-center rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] text-[var(--console-ink)] hover:bg-[var(--console-surface-muted)]"
+            className="gf-console-focus flex size-9 items-center justify-center rounded-md border border-[var(--console-border)] bg-[var(--console-surface)] text-[var(--console-ink)] hover:bg-[var(--console-surface-muted)]"
             onClick={switchTheme}
             title={theme === "light" ? "切换深色主题" : "切换浅色主题"}
             type="button"
@@ -268,7 +268,7 @@ export const ConsoleShell = ({
           <DropdownMenu>
             <DropdownMenuTrigger
               aria-label="账户选项"
-              className="gf-console-focus flex min-h-9 cursor-pointer items-center gap-2 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface)] px-2 pr-2.5 text-[var(--console-ink)] outline-none transition-colors hover:bg-[var(--console-surface-muted)]"
+              className="gf-console-focus flex min-h-9 cursor-pointer items-center gap-2 rounded-md border border-[var(--console-border)] bg-[var(--console-surface)] px-2 pr-2.5 text-[var(--console-ink)] outline-none transition-colors hover:bg-[var(--console-surface-muted)]"
             >
               <span className="grid size-6 place-items-center rounded-full bg-indigo-500/15 text-xs font-bold text-indigo-600">
                 {initialOf(navigation.session.email)}

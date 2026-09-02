@@ -277,7 +277,7 @@ const ConsoleDashboardPage = async () => {
       <section className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3">
         <ChartCard title="文章状态分布">
           {segments === null ? (
-            <div className="grid min-h-40 place-items-center rounded-xl border border-dashed border-[var(--console-border)]">
+            <div className="grid min-h-40 place-items-center rounded-md border border-dashed border-[var(--console-border)]">
               <span className="text-sm text-[var(--console-ink-muted)]">{restrictedNote}</span>
             </div>
           ) : (
@@ -305,7 +305,7 @@ const ConsoleDashboardPage = async () => {
 
         <ChartCard title="近 30 天稿源进入">
           {intakeDocs === null ? (
-            <div className="grid min-h-40 place-items-center rounded-xl border border-dashed border-[var(--console-border)]">
+            <div className="grid min-h-40 place-items-center rounded-md border border-dashed border-[var(--console-border)]">
               <span className="text-sm text-[var(--console-ink-muted)]">{restrictedNote}</span>
             </div>
           ) : (
@@ -315,7 +315,7 @@ const ConsoleDashboardPage = async () => {
 
         <ChartCard title="近 30 天发布趋势">
           {releaseDocs === null ? (
-            <div className="grid min-h-40 place-items-center rounded-xl border border-dashed border-[var(--console-border)]">
+            <div className="grid min-h-40 place-items-center rounded-md border border-dashed border-[var(--console-border)]">
               <span className="text-sm text-[var(--console-ink-muted)]">{restrictedNote}</span>
             </div>
           ) : (
@@ -329,7 +329,7 @@ const ConsoleDashboardPage = async () => {
 
         <ChartCard title="各站点文章数">
           {siteArticleItems === null ? (
-            <div className="grid min-h-40 place-items-center rounded-xl border border-dashed border-[var(--console-border)]">
+            <div className="grid min-h-40 place-items-center rounded-md border border-dashed border-[var(--console-border)]">
               <span className="text-sm text-[var(--console-ink-muted)]">{restrictedNote}</span>
             </div>
           ) : (
@@ -339,7 +339,7 @@ const ConsoleDashboardPage = async () => {
 
         <ChartCard title="近 30 天阅读趋势">
           {snapshotDocs === null ? (
-            <div className="grid min-h-40 place-items-center rounded-xl border border-dashed border-[var(--console-border)]">
+            <div className="grid min-h-40 place-items-center rounded-md border border-dashed border-[var(--console-border)]">
               <span className="text-sm text-[var(--console-ink-muted)]">{restrictedNote}</span>
             </div>
           ) : (

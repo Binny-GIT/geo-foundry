@@ -115,7 +115,7 @@ export const ConsoleEditForm = ({
           租户名称
           <input
             autoComplete="organization"
-            className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
+            className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
             defaultValue={stringValue(document["name"])}
             name="name"
             required
@@ -127,7 +127,7 @@ export const ConsoleEditForm = ({
           <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
             内容主题
             <input
-              className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
+              className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
               defaultValue={stringValue(document["topic"])}
               name="topic"
               required
@@ -136,7 +136,7 @@ export const ConsoleEditForm = ({
           <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
             内容意图
             <textarea
-              className="gf-console-focus min-h-28 resize-y rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 py-3 text-base leading-6 text-[var(--console-ink)] outline-none"
+              className="gf-console-focus min-h-28 resize-y rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 py-3 text-base leading-6 text-[var(--console-ink)] outline-none"
               defaultValue={stringValue(document["intent"])}
               name="intent"
               required
@@ -145,7 +145,7 @@ export const ConsoleEditForm = ({
           <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
             创建来源
             <select
-              className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
+              className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
               defaultValue={stringValue(document["createdBy"], "human")}
               name="createdBy"
             >
@@ -163,7 +163,7 @@ export const ConsoleEditForm = ({
             <input
               autoCapitalize="none"
               autoComplete="off"
-              className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
+              className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
               defaultValue={stringValue(document["hostname"])}
               name="hostname"
               required
@@ -175,7 +175,7 @@ export const ConsoleEditForm = ({
           <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
             所属站点
             <select
-              className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none disabled:cursor-not-allowed disabled:opacity-60"
+              className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none disabled:cursor-not-allowed disabled:opacity-60"
               defaultValue={relationId(document["site"])}
               disabled={sites.length === 0}
               name="site"
@@ -193,7 +193,7 @@ export const ConsoleEditForm = ({
             <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
               域名角色
               <select
-                className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
+                className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
                 defaultValue={stringValue(document["role"], "canonical")}
                 name="role"
               >
@@ -204,7 +204,7 @@ export const ConsoleEditForm = ({
             <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
               状态
               <select
-                className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
+                className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
                 defaultValue={stringValue(document["status"], "active")}
                 name="status"
               >
@@ -217,7 +217,7 @@ export const ConsoleEditForm = ({
       )}
       {error !== null && (
         <p
-          className="m-0 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm leading-6 text-rose-700"
+          className="m-0 rounded-md border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm leading-6 text-rose-700"
           role="alert"
         >
           {error}

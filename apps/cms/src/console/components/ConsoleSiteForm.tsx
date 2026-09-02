@@ -46,10 +46,10 @@ const listText = (values: readonly string[]): string => values.join("\n")
 const textList = (value: string): string[] => value.split("\n")
 
 const inputClass =
-  "gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
+  "gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
 
 const textareaClass =
-  "gf-console-focus min-h-28 resize-y rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 py-3 text-base leading-6 text-[var(--console-ink)] outline-none"
+  "gf-console-focus min-h-28 resize-y rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 py-3 text-base leading-6 text-[var(--console-ink)] outline-none"
 
 const ListField = ({
   description,
@@ -363,7 +363,7 @@ export const ConsoleSiteForm = ({
 
       {error !== null && (
         <p
-          className="m-0 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm leading-6 text-rose-700"
+          className="m-0 rounded-md border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm leading-6 text-rose-700"
           role="alert"
         >
           {error}

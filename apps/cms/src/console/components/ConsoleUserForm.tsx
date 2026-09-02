@@ -175,7 +175,7 @@ export const ConsoleUserForm = ({
         邮箱
         <input
           autoComplete="email"
-          className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
+          className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
           defaultValue={stringValue(document?.email)}
           name="email"
           required
@@ -187,7 +187,7 @@ export const ConsoleUserForm = ({
         {isCreate ? "账户密码" : "设置新密码（可选）"}
         <input
           autoComplete="new-password"
-          className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
+          className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
           name="password"
           required={isCreate}
           type="password"
@@ -200,7 +200,7 @@ export const ConsoleUserForm = ({
       <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
         角色
         <select
-          className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
+          className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
           name="role"
           onChange={(event) => setRole(event.target.value as CmsRole)}
           value={role}
@@ -217,7 +217,7 @@ export const ConsoleUserForm = ({
         <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
           租户
           <select
-            className="gf-console-focus h-11 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none disabled:cursor-not-allowed disabled:opacity-60"
+            className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none disabled:cursor-not-allowed disabled:opacity-60"
             defaultValue={relationshipId(document?.tenant)}
             disabled={tenants.length === 0}
             name="tenant"
@@ -249,7 +249,7 @@ export const ConsoleUserForm = ({
               const value = String(site.id)
               return (
                 <label
-                  className="flex min-h-10 items-center gap-2.5 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-sm text-[var(--console-ink)]"
+                  className="flex min-h-10 items-center gap-2.5 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-sm text-[var(--console-ink)]"
                   key={value}
                   title={site.name ?? undefined}
                 >
@@ -269,14 +269,14 @@ export const ConsoleUserForm = ({
       )}
 
       {actorRole === CMS_ROLE.TENANT_ADMIN && (
-        <p className="m-0 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] p-4 text-sm leading-6 text-[var(--console-ink-muted)]">
+        <p className="m-0 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] p-4 text-sm leading-6 text-[var(--console-ink-muted)]">
           用户将自动绑定到您的当前租户。此表单不会发送租户字段，也不会提供超级管理员角色。
         </p>
       )}
 
       {error !== null && (
         <p
-          className="m-0 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm leading-6 text-rose-700"
+          className="m-0 rounded-md border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm leading-6 text-rose-700"
           role="alert"
         >
           {error}

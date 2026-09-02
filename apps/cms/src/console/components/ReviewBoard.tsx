@@ -194,7 +194,7 @@ const ReviewBoard = ({
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       {notice !== null && (
         <p
-          className={`m-0 rounded-xl border px-4 py-3 text-sm ${
+          className={`m-0 rounded-md border px-4 py-3 text-sm ${
             notice.ok
               ? "border-emerald-200 bg-emerald-50 text-emerald-800"
               : "border-rose-200 bg-rose-50 text-rose-700"
@@ -242,7 +242,7 @@ const ReviewBoard = ({
                   </span>
                 </header>
                 {cards.length === 0 ? (
-                  <p className="m-0 rounded-xl border border-dashed border-[var(--console-border)] p-3 text-center text-xs text-[var(--console-ink-muted)]">
+                  <p className="m-0 rounded-md border border-dashed border-[var(--console-border)] p-3 text-center text-xs text-[var(--console-ink-muted)]">
                     暂无稿件
                   </p>
                 ) : (
@@ -368,7 +368,7 @@ const ReviewBoard = ({
                 原因{confirming.action.reasonRequired === true ? " *" : ""}
               </span>
               <textarea
-                className="mt-2 min-h-24 w-full resize-y rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] p-3 text-sm text-[var(--console-ink)]"
+                className="mt-2 min-h-24 w-full resize-y rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] p-3 text-sm text-[var(--console-ink)]"
                 maxLength={500}
                 onChange={(event) => setReason(event.target.value)}
                 value={reason}
@@ -424,7 +424,7 @@ const ReviewBoard = ({
                 发布时间（本地时区）
               </span>
               <input
-                className="mt-2 h-11 w-full rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-sm text-[var(--console-ink)]"
+                className="mt-2 h-11 w-full rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-sm text-[var(--console-ink)]"
                 onChange={(event) => setScheduledFor(event.target.value)}
                 type="datetime-local"
                 value={scheduledFor}

@@ -115,7 +115,7 @@ export const TrendBars = ({
 
   if (max === 0) {
     return (
-      <div className="grid h-[150px] place-items-center rounded-xl border border-dashed border-[var(--console-border)]">
+      <div className="grid h-[150px] place-items-center rounded-md border border-dashed border-[var(--console-border)]">
         <span className="text-sm text-[var(--console-ink-muted)]">{emptyLabel}</span>
       </div>
     )
@@ -186,7 +186,7 @@ export const RankedBars = ({
 }) => {
   if (items.length === 0) {
     return (
-      <div className="grid min-h-24 place-items-center rounded-xl border border-dashed border-[var(--console-border)]">
+      <div className="grid min-h-24 place-items-center rounded-md border border-dashed border-[var(--console-border)]">
         <span className="text-sm text-[var(--console-ink-muted)]">{emptyLabel}</span>
       </div>
     )

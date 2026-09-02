@@ -336,14 +336,14 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
             )}
           </div>
           {domains.length === 0 ? (
-            <p className="m-0 rounded-xl border border-dashed border-[var(--console-border)] p-4 text-center text-sm text-[var(--console-ink-muted)]">
+            <p className="m-0 rounded-md border border-dashed border-[var(--console-border)] p-4 text-center text-sm text-[var(--console-ink-muted)]">
               该站点还没有域名；发布前需要至少一个启用的规范域名。
             </p>
           ) : (
             <ul className="m-0 grid min-w-0 list-none gap-2 p-0">
               {domains.map((domain) => (
                 <li
-                  className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-4 py-3"
+                  className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-4 py-3"
                   key={String(domain["id"])}
                 >
                   <span className="min-w-0 flex-1 truncate font-mono text-sm text-[var(--console-ink)]">
@@ -389,7 +389,7 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
             </Button>
           </div>
           {recentEditions.length === 0 ? (
-            <p className="m-0 rounded-xl border border-dashed border-[var(--console-border)] p-4 text-center text-sm text-[var(--console-ink-muted)]">
+            <p className="m-0 rounded-md border border-dashed border-[var(--console-border)] p-4 text-center text-sm text-[var(--console-ink-muted)]">
               该站点还没有文章。
             </p>
           ) : (
@@ -399,7 +399,7 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
                   typeof edition["workflowStatus"] === "string" ? edition["workflowStatus"] : ""
                 return (
                   <li
-                    className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--console-border)] px-4 py-3"
+                    className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-md border border-[var(--console-border)] px-4 py-3"
                     key={String(edition["id"])}
                   >
                     <Link
@@ -430,7 +430,7 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
             发布历史与恢复
           </h2>
           {releases.length === 0 ? (
-            <p className="m-0 rounded-xl border border-dashed border-[var(--console-border)] p-4 text-center text-sm text-[var(--console-ink-muted)]">
+            <p className="m-0 rounded-md border border-dashed border-[var(--console-border)] p-4 text-center text-sm text-[var(--console-ink-muted)]">
               该站点还没有发布版本。
             </p>
           ) : (
@@ -448,7 +448,7 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
                   currentRestore.releaseId !== releaseId
                 return (
                   <li
-                    className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--console-border)] px-4 py-3"
+                    className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-md border border-[var(--console-border)] px-4 py-3"
                     key={releaseId}
                   >
                     <span className="grid min-w-0 gap-0.5">
@@ -504,14 +504,14 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
             </Button>
           </div>
           {operations.length === 0 ? (
-            <p className="m-0 rounded-xl border border-dashed border-[var(--console-border)] p-4 text-center text-sm text-[var(--console-ink-muted)]">
+            <p className="m-0 rounded-md border border-dashed border-[var(--console-border)] p-4 text-center text-sm text-[var(--console-ink-muted)]">
               该站点暂无操作记录。
             </p>
           ) : (
             <ul className="m-0 grid min-w-0 list-none gap-2 p-0">
               {operations.map((operation) => (
                 <li
-                  className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--console-border)] px-4 py-3"
+                  className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-md border border-[var(--console-border)] px-4 py-3"
                   key={String(operation["operationId"] ?? operation["id"])}
                 >
                   <Link

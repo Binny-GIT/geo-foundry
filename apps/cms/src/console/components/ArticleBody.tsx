@@ -109,7 +109,7 @@ const Block = ({ raw }: { readonly raw: unknown }) => {
   }
   if (type === "callout") {
     return (
-      <aside className="m-0 rounded-xl border border-indigo-200 bg-indigo-50 p-4 text-[15px] leading-7 text-indigo-900">
+      <aside className="m-0 rounded-md border border-indigo-200 bg-indigo-50 p-4 text-[15px] leading-7 text-indigo-900">
         {text(block["title"]).length > 0 && (
           <strong className="block pb-1">{text(block["title"])}</strong>
         )}
@@ -144,14 +144,14 @@ const Block = ({ raw }: { readonly raw: unknown }) => {
   }
   if (type === "video") {
     return (
-      <p className="m-0 rounded-xl border border-dashed border-[var(--console-border)] p-4 text-sm text-[var(--console-ink-muted)]">
+      <p className="m-0 rounded-md border border-dashed border-[var(--console-border)] p-4 text-sm text-[var(--console-ink-muted)]">
         视频块：{text(block["title"])}（{text(block["src"])}）
       </p>
     )
   }
   if (type === "embed") {
     return (
-      <p className="m-0 rounded-xl border border-dashed border-[var(--console-border)] p-4 text-sm text-[var(--console-ink-muted)]">
+      <p className="m-0 rounded-md border border-dashed border-[var(--console-border)] p-4 text-sm text-[var(--console-ink-muted)]">
         嵌入块：{text(block["title"])}（{text(block["provider"])}）
       </p>
     )
@@ -172,7 +172,7 @@ const Block = ({ raw }: { readonly raw: unknown }) => {
 export const ArticleBody = ({ body }: { readonly body: unknown }) => {
   if (!Array.isArray(body) || body.length === 0) {
     return (
-      <p className="m-0 rounded-xl border border-dashed border-[var(--console-border)] p-6 text-center text-sm text-[var(--console-ink-muted)]">
+      <p className="m-0 rounded-md border border-dashed border-[var(--console-border)] p-6 text-center text-sm text-[var(--console-ink-muted)]">
         该稿件暂无正文内容。
       </p>
     )

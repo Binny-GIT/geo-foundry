@@ -64,7 +64,10 @@ html[data-console-theme="dark"] .gf-console {
   --gf-btn-secondary-text: #0f172a;
   --gf-btn-danger: #fef2f2;
   --gf-btn-danger-text: #be123c;
+  --gf-btn-destructive: #dc2626;
+  --gf-btn-destructive-hover: #b91c1c;
   --gf-btn-border: #dbe2ea;
+  --gf-btn-ring: rgb(99 102 241 / 50%);
 }
 
 html[data-console-theme="dark"] .gf-console {
@@ -75,7 +78,10 @@ html[data-console-theme="dark"] .gf-console {
   --gf-btn-secondary-text: #e2e8f0;
   --gf-btn-danger: #3b1220;
   --gf-btn-danger-text: #fda4af;
+  --gf-btn-destructive: #991b1b;
+  --gf-btn-destructive-hover: #b91c1c;
   --gf-btn-border: #283040;
+  --gf-btn-ring: rgb(129 140 248 / 45%);
 }
 
 .gf-console * {
