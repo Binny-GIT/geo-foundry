@@ -18,14 +18,14 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import DeferredText from "@/console/components/DeferredText"
 import { BOARD_COLUMNS, type BoardColumnKey } from "@/console/lib/board-model"
 import { consoleRoute } from "@/console/lib/resources"
-import DeferredText from "@/console/components/DeferredText"
 import {
   ALL_WORK_COLUMNS,
+  WORK_RANGES,
   type WorkQuery,
   type WorkRange,
-  WORK_RANGES,
   workHref,
   workRangeLabel,
 } from "@/console/lib/work-filters"
@@ -168,13 +168,7 @@ export const WorkToolbar = ({
             <FilterIcon size={16} />
           </Button>
           {canCreate && (
-            <Button
-              asChild
-              aria-label="新增文章"
-              size="icon"
-              title="新增文章"
-              type="button"
-            >
+            <Button asChild aria-label="新增文章" size="icon" title="新增文章" type="button">
               <Link href="/admin/workspace/editions/new">
                 <FilePlusIcon size={16} />
               </Link>
@@ -212,7 +206,11 @@ export const WorkToolbar = ({
                     ? "全部"
                     : `${query.showColumns.length}/${ALL_WORK_COLUMNS.length}`}
                 </span>
-                <ChevronDownIcon aria-hidden className="text-[var(--console-ink-muted)]" size={14} />
+                <ChevronDownIcon
+                  aria-hidden
+                  className="text-[var(--console-ink-muted)]"
+                  size={14}
+                />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-36">
                 {BOARD_COLUMNS.map((column) => (

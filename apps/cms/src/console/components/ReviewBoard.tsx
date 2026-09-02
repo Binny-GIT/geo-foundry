@@ -10,8 +10,8 @@ import {
   type WorkflowAction,
   workflowActionsFor,
 } from "@/components/workflow/workflow-actions-model"
-import { BOARD_COLUMNS, type BoardCard, type BoardColumnKey } from "@/console/lib/board-model"
 import { canDragCard, dropActionFor } from "@/console/lib/board-dnd"
+import { BOARD_COLUMNS, type BoardCard, type BoardColumnKey } from "@/console/lib/board-model"
 import {
   editionActionErrorMessage,
   editionEvaluationEndpointOf,
@@ -81,7 +81,8 @@ const ReviewBoard = ({
     if (card === null) return
     const action = dropActionFor(role, card.workflowStatus, targetColumn)
     if (action === null) {
-      const columnLabel = BOARD_COLUMNS.find((column) => column.key === targetColumn)?.label ?? targetColumn
+      const columnLabel =
+        BOARD_COLUMNS.find((column) => column.key === targetColumn)?.label ?? targetColumn
       setNotice({ ok: false, text: `${card.title}：当前状态不允许移动到「${columnLabel}」` })
       return
     }
@@ -218,7 +219,9 @@ const ReviewBoard = ({
                     : "",
                 )}
                 key={column.key}
-                onDragLeave={() => setDropColumn((current) => (current === column.key ? null : current))}
+                onDragLeave={() =>
+                  setDropColumn((current) => (current === column.key ? null : current))
+                }
                 onDragOver={(event) => {
                   if (dragCard === null) return
                   event.preventDefault()
@@ -250,7 +253,8 @@ const ReviewBoard = ({
                     <article
                       className={cn(
                         "gf-console-card grid min-w-0 gap-2.5 p-3.5",
-                        canDragCard(role, card.workflowStatus) && "cursor-grab active:cursor-grabbing",
+                        canDragCard(role, card.workflowStatus) &&
+                          "cursor-grab active:cursor-grabbing",
                         dragCard?.id === card.id && "opacity-50",
                       )}
                       draggable={canDragCard(role, card.workflowStatus)}

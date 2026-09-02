@@ -127,10 +127,7 @@ const reviewerClaimsOf = (user: unknown) => {
   if (claims === null) {
     throw fail("REVIEWER_EDITION_ACTOR_INVALID", "session has no valid claims")
   }
-  if (
-    claims.kind !== "user" ||
-    (claims.role !== "reviewer" && claims.role !== "super-admin")
-  ) {
+  if (claims.kind !== "user" || (claims.role !== "reviewer" && claims.role !== "super-admin")) {
     throw fail("REVIEWER_EDITION_REVIEWER_REQUIRED", "reviewer identity is required")
   }
   /*
@@ -173,9 +170,7 @@ export async function submitReviewerEditionDecision(
    */
   const tenantId =
     actor.tenantId ??
-    numberFieldOf(
-      (await loadWorkflowEdition(payload, input.editionId, {}, true)).tenant,
-    ) ??
+    numberFieldOf((await loadWorkflowEdition(payload, input.editionId, {}, true)).tenant) ??
     -1
   const endpoint = endpointOf(input)
   const requestHash = operationRequestHashOf(canonicalize(decisionRequestOf(input)))

@@ -15,9 +15,7 @@ import type { BoardColumnKey } from "./board-model"
  * the reviewer request-changes decision (审核不通过 sends the card back to
  * draft while it keeps showing in the rejected lane).
  */
-const COLUMN_MATCHERS: Readonly<
-  Record<BoardColumnKey, (action: WorkflowAction) => boolean>
-> = {
+const COLUMN_MATCHERS: Readonly<Record<BoardColumnKey, (action: WorkflowAction) => boolean>> = {
   approved: (action) => action.target === "approved",
   archived: (action) => action.target === "archived",
   draft: (action) => action.target === "draft" || action.type === "draft-from-published",
