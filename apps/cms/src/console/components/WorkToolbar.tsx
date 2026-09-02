@@ -180,7 +180,7 @@ export const WorkToolbar = ({
       {filterOpen && (
         <div className="mt-3 flex min-w-0 flex-wrap items-center gap-2 border-t border-[var(--console-border)] pt-3">
           <form
-            className="flex h-9 min-w-[180px] flex-1 items-center gap-2 sm:max-w-sm"
+            className="flex h-9 min-w-[220px] flex-1 items-center gap-2 sm:max-w-md"
             onSubmit={(event) => {
               event.preventDefault()
               go({ q: search.trim().length === 0 ? null : search.trim() })
