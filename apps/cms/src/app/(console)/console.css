@@ -88,7 +88,10 @@ html[data-console-theme="dark"] .gf-console {
   box-sizing: border-box;
 }
 
-.gf-console button,
+/* Native form controls inherit the console type scale; the shared shadcn
+   Button keeps its own font-medium (the shorthand below would otherwise
+   out-specify single utility classes and flatten its weight). */
+.gf-console button:not([data-slot="button"]),
 .gf-console input,
 .gf-console select,
 .gf-console textarea {
