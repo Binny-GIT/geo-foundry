@@ -18,20 +18,21 @@ const editionOf = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 })
 
-const payloadOf = (edition: Record<string, unknown>, extra: Record<string, unknown> = {}) =>
-  ({
-    findByID: vi.fn(async ({ collection }: { collection: string }) => {
-      if (collection === "content-editions") return edition
-      return null
-    }),
-    update: vi.fn(async () => ({})),
-    ...extra,
-  }) as never
+const payloadOf = (edition: Record<string, unknown>, extra: Record<string, unknown> = {}) => ({
+  findByID: vi.fn(async ({ collection }: { collection: string }) => {
+    if (collection === "content-editions") return edition
+    return null
+  }),
+  update: vi.fn(async () => ({})),
+  ...extra,
+})
+
+const asPayload = (mock: unknown): never => mock as never
 
 describe("edition assignment service", () => {
   it("rejects a reviewer despite matching tenant", async () => {
     await expect(
-      applyEditionAssignment(payloadOf(editionOf()), {
+      applyEditionAssignment(asPayload(payload)Of(editionOf()), {
         editionId: 101,
         owner: 5,
         user: reviewer,
@@ -41,7 +42,7 @@ describe("edition assignment service", () => {
 
   it("rejects an editor from another tenant", async () => {
     await expect(
-      applyEditionAssignment(payloadOf(editionOf()), {
+      applyEditionAssignment(asPayload(payload)Of(editionOf()), {
         editionId: 101,
         owner: 5,
         user: foreignEditor,
@@ -58,7 +59,7 @@ describe("edition assignment service", () => {
       }),
     })
 
-    const result = await applyEditionAssignment(payload, {
+    const result = await applyEditionAssignment(asPayload(payload), {
       editionId: 101,
       owner: 5,
       user: tenantEditor,
@@ -79,7 +80,7 @@ describe("edition assignment service", () => {
   it("clears the owner when null is passed", async () => {
     const payload = payloadOf(editionOf())
 
-    const result = await applyEditionAssignment(payload, {
+    const result = await applyEditionAssignment(asPayload(payload), {
       editionId: 101,
       owner: null,
       user: superAdmin,
@@ -101,13 +102,13 @@ describe("edition assignment service", () => {
     })
 
     await expect(
-      applyEditionAssignment(payload, { editionId: 101, owner: 30, user: tenantEditor }),
+      applyEditionAssignment(asPayload(payload), { editionId: 101, owner: 30, user: tenantEditor }),
     ).rejects.toMatchObject({ code: "EDITION_ASSIGNMENT_OWNER_INVALID" })
   })
 
   it("locks site reassignment once the edition is compiled", async () => {
     await expect(
-      applyEditionAssignment(payloadOf(editionOf({ workflowStatus: "compiled" })), {
+      applyEditionAssignment(asPayload(payload)Of(editionOf({ workflowStatus: "compiled" })), {
         editionId: 101,
         site: 22,
         user: superAdmin,
@@ -125,7 +126,7 @@ describe("edition assignment service", () => {
     })
 
     await expect(
-      applyEditionAssignment(payload, { editionId: 101, site: 22, user: tenantEditor }),
+      applyEditionAssignment(asPayload(payload), { editionId: 101, site: 22, user: tenantEditor }),
     ).rejects.toMatchObject({ code: "EDITION_ASSIGNMENT_SITE_TENANT_MISMATCH" })
   })
 
@@ -138,7 +139,7 @@ describe("edition assignment service", () => {
       }),
     })
 
-    const result = await applyEditionAssignment(payload, {
+    const result = await applyEditionAssignment(asPayload(payload), {
       editionId: 101,
       site: 22,
       user: tenantEditor,
@@ -150,7 +151,7 @@ describe("edition assignment service", () => {
 
   it("rejects an empty patch", async () => {
     await expect(
-      applyEditionAssignment(payloadOf(editionOf()), { editionId: 101, user: superAdmin }),
+      applyEditionAssignment(asPayload(payload)Of(editionOf()), { editionId: 101, user: superAdmin }),
     ).rejects.toBeInstanceOf(EditionAssignmentError)
   })
 })
