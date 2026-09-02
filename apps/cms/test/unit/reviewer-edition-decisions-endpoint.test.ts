@@ -1,20 +1,23 @@
 import type { PayloadRequest } from "payload"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const { MockEditionWorkflowError, MockReviewerEditionDecisionError, submitReviewerEditionDecision } =
-  vi.hoisted(() => ({
-    MockEditionWorkflowError: class MockEditionWorkflowError extends Error {
-      constructor(readonly code: string) {
-        super(code)
-      }
-    },
-    MockReviewerEditionDecisionError: class MockReviewerEditionDecisionError extends Error {
-      constructor(readonly code: string) {
-        super(code)
-      }
-    },
-    submitReviewerEditionDecision: vi.fn(),
-  }))
+const {
+  MockEditionWorkflowError,
+  MockReviewerEditionDecisionError,
+  submitReviewerEditionDecision,
+} = vi.hoisted(() => ({
+  MockEditionWorkflowError: class MockEditionWorkflowError extends Error {
+    constructor(readonly code: string) {
+      super(code)
+    }
+  },
+  MockReviewerEditionDecisionError: class MockReviewerEditionDecisionError extends Error {
+    constructor(readonly code: string) {
+      super(code)
+    }
+  },
+  submitReviewerEditionDecision: vi.fn(),
+}))
 
 vi.mock("../../src/services/edition-workflow", () => ({
   EditionWorkflowError: MockEditionWorkflowError,
