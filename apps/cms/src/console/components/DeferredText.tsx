@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, type ReactNode } from "react"
+import { type ReactNode, useEffect, useState } from "react"
 
 /*
  * Cloudflare's email obfuscation rewrites email-like text nodes in the
