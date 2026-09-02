@@ -32,6 +32,7 @@ export const dropActionFor = (
 ): WorkflowAction | null => {
   if (!isWorkflowStatus(workflowStatus)) return null
   const matcher = COLUMN_MATCHERS[targetColumn]
+  if (matcher === undefined) return null
   return workflowActionsFor(role, workflowStatus, "zh").find(matcher) ?? null
 }
 

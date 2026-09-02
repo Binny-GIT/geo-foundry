@@ -37,6 +37,6 @@ describe("Board drag-and-drop mapping", () => {
     expect(canDragCard("publisher", "draft")).toBe(false)
     expect(canDragCard("editor", "review")).toBe(false)
     expect(canDragCard("editor", "draft")).toBe(true)
-    expect(dropActionFor("publisher", "draft", "generating")).toBeNull()
+    expect(dropActionFor("publisher", "draft", "review")).toBeNull()
   })
 })
