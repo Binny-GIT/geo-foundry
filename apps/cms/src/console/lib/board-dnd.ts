@@ -2,7 +2,7 @@ import {
   isWorkflowStatus,
   type WorkflowAction,
   workflowActionsFor,
-} from "@/components/workflow/workflow-actions-model"
+} from "../../components/workflow/workflow-actions-model"
 
 import type { BoardColumnKey } from "./board-model"
 
