@@ -31,7 +31,9 @@ describe("console button and link style contract", () => {
 
     // Official v4 spec: rounded-md, font-medium, 3px focus ring, svg padding.
     expect(button).toContain("rounded-md text-sm font-medium")
-    expect(button).toContain("focus-visible:ring-[3px]")
+    // Focus ring via outline width+offset+color: three distinct tailwind-merge
+    // groups, so cn() cannot collapse one away like dual ring-[...] classes.
+    expect(button).toContain("focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--gf-btn-ring")
     expect(button).toContain("has-[>svg]:px-3")
     expect(button).toContain('lg: "h-10 rounded-md px-6 has-[>svg]:px-4"')
     expect(button).toContain('data-variant={variant}')

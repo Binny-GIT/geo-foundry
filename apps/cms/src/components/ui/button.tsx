@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils"
  * palette fallbacks) both render correctly.
  */
 const buttonVariants = cva(
-  "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap no-underline transition-all outline-none focus-visible:ring-[3px] focus-visible:ring-[var(--gf-btn-ring,rgb(99_102_241_/_50%))] disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap no-underline transition-all outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--gf-btn-ring,rgb(99_102_241_/_50%))] disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     defaultVariants: {
       size: "default",
