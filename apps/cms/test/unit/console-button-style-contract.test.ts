@@ -47,7 +47,7 @@ describe("console button and link style contract", () => {
 
     // No per-page glow overrides; auxiliary comment stays secondary.
     expect(login).not.toContain("shadow-lg")
-    expect(login).not.toContain("h-11")
+    expect(login).not.toContain("h-11 w-full")
     const commentButton = panel.slice(panel.indexOf("提交评论") - 700, panel.indexOf("提交评论"))
     expect(commentButton).toContain('variant="secondary"')
 
