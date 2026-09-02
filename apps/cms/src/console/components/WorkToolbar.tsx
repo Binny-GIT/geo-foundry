@@ -206,11 +206,12 @@ export const WorkToolbar = ({
                     ? "全部"
                     : `${query.showColumns.length}/${ALL_WORK_COLUMNS.length}`}
                 </span>
-                <ChevronDownIcon
+                <span
                   aria-hidden
-                  className="text-[var(--console-ink-muted)]"
-                  size={14}
-                />
+                  className="grid place-items-center text-[var(--console-ink-muted)]"
+                >
+                  <ChevronDownIcon size={14} />
+                </span>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-36">
                 {BOARD_COLUMNS.map((column) => (
