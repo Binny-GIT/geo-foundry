@@ -206,7 +206,7 @@ const ReviewBoard = ({
       )}
 
       <section className="min-h-0 flex-1 overflow-auto pb-2 pr-1">
-        <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-[repeat(6,minmax(200px,1fr))]">
+        <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-[repeat(6,minmax(180px,1fr))]">
           {columns.map((column) => {
             const cards = board[column.key]
             return (
@@ -249,7 +249,7 @@ const ReviewBoard = ({
                   cards.map((card) => (
                     <article
                       className={cn(
-                        "gf-console-card grid gap-2.5 p-3.5",
+                        "gf-console-card grid min-w-0 gap-2.5 p-3.5",
                         canDragCard(role, card.workflowStatus) && "cursor-grab active:cursor-grabbing",
                         dragCard?.id === card.id && "opacity-50",
                       )}
@@ -267,6 +267,7 @@ const ReviewBoard = ({
                     >
                       <Link
                         className="gf-console-focus truncate text-sm font-semibold text-[var(--console-ink)] no-underline hover:text-[var(--console-accent)]"
+                        draggable={false}
                         href={consoleRoute.document("content-editions", String(card.id))}
                         rel="noreferrer"
                         target="_blank"
@@ -311,7 +312,7 @@ const ReviewBoard = ({
                               {pendingKey === `${card.id}:${action.label}` ? "…" : action.label}
                             </Button>
                           ))}
-                          {role === "editor" &&
+                          {(role === "editor" || role === "super-admin") &&
                             (card.workflowStatus === "draft" ||
                               card.workflowStatus === "generating" ||
                               card.workflowStatus === "review") && (
@@ -326,7 +327,7 @@ const ReviewBoard = ({
                                 {pendingKey === `${card.id}:quality` ? "…" : "质量检查"}
                               </Button>
                             )}
-                          {role === "publisher" &&
+                          {(role === "publisher" || role === "super-admin") &&
                             (card.workflowStatus === "approved" ||
                               card.workflowStatus === "compiled") && (
                               <Button

@@ -114,27 +114,24 @@ describe("reviewer edition decision endpoints", () => {
     )
     expect(anonymous.status).toBe(401)
 
-    for (const role of [
-      "content-service",
-      "editor",
-      "publisher",
-      "super-admin",
-      "tenant-admin",
-    ]) {
+    for (const role of ["content-service", "editor", "publisher", "tenant-admin"]) {
       const forbidden = await reviewerApproveEditionEndpoint.handler(
-        requestOf(
-          { expectedRevision: 3 },
-          {
-            user:
-              role === "super-admin"
-                ? { id: 5, role }
-                : { id: 5, role, tenant: { id: 7 } },
-          },
-        ),
+        requestOf({ expectedRevision: 3 }, { user: { id: 5, role, tenant: { id: 7 } } }),
       )
       expect(forbidden.status).toBe(403)
     }
     expect(submitReviewerEditionDecision).not.toHaveBeenCalled()
+  })
+
+  it("accepts a cross-tenant super-admin decision before target lookup", async () => {
+    const granted = await reviewerApproveEditionEndpoint.handler(
+      requestOf({ expectedRevision: 3 }, { user: { id: 5, role: "super-admin" } }),
+    )
+    expect(granted.status).toBe(200)
+    expect(submitReviewerEditionDecision).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({ target: "approved" }),
+    )
   })
 
   it("rejects malformed route, headers, and strict request fields", async () => {

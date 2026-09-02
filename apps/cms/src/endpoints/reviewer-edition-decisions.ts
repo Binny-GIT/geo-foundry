@@ -105,7 +105,7 @@ const reviewerEndpoint = (
     if (claims === null) {
       return response(401, { error: { code: "REVIEWER_EDITION_UNAUTHENTICATED" } }, requestId)
     }
-    if (claims.kind !== "user" || claims.role !== "reviewer") {
+    if (claims.kind !== "user" || (claims.role !== "reviewer" && claims.role !== "super-admin")) {
       return response(403, { error: { code: "REVIEWER_EDITION_REVIEWER_REQUIRED" } }, requestId)
     }
     const idempotencyKey = idempotencyKeyOf(req)

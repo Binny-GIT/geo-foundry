@@ -571,7 +571,7 @@ export async function submitEditionEvaluationOperation(
   return runOutboxScopedTransaction(payload, async (req) => {
     const doc = await loadWorkflowEdition(payload, input.editionId, req, true)
     const claims = assertEditionTenantScope(input.user, doc)
-    if (claims.kind !== "user" || claims.role !== "editor") {
+    if (claims.kind !== "user" || (claims.role !== "editor" && claims.role !== "super-admin")) {
       throw new EditionWorkflowError(
         "EDITION_WORKFLOW_EDITOR_REQUIRED",
         `role ${claims.role} cannot submit an evaluation operation`,
@@ -724,7 +724,7 @@ export async function submitEditionPublishOperation(
   return runOutboxScopedTransaction(payload, async (req) => {
     const doc = await loadWorkflowEdition(payload, input.editionId, req, true)
     const claims = assertEditionTenantScope(input.user, doc)
-    if (claims.role !== "publisher") {
+    if (claims.role !== "publisher" && claims.role !== "super-admin") {
       throw new EditionWorkflowError(
         "EDITION_WORKFLOW_PUBLISHER_REQUIRED",
         `role ${claims.role} cannot submit a publish operation`,

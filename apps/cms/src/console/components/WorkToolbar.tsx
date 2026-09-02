@@ -4,10 +4,23 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
-import { AlertTriangleIcon, FilePlusIcon, FilterIcon, LayersIcon } from "@/components/icons"
+import {
+  AlertTriangleIcon,
+  ChevronDownIcon,
+  FilePlusIcon,
+  FilterIcon,
+  LayersIcon,
+} from "@/components/icons"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { BOARD_COLUMNS, type BoardColumnKey } from "@/console/lib/board-model"
 import { consoleRoute } from "@/console/lib/resources"
+import DeferredText from "@/console/components/DeferredText"
 import {
   ALL_WORK_COLUMNS,
   type WorkQuery,
@@ -173,7 +186,7 @@ export const WorkToolbar = ({
       {filterOpen && (
         <div className="mt-3 flex min-w-0 flex-wrap items-center gap-2 border-t border-[var(--console-border)] pt-3">
           <form
-            className="flex min-w-0 flex-1 items-center gap-2 sm:max-w-xs"
+            className="flex h-9 min-w-[180px] flex-1 items-center gap-2 sm:max-w-sm"
             onSubmit={(event) => {
               event.preventDefault()
               go({ q: search.trim().length === 0 ? null : search.trim() })
@@ -183,61 +196,68 @@ export const WorkToolbar = ({
               aria-label="搜索标题"
               className="gf-console-focus h-9 min-w-0 flex-1 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-sm text-[var(--console-ink)] outline-none placeholder:text-[var(--console-ink-muted)]"
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="搜索标题…"
+              placeholder="按关键词过滤标题…"
               value={search}
             />
           </form>
-          <div className="flex flex-wrap items-center gap-1.5">
-            {BOARD_COLUMNS.map((column) => {
-              const checked = query.showColumns.includes(column.key)
-              return (
-                <button
-                  aria-pressed={checked}
-                  className={cn(
-                    "cursor-pointer rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors",
-                    checked
-                      ? "border-indigo-300 bg-indigo-50 text-indigo-700"
-                      : "border-[var(--console-border)] bg-[var(--console-surface)] text-[var(--console-ink-muted)] hover:bg-[var(--console-surface-muted)]",
-                  )}
-                  key={column.key}
-                  onClick={() => toggleColumn(column.key)}
-                  type="button"
-                >
-                  {column.label}
-                </button>
-              )
-            })}
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                className="gf-console-focus flex h-9 cursor-pointer items-center gap-1.5 rounded-md border border-[var(--console-border)] bg-[var(--console-surface)] px-2.5 text-sm text-[var(--console-ink)] outline-none"
+                aria-label="筛选状态列"
+              >
+                <span className="font-medium">
+                  状态：
+                  {query.showColumns.length === ALL_WORK_COLUMNS.length
+                    ? "全部"
+                    : `${query.showColumns.length}/${ALL_WORK_COLUMNS.length}`}
+                </span>
+                <ChevronDownIcon aria-hidden className="text-[var(--console-ink-muted)]" size={14} />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-36">
+                {BOARD_COLUMNS.map((column) => (
+                  <DropdownMenuCheckboxItem
+                    checked={query.showColumns.includes(column.key)}
+                    key={column.key}
+                    onCheckedChange={() => toggleColumn(column.key)}
+                    onSelect={(event) => event.preventDefault()}
+                  >
+                    {column.label}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <select
+              aria-label="分配人"
+              className={selectClass}
+              onChange={(event) =>
+                go({ owner: event.target.value === "" ? null : Number(event.target.value) })
+              }
+              value={query.owner === null ? "" : String(query.owner)}
+            >
+              <option value="">全部分配人</option>
+              {owners.map((owner) => (
+                <option key={owner.id} value={owner.id}>
+                  <DeferredText>{owner.email}</DeferredText>
+                </option>
+              ))}
+            </select>
+            <select
+              aria-label="站点"
+              className={selectClass}
+              onChange={(event) =>
+                go({ site: event.target.value === "" ? null : Number(event.target.value) })
+              }
+              value={query.site === null ? "" : String(query.site)}
+            >
+              <option value="">全部站点</option>
+              {sites.map((site) => (
+                <option key={site.id} value={site.id}>
+                  {site.name}
+                </option>
+              ))}
+            </select>
           </div>
-          <select
-            aria-label="分配人"
-            className={selectClass}
-            onChange={(event) =>
-              go({ owner: event.target.value === "" ? null : Number(event.target.value) })
-            }
-            value={query.owner === null ? "" : String(query.owner)}
-          >
-            <option value="">全部分配人</option>
-            {owners.map((owner) => (
-              <option key={owner.id} value={owner.id}>
-                {owner.email}
-              </option>
-            ))}
-          </select>
-          <select
-            aria-label="站点"
-            className={selectClass}
-            onChange={(event) =>
-              go({ site: event.target.value === "" ? null : Number(event.target.value) })
-            }
-            value={query.site === null ? "" : String(query.site)}
-          >
-            <option value="">全部站点</option>
-            {sites.map((site) => (
-              <option key={site.id} value={site.id}>
-                {site.name}
-              </option>
-            ))}
-          </select>
         </div>
       )}
 

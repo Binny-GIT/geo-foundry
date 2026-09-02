@@ -118,7 +118,7 @@ export const createPublicationPlan = async (
   return runOutboxScopedTransaction(payload, async (req) => {
     const edition = await loadWorkflowEdition(payload, input.editionId, req, true)
     const claims = assertEditionTenantScope(input.user, edition)
-    if (claims.role !== "publisher") {
+    if (claims.role !== "publisher" && claims.role !== "super-admin") {
       throw new EditionWorkflowError("EDITION_WORKFLOW_PUBLISHER_REQUIRED", "publication plan")
     }
     if (edition.workflowStatus !== "approved" && edition.workflowStatus !== "compiled") {

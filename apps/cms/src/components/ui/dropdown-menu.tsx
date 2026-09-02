@@ -45,4 +45,18 @@ const DropdownMenuItem = ({
   />
 )
 
-export { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger }
+const DropdownMenuCheckboxItem = ({
+  className,
+  ...props
+}: ComponentProps<typeof DropdownMenuPrimitive.CheckboxItem>) => (
+  <DropdownMenuPrimitive.CheckboxItem
+    className={cn(
+      "flex cursor-pointer select-none items-center gap-2 rounded-md px-2.5 py-1.5 text-sm font-medium outline-none transition-colors data-[state=checked]:font-semibold data-[highlighted]:bg-slate-100",
+      className,
+    )}
+    data-slot="dropdown-menu-checkbox-item"
+    {...props}
+  />
+)
+
+export { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger }

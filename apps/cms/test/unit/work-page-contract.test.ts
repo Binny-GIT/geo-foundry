@@ -43,11 +43,12 @@ describe("workbench server contract", () => {
     ])
 
     expect(board).toContain("min-h-0 flex-1 overflow-auto")
-    expect(board).toContain("2xl:grid-cols-[repeat(6,minmax(200px,1fr))]")
+    expect(board).toContain("2xl:grid-cols-[repeat(6,minmax(180px,1fr))]")
     expect(board).not.toContain("min-w-[1500px]")
     expect(board).toContain("dropActionFor")
     expect(board).toContain('target="_blank"')
     expect(board).toContain("showColumns")
+    expect(board).toContain('draggable={false}')
     expect(shell).toContain('isWorkbench ? "h-dvh min-h-0 overflow-hidden" : "min-h-screen"')
     expect(shell).toContain('isWorkbench && "flex min-h-0 flex-1 flex-col overflow-hidden"')
 

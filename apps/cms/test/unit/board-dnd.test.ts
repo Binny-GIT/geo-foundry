@@ -16,10 +16,12 @@ describe("Board drag-and-drop mapping", () => {
     expect(dropActionFor("editor", "generating", "approved")).toBeNull()
   })
 
-  it("Given a reviewer review card, when dropping onto approved or draft, then reviewer decisions resolve", () => {
+  it("Given a reviewer review card, when dropping onto approved, draft, or rejected, then reviewer decisions resolve", () => {
     expect(dropActionFor("reviewer", "review", "approved")?.type).toBe("reviewer-approve")
     expect(dropActionFor("reviewer", "review", "draft")?.type).toBe("reviewer-request-changes")
     expect(dropActionFor("reviewer", "review", "draft")?.reasonRequired).toBe(true)
+    expect(dropActionFor("reviewer", "review", "rejected")?.type).toBe("reviewer-request-changes")
+    expect(dropActionFor("reviewer", "review", "rejected")?.reasonRequired).toBe(true)
   })
 
   it("Given a publisher compiled card, when dropping onto published, then the publish operation resolves", () => {
@@ -28,9 +30,22 @@ describe("Board drag-and-drop mapping", () => {
     expect(dropActionFor("publisher", "compiled", "archived")).toBeNull()
   })
 
-  it("Given any card, when dropping onto the derived rejected column, then no action resolves", () => {
-    expect(dropActionFor("reviewer", "review", "rejected")).toBeNull()
+  it("Given a card outside review, when dropping onto the derived rejected column, then no action resolves", () => {
     expect(dropActionFor("editor", "draft", "rejected")).toBeNull()
+    expect(dropActionFor("reviewer", "approved", "rejected")).toBeNull()
+  })
+
+  it("Given a super-admin card, when dragging, then the union of role actions resolves per status", () => {
+    expect(canDragCard("super-admin", "draft")).toBe(true)
+    expect(dropActionFor("super-admin", "draft", "review")).toBeNull()
+    expect(dropActionFor("super-admin", "review", "rejected")?.type).toBe(
+      "reviewer-request-changes",
+    )
+    expect(dropActionFor("super-admin", "review", "approved")?.type).toBe("reviewer-approve")
+    expect(dropActionFor("super-admin", "compiled", "published")?.type).toBe("publish-operation")
+    expect(dropActionFor("super-admin", "published", "archived")?.target).toBe("archived")
+    expect(dropActionFor("super-admin", "published", "draft")?.type).toBe("draft-from-published")
+    expect(dropActionFor("super-admin", "approved", "published")).toBeNull()
   })
 
   it("Given a role without actions for the status, when dragging, then the card is not draggable and drops resolve to nothing", () => {

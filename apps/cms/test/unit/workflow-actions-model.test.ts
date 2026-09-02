@@ -64,6 +64,21 @@ describe("workflowActionsFor", () => {
     expect(workflowActionsFor("publisher", "generating")).toEqual([])
     expect(workflowActionsFor("tenant-admin", "draft")).toEqual([])
   })
+
+  it("gives super-admin the union of role actions per status", () => {
+    expect(workflowActionsFor("super-admin", "draft").map((a) => a.label)).toEqual(["开始生成"])
+    expect(workflowActionsFor("super-admin", "review").map((a) => a.label)).toEqual([
+      "审核通过",
+      "审核不通过",
+    ])
+    expect(workflowActionsFor("super-admin", "compiled").map((a) => a.label)).toEqual(["发布版本"])
+    expect(workflowActionsFor("super-admin", "published").map((a) => a.label)).toEqual([
+      "归档版本",
+      "创建新草稿",
+    ])
+    expect(workflowActionsFor("super-admin", "approved")).toEqual([])
+    expect(workflowActionsFor("super-admin", "archived")).toEqual([])
+  })
 })
 
 describe("workflowStatusLabel", () => {

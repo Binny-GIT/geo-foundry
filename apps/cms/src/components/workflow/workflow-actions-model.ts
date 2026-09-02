@@ -159,6 +159,16 @@ const TEMPLATE_KEYS: Record<string, readonly number[]> = {
   "publisher:compiled": [5],
   "publisher:published": [6],
   "reviewer:review": [3, 4],
+  /*
+   * Super-admin operates the union of role actions per status (workbench drag
+   * + article detail panel); the protected endpoints authorize it alongside
+   * the owning role and the audit entry records the super-admin actor.
+   */
+  "super-admin:draft": [0],
+  "super-admin:generating": [1, 2],
+  "super-admin:review": [3, 4],
+  "super-admin:compiled": [5],
+  "super-admin:published": [6, 7],
 }
 
 /** Bilingual workflow action list; labels resolve per UI language (zh default). */

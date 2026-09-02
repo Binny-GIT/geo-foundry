@@ -9,6 +9,7 @@ import {
   assertEditionTenantScope,
   EditionWorkflowError,
   loadWorkflowEdition,
+  numberFieldOf,
   parseWorkflowStatus,
   transitionEditionWithinTransaction,
 } from "./edition-workflow"
@@ -126,14 +127,24 @@ const reviewerClaimsOf = (user: unknown) => {
   if (claims === null) {
     throw fail("REVIEWER_EDITION_ACTOR_INVALID", "session has no valid claims")
   }
-  if (claims.kind !== "user" || claims.role !== "reviewer" || claims.tenantId === null) {
+  if (
+    claims.kind !== "user" ||
+    (claims.role !== "reviewer" && claims.role !== "super-admin")
+  ) {
     throw fail("REVIEWER_EDITION_REVIEWER_REQUIRED", "reviewer identity is required")
   }
-  const tenantId = Number(claims.tenantId)
-  if (!Number.isInteger(tenantId) || tenantId <= 0) {
-    throw fail("REVIEWER_EDITION_ACTOR_INVALID", "reviewer tenant is invalid")
+  /*
+   * Super-admin is cross-tenant (claims.tenantId is null): its decision scope
+   * is the edition's own tenant, resolved by the caller after loading the doc.
+   */
+  if (claims.role === "reviewer") {
+    const tenantId = Number(claims.tenantId)
+    if (!Number.isInteger(tenantId) || tenantId <= 0) {
+      throw fail("REVIEWER_EDITION_ACTOR_INVALID", "reviewer tenant is invalid")
+    }
+    return { claims, tenantId }
   }
-  return { claims, tenantId }
+  return { claims, tenantId: null }
 }
 
 const decisionRequestOf = (input: ReviewerEditionDecisionInput): Record<string, unknown> => ({
@@ -154,7 +165,18 @@ export async function submitReviewerEditionDecision(
   payload: Payload,
   input: ReviewerEditionDecisionInput,
 ): Promise<ReviewerEditionDecisionOutcome> {
-  const { tenantId } = reviewerClaimsOf(input.user)
+  const actor = reviewerClaimsOf(input.user)
+  /*
+   * Super-admin decisions are scoped to the edition's tenant (cross-tenant
+   * role): resolve it from the doc before deriving the idempotency key so
+   * replays land in the same partition as the owning reviewer's.
+   */
+  const tenantId =
+    actor.tenantId ??
+    numberFieldOf(
+      (await loadWorkflowEdition(payload, input.editionId, {}, true)).tenant,
+    ) ??
+    -1
   const endpoint = endpointOf(input)
   const requestHash = operationRequestHashOf(canonicalize(decisionRequestOf(input)))
   const uniqueKey = operationUniqueKeyOf(tenantId, endpoint, input.idempotencyKey)

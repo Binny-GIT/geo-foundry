@@ -176,8 +176,8 @@ const ArticleWorkflowPanel = ({
   }
 
   const showQuality =
-    role === "editor" && ["draft", "generating", "review"].includes(workflowStatus)
-  const showSchedule = role === "publisher" && ["approved", "compiled"].includes(workflowStatus)
+    (role === "editor" || role === "super-admin") && ["draft", "generating", "review"].includes(workflowStatus)
+  const showSchedule = (role === "publisher" || role === "super-admin") && ["approved", "compiled"].includes(workflowStatus)
   const hasActions = actions.length > 0 || showQuality || showSchedule
   /*
    * Role gate for the read-only decision list: when the current role cannot

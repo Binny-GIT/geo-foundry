@@ -10,18 +10,19 @@ import type { BoardColumnKey } from "./board-model"
  * Drag-and-drop mapping for the workbench board: given a card's workflow
  * status, the acting role, and the target column, resolve the workflow
  * action the drop should perform — or null when the move is not a legal
- * transition (including the derived "rejected" column, which no single
- * action can enter). Column keys map onto action targets; publish has no
- * target and is matched by its action type.
+ * transition. Column keys map onto action targets; publish has no target
+ * and is matched by its action type. The derived "rejected" column accepts
+ * the reviewer request-changes decision (审核不通过 sends the card back to
+ * draft while it keeps showing in the rejected lane).
  */
 const COLUMN_MATCHERS: Readonly<
   Record<BoardColumnKey, (action: WorkflowAction) => boolean>
 > = {
   approved: (action) => action.target === "approved",
   archived: (action) => action.target === "archived",
-  draft: (action) => action.target === "draft",
+  draft: (action) => action.target === "draft" || action.type === "draft-from-published",
   published: (action) => action.type === "publish-operation",
-  rejected: () => false,
+  rejected: (action) => action.type === "reviewer-request-changes",
   review: (action) => action.target === "review",
 }
 
