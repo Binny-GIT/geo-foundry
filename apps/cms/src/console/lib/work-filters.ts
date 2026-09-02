@@ -16,6 +16,7 @@ export type WorkQuery = Readonly<{
   range: WorkRange
   showColumns: readonly BoardColumnKey[]
   site: number | null
+  to: string | null
 }>
 
 const first = (value: string | string[] | undefined): string | null =>

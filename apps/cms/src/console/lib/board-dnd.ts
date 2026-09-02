@@ -20,7 +20,6 @@ const COLUMN_MATCHERS: Readonly<
   approved: (action) => action.target === "approved",
   archived: (action) => action.target === "archived",
   draft: (action) => action.target === "draft",
-  generating: (action) => action.target === "generating",
   published: (action) => action.type === "publish-operation",
   rejected: () => false,
   review: (action) => action.target === "review",

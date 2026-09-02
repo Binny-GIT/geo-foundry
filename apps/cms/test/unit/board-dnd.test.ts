@@ -3,12 +3,11 @@ import { describe, expect, it } from "vitest"
 import { canDragCard, dropActionFor } from "../../src/console/lib/board-dnd"
 
 describe("Board drag-and-drop mapping", () => {
-  it("Given an editor draft card, when dropping onto generating/review, then only generating resolves", () => {
-    expect(dropActionFor("editor", "draft", "generating")?.type).toBe("transition")
-    expect(dropActionFor("editor", "draft", "generating")?.target).toBe("generating")
+  it("Given an editor draft card, when dropping onto any column, then no move resolves (generation starts via the card button)", () => {
+    expect(canDragCard("editor", "draft")).toBe(true)
     expect(dropActionFor("editor", "draft", "review")).toBeNull()
     expect(dropActionFor("editor", "draft", "approved")).toBeNull()
-    expect(dropActionFor("editor", "draft", "published")).toBeNull()
+    expect(dropActionFor("editor", "draft", "draft")).toBeNull()
   })
 
   it("Given an editor generating card, when dropping onto review or draft, then transitions resolve", () => {
