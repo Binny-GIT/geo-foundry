@@ -124,6 +124,10 @@ describe("reviewer edition decision endpoints", () => {
   })
 
   it("accepts a cross-tenant super-admin decision before target lookup", async () => {
+    submitReviewerEditionDecision.mockResolvedValueOnce({
+      created: true,
+      response: { editionId: 101, workflowRevision: 4, workflowStatus: "approved" },
+    })
     const granted = await reviewerApproveEditionEndpoint.handler(
       requestOf({ expectedRevision: 3 }, { user: { id: 5, role: "super-admin" } }),
     )
