@@ -380,7 +380,10 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
           type="button"
           variant="secondary"
         >
-          <Link className="flex items-center gap-1.5" href={consoleRoute.collection("content-editions")}>
+          <Link
+            className="flex items-center gap-1.5"
+            href={consoleRoute.collection("content-editions")}
+          >
             <ArrowLeftIcon size={15} />
             返回文章列表
           </Link>

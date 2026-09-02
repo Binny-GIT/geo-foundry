@@ -142,9 +142,7 @@ const ArticleAssignmentPanel = ({
 
   return (
     <section className="gf-console-card grid gap-4 p-5">
-      <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">
-        分配
-      </h2>
+      <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">分配</h2>
 
       {notice !== null && (
         <p
@@ -211,9 +209,7 @@ const ArticleAssignmentPanel = ({
           </div>
 
           <div className="grid gap-3 border-t border-[var(--console-border)] pt-4">
-            <span className="text-sm font-semibold text-[var(--console-ink)]">
-              分发到其他站点
-            </span>
+            <span className="text-sm font-semibold text-[var(--console-ink)]">分发到其他站点</span>
             {variantSites.length === 0 ? (
               <p className="m-0 text-sm leading-6 text-[var(--console-ink-muted)]">
                 该内容已覆盖租户内全部站点。
@@ -255,7 +251,9 @@ const ArticleAssignmentPanel = ({
                   variant="secondary"
                 >
                   <PlusIcon size={15} />
-                  {pending === "variant" ? "创建中…" : `创建分发草稿${variantPicks.length > 0 ? `（${variantPicks.length}）` : ""}`}
+                  {pending === "variant"
+                    ? "创建中…"
+                    : `创建分发草稿${variantPicks.length > 0 ? `（${variantPicks.length}）` : ""}`}
                 </Button>
               </>
             )}

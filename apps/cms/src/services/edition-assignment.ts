@@ -38,7 +38,11 @@ export type EditionAssignmentInput = {
 export const applyEditionAssignment = async (
   payload: Payload,
   input: EditionAssignmentInput,
-): Promise<{ readonly editionId: number; readonly owner?: number | null; readonly site?: number }> => {
+): Promise<{
+  readonly editionId: number
+  readonly owner?: number | null
+  readonly site?: number
+}> => {
   const claims = resolveSessionClaims(input.user)
   if (
     claims === null ||
