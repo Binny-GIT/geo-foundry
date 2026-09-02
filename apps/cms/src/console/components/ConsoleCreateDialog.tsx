@@ -31,7 +31,7 @@ export const ConsoleCreateDialog = ({
 }) => (
   <Dialog>
     <DialogTrigger asChild>
-      <Button className="h-10 rounded-xl" type="button">
+      <Button className="h-10" type="button">
         <PlusIcon size={16} strokeWidth={1.65} /> 新建{createLabel}
       </Button>
     </DialogTrigger>

@@ -254,7 +254,7 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {entryUrl !== null && (
-              <Button asChild className="rounded-xl" size="sm" type="button" variant="secondary">
+              <Button asChild size="sm" type="button" variant="secondary">
                 <a href={entryUrl} rel="noreferrer" target="_blank">
                   打开站点入口
                 </a>
@@ -330,7 +330,7 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
               域名管理
             </h2>
             {canCreateDomain && (
-              <Button asChild className="rounded-xl text-xs" size="sm" type="button">
+              <Button asChild className="text-xs" size="sm" type="button">
                 <Link href="/admin/collections/domains/create">新增域名</Link>
               </Button>
             )}

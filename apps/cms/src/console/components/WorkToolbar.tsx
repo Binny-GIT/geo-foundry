@@ -131,13 +131,7 @@ export const WorkToolbar = ({
           ))}
         </select>
         {failedCount > 0 && (
-          <Button
-            asChild
-            className="border-rose-300 bg-rose-100 text-rose-800 hover:bg-rose-200"
-            size="sm"
-            type="button"
-            variant="secondary"
-          >
+          <Button asChild size="sm" type="button" variant="danger">
             <Link href={consoleRoute.collection("operations")}>
               <AlertTriangleIcon size={15} />
               {failedCount} 个失败操作

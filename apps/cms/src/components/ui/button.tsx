@@ -23,18 +23,21 @@ const buttonVariants = cva(
       },
       variant: {
         /*
-         * Standard Tailwind palette scales only (no --gf-* / --theme-*
-         * variables): this component renders inside both the Payload admin
-         * shell and the console shell, which compile two disjoint Tailwind
-         * stylesheets with separate @theme token sets.
+         * Theme-aware via --gf-btn-* tokens (var fallbacks keep the Payload
+         * admin tree on the standard palette): console.css redefines them per
+         * light/dark theme, so secondary stays solid and readable in both.
          */
-        default: "bg-indigo-500 text-white hover:bg-indigo-600",
+        default:
+          "bg-[var(--gf-btn-primary,#6366f1)] text-white shadow-sm hover:bg-[var(--gf-btn-primary-hover,#4f46e5)]",
         dark: "bg-slate-900 text-white hover:bg-slate-800",
         secondary:
-          "border border-slate-200 bg-slate-50 text-slate-900 hover:border-slate-300 hover:bg-slate-100",
-        danger: "border border-rose-200 bg-rose-50 text-rose-700 hover:brightness-[.97]",
-        ghost: "hover:bg-white/10",
-        outline: "border border-white/15 hover:bg-white/10",
+          "bg-[var(--gf-btn-secondary,#f1f5f9)] text-[var(--gf-btn-secondary-text,#0f172a)] shadow-sm hover:bg-[var(--gf-btn-secondary-hover,#e2e8f0)]",
+        danger:
+          "bg-[var(--gf-btn-danger,#fef2f2)] text-[var(--gf-btn-danger-text,#be123c)] shadow-sm hover:brightness-[.97]",
+        ghost:
+          "text-[var(--gf-btn-secondary-text,#334155)] hover:bg-[var(--gf-btn-secondary,#f1f5f9)]",
+        outline:
+          "border border-[var(--gf-btn-border,#e2e8f0)] text-[var(--gf-btn-secondary-text,#334155)] hover:bg-[var(--gf-btn-secondary,#f1f5f9)]",
       },
     },
   },

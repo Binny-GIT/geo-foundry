@@ -129,7 +129,7 @@ const ConsoleDocumentPage = async ({ params }: ConsoleDocumentPageProps) => {
               记录 {id}
             </span>
             {canEdit && (
-              <Button asChild className="rounded-xl" size="sm" type="button">
+              <Button asChild size="sm" type="button">
                 <Link href={`${consoleRoute.document(slug as ConsoleResourceSlug, id)}/edit`}>
                   编辑{resource.label.zh}
                 </Link>

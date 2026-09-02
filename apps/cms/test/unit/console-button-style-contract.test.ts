@@ -21,6 +21,29 @@ describe("console button and link style contract", () => {
     expect(consoleCss).not.toContain(".gf-console a {\n  text-decoration")
   })
 
+  it("themes Button variants through shared tokens with a restrained shadcn look", async () => {
+    const [button, consoleCss, login, panel] = await Promise.all([
+      sourceOf("src/components/ui/button.tsx"),
+      sourceOf("src/app/(console)/console.css"),
+      sourceOf("src/console/components/ConsoleLoginForm.tsx"),
+      sourceOf("src/console/components/ArticleWorkflowPanel.tsx"),
+    ])
+
+    // Token-driven variants; secondary is a solid chip (no cheap hairline).
+    expect(button).toContain("var(--gf-btn-primary,#6366f1)")
+    expect(button).toContain("shadow-sm")
+    expect(button).not.toContain("border-slate-200")
+    expect(button).not.toContain("bg-indigo-500 ")
+    expect(consoleCss).toContain("--gf-btn-primary: #4f46e5;")
+    expect(consoleCss).toContain("html[data-console-theme=\"dark\"] .gf-console {\n  --gf-btn-primary: #6366f1;")
+
+    // No per-page glow/radius overrides on the shared design.
+    expect(login).not.toContain("shadow-lg")
+    expect(panel).toContain('提交评论')
+    const commentButton = panel.slice(panel.indexOf("提交评论") - 700, panel.indexOf("提交评论"))
+    expect(commentButton).toContain('variant="secondary"')
+  })
+
   it("uses shadcn buttons for Console navigation actions and keeps entity links understated", async () => {
     const [editions, sites, article, collections, plans] = await Promise.all([
       sourceOf("src/console/components/EditionsWorkspace.tsx"),

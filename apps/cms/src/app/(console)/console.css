@@ -53,6 +53,31 @@ html[data-console-theme="dark"] .gf-console {
   --console-accent-hover: #a5b4fc;
 }
 
+/* Shared shadcn Button tokens: the component renders in both Tailwind trees,
+   so its variants reference these names (with palette fallbacks). Light keeps
+   a restrained indigo-600 primary; dark remaps every filled variant. */
+.gf-console {
+  --gf-btn-primary: #4f46e5;
+  --gf-btn-primary-hover: #4338ca;
+  --gf-btn-secondary: #eef1f6;
+  --gf-btn-secondary-hover: #e2e8f0;
+  --gf-btn-secondary-text: #0f172a;
+  --gf-btn-danger: #fef2f2;
+  --gf-btn-danger-text: #be123c;
+  --gf-btn-border: #dbe2ea;
+}
+
+html[data-console-theme="dark"] .gf-console {
+  --gf-btn-primary: #6366f1;
+  --gf-btn-primary-hover: #818cf8;
+  --gf-btn-secondary: #232b3b;
+  --gf-btn-secondary-hover: #2f3a4f;
+  --gf-btn-secondary-text: #e2e8f0;
+  --gf-btn-danger: #3b1220;
+  --gf-btn-danger-text: #fda4af;
+  --gf-btn-border: #283040;
+}
+
 .gf-console * {
   box-sizing: border-box;
 }

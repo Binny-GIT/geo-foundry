@@ -90,7 +90,7 @@ export const ConsoleLoginForm = () => {
       </a>
       <Button
         aria-label="登录"
-        className="mt-1 h-11 w-full rounded-xl shadow-lg shadow-indigo-500/20 disabled:cursor-wait"
+        className="mt-1 h-11 w-full disabled:cursor-wait"
         disabled={loading || !hydrated}
         size="lg"
         type="submit"

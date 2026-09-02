@@ -234,7 +234,7 @@ const ConsoleDashboardPage = async () => {
         actions={
           <>
             {canReadIntake && (
-              <Button asChild className="rounded-xl" size="sm" type="button" variant="secondary">
+              <Button asChild size="sm" type="button" variant="secondary">
                 <Link href="/admin/inbox">采集 / 导入</Link>
               </Button>
             )}

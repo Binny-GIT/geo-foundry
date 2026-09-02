@@ -293,6 +293,7 @@ const ArticleWorkflowPanel = ({
           onClick={() => void submitComment()}
           size="sm"
           type="button"
+          variant="secondary"
         >
           <MessageSquareIcon size={15} />
           {pending === "comment" ? "提交中…" : "提交评论"}
