@@ -75,6 +75,7 @@ export const parseWorkQuery = (
           : "30d",
     showColumns: parseColumns(first(searchParams["columns"])),
     site: positiveInt(first(searchParams["site"])),
+    to: customIsValid ? to : null,
   }
 }
 
@@ -82,7 +83,7 @@ const dateWhere = (query: WorkQuery, now: Date): Where | undefined => {
   if (query.range === "all") return undefined
 
   const today = utcDay(now)
-  if (query.range === "custom" && query.from !== null && query.to !== null) {
+  if (query.range === "custom" && query.from != null && query.to != null) {
     return {
       updatedAt: {
         greater_than_equal: `${query.from}T00:00:00.000Z`,

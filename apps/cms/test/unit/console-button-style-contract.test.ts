@@ -71,8 +71,8 @@ describe("console button and link style contract", () => {
     expect(payloadNav).toContain("hidden shrink-0 justify-end border-t border-white/10")
     expect(payloadNav).toContain("min-[1441px]:justify-center")
     expect(payloadNav).toContain("icon={collapsed ? PanelLeftOpen : PanelLeftClose}")
-    expect(payloadNav.indexOf('aria-label={collapsed ? (isZH ? "展开导航"')).toBeGreaterThan(
-      payloadNav.lastIndexOf("LogOutIcon"),
-    )
+    // Format-agnostic: the bilingual label may wrap across lines, so anchor on
+    // the label text itself rather than the exact JSX one-liner.
+    expect(payloadNav.indexOf('"展开导航"')).toBeGreaterThan(payloadNav.lastIndexOf("LogOutIcon"))
   })
 })
