@@ -11,7 +11,13 @@ import {
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { uiLangOf } from "../i18n/ui-lang"
-import { AlertTriangleIcon, ShieldCheckIcon, UsersIcon } from "../icons"
+import {
+  AlertTriangleIcon,
+  CalendarClockIcon,
+  FilePlusIcon,
+  ShieldCheckIcon,
+  UsersIcon,
+} from "@/components/icons"
 import { Badge, IconBadge } from "../ui"
 import { Button } from "../ui/button"
 import { WorkflowActions } from "../workflow/WorkflowActions"
@@ -384,7 +390,7 @@ export const ContentEditionControlRail = ({ readOnly }: { readonly readOnly: boo
             size="lg"
             type="button"
           >
-            {runningQuality ? "…" : t.qualityRun}
+            <ShieldCheckIcon size={15} /> {runningQuality ? "…" : t.qualityRun}
           </Button>
         )}
       </section>
@@ -423,7 +429,7 @@ export const ContentEditionControlRail = ({ readOnly }: { readonly readOnly: boo
                 size="lg"
                 type="button"
               >
-                {t.variant}
+                <FilePlusIcon size={15} /> {t.variant}
               </Button>
             </>
           )}
@@ -454,7 +460,7 @@ export const ContentEditionControlRail = ({ readOnly }: { readonly readOnly: boo
             size="lg"
             type="button"
           >
-            {t.schedule}
+            <CalendarClockIcon size={15} /> {t.schedule}
           </Button>
         </section>
       )}

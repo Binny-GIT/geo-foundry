@@ -2,7 +2,7 @@
 
 import { useField } from "@payloadcms/ui"
 import { type ReactNode, useEffect, useState } from "react"
-import { ChevronDownIcon, PencilIcon, PlusIcon, XIcon } from "../icons"
+import { ChevronDownIcon, PencilIcon, PlusIcon, XIcon } from "@/components/icons"
 import { Button } from "../ui/button"
 
 const isRow = (value: unknown): value is Record<string, unknown> =>
@@ -118,7 +118,7 @@ const BlockEditor = ({
   }
   if (type === "heading") {
     return (
-      <div className="grid gap-3 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start">
+      <div className="grid gap-3 @min-[420px]:grid-cols-[auto_minmax(0,1fr)] @min-[420px]:items-start">
         <select
           aria-label="标题级别"
           className="h-9 rounded-lg border border-[var(--theme-elevation-200)] bg-[var(--theme-elevation-50)] px-2 text-sm font-bold text-[var(--theme-text)]"
@@ -223,7 +223,7 @@ export const ContentEditionEditorCanvas = ({ readOnly }: { readonly readOnly: bo
               {!readOnly && rows.length > 1 && (
                 <button
                   aria-label={`删除第 ${index + 1} 个区块`}
-                  className="rounded-md p-1.5 text-[var(--theme-elevation-500)] opacity-0 transition hover:bg-[var(--gf-tone-danger-bg)] hover:text-[var(--gf-tone-danger-fg)] group-hover:opacity-100 focus:opacity-100"
+                  className="rounded-lg p-1.5 text-[var(--theme-elevation-500)] opacity-0 transition hover:bg-[var(--gf-tone-danger-bg)] hover:text-[var(--gf-tone-danger-fg)] group-hover:opacity-100 focus:opacity-100"
                   onClick={() => remove(index)}
                   type="button"
                 >
@@ -302,7 +302,7 @@ const StructuredRowsField = ({
               className="grid gap-2 rounded-lg border border-[var(--theme-elevation-150)] bg-[var(--gf-surface)] p-3"
               key={String(row["id"] ?? index)}
             >
-              <div className="grid gap-2 sm:grid-cols-2">
+              <div className="grid gap-2 @min-[520px]:grid-cols-2">
                 <input
                   aria-label={`${label} ID`}
                   className="min-h-10 rounded-md border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)]"
@@ -324,7 +324,7 @@ const StructuredRowsField = ({
                   }
                 />
               </div>
-              <div className="grid gap-2 sm:grid-cols-2">
+              <div className="grid gap-2 @min-[520px]:grid-cols-2">
                 {kind === "entity" && (
                   <input
                     aria-label="实体类型"
@@ -354,11 +354,11 @@ const StructuredRowsField = ({
               </div>
               {!readOnly && (
                 <button
-                  className="justify-self-start cursor-pointer rounded-md px-1 text-xs font-bold text-rose-600 transition-colors hover:bg-rose-50"
+                  className="justify-self-start cursor-pointer rounded-lg px-1 text-xs font-bold text-rose-600 transition-colors hover:bg-rose-50"
                   onClick={() => replace(rows.filter((_, rowIndex) => rowIndex !== index))}
                   type="button"
                 >
-                  删除
+                  <XIcon size={13} /> 删除
                 </button>
               )}
             </div>
@@ -405,7 +405,7 @@ export const ContentEditionMetadataEditor = ({ readOnly }: { readonly readOnly: 
       placeholder="用一两句话说明读者将获得什么"
       readOnly={readOnly}
     />
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="grid gap-4 @min-[520px]:grid-cols-2">
       <InlineTextField
         label="主要主题"
         path="primaryTopic"

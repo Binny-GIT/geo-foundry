@@ -291,19 +291,19 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
                 createLabel="用户"
               />
             ) : canCreate && createSupported && slug !== "users" ? (
-              <Button asChild className="h-9 rounded-xl" type="button">
+              <Button asChild size="sm" type="button">
                 <Link href={`${consoleRoute.collection(slug as ConsoleResourceSlug)}/create`}>
                   新建{resource.label.zh}
                 </Link>
               </Button>
             ) : null}
             {canUploadMedia && (
-              <Button asChild className="h-9 rounded-xl" type="button">
+              <Button asChild size="sm" type="button">
                 <Link href="/admin/collections/media/upload">上传媒体</Link>
               </Button>
             )}
             {canCreateRollbackIntent && (
-              <Button asChild className="h-9 rounded-xl" type="button" variant="danger">
+              <Button asChild size="sm" type="button" variant="danger">
                 <Link href="/admin/collections/rollback-intents/create">创建回滚意图</Link>
               </Button>
             )}
@@ -331,7 +331,7 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
                 此预览页已启用服务端权限范围读取；筛选、列偏好和写入功能将在下一批迁移中接入。
               </p>
             </div>
-            <Button className="h-10 rounded-xl" disabled size="sm" type="button" variant="secondary">
+            <Button disabled size="md" type="button" variant="secondary">
               筛选即将接入
             </Button>
           </div>

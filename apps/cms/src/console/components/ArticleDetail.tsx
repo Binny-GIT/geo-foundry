@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 
 import { CMS_ACTION, CMS_RESOURCE } from "@/access/policy"
 import { CMS_ROLE } from "@/access/roles"
+import { ArrowLeftIcon } from "@/components/icons"
 import { Button } from "@/components/ui/button"
 import ArticleBody from "@/console/components/ArticleBody"
 import ArticleWorkflowPanel from "@/console/components/ArticleWorkflowPanel"
@@ -56,6 +57,78 @@ type TimelineEntry = {
   readonly at: string
   readonly detail: string | null
   readonly title: string
+}
+
+const WORKFLOW_STEPS = [
+  { key: "draft", label: "草稿" },
+  { key: "generating", label: "生成" },
+  { key: "review", label: "待审" },
+  { key: "approved", label: "通过" },
+  { key: "compiled", label: "编译" },
+  { key: "published", label: "发布" },
+  { key: "archived", label: "归档" },
+] as const
+
+const lastAuditActionOf = (edition: Record<string, unknown>): string | null => {
+  const audit = edition["auditLog"]
+  if (!Array.isArray(audit)) return null
+  for (let index = audit.length - 1; index >= 0; index -= 1) {
+    const entry = audit[index]
+    if (typeof entry === "object" && entry !== null) {
+      const action = (entry as Record<string, unknown>)["action"]
+      if (typeof action === "string" && action.startsWith("content-edition.")) return action
+    }
+  }
+  return null
+}
+
+/*
+ * Read-only progress strip under the article header: highlights where the
+ * edition sits on the canonical pipeline and flags the "sent back to draft
+ * by review" branch so operators see why a finished-looking card is back at
+ * 草稿 (same derivation as the board's rejected column).
+ */
+const WorkflowStepper = ({
+  edition,
+  workflowStatus,
+}: {
+  readonly edition: Record<string, unknown>
+  readonly workflowStatus: string
+}) => {
+  const currentIndex = WORKFLOW_STEPS.findIndex((step) => step.key === workflowStatus)
+  const wasRejected =
+    workflowStatus === "draft" && lastAuditActionOf(edition) === "content-edition.review.draft"
+  return (
+    <div className="grid gap-1.5 pt-1">
+      <ol aria-label="工作流进度" className="m-0 flex list-none flex-wrap items-center gap-1 p-0">
+        {WORKFLOW_STEPS.map((step, index) => (
+          <li className="flex items-center gap-1" key={step.key}>
+            {index > 0 && (
+              <span aria-hidden className="px-0.5 text-xs text-slate-300">
+                →
+              </span>
+            )}
+            <span
+              className={
+                index === currentIndex
+                  ? "rounded-full bg-indigo-500 px-2.5 py-0.5 text-xs font-semibold text-white"
+                  : index < currentIndex
+                    ? "rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-600"
+                    : "rounded-full border border-[var(--console-border)] px-2.5 py-0.5 text-xs font-medium text-[var(--console-ink-muted)]"
+              }
+            >
+              {step.label}
+            </span>
+          </li>
+        ))}
+      </ol>
+      {wasRejected && (
+        <p className="m-0 rounded-xl bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-700">
+          上次审核被退回：修改后需重新提交审核（审阅角色批准或再次退回）
+        </p>
+      )}
+    </div>
+  )
 }
 
 const ArticleDetail = async ({ id }: { readonly id: string }) => {
@@ -240,7 +313,10 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
           type="button"
           variant="secondary"
         >
-          <Link href={consoleRoute.collection("content-editions")}>← 返回文章列表</Link>
+          <Link className="flex items-center gap-1.5" href={consoleRoute.collection("content-editions")}>
+            <ArrowLeftIcon size={15} />
+            返回文章列表
+          </Link>
         </Button>
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">
@@ -251,6 +327,20 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
               <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
                 {WORKFLOW_LABELS[workflowStatus] ?? workflowStatus}
               </span>
+              {siteId !== null && (
+                <Link
+                  className="gf-console-focus rounded-full border border-[var(--console-border)] bg-[var(--console-surface)] px-3 py-1 text-xs font-semibold text-[var(--console-ink)] no-underline hover:text-[var(--console-accent)]"
+                  href={consoleRoute.document("sites", String(siteId))}
+                >
+                  {siteName ?? `站点 #${String(siteId)}`}
+                </Link>
+              )}
+              <span className="rounded-full border border-[var(--console-border)] bg-[var(--console-surface)] px-3 py-1 text-xs font-semibold text-[var(--console-ink-muted)]">
+                来源：{typeof edition["creationOrigin"] === "string" ? edition["creationOrigin"] : "—"}
+              </span>
+              <span className="rounded-full border border-[var(--console-border)] bg-[var(--console-surface)] px-3 py-1 text-xs font-semibold text-[var(--console-ink-muted)]">
+                负责人：{ownerEmail ?? "未分配"}
+              </span>
               {session.role === CMS_ROLE.SUPER_ADMIN && tenantName !== null && (
                 <span className="rounded-full bg-[var(--console-surface-muted)] px-3 py-1 text-xs font-semibold text-[var(--console-ink-muted)]">
                   租户：{tenantName}
@@ -260,15 +350,16 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
                 更新于 {formatInstant(edition["updatedAt"])}（UTC）
               </span>
             </div>
+            <WorkflowStepper edition={edition} workflowStatus={workflowStatus} />
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {canEdit && (
-              <Button asChild className="rounded-xl" size="sm" type="button">
+              <Button asChild size="sm" type="button">
                 <Link href={`/admin/workspace/editions/${numericId}`}>去编辑</Link>
               </Button>
             )}
             {publicUrl !== null && (
-              <Button asChild className="rounded-xl" size="sm" type="button" variant="secondary">
+              <Button asChild size="sm" type="button" variant="secondary">
                 <a href={publicUrl} rel="noreferrer" target="_blank">
                   打开线上页面
                 </a>
@@ -284,56 +375,26 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
             <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">
               基础信息
             </h2>
-            <dl className="m-0 grid gap-4 border-t border-[var(--console-border)] pt-4 sm:grid-cols-2">
+            <div className="grid gap-4 border-t border-[var(--console-border)] pt-4 sm:grid-cols-2">
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">
+                <p className="m-0 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">
                   摘要
-                </dt>
-                <dd className="m-0 pt-1 text-sm leading-6 text-[var(--console-ink)]">
+                </p>
+                <p className="m-0 pt-1 text-sm leading-6 text-[var(--console-ink)]">
                   {typeof edition["summary"] === "string" && edition["summary"].length > 0
                     ? edition["summary"]
                     : "—"}
-                </dd>
+                </p>
               </div>
               <div>
-                <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">
-                  负责人
-                </dt>
-                <dd className="m-0 pt-1 text-sm text-[var(--console-ink)]">
-                  {ownerEmail ?? "未分配"}
-                </dd>
+                <p className="m-0 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">
+                  站点时区
+                </p>
+                <p className="m-0 pt-1 text-sm text-[var(--console-ink)]">
+                  {siteTimezone ?? "—"}
+                </p>
               </div>
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">
-                  所属站点
-                </dt>
-                <dd className="m-0 pt-1 text-sm text-[var(--console-ink)]">
-                  {siteId === null ? (
-                    "受限站点"
-                  ) : (
-                    <Link
-                      className="gf-console-focus font-semibold text-[var(--console-ink)] no-underline hover:text-[var(--console-accent)]"
-                      href={consoleRoute.document("sites", String(siteId))}
-                    >
-                      {siteName ?? `站点 #${String(siteId)}`}
-                    </Link>
-                  )}
-                  {siteTimezone !== null && (
-                    <span className="pl-2 text-xs text-[var(--console-ink-muted)]">
-                      {siteTimezone}
-                    </span>
-                  )}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">
-                  来源
-                </dt>
-                <dd className="m-0 pt-1 text-sm text-[var(--console-ink)]">
-                  {typeof edition["creationOrigin"] === "string" ? edition["creationOrigin"] : "—"}
-                </dd>
-              </div>
-            </dl>
+            </div>
           </section>
 
           <section className="gf-console-card grid gap-5 p-5 sm:p-6">

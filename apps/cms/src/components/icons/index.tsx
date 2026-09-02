@@ -32,6 +32,14 @@ export const EyeIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   </svg>
 )
 
+/** 返回导航。 */
+export const ArrowLeftIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <path d="m12 19-7-7 7-7" />
+    <path d="M19 12H5" />
+  </svg>
+)
+
 /** Quality gate / review evidence. */
 export const ShieldCheckIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">

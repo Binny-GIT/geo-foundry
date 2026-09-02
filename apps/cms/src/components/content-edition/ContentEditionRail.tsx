@@ -227,7 +227,7 @@ export const ContentEditionRail = ({
                 <li key={version.id}>
                   <button
                     aria-pressed={isSelected}
-                    className={`flex w-full items-center gap-2.5 rounded-lg border px-2.5 py-2 text-left transition-colors ${isSelected ? "border-[var(--gf-accent-300)] bg-[var(--gf-tone-accent-bg)]" : "border-transparent hover:bg-[var(--theme-elevation-50)]"}`}
+                    className={`flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition-colors ${isSelected ? "border-[var(--gf-accent-300)] bg-[var(--gf-tone-accent-bg)]" : "border-transparent hover:bg-[var(--theme-elevation-50)]"}`}
                     onClick={() => onSelectVersion(isSelected ? null : version)}
                     type="button"
                   >

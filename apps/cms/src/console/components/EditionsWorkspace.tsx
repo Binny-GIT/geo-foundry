@@ -119,10 +119,10 @@ export const EditionsWorkspace = ({
         <span />
       )}
       <div className="flex items-center gap-2">
-        <Button className="h-10 rounded-xl" type="submit">
+        <Button size="md" type="submit">
           筛选
         </Button>
-        <Button asChild className="h-10 rounded-xl" type="button" variant="secondary">
+        <Button asChild size="md" type="button" variant="secondary">
           <Link
             href={articleListHref({
               ...query,

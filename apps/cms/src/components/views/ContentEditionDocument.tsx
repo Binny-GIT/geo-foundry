@@ -25,7 +25,7 @@ import { ContentEditionPreview } from "../content-edition/ContentEditionPreview"
 import type { VersionSelection } from "../content-edition/ContentEditionRail"
 import { ContentEditionSetupFields } from "../content-edition/ContentEditionSetupFields"
 import { uiLangOf } from "../i18n/ui-lang"
-import { EyeIcon, PencilIcon } from "../icons"
+import { CheckCircleIcon, EyeIcon, PencilIcon } from "@/components/icons"
 import { Badge } from "../ui/Badge"
 import { Button } from "../ui/button"
 import {
@@ -161,21 +161,27 @@ const ContentEditionDocumentBody = ({ readOnly }: { readonly readOnly: boolean }
             )}
             {!readOnly && (
               <Button disabled={processing} size="lg" type="submit" variant="dark">
-                {processing ? t.saving : t.save}
+                <CheckCircleIcon size={15} /> {processing ? t.saving : t.save}
               </Button>
             )}
           </div>
         </div>
       </header>
 
-      <div className="gf-stagger grid min-w-0 gap-5 xl:grid-cols-[minmax(240px,0.66fr)_minmax(0,1.68fr)_minmax(300px,0.8fr)]">
+      {/* Responsive three-pane: 2xl keeps the full rail|canvas|control layout,
+       * xl fits rails+canvas while the control rail wraps to a full row, and
+       * below xl everything stacks. Track minimums (240/480/300) replace the
+       * old fixed-ratio tracks so the canvas can never be crushed under the
+       * rails; the canvas is a @container so its inner fields reflow by the
+       * canvas' own width, not the viewport. */}
+      <div className="gf-stagger grid min-w-0 gap-5 2xl:grid-cols-[minmax(240px,0.7fr)_minmax(480px,1.6fr)_minmax(300px,0.8fr)] xl:grid-cols-[minmax(240px,0.9fr)_minmax(420px,1.7fr)]">
         {id !== undefined && id !== null && (
           <ContentEditionContextRail
             onSelectVersion={setSelectedVersion}
             selectedVersion={selectedVersion}
           />
         )}
-        <section className="min-w-0">
+        <section className="@container min-w-0">
           {mode === "preview" ? (
             <div className="grid gap-4">
               <div className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-5 shadow-[var(--gf-shadow-surface)] sm:p-7">

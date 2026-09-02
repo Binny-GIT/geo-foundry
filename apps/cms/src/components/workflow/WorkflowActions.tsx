@@ -5,6 +5,12 @@ import { useRouter } from "next/navigation"
 import { useEffect, useId, useRef, useState } from "react"
 
 import { uiLangOf } from "../i18n/ui-lang"
+import {
+  CheckCircleIcon,
+  FilePlusIcon,
+  SendIcon,
+  SparklesIcon,
+} from "@/components/icons"
 import { Badge } from "../ui/Badge"
 import { Button } from "../ui/button"
 import {
@@ -249,6 +255,10 @@ export const WorkflowActions = () => {
               type="button"
               variant={action.tone === "primary" ? "default" : "secondary"}
             >
+              {action.type === "draft-from-published" ? <FilePlusIcon size={15} /> : null}
+              {action.type === "publish-operation" ? <SendIcon size={15} /> : null}
+              {action.type === "reviewer-approve" ? <CheckCircleIcon size={15} /> : null}
+              {action.target === "generating" ? <SparklesIcon size={15} /> : null}
               {pending === action.label ? M.working : action.label}
             </Button>
           ))}

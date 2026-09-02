@@ -4,7 +4,7 @@ import { toast, useAuth, useDocumentInfo, useFormFields, useTranslation } from "
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { uiLangOf } from "../i18n/ui-lang"
-import { CopyIcon, GlobeIcon, LinkIcon, UsersIcon } from "../icons"
+import { CopyIcon, GlobeIcon, LinkIcon, MessageSquareIcon, PlusIcon, UsersIcon } from "@/components/icons"
 import { IconBadge } from "../ui"
 import { Button } from "../ui/button"
 import { ContentEditionRail, type VersionSelection } from "./ContentEditionRail"
@@ -279,7 +279,7 @@ export const ContentEditionContextRail = ({
               placeholder={t.intakeId}
               value={intakeItemId}
             />
-            <div className="grid grid-cols-[1fr_auto] gap-2">
+            <div className="grid grid-cols-1 gap-2 @min-[420px]:grid-cols-[1fr_auto]">
               <select
                 aria-label={t.sourceRole}
                 className="min-h-10 rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)] focus:border-[var(--gf-accent-400)] focus:outline-none focus:ring-2 focus:ring-[var(--gf-accent-200)]"
@@ -295,7 +295,7 @@ export const ContentEditionContextRail = ({
                 size="lg"
                 type="button"
               >
-                {t.addSource}
+                <PlusIcon size={15} /> {t.addSource}
               </Button>
             </div>
           </div>
@@ -364,7 +364,7 @@ export const ContentEditionContextRail = ({
               type="button"
               variant="secondary"
             >
-              {t.addComment}
+              <MessageSquareIcon size={15} /> {t.addComment}
             </Button>
           </div>
         )}

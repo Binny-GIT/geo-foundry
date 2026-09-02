@@ -4,8 +4,10 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 
 import {
+  CalendarClockIcon,
   CheckCircleIcon,
   FilePlusIcon,
+  MessageSquareIcon,
   SendIcon,
   ShieldCheckIcon,
   SparklesIcon,
@@ -177,6 +179,18 @@ const ArticleWorkflowPanel = ({
     role === "editor" && ["draft", "generating", "review"].includes(workflowStatus)
   const showSchedule = role === "publisher" && ["approved", "compiled"].includes(workflowStatus)
   const hasActions = actions.length > 0 || showQuality || showSchedule
+  /*
+   * Role gate for the empty-state hint: which role owns the next legal move
+   * for this status (mirrors workflow-actions-model's matrix).
+   */
+  const nextRoleHint =
+    workflowStatus === "draft" || workflowStatus === "generating"
+      ? "编辑"
+      : workflowStatus === "review"
+        ? "审阅"
+        : workflowStatus === "approved" || workflowStatus === "compiled"
+          ? "发布"
+          : null
 
   return (
     <section className="gf-console-card grid gap-4 p-5">
@@ -199,7 +213,7 @@ const ArticleWorkflowPanel = ({
         <div className="grid gap-2 border-t border-[var(--console-border)] pt-4 sm:grid-cols-2">
           {actions.map((action) => (
             <Button
-              className="gf-console-focus rounded-xl disabled:cursor-wait"
+              className="gf-console-focus disabled:cursor-wait"
               disabled={pending !== null}
               key={action.label}
               onClick={() => {
@@ -210,7 +224,7 @@ const ArticleWorkflowPanel = ({
                 }
                 void runAction(action)
               }}
-              size="sm"
+              size="lg"
               type="button"
               variant={action.tone === "primary" ? "default" : "secondary"}
             >
@@ -223,10 +237,10 @@ const ArticleWorkflowPanel = ({
           ))}
           {showQuality && (
             <Button
-              className="gf-console-focus rounded-xl disabled:cursor-wait"
+              className="gf-console-focus disabled:cursor-wait"
               disabled={pending !== null}
               onClick={() => void runQuality()}
-              size="sm"
+              size="lg"
               type="button"
               variant="secondary"
             >
@@ -236,16 +250,17 @@ const ArticleWorkflowPanel = ({
           )}
           {showSchedule && (
             <Button
-              className="gf-console-focus rounded-xl disabled:cursor-wait"
+              className="gf-console-focus disabled:cursor-wait"
               disabled={pending !== null}
               onClick={() => {
                 setScheduling(true)
                 setScheduledFor("")
               }}
-              size="sm"
+              size="lg"
               type="button"
               variant="secondary"
             >
+              <CalendarClockIcon size={15} />
               创建发布排期
             </Button>
           )}
@@ -253,6 +268,7 @@ const ArticleWorkflowPanel = ({
       ) : (
         <p className="m-0 border-t border-[var(--console-border)] pt-4 text-sm leading-6 text-[var(--console-ink-muted)]">
           当前角色在此状态下没有可执行的操作。
+          {nextRoleHint !== null ? ` 下一步流转通常由${nextRoleHint}角色操作。` : ""}
         </p>
       )}
 
@@ -272,12 +288,13 @@ const ArticleWorkflowPanel = ({
           value={comment}
         />
         <Button
-          className="gf-console-focus rounded-xl"
+          className="gf-console-focus"
           disabled={pending !== null || comment.trim().length === 0}
           onClick={() => void submitComment()}
           size="sm"
           type="button"
         >
+          <MessageSquareIcon size={15} />
           {pending === "comment" ? "提交中…" : "提交评论"}
         </Button>
       </div>
@@ -308,7 +325,6 @@ const ArticleWorkflowPanel = ({
             </label>
             <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Button
-                className="rounded-xl"
                 disabled={pending !== null}
                 onClick={() => {
                   setConfirming(null)
@@ -322,7 +338,6 @@ const ArticleWorkflowPanel = ({
                 取消
               </Button>
               <Button
-                className="rounded-xl"
                 disabled={pending !== null}
                 onClick={() => {
                   if (confirming.reasonRequired === true && reason.trim().length === 0) {
@@ -368,7 +383,6 @@ const ArticleWorkflowPanel = ({
             </label>
             <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Button
-                className="rounded-xl"
                 onClick={() => setScheduling(false)}
                 size="lg"
                 type="button"
@@ -378,12 +392,12 @@ const ArticleWorkflowPanel = ({
                 取消
               </Button>
               <Button
-                className="rounded-xl"
                 disabled={scheduledFor.length === 0 || pending !== null}
                 onClick={() => void submitSchedule()}
                 size="lg"
                 type="button"
               >
+                <CalendarClockIcon size={15} />
                 {pending === "schedule" ? "处理中…" : "创建排期"}
               </Button>
             </div>

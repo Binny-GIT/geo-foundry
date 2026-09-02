@@ -102,24 +102,21 @@ const run = async () => {
       await editorPage
         .getByRole("heading", { level: 1, name: "工作台" })
         .waitFor({ timeout: TIMEOUT })
-      await editorPage
-        .getByRole("heading", { level: 2, name: "草稿" })
-        .waitFor({ timeout: TIMEOUT })
-      await editorPage
-        .getByRole("heading", { level: 2, name: "待审核" })
-        .waitFor({ timeout: TIMEOUT })
-      await editorPage.getByRole("link", { name: "全部记录" }).click()
-      await editorPage
-        .getByRole("heading", { level: 2, name: "已发布" })
-        .waitFor({ timeout: TIMEOUT })
-      await editorPage.getByRole("link", { name: "近 7 天" }).click()
+      for (const column of ["草稿", "待审核", "通过待发布", "不通过", "已发布", "已删除"]) {
+        await editorPage
+          .getByRole("heading", { level: 2, name: column })
+          .waitFor({ timeout: TIMEOUT })
+      }
+      await editorPage.getByLabel("期间范围").selectOption("7d")
       await editorPage.waitForURL(/range=7d/, { timeout: TIMEOUT })
+      const firstCardLink = editorPage.locator("section a[target=_blank]").first()
+      await firstCardLink.waitFor({ timeout: TIMEOUT })
     })
     record(
       "WS-UI-001",
-      "Workbench supports active/all views and date-range deep links",
+      "Workbench renders six status columns with range select and new-tab cards",
       true,
-      "/admin/work defaults to active columns, exposes terminal columns in 全部记录, and preserves the 7-day URL range",
+      "/admin/work shows all six board columns, the 期间范围 select deep-links range=7d, and board cards open in a new tab",
     )
     await editorPage.screenshot({ path: resolve(ARTIFACTS, "ws1-today-work.png") })
 

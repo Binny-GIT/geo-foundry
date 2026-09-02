@@ -11,6 +11,7 @@ import {
   workflowActionsFor,
 } from "@/components/workflow/workflow-actions-model"
 import { BOARD_COLUMNS, type BoardCard, type BoardColumnKey } from "@/console/lib/board-model"
+import { canDragCard, dropActionFor } from "@/console/lib/board-dnd"
 import {
   editionActionErrorMessage,
   editionEvaluationEndpointOf,
@@ -18,6 +19,7 @@ import {
   publicationPlanEndpoint,
 } from "@/console/lib/edition-workflow-client"
 import { consoleRoute } from "@/console/lib/resources"
+import { cn } from "@/lib/utils"
 
 type BoardData = Readonly<Record<BoardColumnKey, readonly BoardCard[]>>
 
@@ -46,16 +48,14 @@ const formatDate = (value: string | null): string => {
 const ReviewBoard = ({
   board,
   role,
-  showTerminalColumns,
+  showColumns,
 }: {
   readonly board: BoardData
   readonly role: string
-  readonly showTerminalColumns: boolean
+  readonly showColumns: readonly BoardColumnKey[]
 }) => {
   const router = useRouter()
-  const columns = showTerminalColumns
-    ? BOARD_COLUMNS
-    : BOARD_COLUMNS.filter((column) => column.key !== "published" && column.key !== "archived")
+  const columns = BOARD_COLUMNS.filter((column) => showColumns.includes(column.key))
   const [pendingKey, setPendingKey] = useState<string | null>(null)
   const [notice, setNotice] = useState<{ readonly ok: boolean; readonly text: string } | null>(null)
   const [confirming, setConfirming] = useState<{
@@ -65,6 +65,33 @@ const ReviewBoard = ({
   const [reason, setReason] = useState("")
   const [scheduling, setScheduling] = useState<BoardCard | null>(null)
   const [scheduledFor, setScheduledFor] = useState("")
+  const [dragCard, setDragCard] = useState<BoardCard | null>(null)
+  const [dropColumn, setDropColumn] = useState<BoardColumnKey | null>(null)
+
+  /*
+   * Drag-and-drop status change: resolve the drop target column to the
+   * legal workflow action for this card/role. Confirmation-required or
+   * reason-required moves open the existing dialog instead of firing
+   * immediately; illegal drops surface a notice instead of a silent no-op.
+   */
+  const handleDrop = (targetColumn: BoardColumnKey) => {
+    const card = dragCard
+    setDropColumn(null)
+    setDragCard(null)
+    if (card === null) return
+    const action = dropActionFor(role, card.workflowStatus, targetColumn)
+    if (action === null) {
+      const columnLabel = BOARD_COLUMNS.find((column) => column.key === targetColumn)?.label ?? targetColumn
+      setNotice({ ok: false, text: `${card.title}：当前状态不允许移动到「${columnLabel}」` })
+      return
+    }
+    if (action.confirm === true || action.reasonRequired === true) {
+      setConfirming({ action, card })
+      setReason("")
+      return
+    }
+    void runAction(action, card)
+  }
 
   const runAction = async (action: WorkflowAction, card: BoardCard, auditReason?: string) => {
     const key = `${card.id}:${action.label}`
@@ -179,11 +206,29 @@ const ReviewBoard = ({
       )}
 
       <section className="min-h-0 flex-1 overflow-auto pb-2 pr-1">
-        <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+        <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-[repeat(6,minmax(200px,1fr))]">
           {columns.map((column) => {
             const cards = board[column.key]
             return (
-              <div className="grid min-w-0 content-start gap-3" key={column.key}>
+              <div
+                className={cn(
+                  "grid min-w-0 content-start gap-3 rounded-xl transition-shadow",
+                  dropColumn === column.key && dragCard !== null
+                    ? "ring-2 ring-indigo-400 ring-offset-2 ring-offset-[var(--console-canvas)]"
+                    : "",
+                )}
+                key={column.key}
+                onDragLeave={() => setDropColumn((current) => (current === column.key ? null : current))}
+                onDragOver={(event) => {
+                  if (dragCard === null) return
+                  event.preventDefault()
+                  setDropColumn(column.key)
+                }}
+                onDrop={(event) => {
+                  event.preventDefault()
+                  handleDrop(column.key)
+                }}
+              >
                 <header className="sticky top-0 z-10 flex min-w-0 items-center justify-between gap-2 rounded-xl bg-[var(--console-surface-muted)] px-3 py-2">
                   <h2 className="m-0 flex min-w-0 items-center gap-2 text-sm font-bold text-[var(--console-ink)]">
                     <span
@@ -202,10 +247,29 @@ const ReviewBoard = ({
                   </p>
                 ) : (
                   cards.map((card) => (
-                    <article className="gf-console-card grid gap-2.5 p-3.5" key={card.id}>
+                    <article
+                      className={cn(
+                        "gf-console-card grid gap-2.5 p-3.5",
+                        canDragCard(role, card.workflowStatus) && "cursor-grab active:cursor-grabbing",
+                        dragCard?.id === card.id && "opacity-50",
+                      )}
+                      draggable={canDragCard(role, card.workflowStatus)}
+                      key={card.id}
+                      onDragEnd={() => {
+                        setDragCard(null)
+                        setDropColumn(null)
+                      }}
+                      onDragStart={(event) => {
+                        setDragCard(card)
+                        event.dataTransfer.effectAllowed = "move"
+                        event.dataTransfer.setData("text/plain", String(card.id))
+                      }}
+                    >
                       <Link
                         className="gf-console-focus truncate text-sm font-semibold text-[var(--console-ink)] no-underline hover:text-[var(--console-accent)]"
                         href={consoleRoute.document("content-editions", String(card.id))}
+                        rel="noreferrer"
+                        target="_blank"
                       >
                         {card.title}
                       </Link>

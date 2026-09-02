@@ -1,22 +1,23 @@
 import type { Where } from "payload"
 
+import { BOARD_COLUMNS, type BoardColumnKey } from "./board-model"
 import { combineWhere } from "./site-scope"
 
 export const WORK_RANGES = ["today", "7d", "30d", "custom", "all"] as const
-export const WORK_VIEWS = ["active", "all"] as const
-
 export type WorkRange = (typeof WORK_RANGES)[number]
-export type WorkView = (typeof WORK_VIEWS)[number]
+
+export const ALL_WORK_COLUMNS: readonly BoardColumnKey[] = BOARD_COLUMNS.map((column) => column.key)
 
 export type WorkQuery = Readonly<{
   from: string | null
+  owner: number | null
   page: number
+  q: string | null
   range: WorkRange
-  to: string | null
-  view: WorkView
+  showColumns: readonly BoardColumnKey[]
+  site: number | null
 }>
 
-const ACTIVE_WORKFLOW_STATUSES = ["draft", "generating", "review", "approved", "compiled"] as const
 const first = (value: string | string[] | undefined): string | null =>
   Array.isArray(value) ? (value[0] ?? null) : (value ?? null)
 
@@ -30,6 +31,15 @@ const isoDay = (value: string | null): string | null => {
   if (value === null || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
   const date = new Date(`${value}T00:00:00.000Z`)
   return !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value ? value : null
+}
+
+const parseColumns = (value: string | null): readonly BoardColumnKey[] => {
+  if (value === null) return ALL_WORK_COLUMNS
+  const keys = value
+    .split(",")
+    .map((key) => key.trim())
+    .filter((key): key is BoardColumnKey => ALL_WORK_COLUMNS.includes(key as BoardColumnKey))
+  return keys.length === 0 ? ALL_WORK_COLUMNS : [...new Set(keys)]
 }
 
 const utcDay = (value: Date): Date =>
@@ -47,22 +57,24 @@ export const parseWorkQuery = (
   searchParams: Record<string, string | string[] | undefined>,
 ): WorkQuery => {
   const rawRange = first(searchParams["range"])
-  const rawView = first(searchParams["view"])
   const from = isoDay(first(searchParams["from"]))
   const to = isoDay(first(searchParams["to"]))
   const customIsValid = from !== null && to !== null && from <= to
+  const qRaw = first(searchParams["q"])?.trim() ?? ""
 
   return {
     from: customIsValid ? from : null,
+    owner: positiveInt(first(searchParams["owner"])),
     page: positiveInt(first(searchParams["page"])) ?? 1,
+    q: qRaw.length === 0 ? null : qRaw.slice(0, 100),
     range:
       rawRange === "custom" && !customIsValid
         ? "30d"
         : WORK_RANGES.includes(rawRange as WorkRange)
           ? (rawRange as WorkRange)
           : "30d",
-    to: customIsValid ? to : null,
-    view: WORK_VIEWS.includes(rawView as WorkView) ? (rawView as WorkView) : "active",
+    showColumns: parseColumns(first(searchParams["columns"])),
+    site: positiveInt(first(searchParams["site"])),
   }
 }
 
@@ -95,9 +107,14 @@ const dateWhere = (query: WorkQuery, now: Date): Where | undefined => {
 }
 
 export const workWhere = (query: WorkQuery, now = new Date()): Where | undefined => {
-  const activeWhere: Where | undefined =
-    query.view === "active" ? { workflowStatus: { in: [...ACTIVE_WORKFLOW_STATUSES] } } : undefined
-  return combineWhere(activeWhere, dateWhere(query, now))
+  const conditions: Where[] = []
+  if (query.q !== null) conditions.push({ title: { like: query.q } })
+  if (query.owner !== null) conditions.push({ owner: { equals: query.owner } })
+  if (query.site !== null) conditions.push({ site: { equals: query.site } })
+  const dates = dateWhere(query, now)
+  if (dates !== undefined) conditions.push(dates)
+  if (conditions.length === 0) return undefined
+  return conditions.length === 1 ? conditions[0]! : { and: conditions }
 }
 
 export const scopedWorkWhere = (
@@ -110,11 +127,17 @@ export const workHref = (query: WorkQuery, overrides: Partial<WorkQuery> = {}): 
   const merged: WorkQuery = { ...query, ...overrides }
   const params = new URLSearchParams()
 
-  if (merged.view !== "active") params.set("view", merged.view)
   if (merged.range !== "30d") params.set("range", merged.range)
   if (merged.range === "custom" && merged.from !== null && merged.to !== null) {
     params.set("from", merged.from)
     params.set("to", merged.to)
+  }
+  if (merged.q !== null) params.set("q", merged.q)
+  if (merged.owner !== null) params.set("owner", String(merged.owner))
+  if (merged.site !== null) params.set("site", String(merged.site))
+  const { showColumns } = merged
+  if (showColumns.length !== ALL_WORK_COLUMNS.length) {
+    params.set("columns", [...showColumns].join(","))
   }
   if (merged.page > 1) params.set("page", String(merged.page))
 
