@@ -287,7 +287,7 @@ const ArticleWorkflowPanel = ({
                 key={`${actionRole}-${action.type}-${action.label}`}
                 size="lg"
                 type="button"
-                variant={action.tone === "primary" ? "default" : "secondary"}
+                variant="secondary"
               >
                 {action.label}（{ROLE_BADGES[actionRole] ?? actionRole}）
               </Button>
