@@ -4,9 +4,7 @@ import { useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
-
-const safeNext = (value: string | null): string =>
-  value !== null && value.startsWith("/admin") && !value.startsWith("//") ? value : "/admin"
+import { normalizeConsoleNext } from "@/console/lib/console-next"
 
 export const ConsoleLoginForm = () => {
   const params = useSearchParams()
@@ -36,7 +34,7 @@ export const ConsoleLoginForm = () => {
         setError("邮箱或密码不正确，请重试。")
         return
       }
-      window.location.assign(safeNext(params.get("next")))
+      window.location.assign(normalizeConsoleNext(params.get("next")))
     } catch {
       setError("暂时无法连接到服务，请稍后重试。")
     } finally {

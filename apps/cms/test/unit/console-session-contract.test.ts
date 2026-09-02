@@ -14,13 +14,34 @@ describe("Console human session contract", () => {
     expect(users).toContain("useAPIKey: true")
   })
 
-  it("uses Payload-verified sessions for human Console guards and routes invalid sessions to login", async () => {
-    const session = await sourceOf("src/console/lib/session.server.ts")
+  it("uses Payload-verified sessions for human Console guards and normalizes invalid return locations", async () => {
+    const [session, next] = await Promise.all([
+      sourceOf("src/console/lib/session.server.ts"),
+      sourceOf("src/console/lib/console-next.ts"),
+    ])
 
     expect(session).toContain("payload.auth({ headers: await headers() })")
     expect(session).toContain("isHumanConsoleSession")
     expect(session).toContain("session.role !== CMS_ROLE.CONTENT_SERVICE")
-    expect(session).toContain('redirect(`/admin/login?next=${encodeURIComponent(next)}`)')
+    expect(session).toContain("encodeURIComponent(normalizeConsoleNext(next))")
+    expect(next).toContain("/admin/_emergency")
+    expect(next).toContain('pathname === "/admin" || pathname.startsWith("/admin/")')
+  })
+
+  it("forwards only an internally normalized Console deep link into the authenticated layout", async () => {
+    const [proxy, layout] = await Promise.all([
+      sourceOf("src/proxy.ts"),
+      sourceOf("src/app/(console)/admin/(authenticated)/layout.tsx"),
+    ])
+
+    expect(proxy).toContain('matcher: ["/admin/:path*"]')
+    expect(proxy).toContain("requestHeaders.delete(CONSOLE_NEXT_HEADER)")
+    expect(proxy).toContain("requestHeaders.set(CONSOLE_NEXT_HEADER, next)")
+    expect(proxy).not.toContain("getPayload")
+    expect(proxy).not.toContain("payload.auth")
+    expect(layout).toContain("headers()")
+    expect(layout).toContain("requestHeaders.get(CONSOLE_NEXT_HEADER)")
+    expect(layout).toContain("requireConsoleSession(")
   })
 
   it("keeps reusable Console data context limited to human browser sessions", async () => {

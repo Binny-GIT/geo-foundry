@@ -1,3 +1,4 @@
+import { headers } from "next/headers"
 import Script from "next/script"
 import type { ReactNode } from "react"
 
@@ -8,6 +9,7 @@ import {
   type ConsoleResourceSlug,
   VISIBLE_RESOURCE_SLUGS,
 } from "@/console/lib/resources"
+import { CONSOLE_NEXT_HEADER, normalizeConsoleNext } from "@/console/lib/console-next"
 import { canConsole, requireConsoleSession } from "@/console/lib/session.server"
 
 const ROLE_LABEL: Readonly<Record<string, string>> = {
@@ -24,7 +26,10 @@ type AuthenticatedLayoutProps = {
 }
 
 const AuthenticatedConsoleLayout = async ({ children }: AuthenticatedLayoutProps) => {
-  const session = await requireConsoleSession()
+  const requestHeaders = await headers()
+  const session = await requireConsoleSession(
+    normalizeConsoleNext(requestHeaders.get(CONSOLE_NEXT_HEADER)),
+  )
   const resources = VISIBLE_RESOURCE_SLUGS.filter((slug): slug is ConsoleResourceSlug => {
     const resource = CONSOLE_RESOURCES[slug].resource
     return resource !== null && canConsole(session, resource, CMS_ACTION.READ)

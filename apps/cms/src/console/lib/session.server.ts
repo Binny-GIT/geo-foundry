@@ -7,6 +7,7 @@ import { getPayload } from "payload"
 import { CMS_ACTION, type CmsAction, type CmsResource, decideAccess } from "@/access/policy"
 import { CMS_ROLE, type CmsRole } from "@/access/roles"
 import { resolveSessionClaims, type SessionClaims } from "@/access/session"
+import { normalizeConsoleNext } from "@/console/lib/console-next"
 
 export type ConsoleSession = {
   readonly email: string
@@ -71,7 +72,7 @@ export const isHumanConsoleSession = (
 export const requireConsoleSession = async (next = "/admin"): Promise<ConsoleSession> => {
   const session = await getConsoleSession()
   if (isHumanConsoleSession(session)) return session
-  redirect(`/admin/login?next=${encodeURIComponent(next)}`)
+  redirect(`/admin/login?next=${encodeURIComponent(normalizeConsoleNext(next))}`)
 }
 
 export const requireEmergencySuperAdmin = async (): Promise<ConsoleSession> => {
@@ -88,7 +89,7 @@ export const requireEmergencySuperAdmin = async (): Promise<ConsoleSession> => {
 export const requireEmergencySession = async (next = "/admin"): Promise<ConsoleSession> => {
   const session = await getConsoleSession()
   if (isHumanConsoleSession(session)) return session
-  redirect(`/admin/login?next=${encodeURIComponent(next)}`)
+  redirect(`/admin/login?next=${encodeURIComponent(normalizeConsoleNext(next))}`)
 }
 
 export const canConsole = (
