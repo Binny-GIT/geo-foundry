@@ -5,6 +5,7 @@ import { useState } from "react"
 
 import { CheckCircleIcon, PlusIcon } from "@/components/icons"
 import { Button } from "@/components/ui/button"
+import DeferredText from "@/console/components/DeferredText"
 
 type Option = {
   readonly id: number
@@ -171,7 +172,8 @@ const ArticleAssignmentPanel = ({
                 <option value="">未分配</option>
                 {users.map((user) => (
                   <option key={user.id} value={String(user.id)}>
-                    {user.label}
+                    {/* 邮箱文本不能进 SSR HTML：Cloudflare 邮箱混淆会改写文本导致水合失败 */}
+                    <DeferredText>{user.label}</DeferredText>
                   </option>
                 ))}
               </select>

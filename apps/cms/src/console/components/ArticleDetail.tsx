@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import ArticleAssignmentPanel from "@/console/components/ArticleAssignmentPanel"
 import ArticleBody from "@/console/components/ArticleBody"
 import ArticleWorkflowPanel from "@/console/components/ArticleWorkflowPanel"
+import DeferredText from "@/console/components/DeferredText"
 import { RankedBars, TrendBars, type TrendPoint } from "@/console/components/charts"
 import { requireConsolePayloadContext } from "@/console/lib/payload.server"
 import { consoleRoute } from "@/console/lib/resources"
@@ -418,7 +419,12 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
               )}
               <span className="text-xs text-[var(--console-ink-muted)]">
                 更新于 {formatInstant(edition["updatedAt"])}
-                {updatedByEmail !== null ? ` · 更新人 ${updatedByEmail}` : ""}
+                {updatedByEmail !== null && (
+                  <>
+                    {" · 更新人 "}
+                    <DeferredText>{updatedByEmail}</DeferredText>
+                  </>
+                )}
               </span>
             </div>
           </div>
