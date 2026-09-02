@@ -32,7 +32,7 @@ const asPayload = (mock: unknown): never => mock as never
 describe("edition assignment service", () => {
   it("rejects a reviewer despite matching tenant", async () => {
     await expect(
-      applyEditionAssignment(asPayload(payload)Of(editionOf()), {
+      applyEditionAssignment(asPayload(payloadOf(editionOf())), {
         editionId: 101,
         owner: 5,
         user: reviewer,
@@ -42,7 +42,7 @@ describe("edition assignment service", () => {
 
   it("rejects an editor from another tenant", async () => {
     await expect(
-      applyEditionAssignment(asPayload(payload)Of(editionOf()), {
+      applyEditionAssignment(asPayload(payloadOf(editionOf())), {
         editionId: 101,
         owner: 5,
         user: foreignEditor,
@@ -108,7 +108,7 @@ describe("edition assignment service", () => {
 
   it("locks site reassignment once the edition is compiled", async () => {
     await expect(
-      applyEditionAssignment(asPayload(payload)Of(editionOf({ workflowStatus: "compiled" })), {
+      applyEditionAssignment(asPayload(payloadOf(editionOf({ workflowStatus: "compiled" }))), {
         editionId: 101,
         site: 22,
         user: superAdmin,
@@ -151,7 +151,7 @@ describe("edition assignment service", () => {
 
   it("rejects an empty patch", async () => {
     await expect(
-      applyEditionAssignment(asPayload(payload)Of(editionOf()), { editionId: 101, user: superAdmin }),
+      applyEditionAssignment(asPayload(payloadOf(editionOf())), { editionId: 101, user: superAdmin }),
     ).rejects.toBeInstanceOf(EditionAssignmentError)
   })
 })
