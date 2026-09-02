@@ -125,8 +125,29 @@ describe("transitionContentEdition", () => {
     expect(result).toMatchObject({ error: { code }, ok: false })
   })
 
-  it("fails closed when compilation has no passed assessment", () => {
-    // Given
+  it("grants the cross-role super-admin every guarded transition", () => {
+    // Given: the same transitions the per-role guards protect
+    const cases: readonly [ContentEditionState, ContentEditionState][] = [
+      ["draft", "generating"],
+      ["generating", "review"],
+      ["review", "approved"],
+      ["review", "draft"],
+      ["compiled", "published"],
+      ["published", "archived"],
+    ]
+
+    for (const [from, to] of cases) {
+      const result = transitionContentEdition(edition(from), to, {
+        actor: userActor("super-admin"),
+        clock,
+        expectedRevision: 7,
+        qualityAssessmentState: from === "approved" && to === "compiled" ? "passed" : null,
+      })
+      expect(result.ok, `${from} -> ${to}`).toBe(true)
+    }
+  })
+
+  it("fails closed when compilation has no passed assessment", () => {    // Given
     const approved = edition("approved")
 
     // When

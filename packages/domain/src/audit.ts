@@ -68,7 +68,11 @@ export function actorHasRole(actor: AuditActor, role: UserRole): boolean {
     case "service":
       return false
     case "user":
-      return actor.role === role
+      /*
+       * Super-admin is the cross-role operator: state machines treat it as
+       * holding every workflow role while audits keep its own identity.
+       */
+      return actor.role === role || actor.role === USER_ROLE.SUPER_ADMIN
     default:
       return assertNever(actor)
   }
