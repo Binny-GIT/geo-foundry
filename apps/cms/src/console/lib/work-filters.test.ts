@@ -19,6 +19,7 @@ describe("Workbench query", () => {
       range: "30d",
       showColumns: ALL_WORK_COLUMNS,
       site: null,
+      to: null,
     })
     expect(
       parseWorkQuery({
@@ -37,6 +38,7 @@ describe("Workbench query", () => {
       range: "30d",
       showColumns: ALL_WORK_COLUMNS,
       site: null,
+      to: null,
     })
   })
 
@@ -60,6 +62,7 @@ describe("Workbench query", () => {
       range: "custom",
       showColumns: ["draft", "review"],
       site: 12,
+      to: "2026-08-31",
     })
   })
 

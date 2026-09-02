@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { canDragCard, dropActionFor } from "@/console/lib/board-dnd"
+import { canDragCard, dropActionFor } from "../../src/console/lib/board-dnd"
 
 describe("Board drag-and-drop mapping", () => {
   it("Given an editor draft card, when dropping onto generating/review, then only generating resolves", () => {
