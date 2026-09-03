@@ -388,7 +388,7 @@ const AttentionCard = ({ panel }: { readonly panel: AttentionPanel }) => (
         <p className="m-0 mt-0.5 text-xs text-[var(--theme-elevation-600)]">{panel.count}</p>
       </div>
       <a
-        className="shrink-0 text-xs font-bold text-[var(--gf-accent-700)] no-underline hover:underline"
+        className="shrink-0 text-xs font-bold text-[var(--gf-accent-700)] no-underline hover:text-[var(--gf-accent-800)]"
         href={panel.href}
       >
         {"→"}
@@ -402,7 +402,7 @@ const AttentionCard = ({ panel }: { readonly panel: AttentionPanel }) => (
             key={`${item.href}-${item.title}`}
           >
             <a
-              className="block truncate text-sm font-semibold text-[var(--theme-text)] no-underline hover:underline"
+              className="block truncate text-sm font-semibold text-[var(--theme-text)] no-underline hover:text-[var(--gf-accent-700)]"
               href={item.href}
             >
               {item.title}
@@ -880,7 +880,7 @@ export const OperationsDashboard = async ({ i18n, payload, user }: DashboardProp
                       key={row.id}
                     >
                       <a
-                        className="truncate text-sm font-semibold text-[var(--theme-text)] no-underline hover:underline"
+                        className="truncate text-sm font-semibold text-[var(--theme-text)] no-underline hover:text-[var(--gf-accent-700)]"
                         href={`/admin/collections/sites/${row.id}`}
                       >
                         {stringOf(sitesById.get(row.id)?.["name"], t.unknownSite)}
@@ -913,7 +913,7 @@ export const OperationsDashboard = async ({ i18n, payload, user }: DashboardProp
                 <div className="grid min-w-0 gap-2" key={row.id}>
                   <div className="flex min-w-0 items-center justify-between gap-3">
                     <a
-                      className="min-w-0 truncate text-sm font-bold text-[var(--theme-text)] no-underline hover:underline"
+                      className="min-w-0 truncate text-sm font-bold text-[var(--theme-text)] no-underline hover:text-[var(--gf-accent-700)]"
                       href={`/admin/collections/sites/${row.id}`}
                     >
                       {stringOf(site?.["name"], t.unknownSite)}
@@ -1054,7 +1054,7 @@ export const OperationsDashboard = async ({ i18n, payload, user }: DashboardProp
                         </IconBadge>
                         <div className="min-w-0">
                           <a
-                            className="block truncate font-mono text-sm font-bold text-[var(--theme-text)] no-underline hover:underline"
+                            className="block truncate font-mono text-sm font-bold text-[var(--theme-text)] no-underline hover:text-[var(--gf-accent-700)]"
                             href={`/admin/collections/releases/${id}`}
                           >
                             {stringOf(release["releaseId"])}
@@ -1099,7 +1099,7 @@ export const OperationsDashboard = async ({ i18n, payload, user }: DashboardProp
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             <a
-                              className="truncate text-sm font-bold text-[var(--theme-text)] no-underline hover:underline"
+                              className="truncate text-sm font-bold text-[var(--theme-text)] no-underline hover:text-[var(--gf-accent-700)]"
                               href={`/admin/collections/operations/${id}`}
                             >
                               {OPERATION_TYPE_LABEL[lang][
@@ -1150,7 +1150,7 @@ export const OperationsDashboard = async ({ i18n, payload, user }: DashboardProp
                         </IconBadge>
                         <div className="min-w-0">
                           <a
-                            className="block truncate font-mono text-sm font-bold text-[var(--theme-text)] no-underline hover:underline"
+                            className="block truncate font-mono text-sm font-bold text-[var(--theme-text)] no-underline hover:text-[var(--gf-accent-700)]"
                             href={`/admin/collections/rollback-intents/${id}`}
                           >
                             {stringOf(intent["intentId"])}

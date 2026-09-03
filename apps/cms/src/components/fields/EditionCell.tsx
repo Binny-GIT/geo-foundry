@@ -79,7 +79,7 @@ export const EditionCell = ({ cellData }: DefaultCellComponentProps) => {
   }, [reference.id, reference.title, user])
 
   if (reference.id === null) return <span>—</span>
-  if (title !== null) return <a href={editionHrefOf(reference.id)}>{title}</a>
+  if (title !== null) return <a className="no-underline" href={editionHrefOf(reference.id)}>{title}</a>
   if (resolution === "loading") return <span>{t.loading}</span>
   return <span>{t.unavailable(reference.id)}</span>
 }

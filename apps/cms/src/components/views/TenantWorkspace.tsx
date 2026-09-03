@@ -138,7 +138,7 @@ export const TenantWorkspace = async ({
                     >
                       <div className="min-w-0">
                         <a
-                          className="block truncate text-sm font-semibold text-[var(--theme-text)] no-underline hover:underline"
+                          className="block truncate text-sm font-semibold text-[var(--theme-text)] no-underline hover:text-[var(--gf-accent-700)]"
                           href={`/admin/collections/sites/${siteId}`}
                         >
                           {stringOf(site["name"], siteId)}

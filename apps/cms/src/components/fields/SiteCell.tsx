@@ -88,7 +88,7 @@ export const SiteCell = ({ cellData }: DefaultCellComponentProps) => {
     return <span>—</span>
   }
   if (name !== null) {
-    return <a href={siteHrefOf(reference.id)}>{name}</a>
+    return <a className="no-underline" href={siteHrefOf(reference.id)}>{name}</a>
   }
   if (resolution === "loading") {
     return <span>{t.loading}</span>

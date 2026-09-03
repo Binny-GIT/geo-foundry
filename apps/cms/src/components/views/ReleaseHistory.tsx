@@ -176,7 +176,7 @@ export const ReleaseHistory = async ({
                         >
                           <div className="min-w-0">
                             <a
-                              className="block truncate font-mono text-sm font-semibold text-[var(--theme-text)] no-underline hover:underline"
+                              className="block truncate font-mono text-sm font-semibold text-[var(--theme-text)] no-underline hover:text-[var(--gf-accent-700)]"
                               href="/admin/collections/releases"
                             >
                               {release.releaseId}

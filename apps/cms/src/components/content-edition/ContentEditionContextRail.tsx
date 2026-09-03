@@ -253,7 +253,7 @@ export const ContentEditionContextRail = ({
                 </strong>
                 {source.intakeItem.sourceUrl !== null && (
                   <a
-                    className="mt-1 block truncate text-xs font-semibold text-[var(--gf-accent-700)] hover:text-[var(--gf-accent-400)]"
+                    className="mt-1 block truncate text-xs font-semibold text-[var(--gf-accent-700)] no-underline hover:text-[var(--gf-accent-400)]"
                     href={source.intakeItem.sourceUrl}
                     rel="noreferrer"
                     target="_blank"

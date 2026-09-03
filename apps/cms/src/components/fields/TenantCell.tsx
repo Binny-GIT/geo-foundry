@@ -95,7 +95,7 @@ export const TenantCell = ({ cellData }: DefaultCellComponentProps) => {
     return <span>{t.current}</span>
   }
   if (name !== null) {
-    return <a href={tenantHrefOf(reference.id)}>{name}</a>
+    return <a className="no-underline" href={tenantHrefOf(reference.id)}>{name}</a>
   }
   if (resolution === "loading") {
     return <span>{t.loading}</span>

@@ -282,7 +282,7 @@ export const SitesOperationsWorkspace = async ({ i18n, payload, user }: SitesWor
                   </span>
                   <h3 className="mt-1.5 text-base font-semibold tracking-tight">
                     <a
-                      className="text-[var(--theme-text)] no-underline hover:underline"
+                      className="text-[var(--theme-text)] no-underline hover:text-[var(--gf-accent-700)]"
                       href={`/admin/collections/sites/${siteId}`}
                     >
                       {stringOf(site["name"])}
@@ -363,7 +363,7 @@ export const SitesOperationsWorkspace = async ({ i18n, payload, user }: SitesWor
       <footer className="flex flex-col items-start justify-between gap-2 border-t border-[var(--gf-border)] pt-4 text-sm text-[var(--theme-elevation-600)] sm:flex-row sm:items-center">
         <span>{t.footerNote}</span>
         <a
-          className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[var(--gf-accent-700)] no-underline hover:underline"
+          className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-[var(--gf-accent-700)] no-underline hover:text-[var(--gf-accent-800)]"
           href="/admin/collections/content-editions?where[workflowStatus][equals]=compiled"
         >
           <SendIcon size={16} /> {t.compiledLink}

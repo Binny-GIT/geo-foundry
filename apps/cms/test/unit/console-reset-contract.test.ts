@@ -52,9 +52,13 @@ describe("scoped preflight contract", () => {
   })
 
   it("erases underlined links across the payload admin tree as well", async () => {
-    const [theme, rail] = await Promise.all([
+    const [theme, rail, sites, ops, release, tenant] = await Promise.all([
       sourceOf("src/app/(payload)/admin-theme.css"),
       sourceOf("src/components/content-edition/ContentEditionContextRail.tsx"),
+      sourceOf("src/components/sites/SitesOperationsWorkspace.tsx"),
+      sourceOf("src/components/dashboard/OperationsDashboard.tsx"),
+      sourceOf("src/components/views/ReleaseHistory.tsx"),
+      sourceOf("src/components/views/TenantWorkspace.tsx"),
     ])
 
     // Body-preview links keep their accent color but drop the UA underline.
@@ -64,8 +68,23 @@ describe("scoped preflight contract", () => {
     )
     expect(previewLink).toContain("text-decoration: none;")
 
-    // Hover feedback stays color-only on every custom admin surface.
+    // Hover feedback stays color-only on every custom admin surface; the
+    // intake sourceUrl link carries no-underline for its resting state too.
     expect(theme).not.toContain("text-decoration: underline")
-    expect(rail).not.toContain("hover:underline")
+    for (const source of [rail, sites, ops, release, tenant]) {
+      expect(source).not.toContain("hover:underline")
+    }
+    expect(rail).toContain("no-underline hover:text-[var(--gf-accent-400)]")
+  })
+
+  it("keeps payload list-cell links safe outside the table stylesheet scope", async () => {
+    const cells = await Promise.all([
+      sourceOf("src/components/fields/EditionCell.tsx"),
+      sourceOf("src/components/fields/SiteCell.tsx"),
+      sourceOf("src/components/fields/TenantCell.tsx"),
+    ])
+    for (const cell of cells) {
+      expect(cell).toContain('className="no-underline"')
+    }
   })
 })
