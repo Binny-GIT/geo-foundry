@@ -2,9 +2,10 @@ import {
   isWorkflowStatus,
   type WorkflowAction,
   workflowActionsFor,
+  workflowStatusLabel,
 } from "../../components/workflow/workflow-actions-model"
 
-import type { BoardColumnKey } from "./board-model"
+import { BOARD_COLUMNS, type BoardColumnKey } from "./board-model"
 
 /*
  * Drag-and-drop mapping for the workbench board: given a card's workflow
@@ -56,4 +57,58 @@ export const canDragCard = (role: string, workflowStatus: string): boolean => {
   if (workflowStatus === "approved") return SCHEDULE_ROLES.includes(role)
   /* archived is the terminal state: no legal moves exist by design. */
   return workflowActionsFor(role, workflowStatus, "zh").length > 0
+}
+
+/*
+ * The lane a card currently sits in (mirrors board-model's boardColumnOf,
+ * derived from the card snapshot instead of the raw edition). Dropping back
+ * onto this lane is a no-op reorder, not a workflow request.
+ */
+export const ownColumnOf = (card: {
+  readonly rejectedReason?: string | null
+  readonly workflowStatus: string
+}): BoardColumnKey | null => {
+  if (!isWorkflowStatus(card.workflowStatus)) return null
+  switch (card.workflowStatus) {
+    case "review":
+      return "review"
+    case "approved":
+    case "compiled":
+      return "approved"
+    case "published":
+      return "published"
+    case "archived":
+      return "archived"
+    default:
+      return card.rejectedReason != null ? "rejected" : "draft"
+  }
+}
+
+const columnLabelOf = (column: BoardColumnKey): string =>
+  BOARD_COLUMNS.find((entry) => entry.key === column)?.label ?? column
+
+/*
+ * Actionable guidance for illegal drops: tell the operator why the lane
+ * refuses the card and where the move has to happen instead of a bare
+ * "not allowed".
+ */
+export const dropHintFor = (
+  card: { readonly rejectedReason?: string | null; readonly workflowStatus: string },
+  targetColumn: BoardColumnKey,
+): string => {
+  const target = columnLabelOf(targetColumn)
+  if (card.workflowStatus === "draft" && targetColumn === "review") {
+    return `草稿需先在卡片上执行「开始生成」，生成完成后再拖到「${target}」`
+  }
+  if (
+    (card.workflowStatus === "draft" || card.workflowStatus === "generating") &&
+    targetColumn === "rejected"
+  ) {
+    return `「${target}」只接受待审核稿件的审阅决定`
+  }
+  if (card.workflowStatus === "archived") {
+    return "已删除是终态，不能再次流转"
+  }
+  const status = workflowStatusLabel(card.workflowStatus)
+  return `当前状态「${status}」没有移动到「${target}」的合法操作`
 }

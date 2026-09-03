@@ -10,7 +10,7 @@ import {
   type WorkflowAction,
   workflowActionsFor,
 } from "@/components/workflow/workflow-actions-model"
-import { canDragCard, dropActionFor } from "@/console/lib/board-dnd"
+import { canDragCard, dropActionFor, dropHintFor, ownColumnOf } from "@/console/lib/board-dnd"
 import { BOARD_COLUMNS, type BoardCard, type BoardColumnKey } from "@/console/lib/board-model"
 import {
   editionActionErrorMessage,
@@ -79,11 +79,14 @@ const ReviewBoard = ({
     setDropColumn(null)
     setDragCard(null)
     if (card === null) return
+    /*
+     * Dropping back onto the card's own lane is a reorder, not a workflow
+     * request — no fetch, no notice.
+     */
+    if (ownColumnOf(card) === targetColumn) return
     const action = dropActionFor(role, card.workflowStatus, targetColumn)
     if (action === null) {
-      const columnLabel =
-        BOARD_COLUMNS.find((column) => column.key === targetColumn)?.label ?? targetColumn
-      setNotice({ ok: false, text: `${card.title}：当前状态不允许移动到「${columnLabel}」` })
+      setNotice({ ok: false, text: `${card.title}：${dropHintFor(card, targetColumn)}` })
       return
     }
     if (action.type === "publish-schedule") {

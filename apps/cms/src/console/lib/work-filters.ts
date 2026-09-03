@@ -3,7 +3,7 @@ import type { Where } from "payload"
 import { BOARD_COLUMNS, type BoardColumnKey } from "./board-model"
 import { combineWhere } from "./site-scope"
 
-export const WORK_RANGES = ["today", "7d", "30d", "custom", "all"] as const
+export const WORK_RANGES = ["today", "7d", "30d", "90d", "180d", "custom", "all"] as const
 export type WorkRange = (typeof WORK_RANGES)[number]
 
 export const ALL_WORK_COLUMNS: readonly BoardColumnKey[] = BOARD_COLUMNS.map((column) => column.key)
@@ -93,12 +93,20 @@ const dateWhere = (query: WorkQuery, now: Date): Where | undefined => {
     }
   }
 
-  const start =
-    query.range === "today"
-      ? today
-      : query.range === "7d"
-        ? shiftDays(today, -6)
-        : shiftDays(today, -29)
+  const start = (() => {
+    switch (query.range) {
+      case "today":
+        return today
+      case "7d":
+        return shiftDays(today, -6)
+      case "90d":
+        return shiftDays(today, -89)
+      case "180d":
+        return shiftDays(today, -179)
+      default:
+        return shiftDays(today, -29)
+    }
+  })()
 
   return {
     updatedAt: {
@@ -155,6 +163,10 @@ export const workRangeLabel = (range: WorkRange): string => {
       return "近 7 天"
     case "30d":
       return "近 30 天"
+    case "90d":
+      return "近 3 个月"
+    case "180d":
+      return "近半年"
     case "custom":
       return "自定义"
     case "all":

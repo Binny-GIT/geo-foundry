@@ -30,6 +30,10 @@ describe("workbench server contract", () => {
 
     expect(filters).toContain("greater_than_equal")
     expect(filters).toContain("less_than")
+    expect(filters).toContain('"90d"')
+    expect(filters).toContain('"180d"')
+    expect(filters).toContain("近 3 个月")
+    expect(filters).toContain("近半年")
     expect(filters).toContain("/admin/work")
     expect(filters).toContain("showColumns")
     expect(filters).not.toContain("ACTIVE_WORKFLOW_STATUSES")

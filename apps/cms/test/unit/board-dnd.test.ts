@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { canDragCard, dropActionFor } from "../../src/console/lib/board-dnd"
+import { canDragCard, dropActionFor, dropHintFor, ownColumnOf } from "../../src/console/lib/board-dnd"
 
 describe("Board drag-and-drop mapping", () => {
   it("Given an editor draft card, when dropping onto any column, then no move resolves (generation starts via the card button)", () => {
@@ -77,5 +77,24 @@ describe("Board drag-and-drop mapping", () => {
     expect(canDragCard("editor", "review")).toBe(false)
     expect(canDragCard("editor", "draft")).toBe(true)
     expect(dropActionFor("publisher", "draft", "review")).toBeNull()
+  })
+})
+
+describe("board lane ownership and drop hints", () => {
+  it("maps each card onto its current lane, including the rejected branch", () => {
+    expect(ownColumnOf({ workflowStatus: "review" })).toBe("review")
+    expect(ownColumnOf({ workflowStatus: "approved" })).toBe("approved")
+    expect(ownColumnOf({ workflowStatus: "compiled" })).toBe("approved")
+    expect(ownColumnOf({ workflowStatus: "published" })).toBe("published")
+    expect(ownColumnOf({ workflowStatus: "archived" })).toBe("archived")
+    expect(ownColumnOf({ workflowStatus: "draft" })).toBe("draft")
+    expect(ownColumnOf({ rejectedReason: "收紧开头", workflowStatus: "draft" })).toBe("rejected")
+  })
+
+  it("explains illegal drops with actionable guidance instead of a bare refusal", () => {
+    expect(dropHintFor({ workflowStatus: "draft" }, "review")).toContain("开始生成")
+    expect(dropHintFor({ workflowStatus: "generating" }, "rejected")).toContain("只接受待审核稿件")
+    expect(dropHintFor({ workflowStatus: "archived" }, "draft")).toContain("终态")
+    expect(dropHintFor({ workflowStatus: "published" }, "approved")).toContain("已发布")
   })
 })
