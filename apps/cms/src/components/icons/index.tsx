@@ -309,6 +309,23 @@ export const KeyRoundIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   </svg>
 )
 
+/** Tenant / organization — the data boundary above sites and users. */
+export const BuildingIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <rect height="20" rx="2" width="16" x="4" y="2" />
+    <path d="M9 22v-4h6v4" />
+    <path d="M9 6h.01" />
+    <path d="M15 6h.01" />
+    <path d="M12 6h.01" />
+    <path d="M12 10h.01" />
+    <path d="M12 14h.01" />
+    <path d="M15 10h.01" />
+    <path d="M15 14h.01" />
+    <path d="M9 10h.01" />
+    <path d="M9 14h.01" />
+  </svg>
+)
+
 /**
  * One nav icon per admin sidebar entry, keyed by collection slug. `sites`
  * and `domains` intentionally share GlobeIcon — a domain is a routing

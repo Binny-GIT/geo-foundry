@@ -35,6 +35,7 @@ import { createPostgresAdapterOptions } from "./config/database"
 import { parseCmsEnvironment } from "./config/environment"
 import { PAGE_DOCUMENT_BLOCKS } from "./editor/page-document-blocks"
 import { addArticleSourceEndpoint } from "./endpoints/article-sources"
+import { changeOwnPasswordEndpoint } from "./endpoints/account-password"
 import { deliveryArticleEndpoint, deliveryArticlesEndpoint } from "./endpoints/delivery"
 import {
   editionVersionHistoryEndpoint,
@@ -186,6 +187,7 @@ export default buildConfig({
     },
   },
   endpoints: [
+    changeOwnPasswordEndpoint,
     createRollbackIntentEndpoint,
     createDraftFromPublishedEndpoint,
     submitPublishOperationEndpoint,

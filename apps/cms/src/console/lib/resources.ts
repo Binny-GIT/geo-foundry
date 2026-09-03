@@ -1,5 +1,6 @@
 import { CMS_ACTION, CMS_RESOURCE, type CmsResource } from "../../access/policy"
 import {
+  BuildingIcon,
   CheckCircleIcon,
   GlobeIcon,
   type IconProps,
@@ -75,7 +76,7 @@ export const CONSOLE_RESOURCES: Readonly<Record<ConsoleResourceSlug, ConsoleReso
     apiSlug: "tenants",
     defaultColumns: ["name", "updatedAt"],
     section: "system",
-    icon: UsersIcon,
+    icon: BuildingIcon,
     label: { en: "Tenants", zh: "租户" },
     resource: CMS_RESOURCE.TENANTS,
     subtitle: {
@@ -261,6 +262,13 @@ export const CONSOLE_NAV: Readonly<{
     { kind: "resource", slug: "sites" },
   ],
   admin: [
+    /*
+     * Tenants sit above user management: the tenant is the boundary users,
+     * sites, and articles live inside. Matrix-gated — super-admin sees every
+     * tenant (create/edit), tenant-admin a read-only view of their own;
+     * editor/reviewer/publisher get no entry at all.
+     */
+    { kind: "resource", slug: "tenants" },
     { kind: "resource", slug: "users" },
     { kind: "resource", slug: "operations" },
     { kind: "resource", slug: "media" },

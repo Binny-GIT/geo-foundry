@@ -7,7 +7,14 @@ import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
 import { GeoIcon } from "@/components/branding/GeoIcon"
-import { ChevronDownIcon, LogOutIcon, MenuIcon, UserIcon, XIcon } from "@/components/icons"
+import {
+  ChevronDownIcon,
+  KeyRoundIcon,
+  LogOutIcon,
+  MenuIcon,
+  UserIcon,
+  XIcon,
+} from "@/components/icons"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -262,8 +269,8 @@ export const ConsoleShell = ({
           </button>
           {/*
            * Account menu (moved out of the sidebar footer): identity with
-           * tenant scoping, account settings (password change lives there),
-           * and logout — the same dropdown pattern as the admin sidebar.
+           * tenant scoping, profile and password entries (each deep-links to
+           * its own tab on the account page), and logout.
            */}
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -296,7 +303,15 @@ export const ConsoleShell = ({
                   className="flex cursor-pointer items-center gap-2 text-sm"
                   href={consoleRoute.account}
                 >
-                  <UserIcon size={15} /> 账户设置（修改密码）
+                  <UserIcon size={15} /> 个人资料
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link
+                  className="flex cursor-pointer items-center gap-2 text-sm"
+                  href={`${consoleRoute.account}?tab=password`}
+                >
+                  <KeyRoundIcon size={15} /> 修改密码
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem
