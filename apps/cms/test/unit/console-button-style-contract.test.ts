@@ -30,7 +30,7 @@ describe("console button and link style contract", () => {
     ])
 
     // Official v4 spec: rounded-md, font-medium, 3px focus ring, svg padding.
-    expect(button).toContain("rounded-md text-sm font-medium")
+    expect(button).toContain("rounded-md border-0 text-sm font-medium")
     // No preflight in the console tree: the browser's default 2px outset
     // button border must be stripped explicitly (border-0 yields to the
     // outline variant's border class via tailwind-merge).
