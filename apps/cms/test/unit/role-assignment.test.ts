@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest"
 
-import { CMS_ROLE } from "../../src/access/roles"
 import { resolveRoleAssignment } from "../../src/access/role-assignment"
+import { CMS_ROLE, type CmsRole } from "../../src/access/roles"
 import type { SessionClaims } from "../../src/access/session"
 
-const claimsOf = (role: CMS_ROLE, userId = "1115"): SessionClaims => ({
+const claimsOf = (role: CmsRole, userId = "1115"): SessionClaims => ({
   kind: "user",
   role,
   tenantId: role === CMS_ROLE.SUPER_ADMIN ? null : 413,

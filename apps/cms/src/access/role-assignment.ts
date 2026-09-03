@@ -12,8 +12,9 @@ const ASSIGNABLE_BY_TENANT_ADMIN: readonly CmsRole[] = [
 export type RoleAssignmentInput = {
   readonly incoming: unknown
   readonly claims: SessionClaims | null
-  readonly originalRole: unknown
-  readonly originalUserId: unknown
+  /* Only present on updates; a create has no original document. */
+  readonly originalRole?: unknown
+  readonly originalUserId?: unknown
   readonly usersEmpty: boolean
 }
 
