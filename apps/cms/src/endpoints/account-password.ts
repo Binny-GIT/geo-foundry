@@ -45,11 +45,23 @@ export const changeOwnPasswordEndpoint: Endpoint = {
     if (!parsed.success) return response(400, { error: { code: "ACCOUNT_PASSWORD_BODY_INVALID" } })
 
     const email = typeof req.user?.email === "string" ? req.user.email : ""
-    const verified = await req.payload.auth({
-      collection: "users",
-      data: { email, password: parsed.data.currentPassword },
-    })
-    if (verified.user === null || verified.user.id !== claims.userId) {
+    /*
+     * Re-verify the current password through the login credential path —
+     * payload.login validates email+password exactly like sign-in and throws
+     * on mismatch; a live session alone never authorizes a silent rotation.
+     */
+    let verifiedUserId: number | string | null = null
+    try {
+      const login = await req.payload.login({
+        collection: "users",
+        data: { email, password: parsed.data.currentPassword },
+        req,
+      })
+      verifiedUserId = login.user?.id ?? null
+    } catch {
+      verifiedUserId = null
+    }
+    if (verifiedUserId === null || String(verifiedUserId) !== claims.userId) {
       return response(400, { error: { code: "ACCOUNT_PASSWORD_CURRENT_INVALID" } })
     }
 

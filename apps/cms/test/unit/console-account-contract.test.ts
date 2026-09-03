@@ -97,7 +97,7 @@ describe("console tenant nav and account settings contract", () => {
     expect(endpoint).toContain('path: "/users/me/password"')
     expect(endpoint).toContain('method: "post"')
     // Current password goes through the same credential path as login.
-    expect(endpoint).toContain("req.payload.auth")
+    expect(endpoint).toContain("req.payload.login")
     expect(endpoint).toContain("ACCOUNT_PASSWORD_CURRENT_INVALID")
     // The update touches only the password field, with the invariant hook
     // satisfied by the stored role/tenant (originalDoc fallback).

@@ -11,7 +11,14 @@ describe("Console navigation contract", () => {
     const navSlugs = [...CONSOLE_NAV.business, ...CONSOLE_NAV.admin].flatMap((item) =>
       item.kind === "resource" ? [item.slug] : [],
     )
-    expect(navSlugs).toEqual(["content-editions", "sites", "users", "operations", "media"])
+    expect(navSlugs).toEqual([
+      "content-editions",
+      "sites",
+      "tenants",
+      "users",
+      "operations",
+      "media",
+    ])
   })
 
   it("leads with the console and workbench, then registry resources", () => {
@@ -37,7 +44,6 @@ describe("Console navigation contract", () => {
       "rollback-intents",
       "performance-snapshots",
       "contents",
-      "tenants",
       "publication-plans",
     ] as const
     for (const slug of offNavSlugs) {

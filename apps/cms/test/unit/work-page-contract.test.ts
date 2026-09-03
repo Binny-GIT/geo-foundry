@@ -54,7 +54,7 @@ describe("workbench server contract", () => {
 
     expect(toolbar).toContain("gf-work-filters")
     expect(toolbar).toContain("localStorage")
-    expect(toolbar).toContain("const [filterOpen, setFilterOpen] = useState(false)")
+    expect(toolbar).toContain("const [filterOpen, setFilterOpen] = useState(true)")
     expect(toolbar).toContain("FilterIcon")
     expect(toolbar).toContain("FilePlusIcon")
   })
