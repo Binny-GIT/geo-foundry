@@ -80,7 +80,7 @@ describe("console tenant nav and account settings contract", () => {
   it("wires the password form to the self-service endpoint with server-side validation copy", async () => {
     const form = await sourceOf("src/console/components/ConsolePasswordForm.tsx")
 
-    expect(form).toContain('"/api/users/me/password"')
+    expect(form).toContain('"/api/account/password"')
     expect(form).toContain("currentPassword")
     expect(form).toContain("ACCOUNT_PASSWORD_CURRENT_INVALID")
     expect(form).toContain("minLength={8}")
@@ -94,7 +94,9 @@ describe("console tenant nav and account settings contract", () => {
     ])
 
     expect(config).toContain("changeOwnPasswordEndpoint")
-    expect(endpoint).toContain('path: "/users/me/password"')
+    // Mounted under /api/account — the /api/users tree belongs to the auth
+    // collection's REST layer and terminal-404s unknown sub-routes.
+    expect(endpoint).toContain('path: "/account/password"')
     expect(endpoint).toContain('method: "post"')
     // Current password goes through the same credential path as login.
     expect(endpoint).toContain("req.payload.login")

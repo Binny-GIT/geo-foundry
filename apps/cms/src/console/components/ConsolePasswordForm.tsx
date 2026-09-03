@@ -36,7 +36,7 @@ const ConsolePasswordForm = () => {
     setPending(true)
     setNotice(null)
     try {
-      const response = await fetch("/api/users/me/password", {
+      const response = await fetch("/api/account/password", {
         body: JSON.stringify({ currentPassword, newPassword }),
         credentials: "same-origin",
         headers: { "content-type": "application/json" },

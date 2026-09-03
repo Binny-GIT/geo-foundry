@@ -26,6 +26,12 @@ const response = (status: number, body: unknown): Response =>
     status,
   })
 
+/*
+ * Path note: /api/account/* — NOT /api/users/* — because Payload reserves
+ * the /api/users tree for the auth collection's own REST layer, which
+ * answers unknown sub-routes with a terminal 404 before custom endpoints
+ * can match (verified live on mk-dev).
+ */
 export const changeOwnPasswordEndpoint: Endpoint = {
   handler: async (req: PayloadRequest) => {
     const claims = resolveSessionClaims(req.user)
@@ -74,5 +80,5 @@ export const changeOwnPasswordEndpoint: Endpoint = {
     return response(200, { ok: true })
   },
   method: "post",
-  path: "/users/me/password",
+  path: "/account/password",
 }
