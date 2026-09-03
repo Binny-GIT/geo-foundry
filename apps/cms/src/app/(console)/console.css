@@ -152,6 +152,48 @@ html[data-console-theme="dark"] .gf-console {
   outline-offset: 2px;
 }
 
+/*
+ * Radix portals (dropdown / dialog / popover) mount under <body>, OUTSIDE
+ * .gf-console, so the scoped preflight above never reaches them and native
+ * link styling (blue + underline) resurfaces inside these floating layers.
+ * These slot-keyed rules close that gap; they sit unlayered after the
+ * utilities import, so explicit utility classes on portal links still win.
+ */
+[data-slot="dropdown-menu-content"] a,
+[data-slot="dialog-content"] a,
+[data-slot="popover-content"] a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Dark theme reaches portals too (the attribute lives on <html>, above them). */
+html[data-console-theme="dark"] [data-slot="dropdown-menu-content"] {
+  background: #171b26;
+  border-color: #283040;
+  color: #e7e9ee;
+}
+html[data-console-theme="dark"] [data-slot="dropdown-menu-content"] strong {
+  color: #f1f5f9;
+}
+html[data-console-theme="dark"] [data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-item"] {
+  color: #e2e8f0;
+}
+html[data-console-theme="dark"]
+  [data-slot="dropdown-menu-content"]
+  [data-slot="dropdown-menu-item"][data-highlighted] {
+  background: #232b3b;
+}
+html[data-console-theme="dark"] [data-slot="dropdown-menu-content"] .gf-menu-sep {
+  background: #283040;
+}
+html[data-console-theme="dark"] [data-slot="dropdown-menu-content"] .gf-menu-identity {
+  color: #a8b2c1;
+}
+html[data-console-theme="dark"] [data-slot="dropdown-menu-content"] .gf-menu-icon {
+  background: rgb(255 255 255 / 8%);
+  color: #a5b4fc;
+}
+
 .gf-console-card {
   background: var(--console-surface);
   border: 1px solid var(--console-border);

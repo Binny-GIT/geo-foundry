@@ -51,6 +51,18 @@ describe("scoped preflight contract", () => {
     expect(css).not.toContain("button:not([data-slot=")
   })
 
+  it("closes the preflight gap for radix portals mounted outside .gf-console", async () => {
+    const css = await sourceOf("src/app/(console)/console.css")
+
+    // Dropdown/dialog/popover portals live under <body>; without these
+    // slot-keyed rules the native blue underline resurfaces inside them.
+    expect(css).toContain('[data-slot="dropdown-menu-content"] a')
+    expect(css).toContain('[data-slot="dialog-content"] a')
+    expect(css).toContain('[data-slot="popover-content"] a')
+    // Portals need their own dark-theme mapping (the tokens live on .gf-console).
+    expect(css).toContain('html[data-console-theme="dark"] [data-slot="dropdown-menu-content"]')
+  })
+
   it("erases underlined links across the payload admin tree as well", async () => {
     const [theme, rail, sites, ops, release, tenant] = await Promise.all([
       sourceOf("src/app/(payload)/admin-theme.css"),

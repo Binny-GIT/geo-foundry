@@ -270,7 +270,9 @@ export const ConsoleShell = ({
           {/*
            * Account menu (moved out of the sidebar footer): identity with
            * tenant scoping, profile and password entries (each deep-links to
-           * its own tab on the account page), and logout.
+           * its own tab on the account page), and logout. The panel portals
+           * under <body>, so its theme/link rules live in console.css under
+           * [data-slot="dropdown-menu-content"], not in the .gf-console scope.
            */}
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -285,40 +287,54 @@ export const ConsoleShell = ({
               </span>
               <ChevronDownIcon size={14} />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
-              <div className="grid gap-0.5 px-2.5 py-2">
-                <strong className="truncate text-sm font-semibold text-slate-900">
-                  {navigation.session.email}
-                </strong>
-                <span className="text-xs text-slate-500">
-                  {navigation.session.roleLabel}
-                  {navigation.session.tenantName === null
-                    ? ""
-                    : ` · 租户：${navigation.session.tenantName}`}
-                </span>
+            <DropdownMenuContent align="end" className="w-72 rounded-xl p-1.5 shadow-xl">
+              <div className="gf-menu-identity grid gap-1 px-2.5 py-2.5">
+                <div className="flex items-center gap-3">
+                  <span className="grid size-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 text-sm font-bold text-white">
+                    {initialOf(navigation.session.email)}
+                  </span>
+                  <div className="min-w-0">
+                    <strong className="block truncate text-sm font-semibold text-slate-900">
+                      {navigation.session.email}
+                    </strong>
+                    <span className="block truncate pt-0.5 text-xs">
+                      {navigation.session.roleLabel}
+                      {navigation.session.tenantName === null
+                        ? ""
+                        : ` · 租户：${navigation.session.tenantName}`}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="my-1 h-px bg-slate-100" />
+              <div className="gf-menu-sep my-1 h-px bg-slate-100" />
               <DropdownMenuItem asChild>
-                <Link
-                  className="flex cursor-pointer items-center gap-2 text-sm"
-                  href={consoleRoute.account}
-                >
-                  <UserIcon size={15} /> 个人资料
+                <Link className="flex items-center gap-2.5 px-2.5 py-2" href={consoleRoute.account}>
+                  <span className="gf-menu-icon grid size-7 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-600">
+                    <UserIcon size={14} />
+                  </span>
+                  个人资料
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link
-                  className="flex cursor-pointer items-center gap-2 text-sm"
+                  className="flex items-center gap-2.5 px-2.5 py-2"
                   href={`${consoleRoute.account}?tab=password`}
                 >
-                  <KeyRoundIcon size={15} /> 修改密码
+                  <span className="gf-menu-icon grid size-7 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-600">
+                    <KeyRoundIcon size={14} />
+                  </span>
+                  修改密码
                 </Link>
               </DropdownMenuItem>
+              <div className="gf-menu-sep my-1 h-px bg-slate-100" />
               <DropdownMenuItem
-                className="flex cursor-pointer items-center gap-2 text-sm text-rose-600 focus:bg-rose-50 focus:text-rose-700"
+                className="flex items-center gap-2.5 px-2.5 py-2 text-rose-600 focus:bg-rose-50 focus:text-rose-700"
                 onSelect={() => void logout()}
               >
-                <LogOutIcon size={15} /> 退出登录
+                <span className="grid size-7 shrink-0 place-items-center rounded-md bg-rose-50 text-rose-500">
+                  <LogOutIcon size={14} />
+                </span>
+                退出登录
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
