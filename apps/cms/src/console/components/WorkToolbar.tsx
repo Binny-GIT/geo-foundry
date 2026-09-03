@@ -65,13 +65,14 @@ export const WorkToolbar = ({
   readonly sites: readonly SiteOption[]
 }) => {
   const router = useRouter()
-  const [filterOpen, setFilterOpen] = useState(true)
+  const [filterOpen, setFilterOpen] = useState(false)
   const [search, setSearch] = useState(query.q ?? "")
 
   /*
    * Filter memory: on first mount with a clean URL, restore the persisted
    * filters by rewriting the URL (deep links always win over memory). Every
-   * subsequent query change is mirrored back into localStorage.
+   * subsequent query change is mirrored back into localStorage. The filter
+   * bar stays collapsed unless the visitor explicitly opened it before.
    */
   useEffect(() => {
     let stored: StoredFilters = {}
@@ -80,7 +81,7 @@ export const WorkToolbar = ({
     } catch {
       stored = {}
     }
-    if (stored.filterOpen === false) setFilterOpen(false)
+    if (stored.filterOpen === true) setFilterOpen(true)
     if (!hasQueryParams() && Object.keys(stored).length > 0) {
       const restored = workHref({
         ...query,
@@ -194,10 +195,10 @@ export const WorkToolbar = ({
               value={search}
             />
           </form>
-          <div className="ml-auto flex flex-wrap items-center gap-2">
+          <div className="ml-auto flex shrink-0 flex-wrap items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger
-                className="gf-console-focus flex h-9 cursor-pointer items-center gap-1.5 rounded-md border border-[var(--console-border)] bg-[var(--console-surface)] px-2.5 text-sm text-[var(--console-ink)] outline-none"
+                className="gf-console-focus flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-[var(--console-border)] bg-[var(--console-surface)] px-2.5 text-sm text-[var(--console-ink)] outline-none"
                 aria-label="筛选状态列"
               >
                 <span className="font-medium">
@@ -228,7 +229,7 @@ export const WorkToolbar = ({
             </DropdownMenu>
             <select
               aria-label="分配人"
-              className={selectClass}
+              className={`${selectClass} w-44 shrink-0`}
               onChange={(event) =>
                 go({ owner: event.target.value === "" ? null : Number(event.target.value) })
               }
@@ -243,7 +244,7 @@ export const WorkToolbar = ({
             </select>
             <select
               aria-label="站点"
-              className={selectClass}
+              className={`${selectClass} w-36 shrink-0`}
               onChange={(event) =>
                 go({ site: event.target.value === "" ? null : Number(event.target.value) })
               }

@@ -45,7 +45,25 @@ describe("Board drag-and-drop mapping", () => {
     expect(dropActionFor("super-admin", "compiled", "published")?.type).toBe("publish-operation")
     expect(dropActionFor("super-admin", "published", "archived")?.target).toBe("archived")
     expect(dropActionFor("super-admin", "published", "draft")?.type).toBe("draft-from-published")
-    expect(dropActionFor("super-admin", "approved", "published")).toBeNull()
+  })
+
+  it("Given an approved card, when a publisher drops it on published, then the schedule dialog action resolves", () => {
+    expect(canDragCard("publisher", "approved")).toBe(true)
+    expect(canDragCard("super-admin", "approved")).toBe(true)
+    expect(canDragCard("editor", "approved")).toBe(false)
+    expect(dropActionFor("publisher", "approved", "published")).toMatchObject({
+      type: "publish-schedule",
+      label: "创建发布排期",
+    })
+    expect(dropActionFor("editor", "approved", "published")).toBeNull()
+    expect(dropActionFor("publisher", "approved", "draft")).toBeNull()
+  })
+
+  it("Given an archived card, when any role drags, then no card moves exist because archived is terminal", () => {
+    expect(canDragCard("super-admin", "archived")).toBe(false)
+    expect(canDragCard("publisher", "archived")).toBe(false)
+    expect(dropActionFor("super-admin", "archived", "draft")).toBeNull()
+    expect(dropActionFor("super-admin", "archived", "published")).toBeNull()
   })
 
   it("Given a role without actions for the status, when dragging, then the card is not draggable and drops resolve to nothing", () => {

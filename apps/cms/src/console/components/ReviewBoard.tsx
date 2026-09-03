@@ -86,6 +86,13 @@ const ReviewBoard = ({
       setNotice({ ok: false, text: `${card.title}：当前状态不允许移动到「${columnLabel}」` })
       return
     }
+    if (action.type === "publish-schedule") {
+      // approved → 已发布：先排期，编译与上线由发布链路完成。
+      setNotice(null)
+      setScheduling(card)
+      setScheduledFor("")
+      return
+    }
     if (action.confirm === true || action.reasonRequired === true) {
       setConfirming({ action, card })
       setReason("")
@@ -278,10 +285,12 @@ const ReviewBoard = ({
                       >
                         {card.title}
                       </Link>
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[var(--console-ink-muted)]">
-                        <span className="truncate">{card.siteName ?? "受限站点"}</span>
+                      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[var(--console-ink-muted)]">
+                        <span className="min-w-0 max-w-full truncate">{card.siteName ?? "受限站点"}</span>
                         <span aria-hidden="true">·</span>
-                        <span className="truncate">{card.ownerEmail ?? "未分配"}</span>
+                        <span className="min-w-0 max-w-full truncate">
+                          {card.ownerEmail ?? "未分配"}
+                        </span>
                         <span aria-hidden="true">·</span>
                         <span>{formatDate(card.updatedAt)}</span>
                         {card.workflowStatus === "generating" && (
@@ -296,7 +305,7 @@ const ReviewBoard = ({
                         </p>
                       )}
                       {cardActions(card).length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 border-t border-[var(--console-border)] pt-2">
+                        <div className="flex min-w-0 flex-wrap gap-1.5 border-t border-[var(--console-border)] pt-2">
                           {cardActions(card).map((action) => (
                             <Button
                               className="h-7 px-2.5 text-[11px]"
