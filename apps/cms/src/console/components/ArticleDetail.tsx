@@ -446,12 +446,16 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
       </header>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="grid min-w-0 gap-6">
-          <section className="gf-console-card grid gap-4 p-5 sm:p-6">
-            <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">
-              基础信息
-            </h2>
-            <p className="m-0 border-t border-[var(--console-border)] pt-4 text-sm leading-7 text-[var(--console-ink)]">
+        {/*
+         * self-start keeps the reading column at its content height: grid
+         * cells stretch by default, so a tall operations rail used to inflate
+         * these two cards into hundreds of pixels of empty space on short
+         * articles. The summary card carries only the description text
+         * (user direction: no "基础信息" heading, no extra chrome).
+         */}
+        <div className="grid min-w-0 gap-6 self-start">
+          <section className="gf-console-card p-5 sm:p-6">
+            <p className="m-0 text-sm leading-7 text-[var(--console-ink)]">
               {typeof edition["summary"] === "string" && edition["summary"].length > 0
                 ? edition["summary"]
                 : "暂无摘要；可在编辑页补充。"}

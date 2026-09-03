@@ -88,6 +88,11 @@ describe("console button and link style contract", () => {
     expect(sites).toContain('variant="secondary"')
     expect(plans).toContain('variant={view === "day" ? "default" : "secondary"}')
     expect(article).toContain("hover:text-[var(--console-accent)]")
+    // Reading column hugs its content (grid cells stretch by default and a
+    // tall operations rail used to inflate short-article cards), and the
+    // summary card carries only the description — no 基础信息 heading.
+    expect(article).toContain("grid min-w-0 gap-6 self-start")
+    expect(article).not.toContain("基础信息")
   })
 
   it("renders terminal pagination controls as real disabled buttons instead of disabled-looking links", async () => {
