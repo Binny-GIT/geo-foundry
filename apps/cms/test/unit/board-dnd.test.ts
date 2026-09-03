@@ -18,15 +18,19 @@ describe("Board drag-and-drop mapping", () => {
 
   it("Given a reviewer review card, when dropping onto approved, draft, or rejected, then reviewer decisions resolve", () => {
     expect(dropActionFor("reviewer", "review", "approved")?.type).toBe("reviewer-approve")
-    expect(dropActionFor("reviewer", "review", "draft")?.type).toBe("reviewer-request-changes")
-    expect(dropActionFor("reviewer", "review", "draft")?.reasonRequired).toBe(true)
-    expect(dropActionFor("reviewer", "review", "rejected")?.type).toBe("reviewer-request-changes")
-    expect(dropActionFor("reviewer", "review", "rejected")?.reasonRequired).toBe(true)
+    expect(dropActionFor("reviewer", "review", "draft")).toMatchObject({
+      type: "reviewer-request-changes",
+      reasonRequired: true,
+    })
+    expect(dropActionFor("reviewer", "review", "rejected")).toMatchObject({
+      type: "reviewer-request-changes",
+      reasonRequired: true,
+    })
   })
 
   it("Given a publisher compiled card, when dropping onto published, then the publish operation resolves", () => {
     expect(dropActionFor("publisher", "compiled", "published")?.type).toBe("publish-operation")
-    expect(dropActionFor("publisher", "published", "archived")?.target).toBe("archived")
+    expect(dropActionFor("publisher", "published", "archived")).toMatchObject({ target: "archived" })
     expect(dropActionFor("publisher", "compiled", "archived")).toBeNull()
   })
 
@@ -43,7 +47,9 @@ describe("Board drag-and-drop mapping", () => {
     )
     expect(dropActionFor("super-admin", "review", "approved")?.type).toBe("reviewer-approve")
     expect(dropActionFor("super-admin", "compiled", "published")?.type).toBe("publish-operation")
-    expect(dropActionFor("super-admin", "published", "archived")?.target).toBe("archived")
+    expect(dropActionFor("super-admin", "published", "archived")).toMatchObject({
+      target: "archived",
+    })
     expect(dropActionFor("super-admin", "published", "draft")?.type).toBe("draft-from-published")
   })
 
