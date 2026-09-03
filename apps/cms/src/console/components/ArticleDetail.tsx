@@ -451,7 +451,7 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
          * cells stretch by default, so a tall operations rail used to inflate
          * these two cards into hundreds of pixels of empty space on short
          * articles. The summary card carries only the description text
-         * (user direction: no "基础信息" heading, no extra chrome).
+         * (user direction: description only — no card heading, no chrome).
          */}
         <div className="grid min-w-0 gap-6 self-start">
           <section className="gf-console-card p-5 sm:p-6">
