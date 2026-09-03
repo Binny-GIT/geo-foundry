@@ -11,8 +11,8 @@ describe("Board drag-and-drop mapping", () => {
   })
 
   it("Given an editor generating card, when dropping onto review or draft, then transitions resolve", () => {
-    expect(dropActionFor("editor", "generating", "review")?.target).toBe("review")
-    expect(dropActionFor("editor", "generating", "draft")?.target).toBe("draft")
+    expect(dropActionFor("editor", "generating", "review")).toMatchObject({ target: "review" })
+    expect(dropActionFor("editor", "generating", "draft")).toMatchObject({ target: "draft" })
     expect(dropActionFor("editor", "generating", "approved")).toBeNull()
   })
 
