@@ -33,9 +33,12 @@ const Block = ({ raw }: { readonly raw: unknown }) => {
   if (type === "list") {
     const items = textsOf(block["items"])
     return (
-      <ul className="m-0 grid list-disc gap-1.5 pl-6 text-[15px] leading-7 text-[var(--console-ink)]">
+      {/* grid/flex 容器不渲染列表 marker，正文圆点需要 ul 保持原生 display */}
+      <ul className="m-0 list-disc pl-6 text-[15px] leading-7 text-[var(--console-ink)]">
         {items.map((item, index) => (
-          <li key={index}>{item}</li>
+          <li className="mb-1.5 last:mb-0" key={index}>
+            {item}
+          </li>
         ))}
       </ul>
     )

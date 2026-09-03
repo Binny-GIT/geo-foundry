@@ -87,4 +87,17 @@ describe("scoped preflight contract", () => {
       expect(cell).toContain('className="no-underline"')
     }
   })
+
+  it("keeps editorial bullet lists on native display so markers render", async () => {
+    const [body, docs] = await Promise.all([
+      sourceOf("src/console/components/ArticleBody.tsx"),
+      sourceOf("src/app/(console)/admin/(authenticated)/integration-docs/page.tsx"),
+    ])
+
+    // A grid/flex <ul> never renders list markers (display must stay
+    // list-item); item spacing belongs on the <li> instead of a container gap.
+    expect(body).not.toContain("grid list-disc")
+    expect(docs).not.toContain("grid list-disc")
+    expect(body).toContain('className="m-0 list-disc pl-6')
+  })
 })

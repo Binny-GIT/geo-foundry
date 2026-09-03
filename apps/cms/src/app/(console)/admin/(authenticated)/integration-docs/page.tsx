@@ -30,7 +30,7 @@ const IntegrationDocsPage = async () => {
           文章列表
         </h2>
         <CodeBlock>{`GET /api/delivery/sites/{canonical-domain}/articles?page=1&limit=20&q=关键词`}</CodeBlock>
-        <ul className="m-0 grid list-disc gap-1.5 pl-6 text-sm leading-6 text-[var(--console-ink-muted)]">
+        <ul className="m-0 list-disc pl-6 text-sm leading-6 text-[var(--console-ink-muted)] [&>li]:mb-1.5 [&>li]:last:mb-0">
           <li>
             <code>page</code> / <code>limit</code>：分页，limit 上限 50，默认 20。
           </li>
