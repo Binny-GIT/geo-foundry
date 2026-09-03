@@ -88,7 +88,7 @@ const reviewerDecision = async (page, editionId, label, reason, expectedState) =
     page.waitForResponse(
       (candidate) =>
         candidate.request().method() === "POST" &&
-        candidate.url().includes("/api/workspaces/reviewer/editions/"),
+        candidate.url().includes("/workflow-transitions"),
       { timeout: 60_000 },
     ),
     dialog.getByRole("button", { name: /确认操作|Confirm action/ }).click(),
@@ -237,20 +237,10 @@ try {
   )
   await editorPage.getByRole("button", { name: "保存草稿" }).click()
   if (!(await saveResponse).ok()) throw new Error("BROWSER_BUSINESS_SAVE_FAILED")
-  const evaluationButton = editorPage.getByRole("button", { name: "运行质量检查" })
-  await evaluationButton.waitFor({ timeout: 60_000 })
-  const evaluationResponse = editorPage.waitForResponse(
-    (candidate) => candidate.request().method() === "POST" && candidate.url().includes(`/api/workspaces/editor/editions/${editionId}/evaluation-operations`),
-    { timeout: 60_000 },
-  )
-  await evaluationButton.click()
-  if (!(await evaluationResponse).ok()) throw new Error("BROWSER_BUSINESS_EVALUATION_SUBMIT_FAILED")
-  await waitFor(async () => {
-    const result = await api(editorPage, `/api/workspaces/editions/${editionId}/context`)
-    return result.status === 200 && result.body.quality?.state === "passed" ? result.body : null
-  }, "quality-passed")
-
-  await transition(editorPage, editionId, "开始生成", "generating")
+  /*
+   * 2026-09 重设计：质量检查不再是人工按钮/门槛，发布链路自行处理；直接
+   * 提交审核。
+   */
   await transition(editorPage, editionId, "提交审核", "review")
 
   const reviewer = await login(browser, credentials.reviewer)
@@ -260,7 +250,6 @@ try {
   await reviewerDecision(reviewerPage, editionId, "审核不通过", `${marker} needs a clearer opening`, "draft")
 
   await editorPage.goto(`${base}/admin/workspace/editions/${editionId}`, { waitUntil: "domcontentloaded", timeout: 60_000 })
-  await transition(editorPage, editionId, "开始生成", "generating")
   await transition(editorPage, editionId, "提交审核", "review")
 
   await reviewerPage.goto(`${base}/admin/workspace/editions/${editionId}`, { waitUntil: "domcontentloaded", timeout: 60_000 })
@@ -275,18 +264,35 @@ try {
   const published = await waitPublished(publisherPage, editionId, planId)
   if (published.edition.workflowStatus !== "published") throw new Error("BROWSER_BUSINESS_NOT_PUBLISHED")
 
-  await editorPage.goto(`${base}/admin/workspace/editions/${editionId}`, { waitUntil: "domcontentloaded", timeout: 60_000 })
-  await editorPage.getByRole("button", { name: "创建新草稿" }).click()
-  const draftDialog = editorPage.getByRole("dialog")
-  await draftDialog.getByRole("button", { name: "确认操作" }).click()
-  await transition(editorPage, editionId, "开始生成", "generating")
-  await transition(editorPage, editionId, "提交审核", "review")
-  await reviewerPage.goto(`${base}/admin/workspace/editions/${editionId}`, { waitUntil: "domcontentloaded", timeout: 60_000 })
-  await reviewerDecision(reviewerPage, editionId, "审核通过", undefined, "approved")
-  await publisherPage.goto(`${base}/admin/workspace/editions/${editionId}`, { waitUntil: "domcontentloaded", timeout: 60_000 })
-  const secondPlan = await schedule(publisherPage, editionId, site.timezone)
+  /*
+   * 2026-09 重设计：创建新草稿退役，改为详情页“复制为新草稿”，新副本走
+   * 完整审核与发布闭环。
+   */
+  await editorPage.goto(`${base}/admin/collections/content-editions/${editionId}`, {
+    waitUntil: "domcontentloaded",
+    timeout: 60_000,
+  })
+  const duplicateResponse = editorPage.waitForResponse(
+    (candidate) => candidate.request().method() === "POST" && candidate.url().includes("/duplicate"),
+    { timeout: 60_000 },
+  )
+  await editorPage.getByRole("button", { name: "复制为新草稿" }).click()
+  const duplicated = await duplicateResponse
+  if (!duplicated.ok()) throw new Error("BROWSER_BUSINESS_DUPLICATE_FAILED")
+  const duplicatedBody = await duplicated.json()
+  const copyId = duplicatedBody.editionId
+  if (typeof copyId !== "number") throw new Error("BROWSER_BUSINESS_DUPLICATE_ID_MISSING")
+  await editorPage.goto(`${base}/admin/workspace/editions/${copyId}`, {
+    waitUntil: "domcontentloaded",
+    timeout: 60_000,
+  })
+  await transition(editorPage, copyId, "提交审核", "review")
+  await reviewerPage.goto(`${base}/admin/workspace/editions/${copyId}`, { waitUntil: "domcontentloaded", timeout: 60_000 })
+  await reviewerDecision(reviewerPage, copyId, "审核通过", undefined, "approved")
+  await publisherPage.goto(`${base}/admin/workspace/editions/${copyId}`, { waitUntil: "domcontentloaded", timeout: 60_000 })
+  const secondPlan = await schedule(publisherPage, copyId, site.timezone)
   if (typeof secondPlan.planId !== "string") throw new Error("BROWSER_BUSINESS_SECOND_PLAN_ID_MISSING")
-  await waitPublished(publisherPage, editionId, secondPlan.planId)
+  await waitPublished(publisherPage, copyId, secondPlan.planId)
 
   const pair = await releasePair(publisherPage, site.id)
   const rollback = await createRollback(publisherPage, site.id, pair.current, pair.previous, marker)

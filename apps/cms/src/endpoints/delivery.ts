@@ -190,7 +190,16 @@ export const deliveryArticlesEndpoint: Endpoint = {
         sort: "-createdAt",
         where: {
           and: [
-            { site: { equals: site.siteId } },
+            /*
+             * 多站点分配：主站点（发布链路）或 sites 集合命中均可读取——
+             * 分配了就能读到，没分配就读取不到。
+             */
+            {
+              or: [
+                { site: { equals: site.siteId } },
+                { sites: { contains: site.siteId } },
+              ],
+            },
             { workflowStatus: { equals: "published" } },
             ...(q.length === 0 ? [] : [{ title: { like: q } }]),
           ],
@@ -250,14 +259,43 @@ export const deliveryArticleEndpoint: Endpoint = {
     if (edition["workflowStatus"] !== "published") {
       return json(404, { error: { code: "DELIVERY_ARTICLE_NOT_FOUND" } }, 60)
     }
+    /*
+     * 多站点归属：主站点或 sites 集合命中任一激活站点即可交付。
+     */
     const siteRef = edition["site"]
-    const siteId =
+    const primarySiteId =
       typeof siteRef === "object" && siteRef !== null
         ? (siteRef as Record<string, unknown>)["id"]
         : siteRef
-    if (typeof siteId !== "number") {
+    const assignedIds = [
+      ...(typeof primarySiteId === "number" ? [primarySiteId] : []),
+      ...(Array.isArray(edition["sites"])
+        ? edition["sites"].flatMap((entry) => {
+            const id =
+              typeof entry === "object" && entry !== null
+                ? (entry as Record<string, unknown>)["id"]
+                : entry
+            return typeof id === "number" ? [id] : []
+          })
+        : []),
+    ].filter((id, index, all) => all.indexOf(id) === index)
+    if (assignedIds.length === 0) {
       return json(404, { error: { code: "DELIVERY_ARTICLE_NOT_FOUND" } }, 60)
     }
+    const activeSite = (
+      await Promise.all(
+        assignedIds.map((id) =>
+          req.payload
+            .findByID({ collection: "sites", depth: 0, id, overrideAccess: true })
+            .then((doc) => (doc as Record<string, unknown>)["status"] === "active" ? id : null)
+            .catch(() => null),
+        ),
+      )
+    ).find((id): id is number => id !== null)
+    if (activeSite === undefined) {
+      return json(404, { error: { code: "DELIVERY_ARTICLE_NOT_FOUND" } }, 60)
+    }
+    const siteId = activeSite
     const siteDoc = (await req.payload.findByID({
       collection: "sites",
       depth: 0,

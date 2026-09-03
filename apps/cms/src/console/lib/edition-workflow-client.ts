@@ -24,15 +24,20 @@ export const editionActionErrorMessage = (code: unknown): string =>
     : "操作未能完成，请刷新后重试。")
 
 export const editionWorkflowEndpointOf = (action: WorkflowAction, id: number): string =>
-  action.type === "draft-from-published"
-    ? `/api/editions/${id}/draft-from-published`
-    : action.type === "publish-operation"
-      ? `/api/editions/${id}/publish-operations`
-      : action.type === "reviewer-approve"
-        ? `/api/workspaces/reviewer/editions/${id}/approve`
-        : action.type === "reviewer-request-changes"
-          ? `/api/workspaces/reviewer/editions/${id}/request-changes`
-          : `/api/editions/${id}/workflow-transitions`
+  /*
+   * Free-flow model: archive/restore/审核流转 all go through the transition
+   * endpoint with an explicit target; publishing keeps its operation ledger.
+   * Schedule-type actions never fetch from here — the UI opens the plan
+   * dialog instead.
+   */
+  action.type === "publish-operation"
+    ? `/api/editions/${id}/publish-operations`
+    : `/api/editions/${id}/workflow-transitions`
+
+export const workflowActionBodyOf = (action: WorkflowAction): Record<string, unknown> =>
+  action.type === "transition" || action.type === "archive" || action.type === "restore"
+    ? { target: action.target }
+    : {}
 
 export const editionEvaluationEndpointOf = (id: number): string =>
   `/api/workspaces/editor/editions/${id}/evaluation-operations`

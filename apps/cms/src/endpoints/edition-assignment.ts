@@ -8,6 +8,7 @@ const bodySchema = z
   .object({
     owner: z.number().int().positive().nullable().optional(),
     site: z.number().int().positive().optional(),
+    sites: z.array(z.number().int().positive()).max(20).optional(),
   })
   .strict()
 
@@ -57,6 +58,7 @@ export const editionAssignmentEndpoint: Endpoint = {
         editionId,
         ...(parsed.data.owner === undefined ? {} : { owner: parsed.data.owner }),
         ...(parsed.data.site === undefined ? {} : { site: parsed.data.site }),
+        ...(parsed.data.sites === undefined ? {} : { sites: parsed.data.sites }),
         user: req.user,
       })
       return response(200, result)

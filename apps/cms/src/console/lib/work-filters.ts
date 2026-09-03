@@ -120,7 +120,11 @@ export const workWhere = (query: WorkQuery, now = new Date()): Where | undefined
   const conditions: Where[] = []
   if (query.q !== null) conditions.push({ title: { like: query.q } })
   if (query.owner !== null) conditions.push({ owner: { equals: query.owner } })
-  if (query.site !== null) conditions.push({ site: { equals: query.site } })
+  if (query.site !== null) {
+    conditions.push({
+      or: [{ site: { equals: query.site } }, { sites: { contains: query.site } }],
+    })
+  }
   const dates = dateWhere(query, now)
   if (dates !== undefined) conditions.push(dates)
   if (conditions.length === 0) return undefined

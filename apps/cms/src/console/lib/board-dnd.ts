@@ -1,62 +1,67 @@
 import {
   isWorkflowStatus,
   type WorkflowAction,
-  workflowActionsFor,
   workflowStatusLabel,
 } from "../../components/workflow/workflow-actions-model"
 
 import { BOARD_COLUMNS, type BoardColumnKey } from "./board-model"
 
 /*
- * Drag-and-drop mapping for the workbench board: given a card's workflow
- * status, the acting role, and the target column, resolve the workflow
- * action the drop should perform — or null when the move is not a legal
- * transition. Column keys map onto action targets; publish has no target
- * and is matched by its action type. The derived "rejected" column accepts
- * the reviewer request-changes decision (审核不通过 sends the card back to
- * draft while it keeps showing in the rejected lane). An approved card
- * dropped on 已发布 opens the publication schedule dialog instead of a
- * direct transition (compile + publish run through the release pipeline).
+ * Free-flow drag mapping (2026-09 redesign): cards move freely between the
+ * six lanes. Dropping on 已发布 opens the publication schedule (the compile
+ * + publish pipeline stays authoritative); dropping on 不通过 is the reject
+ * decision and lands the card in the rejected lane; dropping back on the
+ * card's own lane is a reorder no-op.
  */
 export type BoardDropAction =
   | WorkflowAction
   | { readonly label: string; readonly tone: "primary"; readonly type: "publish-schedule" }
 
-const COLUMN_MATCHERS: Readonly<Record<BoardColumnKey, (action: WorkflowAction) => boolean>> = {
-  approved: (action) => action.target === "approved",
-  archived: (action) => action.target === "archived",
-  draft: (action) => action.target === "draft" || action.type === "draft-from-published",
-  published: (action) => action.type === "publish-operation",
-  rejected: (action) => action.type === "reviewer-request-changes",
-  review: (action) => action.target === "review",
-}
+const PUBLISHABLE_STATUSES = ["approved", "compiled"] as const
 
-const SCHEDULE_ROLES: readonly string[] = ["publisher", "super-admin"]
+const columnLabelOf = (column: BoardColumnKey): string =>
+  BOARD_COLUMNS.find((entry) => entry.key === column)?.label ?? column
 
 export const dropActionFor = (
   role: string,
   workflowStatus: string,
   targetColumn: BoardColumnKey,
 ): BoardDropAction | null => {
+  void role
   if (!isWorkflowStatus(workflowStatus)) return null
-  if (
-    workflowStatus === "approved" &&
-    targetColumn === "published" &&
-    SCHEDULE_ROLES.includes(role)
-  ) {
-    return { label: "创建发布排期", tone: "primary", type: "publish-schedule" }
+
+  if (targetColumn === "published") {
+    return PUBLISHABLE_STATUSES.includes(workflowStatus as never)
+      ? { label: "创建发布排期", tone: "primary", type: "publish-schedule" }
+      : null
   }
-  const matcher = COLUMN_MATCHERS[targetColumn]
-  if (matcher === undefined) return null
-  return workflowActionsFor(role, workflowStatus, "zh").find(matcher) ?? null
+
+  if (targetColumn === "rejected") {
+    if (workflowStatus === "draft") return null
+    return {
+      confirm: true,
+      label: "审核不通过",
+      reasonRequired: true,
+      target: "draft",
+      tone: "secondary",
+      type: "transition",
+    }
+  }
+
+  const targetStatus = targetColumn === "draft" ? "draft" : targetColumn
+  if (targetStatus === workflowStatus) return null
+  return {
+    label: `移至${columnLabelOf(targetColumn)}`,
+    target: targetStatus as WorkflowAction["target"],
+    tone: "secondary",
+    type: "transition",
+  }
 }
 
+/* Free flow: every lane card is draggable — drop targets decide legality. */
 export const canDragCard = (role: string, workflowStatus: string): boolean => {
-  if (!isWorkflowStatus(workflowStatus)) return false
-  /* approved cards move via the schedule dialog when dropped on 已发布. */
-  if (workflowStatus === "approved") return SCHEDULE_ROLES.includes(role)
-  /* archived is the terminal state: no legal moves exist by design. */
-  return workflowActionsFor(role, workflowStatus, "zh").length > 0
+  void role
+  return isWorkflowStatus(workflowStatus)
 }
 
 /*
@@ -84,11 +89,8 @@ export const ownColumnOf = (card: {
   }
 }
 
-const columnLabelOf = (column: BoardColumnKey): string =>
-  BOARD_COLUMNS.find((entry) => entry.key === column)?.label ?? column
-
 /*
- * Actionable guidance for illegal drops: tell the operator why the lane
+ * Actionable guidance for refused drops: tell the operator why the lane
  * refuses the card and where the move has to happen instead of a bare
  * "not allowed".
  */
@@ -96,21 +98,15 @@ export const dropHintFor = (
   card: { readonly rejectedReason?: string | null; readonly workflowStatus: string },
   targetColumn: BoardColumnKey,
 ): string => {
+  void card
   const target = columnLabelOf(targetColumn)
-  if (card.workflowStatus === "draft" && targetColumn === "review") {
-    return `草稿需先在卡片上执行「开始生成」，生成完成后再拖到「${target}」`
+  if (targetColumn === "published") {
+    return `发布走排期链路：请先把稿件移到「通过待发布」，再拖到「${target}」安排发布`
   }
-  if (
-    (card.workflowStatus === "draft" || card.workflowStatus === "generating") &&
-    targetColumn === "rejected"
-  ) {
-    return `「${target}」只接受待审核稿件的审阅决定`
+  if (targetColumn === "rejected") {
+    return `「${target}」记录审阅决定：稿件会退回草稿并标注不通过原因`
   }
-  if (card.workflowStatus === "archived") {
-    return "已删除是终态，不能再次流转"
-  }
-  const status = isWorkflowStatus(card.workflowStatus)
-    ? workflowStatusLabel(card.workflowStatus)
-    : card.workflowStatus
-  return `当前状态「${status}」没有移动到「${target}」的合法操作`
+  return `没有移动到「${target}」的合法操作`
 }
+
+export const laneStatusLabel = workflowStatusLabel

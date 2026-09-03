@@ -3,7 +3,6 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { ShieldCheckIcon } from "@/components/icons"
 import { Button } from "@/components/ui/button"
 import {
   isWorkflowStatus,
@@ -14,8 +13,8 @@ import { canDragCard, dropActionFor, dropHintFor, ownColumnOf } from "@/console/
 import { BOARD_COLUMNS, type BoardCard, type BoardColumnKey } from "@/console/lib/board-model"
 import {
   editionActionErrorMessage,
-  editionEvaluationEndpointOf,
   editionWorkflowEndpointOf,
+  workflowActionBodyOf,
   publicationPlanEndpoint,
 } from "@/console/lib/edition-workflow-client"
 import { consoleRoute } from "@/console/lib/resources"
@@ -109,24 +108,16 @@ const ReviewBoard = ({
     setPendingKey(key)
     setNotice(null)
     try {
-      const reviewerDecision =
-        action.type === "reviewer-approve" || action.type === "reviewer-request-changes"
       const normalizedReason = auditReason?.trim()
       const response = await fetch(editionWorkflowEndpointOf(action, card.id), {
         body: JSON.stringify({
-          ...(action.type === "transition" ? { target: action.target } : {}),
-          ...(reviewerDecision ? { expectedRevision: card.workflowRevision } : {}),
+          ...workflowActionBodyOf(action),
           ...(normalizedReason === undefined || normalizedReason.length === 0
             ? {}
             : { reason: normalizedReason }),
         }),
         credentials: "same-origin",
-        headers: {
-          "content-type": "application/json",
-          ...(reviewerDecision
-            ? { "idempotency-key": crypto.randomUUID(), "x-request-id": crypto.randomUUID() }
-            : {}),
-        },
+        headers: { "content-type": "application/json" },
         method: "POST",
       })
       const result = (await response.json().catch(() => ({}))) as { error?: { code?: unknown } }
@@ -140,31 +131,6 @@ const ReviewBoard = ({
         ok: false,
         text: `${card.title}：${error instanceof Error ? error.message : editionActionErrorMessage(undefined)}`,
       })
-    } finally {
-      setPendingKey(null)
-    }
-  }
-
-  const runQuality = async (card: BoardCard) => {
-    const key = `${card.id}:quality`
-    setPendingKey(key)
-    setNotice(null)
-    try {
-      const response = await fetch(editionEvaluationEndpointOf(card.id), {
-        body: JSON.stringify({}),
-        credentials: "same-origin",
-        headers: {
-          "content-type": "application/json",
-          "idempotency-key": crypto.randomUUID(),
-          "x-request-id": crypto.randomUUID(),
-        },
-        method: "POST",
-      })
-      if (!response.ok) throw new Error(editionActionErrorMessage(undefined))
-      setNotice({ ok: true, text: `${card.title}：已提交质量检查` })
-      router.refresh()
-    } catch (error) {
-      setNotice({ ok: false, text: error instanceof Error ? error.message : "提交质量检查失败。" })
     } finally {
       setPendingKey(null)
     }
@@ -317,6 +283,11 @@ const ReviewBoard = ({
                               disabled={pendingKey !== null}
                               key={action.label}
                               onClick={() => {
+                                if (action.type === "schedule") {
+                                  setScheduling(card)
+                                  setScheduledFor("")
+                                  return
+                                }
                                 if (action.confirm === true || action.reasonRequired === true) {
                                   setConfirming({ action, card })
                                   setReason("")
@@ -330,37 +301,6 @@ const ReviewBoard = ({
                               {pendingKey === `${card.id}:${action.label}` ? "…" : action.label}
                             </Button>
                           ))}
-                          {(role === "editor" || role === "super-admin") &&
-                            (card.workflowStatus === "draft" ||
-                              card.workflowStatus === "generating" ||
-                              card.workflowStatus === "review") && (
-                              <Button
-                                className="h-7 px-2.5 text-[11px]"
-                                disabled={pendingKey !== null}
-                                onClick={() => void runQuality(card)}
-                                type="button"
-                                variant="secondary"
-                              >
-                                <ShieldCheckIcon size={15} />
-                                {pendingKey === `${card.id}:quality` ? "…" : "质量检查"}
-                              </Button>
-                            )}
-                          {(role === "publisher" || role === "super-admin") &&
-                            (card.workflowStatus === "approved" ||
-                              card.workflowStatus === "compiled") && (
-                              <Button
-                                className="h-7 px-2.5 text-[11px]"
-                                disabled={pendingKey !== null}
-                                onClick={() => {
-                                  setScheduling(card)
-                                  setScheduledFor("")
-                                }}
-                                type="button"
-                                variant="secondary"
-                              >
-                                排期
-                              </Button>
-                            )}
                         </div>
                       )}
                     </article>

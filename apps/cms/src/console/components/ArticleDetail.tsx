@@ -8,30 +8,35 @@ import { Button } from "@/components/ui/button"
 import ArticleAssignmentPanel from "@/console/components/ArticleAssignmentPanel"
 import ArticleBody from "@/console/components/ArticleBody"
 import ArticleWorkflowPanel from "@/console/components/ArticleWorkflowPanel"
+import DuplicateArticleButton from "@/console/components/DuplicateArticleButton"
 import { RankedBars, TrendBars, type TrendPoint } from "@/console/components/charts"
 import DeferredText from "@/console/components/DeferredText"
 import { requireConsolePayloadContext } from "@/console/lib/payload.server"
 import { consoleRoute } from "@/console/lib/resources"
 import { canConsole } from "@/console/lib/session.server"
 
+/* 六泳道呈现：generating 归入草稿、compiled 归入通过待发布（内部管线状态）。 */
 const WORKFLOW_LABELS: Readonly<Record<string, string>> = {
   archived: "已删除",
-  compiled: "已编译",
+  compiled: "通过待发布",
   draft: "草稿",
-  generating: "生成中",
+  generating: "草稿",
   published: "已发布",
   review: "待审核",
-  approved: "已通过",
+  approved: "通过待发布",
 }
 
 const AUDIT_LABELS: Readonly<Record<string, string>> = {
   "content-edition.draft.generating": "开始生成",
+  "content-edition.draft.review": "提交审核",
   "content-edition.generating.review": "提交审核",
   "content-edition.review.draft": "审核不通过",
   "content-edition.review.approved": "审核通过",
   "content-edition.approved.compiled": "编译完成",
   "content-edition.compiled.published": "发布上线",
-  "content-edition.published.archived": "归档下线",
+  "content-edition.published.archived": "删除",
+  "content-edition.published.draft": "恢复为草稿",
+  "content-edition.archived.draft": "恢复为草稿",
 }
 
 const CREATION_ORIGIN_LABELS: Readonly<Record<string, string>> = {
@@ -73,6 +78,8 @@ const formatInstant = (value: unknown): string => {
 }
 
 type TimelineEntry = {
+  readonly actorEmail: string | null
+  readonly actorId: number | null
   readonly at: string
   readonly detail: string | null
   readonly title: string
@@ -189,30 +196,14 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
   const publicUrl = pathname !== null && hostname !== null ? `https://${hostname}${pathname}` : null
 
   const audit = Array.isArray(edition["auditLog"]) ? edition["auditLog"] : []
-  const timeline: readonly TimelineEntry[] = [
-    ...audit.flatMap((entry) => {
-      if (typeof entry !== "object" || entry === null) return []
-      const row = entry as Record<string, unknown>
-      const action = typeof row["action"] === "string" ? row["action"] : null
-      const at = typeof row["at"] === "string" ? row["at"] : ""
-      if (action === null || at.length === 0) return []
-      const reason =
-        typeof row["reason"] === "string" && row["reason"].length > 0 ? row["reason"] : null
-      return [
-        {
-          at,
-          detail: reason,
-          title: AUDIT_LABELS[action] ?? action,
-        },
-      ]
-    }),
-    ...comments.flatMap((comment) => {
-      const at = typeof comment["createdAt"] === "string" ? comment["createdAt"] : ""
-      const body = typeof comment["body"] === "string" ? comment["body"] : ""
-      if (at.length === 0) return []
-      return [{ at, detail: body.length > 0 ? body : null, title: "评审评论" }]
-    }),
-  ].sort((left, right) => (left.at < right.at ? 1 : -1))
+  const actorIdOfAudit = (entry: unknown): number | null => {
+    if (typeof entry !== "object" || entry === null) return null
+    const actor = (entry as Record<string, unknown>)["actor"]
+    if (typeof actor !== "object" || actor === null) return null
+    const actorRow = actor as Record<string, unknown>
+    if (actorRow["kind"] !== "user") return null
+    return relationIdOf(actorRow["userId"])
+  }
 
   const canEdit =
     session.role === CMS_ROLE.EDITOR ||
@@ -220,11 +211,18 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
     session.role === CMS_ROLE.SUPER_ADMIN
 
   const canAssign = canEdit
-  const siteLocked = !["draft", "generating", "review", "approved"].includes(workflowStatus)
   const ownerId = relationIdOf(edition["owner"])
+  const assignedSiteIds = Array.isArray(edition["sites"])
+    ? edition["sites"].flatMap((entry) => {
+        const id = relationIdOf(entry)
+        return id === null ? [] : [id]
+      })
+    : siteId !== null
+      ? [siteId]
+      : []
   const editionTenantId = relationIdOf(edition["tenant"])
 
-  const [userOptions, siteOptions, coveredSiteIds, updatedByEmail] = await Promise.all([
+  const [userOptions, siteOptions, actorEmailById] = await Promise.all([
     canAssign && editionTenantId !== null
       ? payload
           .find({
@@ -284,62 +282,93 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
           )
           .catch(() => [] as readonly { readonly id: number; readonly label: string }[])
       : Promise.resolve([] as readonly { readonly id: number; readonly label: string }[]),
-    payload
-      .find({
-        collection: "content-editions",
-        depth: 0,
-        limit: 100,
-        overrideAccess: false,
-        select: { site: true },
-        user,
-        where: { content: { equals: contentId } },
-      })
-      .then((result) =>
-        result.docs.flatMap((doc) => {
-          const editionSiteId = relationIdOf(doc.site)
-          return editionSiteId === null ? [] : [editionSiteId]
-        }),
-      )
-      .catch(() => [] as readonly number[]),
     /*
-     * 更新人：审计与评审评论里最近一位真实用户。审计 actor 由工作流服务
-     * 串行写入，评论按 createdAt 倒序，两者按时间取最新。
+     * 操作人邮箱映射：审计 actor 与评审评论作者统一解析一次，供"更新人"
+     * 与历史日志逐条显示操作人。
      */
-    (async (): Promise<string | null> => {
-      const activities: readonly { readonly at: string; readonly userId: number }[] = [
-        ...audit.flatMap((entry) => {
-          if (typeof entry !== "object" || entry === null) return []
-          const row = entry as Record<string, unknown>
-          const actor = row["actor"]
-          if (typeof actor !== "object" || actor === null) return []
-          const actorRow = actor as Record<string, unknown>
-          if (actorRow["kind"] !== "user") return []
-          const actorUserId = relationIdOf(actorRow["userId"])
-          const at = typeof row["at"] === "string" ? row["at"] : ""
-          return actorUserId === null || at.length === 0 ? [] : [{ at, userId: actorUserId }]
-        }),
-        ...comments.flatMap((comment) => {
-          const authorId = relationIdOf(comment["author"])
-          const at = typeof comment["createdAt"] === "string" ? comment["createdAt"] : ""
-          return authorId === null || at.length === 0 ? [] : [{ at, userId: authorId }]
-        }),
-      ].sort((left, right) => (left.at < right.at ? 1 : -1))
-      const latest = activities[0]
-      if (latest === undefined) return null
-      const actorDoc = await payload
+    (async (): Promise<ReadonlyMap<number, string>> => {
+      const actorIds = [
+        ...new Set(
+          [
+            ...audit.flatMap((entry) => {
+              if (typeof entry !== "object" || entry === null) return []
+              const actor = (entry as Record<string, unknown>)["actor"]
+              if (typeof actor !== "object" || actor === null) return []
+              const actorRow = actor as Record<string, unknown>
+              if (actorRow["kind"] !== "user") return []
+              const actorUserId = relationIdOf(actorRow["userId"])
+              return actorUserId === null ? [] : [actorUserId]
+            }),
+            ...comments.flatMap((comment) => {
+              const authorId = relationIdOf(comment["author"])
+              return authorId === null ? [] : [authorId]
+            }),
+          ].filter((id): id is number => id !== null),
+        ),
+      ]
+      if (actorIds.length === 0) return new Map<number, string>()
+      const found = await payload
         .find({
           collection: "users",
           depth: 0,
-          limit: 1,
+          limit: 100,
           overrideAccess: true,
           select: { email: true },
-          where: { id: { equals: latest.userId } },
+          where: { id: { in: actorIds } },
         })
-        .then((result) => result.docs[0] ?? null)
         .catch(() => null)
-      return actorDoc !== null && typeof actorDoc.email === "string" ? actorDoc.email : null
+      const map = new Map<number, string>()
+      for (const doc of found?.docs ?? []) {
+        const userId = relationIdOf(doc.id)
+        if (userId !== null && typeof doc.email === "string" && doc.email.length > 0) {
+          map.set(userId, doc.email)
+        }
+      }
+      return map
     })(),
   ])
+
+  const actorEmailOf = (entry: { readonly actorId: number | null }): string | null =>
+    entry.actorId === null ? null : (actorEmailById.get(entry.actorId) ?? null)
+
+  const timeline: readonly TimelineEntry[] = [
+    ...audit.flatMap((entry) => {
+      if (typeof entry !== "object" || entry === null) return []
+      const row = entry as Record<string, unknown>
+      const action = typeof row["action"] === "string" ? row["action"] : null
+      const at = typeof row["at"] === "string" ? row["at"] : ""
+      if (action === null || at.length === 0) return []
+      const reason =
+        typeof row["reason"] === "string" && row["reason"].length > 0 ? row["reason"] : null
+      return [
+        {
+          actorEmail: null,
+          actorId: actorIdOfAudit(entry),
+          at,
+          detail: reason,
+          title: AUDIT_LABELS[action] ?? action,
+        },
+      ]
+    }),
+    ...comments.flatMap((comment) => {
+      const at = typeof comment["createdAt"] === "string" ? comment["createdAt"] : ""
+      const body = typeof comment["body"] === "string" ? comment["body"] : ""
+      if (at.length === 0) return []
+      return [
+        {
+          actorEmail: null,
+          actorId: relationIdOf(comment["author"]),
+          at,
+          detail: body.length > 0 ? body : null,
+          title: "评审评论",
+        },
+      ]
+    }),
+  ]
+    .map((entry) => ({ ...entry, actorEmail: actorEmailOf(entry) }))
+    .sort((left, right) => (left.at < right.at ? 1 : -1))
+  const latestActivity = timeline[0]
+  const updatedByEmail = latestActivity === undefined ? null : latestActivity.actorEmail
 
   const todayKey = new Date().toISOString().slice(0, 10)
   const readingDays = new Map<string, number>()
@@ -434,6 +463,7 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
                 <Link href={`/admin/workspace/editions/${numericId}`}>去编辑</Link>
               </Button>
             )}
+            {canEdit && <DuplicateArticleButton editionId={numericId} />}
             {publicUrl !== null && (
               <Button asChild size="sm" type="button" variant="secondary">
                 <a href={publicUrl} rel="noreferrer" target="_blank">
@@ -476,19 +506,14 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
             role={session.role}
             siteTimezone={siteTimezone}
             title={title}
-            workflowRevision={
-              typeof edition["workflowRevision"] === "number" ? edition["workflowRevision"] : 0
-            }
             workflowStatus={workflowStatus}
           />
 
           <ArticleAssignmentPanel
             canAssign={canAssign}
-            coveredSiteIds={coveredSiteIds}
             editionId={numericId}
             owner={ownerId === null ? "" : String(ownerId)}
-            site={siteId === null ? "" : String(siteId)}
-            siteLocked={siteLocked}
+            siteIds={assignedSiteIds}
             sites={siteOptions}
             users={userOptions}
           />
@@ -578,6 +603,11 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
                     <span className="text-sm font-semibold text-[var(--console-ink)]">
                       {entry.title}
                     </span>
+                    {entry.actorEmail !== null && (
+                      <span className="text-xs text-[var(--console-ink-muted)]">
+                        操作人：<DeferredText>{entry.actorEmail}</DeferredText>
+                      </span>
+                    )}
                     {entry.detail !== null && (
                       <span className="text-sm leading-6 text-[var(--console-ink-muted)]">
                         {entry.detail}

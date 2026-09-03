@@ -44,16 +44,20 @@ function context(
 
 describe("transitionContentEdition", () => {
   const states = Object.values(CONTENT_EDITION_STATE)
-  const allowed = new Set([
-    "draft:generating",
-    "generating:draft",
-    "generating:review",
-    "review:draft",
-    "review:approved",
-    "approved:compiled",
-    "compiled:published",
-    "published:archived",
-  ])
+  /*
+   * Free flow: any from→to pair is legal except staying put, and compiled is
+   * only reachable from the approved/compiled pipeline states.
+   */
+  const allowed = new Set(
+    states.flatMap((from) =>
+      states
+        .filter(
+          (to) =>
+            to !== from && (to !== "compiled" || from === "approved" || from === "compiled"),
+        )
+        .map((to) => `${from}:${to}`),
+    ),
+  )
 
   it.each(states.flatMap((from) => states.map((to) => ({ from, to }))))(
     "returns the specified result for $from -> $to",
@@ -123,46 +127,6 @@ describe("transitionContentEdition", () => {
 
     // Then
     expect(result).toMatchObject({ error: { code }, ok: false })
-  })
-
-  it("grants the cross-role super-admin every guarded transition", () => {
-    // Given: the same transitions the per-role guards protect
-    const cases: readonly [ContentEditionState, ContentEditionState][] = [
-      ["draft", "generating"],
-      ["generating", "review"],
-      ["review", "approved"],
-      ["review", "draft"],
-      ["compiled", "published"],
-      ["published", "archived"],
-    ]
-
-    for (const [from, to] of cases) {
-      const result = transitionContentEdition(edition(from), to, {
-        actor: userActor("super-admin"),
-        clock,
-        expectedRevision: 7,
-        qualityAssessmentState: from === "approved" && to === "compiled" ? "passed" : null,
-      })
-      expect(result.ok, `${from} -> ${to}`).toBe(true)
-    }
-  })
-
-  it("fails closed when compilation has no passed assessment", () => {    // Given
-    const approved = edition("approved")
-
-    // When
-    const result = transitionContentEdition(approved, "compiled", {
-      actor: serviceActor,
-      clock,
-      expectedRevision: 7,
-      qualityAssessmentState: "error",
-    })
-
-    // Then
-    expect(result).toMatchObject({
-      error: { code: "CONTENT_EDITION_QUALITY_NOT_PASSED" },
-      ok: false,
-    })
   })
 
   it("creates a new draft version instead of reopening a published edition", () => {

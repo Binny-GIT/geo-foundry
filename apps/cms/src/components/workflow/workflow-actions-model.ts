@@ -26,30 +26,38 @@ export const WORKFLOW_TONE: Record<WorkflowStatus, Tone> = {
   review: "warning",
 }
 
+/*
+ * The six lanes operators see: generating folds into 草稿 and compiled into
+ * 通过待发布 (both remain internal pipeline states underneath).
+ */
+const LANE_LABEL: Record<WorkflowStatus, string> = {
+  approved: "通过待发布",
+  archived: "已删除",
+  compiled: "通过待发布",
+  draft: "草稿",
+  generating: "草稿",
+  published: "已发布",
+  review: "待审核",
+}
+
 const STATUS_LABEL: Record<UiLang, Record<WorkflowStatus, string>> = {
   en: {
     approved: "Approved",
     archived: "Archived",
     compiled: "Compiled",
     draft: "Draft",
-    generating: "Generating",
+    generating: "Draft",
     published: "Published",
     review: "In review",
   },
-  zh: {
-    approved: "已批准",
-    archived: "已归档",
-    compiled: "已编译",
-    draft: "草稿",
-    generating: "生成中",
-    published: "已发布",
-    review: "审核中",
-  },
+  zh: LANE_LABEL,
 }
 
-/** Human-readable workflow state for custom admin surfaces. */
+/** Lane-facing workflow state for custom admin surfaces. */
 export const workflowStatusLabel = (state: WorkflowStatus, language?: unknown): string =>
   STATUS_LABEL[uiLangOf(language)][state]
+
+export const workflowLaneLabel = workflowStatusLabel
 
 export type WorkflowAction = {
   readonly confirm?: true
@@ -58,10 +66,10 @@ export type WorkflowAction = {
   readonly tone: "primary" | "secondary"
   readonly target?: WorkflowStatus
   readonly type:
-    | "draft-from-published"
+    | "archive"
     | "publish-operation"
-    | "reviewer-approve"
-    | "reviewer-request-changes"
+    | "restore"
+    | "schedule"
     | "transition"
 }
 
@@ -81,94 +89,69 @@ type ActionTemplate = {
   readonly target?: WorkflowStatus
   readonly tone: "primary" | "secondary"
   readonly type:
-    | "draft-from-published"
+    | "archive"
     | "publish-operation"
-    | "reviewer-approve"
-    | "reviewer-request-changes"
+    | "restore"
+    | "schedule"
     | "transition"
   readonly zh: string
 }
 
+/*
+ * Simplified operator model (2026-09 redesign): every console role gets the
+ * same lane actions; audit records identity. Publishing stays on the
+ * schedule/compile pipeline, archiving is 删除, and archived cards can be
+ * restored back to draft. 开始生成/质量检查/退回草稿/创建新草稿 are gone.
+ */
 const ACTION_TEMPLATES: readonly ActionTemplate[] = [
-  // editor: draft → generating
-  {
-    en: "Start generating",
-    target: "generating",
-    tone: "primary",
-    type: "transition",
-    zh: "开始生成",
-  },
-  // editor: generating → review / back to draft
-  {
-    en: "Submit for review",
-    target: "review",
-    tone: "primary",
-    type: "transition",
-    zh: "提交审核",
-  },
-  { en: "Return to draft", target: "draft", tone: "secondary", type: "transition", zh: "退回草稿" },
-  // reviewer: review → approved / back to draft
+  // draft → review
+  { en: "Submit for review", target: "review", tone: "primary", type: "transition", zh: "提交审核" },
+  // review decision (不通过 returns the card to draft inside the rejected lane)
   {
     confirm: true,
-    en: "Approve edition",
+    en: "Approve",
     target: "approved",
     tone: "primary",
-    type: "reviewer-approve",
+    type: "transition",
     zh: "审核通过",
   },
   {
     confirm: true,
-    en: "Request changes",
     reasonRequired: true,
+    en: "Reject",
     target: "draft",
     tone: "secondary",
-    type: "reviewer-request-changes",
+    type: "transition",
     zh: "审核不通过",
   },
-  // publisher: compiled → publish
+  // approved → publish via schedule; compiled ships directly
+  { en: "Schedule publish", tone: "primary", type: "schedule", zh: "创建发布排期" },
+  { confirm: true, en: "Publish now", tone: "primary", type: "publish-operation", zh: "发布版本" },
+  // published → archived (删除)
   {
     confirm: true,
-    en: "Publish edition",
-    tone: "primary",
-    type: "publish-operation",
-    zh: "发布版本",
-  },
-  // publisher: published → archived
-  {
-    confirm: true,
-    en: "Archive edition",
+    en: "Delete edition",
     target: "archived",
     tone: "secondary",
-    type: "transition",
-    zh: "归档版本",
+    type: "archive",
+    zh: "删除",
   },
-  // editor: published → new draft
-  {
-    confirm: true,
-    en: "Create next draft",
-    tone: "primary",
-    type: "draft-from-published",
-    zh: "创建新草稿",
-  },
+  // archived → draft (恢复)
+  { confirm: true, en: "Restore edition", target: "draft", tone: "primary", type: "restore", zh: "恢复" },
 ]
 
-const TEMPLATE_KEYS: Record<string, readonly number[]> = {
-  "editor:draft": [0],
-  "editor:generating": [1, 2],
-  "editor:published": [7],
-  "publisher:compiled": [5],
-  "publisher:published": [6],
-  "reviewer:review": [3, 4],
-  /*
-   * Super-admin operates the union of role actions per status (workbench drag
-   * + article detail panel); the protected endpoints authorize it alongside
-   * the owning role and the audit entry records the super-admin actor.
-   */
-  "super-admin:draft": [0],
-  "super-admin:generating": [1, 2],
-  "super-admin:review": [3, 4],
-  "super-admin:compiled": [5],
-  "super-admin:published": [6, 7],
+/*
+ * Per-lane action sets. The keys use lane states only (generating/compiled
+ * inherit from their lane neighbours).
+ */
+const TEMPLATE_KEYS: Record<WorkflowStatus, readonly number[]> = {
+  approved: [3],
+  archived: [6],
+  compiled: [4, 3],
+  draft: [0],
+  generating: [0],
+  published: [5],
+  review: [1, 2],
 }
 
 /** Bilingual workflow action list; labels resolve per UI language (zh default). */
@@ -177,9 +160,10 @@ export const workflowActionsFor = (
   state: WorkflowStatus,
   language?: unknown,
 ): readonly WorkflowAction[] => {
+  void role // 自由流转模型下不再按角色区分；保留参数兼容既有调用方
   const lang: UiLang = uiLangOf(language)
   const actions: WorkflowAction[] = []
-  for (const key of TEMPLATE_KEYS[`${String(role)}:${state}`] ?? []) {
+  for (const key of TEMPLATE_KEYS[state] ?? []) {
     const template = ACTION_TEMPLATES[key]
     if (template === undefined) continue
     actions.push({

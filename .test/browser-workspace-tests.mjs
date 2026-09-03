@@ -217,33 +217,16 @@ const run = async () => {
         true,
         `${workspacePath} renders context rail, control rail, and site variants section`,
       )
-      const evaluationButton = editorPage.getByRole("button", {
-        name: /Run quality check|运行质量检查/,
-      })
-      await evaluationButton.waitFor({ timeout: TIMEOUT })
-      const [evaluation] = await Promise.all([
-        editorPage.waitForResponse(
-          (response) =>
-            response.request().method() === "POST" &&
-            response
-              .url()
-              .includes(`/api/workspaces/editor/editions/${editionId}/evaluation-operations`),
-          { timeout: TIMEOUT },
-        ),
-        evaluationButton.click(),
-      ])
-      const evaluationBody = await evaluation.json()
-      if (
-        (evaluation.status() !== 202 && evaluation.status() !== 200) ||
-        evaluationBody.operation?.operationType !== "evaluate"
-      ) {
-        throw new Error(`quality evaluation submission failed: ${evaluation.status()}`)
-      }
+      /*
+       * 2026-09 重设计：质量检查不再是工作台按钮（发布链路自管），此处仅
+       * 断言新动作集出现在编辑页操作区。
+       */
+      await editorPage.getByRole("button", { name: "提交审核" }).waitFor({ timeout: TIMEOUT })
       record(
         "WS-UI-005",
-        "Editor submits a worker-owned quality evaluation",
+        "Workspace offers the free-flow submit-for-review action",
         true,
-        `${workspacePath} creates a queued evaluate operation through the session endpoint`,
+        `${workspacePath} shows 提交审核 for a draft edition under the free-flow model`,
       )
       await editorPage.screenshot({ path: resolve(ARTIFACTS, "ws4-edition-workspace.png") })
     }

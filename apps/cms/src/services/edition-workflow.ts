@@ -231,39 +231,6 @@ export const loadWorkflowEdition = async (
   }
 }
 
-/**
- * Immutable assessment gate for `approved` (and `compiled`): the newest
- * assessment for the edition must be passed and its inputHash must match the
- * live edition content, so approval on stale evidence is impossible.
- */
-const verifiedAssessmentState = async (
-  payload: Payload,
-  doc: WorkflowEditionDoc,
-  req: TransactionScope,
-): Promise<"passed"> => {
-  const found = await payload.find({
-    collection: "quality-assessments",
-    where: { edition: { equals: doc.id } },
-    sort: "-createdAt",
-    limit: 1,
-    depth: 0,
-    overrideAccess: true,
-    req,
-  })
-  const assessment = found.docs[0]
-  if (assessment === undefined) {
-    throw fail("EDITION_WORKFLOW_ASSESSMENT_REQUIRED", `edition ${doc.id}`)
-  }
-  if (assessment.state !== "passed") {
-    throw fail("EDITION_WORKFLOW_ASSESSMENT_NOT_PASSED", `edition ${doc.id}`)
-  }
-  const liveHash = hashEditionContent(editionContentSnapshotOf(doc))
-  if (assessment.inputHash !== liveHash) {
-    throw fail("EDITION_WORKFLOW_STALE_ASSESSMENT", `edition ${doc.id}`)
-  }
-  return "passed"
-}
-
 export type TransitionOptions = {
   readonly editionId: number
   readonly target: ContentEditionState
@@ -287,44 +254,18 @@ const transitionEditionInScope = async (
     throw fail("EDITION_WORKFLOW_ACTOR_INVALID", "session has no valid user actor")
   }
   const doc = await loadWorkflowEdition(payload, options.editionId, req, true)
-  const claims = assertEditionTenantScope(options.user, doc)
+  assertEditionTenantScope(options.user, doc)
   const aggregate = aggregateOf(doc)
   if (options.expectedRevision !== undefined && options.expectedRevision !== aggregate.revision) {
     throw fail("EDITION_WORKFLOW_REVISION_CONFLICT", `edition ${options.editionId}`)
   }
   const reason = stringField(options.reason)?.trim()
-  if (
-    claims.role === "reviewer" &&
-    aggregate.state === "review" &&
-    options.target === "draft" &&
-    (reason === undefined || reason.length === 0)
-  ) {
-    throw fail("EDITION_WORKFLOW_REASON_REQUIRED", "reviewer return-to-draft requires a reason")
-  }
-
-  if (options.target === "approved") {
-    const sources = await payload.find({
-      collection: "article-sources",
-      where: {
-        and: [
-          { edition: { equals: options.editionId } },
-          { tenant: { equals: numberFieldOf(doc.tenant) ?? -1 } },
-        ],
-      },
-      limit: 1,
-      depth: 0,
-      overrideAccess: true,
-      req,
-    })
-    if (sources.docs.length === 0) {
-      throw fail("EDITION_WORKFLOW_SOURCE_REQUIRED", `edition ${options.editionId}`)
-    }
-  }
-
-  const needsAssessment = options.target === "approved" || options.target === "compiled"
-  const qualityAssessmentState = needsAssessment
-    ? await verifiedAssessmentState(payload, doc, req)
-    : null
+  /*
+   * Free operator flow: transitions between visible lanes carry no role or
+   * evidence gates anymore (audit entries record the actor). Quality
+   * evaluation remains a pipeline capability, not a publishing gate.
+   */
+  const qualityAssessmentState = null
   if (options.target === "approved") {
     await reserveEditionUrl(payload, doc, req)
   }

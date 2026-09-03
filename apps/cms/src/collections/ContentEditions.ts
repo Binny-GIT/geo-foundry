@@ -255,6 +255,19 @@ export const ContentEditions = {
         },
       },
     },
+    /*
+     * 多站点分配（2026-09 重设计）：文章可直接分配到多个站点，读取端按
+     * "分配了就能读到"过滤；`site` 保留为发布链路（域名/URL/编译）的
+     * 主站点，保存时取所选站点的第一个。
+     */
+    {
+      name: "sites",
+      type: "relationship",
+      relationTo: "sites",
+      hasMany: true,
+      index: true,
+      label: localized("Assigned sites", "所属站点"),
+    },
     tenantField(),
     {
       name: "owner",

@@ -59,78 +59,35 @@ function isAllowedTransition(from: ContentEditionState, to: ContentEditionState)
 
   switch (to) {
     case "approved":
-      return from === "review"
     case "archived":
-      return from === "published"
-    case "compiled":
-      return from === "approved"
     case "draft":
-      return from === "generating" || from === "review"
     case "generating":
-      return from === "draft"
     case "published":
-      return from === "compiled"
     case "review":
-      return from === "generating"
+      /*
+       * Operator-driven free flow: every visible lane accepts a card from any
+       * other lane (generating/compiled remain reachable for the internal
+       * pipeline). Publish still requires a compiled release downstream.
+       */
+      return from !== to
+    case "compiled":
+      return from === "approved" || from === "compiled"
     default:
       return assertNever(to)
   }
 }
 
 function guardTransition(
-  from: ContentEditionState,
-  target: ContentEditionState,
-  context: ContentEditionTransitionContext,
+  _from: ContentEditionState,
+  _target: ContentEditionState,
+  _context: ContentEditionTransitionContext,
 ): DomainResult<null> {
-  switch (target) {
-    case "approved":
-      return actorHasRole(context.actor, "reviewer")
-        ? ok(null)
-        : err(
-            new TransitionGuardError(
-              DOMAIN_ERROR_CODE.CONTENT_EDITION_REVIEWER_REQUIRED,
-              "Reviewer role is required to approve an edition",
-            ),
-          )
-    case "archived":
-    case "published":
-      return actorHasRole(context.actor, "publisher")
-        ? ok(null)
-        : err(
-            new TransitionGuardError(
-              DOMAIN_ERROR_CODE.CONTENT_EDITION_PUBLISHER_REQUIRED,
-              "Publisher role is required for this edition transition",
-            ),
-          )
-    case "compiled":
-      return context.qualityAssessmentState === "passed"
-        ? ok(null)
-        : err(
-            new TransitionGuardError(
-              DOMAIN_ERROR_CODE.CONTENT_EDITION_QUALITY_NOT_PASSED,
-              "A passed quality assessment is required before compilation",
-            ),
-          )
-    case "draft":
-      return from === "review" && !actorHasRole(context.actor, "reviewer")
-        ? err(
-            new TransitionGuardError(
-              DOMAIN_ERROR_CODE.CONTENT_EDITION_REVIEWER_REQUIRED,
-              "Reviewer role is required to request an edition revision",
-            ),
-          )
-        : ok(null)
-    case "generating":
-    case "review":
-      return actorHasRole(context.actor, "editor")
-        ? ok(null)
-        : err(
-            new TransitionGuardError(
-              DOMAIN_ERROR_CODE.CONTENT_EDITION_EDITOR_REQUIRED,
-              "Editor role is required to prepare an edition for review",
-            ),
-          )
-  }
+  /*
+   * Free operator flow (2026-09 redesign): no per-role or evidence gates on
+   * lane moves; audit entries record who moved the card. Quality evaluation
+   * stays available through the pipeline API but no longer gates publishing.
+   */
+  return ok(null)
 }
 
 export function transitionContentEdition(

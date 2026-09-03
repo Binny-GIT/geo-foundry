@@ -7,83 +7,58 @@ import {
   workflowStatusLabel,
 } from "../../src/components/workflow/workflow-actions-model"
 
-describe("workflowActionsFor", () => {
-  it("gives editors the complete draft preparation path", () => {
-    expect(workflowActionsFor("editor", "draft")).toEqual([
-      {
-        label: "开始生成",
-        target: "generating",
-        tone: "primary",
-        type: "transition",
-      },
-    ])
-    expect(workflowActionsFor("editor", "generating")).toEqual([
-      {
-        label: "提交审核",
-        target: "review",
-        tone: "primary",
-        type: "transition",
-      },
-      {
-        label: "退回草稿",
-        target: "draft",
-        tone: "secondary",
-        type: "transition",
-      },
-    ])
-  })
+describe("workflowActionsFor (free-flow lane model)", () => {
+  it("gives every lane its operator action set, identical across roles", () => {
+    const labelsOf = (status: Parameters<typeof workflowActionsFor>[1]) =>
+      workflowActionsFor("editor", status).map((action) => action.label)
 
-  it("keeps reviewer and publisher actions scoped to their workflow states", () => {
-    expect(workflowActionsFor("reviewer", "review")).toEqual([
-      expect.objectContaining({ label: "审核通过", type: "reviewer-approve" }),
-      expect.objectContaining({ label: "审核不通过", type: "reviewer-request-changes" }),
-    ])
-    expect(workflowActionsFor("publisher", "compiled")).toEqual([
-      { confirm: true, label: "发布版本", tone: "primary", type: "publish-operation" },
-    ])
-    expect(workflowActionsFor("publisher", "published").map((action) => action.label)).toEqual([
-      "归档版本",
-    ])
-  })
+    expect(labelsOf("draft")).toEqual(["提交审核"])
+    expect(labelsOf("generating")).toEqual(["提交审核"])
+    expect(labelsOf("review")).toEqual(["审核通过", "审核不通过"])
+    expect(labelsOf("approved")).toEqual(["创建发布排期"])
+    expect(labelsOf("compiled")).toEqual(["发布版本", "创建发布排期"])
+    expect(labelsOf("published")).toEqual(["删除"])
+    expect(labelsOf("archived")).toEqual(["恢复"])
 
-  it("marks consequential actions for confirmation and reviewer change requests for a reason", () => {
-    const reviewerActions = workflowActionsFor("reviewer", "review")
-    expect(reviewerActions).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ confirm: true, label: "审核通过" }),
-        expect.objectContaining({ confirm: true, label: "审核不通过", reasonRequired: true }),
-      ]),
+    expect(labelsOf("review")).toEqual(workflowActionsFor("publisher", "review").map((a) => a.label))
+    expect(labelsOf("published")).toEqual(
+      workflowActionsFor("super-admin", "published").map((a) => a.label),
     )
-    expect(workflowActionsFor("editor", "draft")[0]).not.toHaveProperty("confirm")
-    expect(workflowActionsFor("editor", "published")[0]).toMatchObject({ confirm: true })
-    expect(workflowActionsFor("publisher", "published")[0]).toMatchObject({ confirm: true })
   })
 
-  it("does not expose editor transitions to other roles", () => {
-    expect(workflowActionsFor("reviewer", "draft")).toEqual([])
-    expect(workflowActionsFor("publisher", "generating")).toEqual([])
-    expect(workflowActionsFor("tenant-admin", "draft")).toEqual([])
+  it("keeps the reject decision confirm- and reason-gated", () => {
+    const reject = workflowActionsFor("editor", "review")[1]
+    expect(reject).toMatchObject({
+      confirm: true,
+      reasonRequired: true,
+      target: "draft",
+      type: "transition",
+    })
   })
 
-  it("gives super-admin the union of role actions per status", () => {
-    expect(workflowActionsFor("super-admin", "draft").map((a) => a.label)).toEqual(["开始生成"])
-    expect(workflowActionsFor("super-admin", "review").map((a) => a.label)).toEqual([
-      "审核通过",
-      "审核不通过",
-    ])
-    expect(workflowActionsFor("super-admin", "compiled").map((a) => a.label)).toEqual(["发布版本"])
-    expect(workflowActionsFor("super-admin", "published").map((a) => a.label)).toEqual([
-      "归档版本",
-      "创建新草稿",
-    ])
-    expect(workflowActionsFor("super-admin", "approved")).toEqual([])
-    expect(workflowActionsFor("super-admin", "archived")).toEqual([])
+  it("retires the legacy actions from the surface", () => {
+    const all = (
+      [
+        "draft",
+        "generating",
+        "review",
+        "approved",
+        "compiled",
+        "published",
+        "archived",
+      ] as const
+    ).flatMap((status) => workflowActionsFor("super-admin", status).map((a) => a.label))
+    for (const legacy of ["开始生成", "质量检查", "退回草稿", "归档版本", "创建新草稿"]) {
+      expect(all).not.toContain(legacy)
+    }
   })
 })
 
 describe("workflowStatusLabel", () => {
-  it("uses Chinese by default and does not expose machine values as primary copy", () => {
-    expect(workflowStatusLabel("review")).toBe("审核中")
+  it("maps internal states onto the six operator lanes", () => {
+    expect(workflowStatusLabel("generating")).toBe("草稿")
+    expect(workflowStatusLabel("compiled")).toBe("通过待发布")
+    expect(workflowStatusLabel("archived")).toBe("已删除")
     expect(workflowStatusLabel("compiled", "en")).toBe("Compiled")
   })
 })
@@ -99,21 +74,9 @@ describe("WORKFLOW_TONE", () => {
         "generating",
         "published",
         "review",
-      ].filter(isWorkflowStatus).sort(),
+      ]
+        .filter(isWorkflowStatus)
+        .sort(),
     )
-  })
-
-  it("reserves the success tone for the only true terminal-good state", () => {
-    expect(WORKFLOW_TONE.published).toBe("success")
-    expect(Object.values(WORKFLOW_TONE).filter((tone) => tone === "success")).toEqual(["success"])
-  })
-
-  it("flags review as the state that needs a human decision", () => {
-    expect(WORKFLOW_TONE.review).toBe("warning")
-  })
-
-  it("keeps quiet terminal states neutral", () => {
-    expect(WORKFLOW_TONE.draft).toBe("neutral")
-    expect(WORKFLOW_TONE.archived).toBe("neutral")
   })
 })

@@ -6,11 +6,9 @@ import { useState } from "react"
 import {
   CalendarClockIcon,
   CheckCircleIcon,
-  FilePlusIcon,
   MessageSquareIcon,
+  RotateCcwIcon,
   SendIcon,
-  ShieldCheckIcon,
-  SparklesIcon,
   XIcon,
 } from "@/components/icons"
 import { Button } from "@/components/ui/button"
@@ -22,30 +20,27 @@ import {
 import {
   editionActionErrorMessage,
   editionCommentEndpointOf,
-  editionEvaluationEndpointOf,
   editionWorkflowEndpointOf,
   publicationPlanEndpoint,
+  workflowActionBodyOf,
 } from "@/console/lib/edition-workflow-client"
 
-/**
- * Article detail action panel: the same protected workflow endpoints the
- * workbench board uses (status transitions, quality evaluation, publication
- * scheduling) plus the review comment endpoint — so a publisher/reviewer can
- * operate on an article without leaving its detail page.
+/*
+ * Article detail action panel (free-flow model): lane transitions, the
+ * reject decision with a required reason, publication scheduling, plus the
+ * review comment endpoint.
  */
 const ArticleWorkflowPanel = ({
   editionId,
   role,
   siteTimezone,
   title,
-  workflowRevision,
   workflowStatus,
 }: {
   readonly editionId: number
   readonly role: string
   readonly siteTimezone: string | null
   readonly title: string
-  readonly workflowRevision: number
   readonly workflowStatus: string
 }) => {
   const router = useRouter()
@@ -65,24 +60,16 @@ const ArticleWorkflowPanel = ({
     setPending(action.label)
     setNotice(null)
     try {
-      const reviewerDecision =
-        action.type === "reviewer-approve" || action.type === "reviewer-request-changes"
       const normalizedReason = auditReason?.trim()
       const response = await fetch(editionWorkflowEndpointOf(action, editionId), {
         body: JSON.stringify({
-          ...(action.type === "transition" ? { target: action.target } : {}),
-          ...(reviewerDecision ? { expectedRevision: workflowRevision } : {}),
+          ...workflowActionBodyOf(action),
           ...(normalizedReason === undefined || normalizedReason.length === 0
             ? {}
             : { reason: normalizedReason }),
         }),
         credentials: "same-origin",
-        headers: {
-          "content-type": "application/json",
-          ...(reviewerDecision
-            ? { "idempotency-key": crypto.randomUUID(), "x-request-id": crypto.randomUUID() }
-            : {}),
-        },
+        headers: { "content-type": "application/json" },
         method: "POST",
       })
       const result = (await response.json().catch(() => ({}))) as { error?: { code?: unknown } }
@@ -96,30 +83,6 @@ const ArticleWorkflowPanel = ({
         ok: false,
         text: error instanceof Error ? error.message : editionActionErrorMessage(undefined),
       })
-    } finally {
-      setPending(null)
-    }
-  }
-
-  const runQuality = async () => {
-    setPending("quality")
-    setNotice(null)
-    try {
-      const response = await fetch(editionEvaluationEndpointOf(editionId), {
-        body: JSON.stringify({}),
-        credentials: "same-origin",
-        headers: {
-          "content-type": "application/json",
-          "idempotency-key": crypto.randomUUID(),
-          "x-request-id": crypto.randomUUID(),
-        },
-        method: "POST",
-      })
-      if (!response.ok) throw new Error(editionActionErrorMessage(undefined))
-      setNotice({ ok: true, text: "已提交质量检查" })
-      router.refresh()
-    } catch (error) {
-      setNotice({ ok: false, text: error instanceof Error ? error.message : "提交质量检查失败。" })
     } finally {
       setPending(null)
     }
@@ -175,33 +138,15 @@ const ArticleWorkflowPanel = ({
     }
   }
 
-  const showQuality =
-    (role === "editor" || role === "super-admin") &&
-    ["draft", "generating", "review"].includes(workflowStatus)
-  const showSchedule =
-    (role === "publisher" || role === "super-admin") &&
-    ["approved", "compiled"].includes(workflowStatus)
-  const hasActions = actions.length > 0 || showQuality || showSchedule
-  /*
-   * Role gate for the read-only decision list: when the current role cannot
-   * act in this status, still surface the full status×role action matrix as
-   * disabled buttons (mirrors workflow-actions-model) so operators always see
-   * the decision set, e.g. 待审核 → 审核通过 / 审核不通过（审阅）.
-   */
-  const WORKFLOW_ROLES = ["editor", "reviewer", "publisher"] as const
-  const ROLE_BADGES: Readonly<Record<string, string>> = {
-    editor: "编辑",
-    publisher: "发布",
-    reviewer: "审阅",
+  const actionIconOf = (action: WorkflowAction) => {
+    if (action.type === "schedule") return <CalendarClockIcon size={15} />
+    if (action.type === "publish-operation") return <SendIcon size={15} />
+    if (action.type === "restore") return <RotateCcwIcon size={15} />
+    if (action.type === "archive") return <XIcon size={15} />
+    if (action.label === "审核通过") return <CheckCircleIcon size={15} />
+    if (action.label === "审核不通过") return <XIcon size={15} />
+    return <SendIcon size={15} />
   }
-  const statusActions = isWorkflowStatus(workflowStatus)
-    ? WORKFLOW_ROLES.flatMap((workflowRole) =>
-        workflowActionsFor(workflowRole, workflowStatus, "zh").map((action) => ({
-          action,
-          role: workflowRole,
-        })),
-      )
-    : []
 
   return (
     <section className="gf-console-card grid gap-4 p-5">
@@ -220,14 +165,19 @@ const ArticleWorkflowPanel = ({
         </p>
       )}
 
-      {hasActions ? (
+      {actions.length > 0 ? (
         <div className="grid gap-2 border-t border-[var(--console-border)] pt-4 sm:grid-cols-2">
           {actions.map((action) => (
             <Button
               className="gf-console-focus disabled:cursor-wait"
               disabled={pending !== null}
-              key={action.label}
+              key={`${action.type}-${action.label}`}
               onClick={() => {
+                if (action.type === "schedule") {
+                  setScheduling(true)
+                  setScheduledFor("")
+                  return
+                }
                 if (action.confirm === true || action.reasonRequired === true) {
                   setConfirming(action)
                   setReason("")
@@ -239,69 +189,14 @@ const ArticleWorkflowPanel = ({
               type="button"
               variant={action.tone === "primary" ? "default" : "secondary"}
             >
-              {action.type === "draft-from-published" ? <FilePlusIcon size={15} /> : null}
-              {action.type === "publish-operation" ? <SendIcon size={15} /> : null}
-              {action.type === "reviewer-approve" ? <CheckCircleIcon size={15} /> : null}
-              {action.target === "generating" ? <SparklesIcon size={15} /> : null}
+              {actionIconOf(action)}
               {pending === action.label ? "…" : action.label}
             </Button>
           ))}
-          {showQuality && (
-            <Button
-              className="gf-console-focus disabled:cursor-wait"
-              disabled={pending !== null}
-              onClick={() => void runQuality()}
-              size="lg"
-              type="button"
-              variant="secondary"
-            >
-              <ShieldCheckIcon size={15} />
-              {pending === "quality" ? "…" : "质量检查"}
-            </Button>
-          )}
-          {showSchedule && (
-            <Button
-              className="gf-console-focus disabled:cursor-wait"
-              disabled={pending !== null}
-              onClick={() => {
-                setScheduling(true)
-                setScheduledFor("")
-              }}
-              size="lg"
-              type="button"
-              variant="secondary"
-            >
-              <CalendarClockIcon size={15} />
-              创建发布排期
-            </Button>
-          )}
-        </div>
-      ) : statusActions.length > 0 ? (
-        <div className="grid gap-2 border-t border-[var(--console-border)] pt-4">
-          <p className="m-0 text-sm leading-6 text-[var(--console-ink-muted)]">
-            当前角色在此状态下没有可执行的操作；本状态的流转操作如下。
-          </p>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {statusActions.map(({ action, role: actionRole }) => (
-              <Button
-                aria-label={`${action.label}（${ROLE_BADGES[actionRole] ?? actionRole}）`}
-                className="gf-console-focus"
-                disabled
-                key={`${actionRole}-${action.type}-${action.label}`}
-                size="lg"
-                type="button"
-                variant="secondary"
-              >
-                {action.label}（{ROLE_BADGES[actionRole] ?? actionRole}）
-              </Button>
-            ))}
-          </div>
         </div>
       ) : (
         <p className="m-0 border-t border-[var(--console-border)] pt-4 text-sm leading-6 text-[var(--console-ink-muted)]">
-          {workflowStatus === "archived"
-            ? "该稿件已归档，没有后续流转操作。"
-            : "当前角色在此状态下没有可执行的操作。"}
+          当前状态没有可执行的操作。
         </p>
       )}
 
