@@ -27,6 +27,7 @@ import * as migration_20260901_000000_api_usage_daily from "./20260901_000000_ap
 import * as migration_20260901_001000_api_usage_locked_rels from "./20260901_001000_api_usage_locked_rels"
 import * as migration_20260901_002000_reading_city from "./20260901_002000_reading_city"
 import * as migration_20260901_003000_intake_content_blocks from "./20260901_003000_intake_content_blocks"
+import * as migration_20260903_131000_edition_sites from "./20260903_131000_edition_sites"
 
 export const migrations = [
   {
