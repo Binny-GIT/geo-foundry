@@ -56,7 +56,8 @@ describe("free-flow board drag mapping", () => {
     }
     expect(ownColumnOf({ workflowStatus: "compiled" })).toBe("approved")
     expect(ownColumnOf({ rejectedReason: "收紧", workflowStatus: "draft" })).toBe("rejected")
+    /* 同态落点为空；生成中→草稿属同泳道但由 ownColumnOf 在放置处拦截 */
     expect(dropActionFor("editor", "review", "review")).toBeNull()
-    expect(dropActionFor("editor", "generating", "draft")).toBeNull()
+    expect(dropActionFor("editor", "generating", "draft")).toMatchObject({ target: "draft" })
   })
 })
