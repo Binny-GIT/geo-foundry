@@ -12,6 +12,8 @@ const ASSIGNABLE_BY_TENANT_ADMIN: readonly CmsRole[] = [
 export type RoleAssignmentInput = {
   readonly incoming: unknown
   readonly claims: SessionClaims | null
+  readonly originalRole: unknown
+  readonly originalUserId: unknown
   readonly usersEmpty: boolean
 }
 
@@ -27,23 +29,32 @@ export type RoleAssignmentInput = {
  *   mints exactly one super-admin
  * - super-admin sessions may assign any valid role
  * - tenant-admin sessions may assign tenant-scoped roles only
- * - every other session is denied
+ * - every other session is denied — except re-asserting the account's OWN
+ *   stored role on its own document (self password change re-sends the
+ *   stored role verbatim because the field is required; any change of value
+ *   still falls through to the deny branch)
  */
 export function resolveRoleAssignment({
   incoming,
   claims,
+  originalRole,
+  originalUserId,
   usersEmpty,
 }: RoleAssignmentInput): CmsRole | null {
   if (claims === null) {
     return usersEmpty ? CMS_ROLE.SUPER_ADMIN : null
   }
   const requested = typeof incoming === "string" && isCmsRole(incoming) ? incoming : null
+  const selfReassert =
+    requested !== null &&
+    requested === originalRole &&
+    String(originalUserId) === claims.userId
   switch (claims.role) {
     case CMS_ROLE.SUPER_ADMIN:
       return requested
     case CMS_ROLE.TENANT_ADMIN:
       return requested !== null && ASSIGNABLE_BY_TENANT_ADMIN.includes(requested) ? requested : null
     default:
-      return null
+      return selfReassert ? requested : null
   }
 }

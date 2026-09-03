@@ -101,9 +101,9 @@ describe("console tenant nav and account settings contract", () => {
     // Current password goes through the same credential path as login.
     expect(endpoint).toContain("req.payload.login")
     expect(endpoint).toContain("ACCOUNT_PASSWORD_CURRENT_INVALID")
-    // The update touches only the password field, with the invariant hook
-    // satisfied by the stored role/tenant (originalDoc fallback).
-    expect(endpoint).toContain("data: { password: parsed.data.newPassword }")
+    // The update re-sends the stored role/tenant verbatim (role is required);
+    // the role hook lets non-admins re-assert only their OWN stored role.
+    expect(endpoint).toContain("role: claims.role")
     expect(endpoint).toContain("overrideAccess: true")
     // Service identities keep using keyring API keys, never this endpoint.
     expect(endpoint).toContain("CMS_ROLE.CONTENT_SERVICE")

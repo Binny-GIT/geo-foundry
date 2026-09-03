@@ -71,9 +71,20 @@ export const changeOwnPasswordEndpoint: Endpoint = {
       return response(400, { error: { code: "ACCOUNT_PASSWORD_CURRENT_INVALID" } })
     }
 
+    /*
+     * role is a required field, so the update re-sends the session's stored
+     * role (and tenant) verbatim; the forceRoleFromSession hook only lets a
+     * non-admin session re-assert its OWN stored role on its own document —
+     * any other value is rejected there.
+     */
+    const tenantId = claims.tenantId === null ? null : Number(claims.tenantId)
     await req.payload.update({
       collection: "users",
-      data: { password: parsed.data.newPassword },
+      data: {
+        password: parsed.data.newPassword,
+        role: claims.role,
+        ...(tenantId !== null && Number.isInteger(tenantId) ? { tenant: tenantId } : {}),
+      },
       id: claims.userId,
       overrideAccess: true,
     })
