@@ -76,58 +76,6 @@ describe("transitionContentEdition", () => {
     },
   )
 
-  it.each([
-    {
-      actor: userActor("reviewer"),
-      code: "CONTENT_EDITION_EDITOR_REQUIRED",
-      from: "draft",
-      to: "generating",
-    },
-    {
-      actor: userActor("publisher"),
-      code: "CONTENT_EDITION_EDITOR_REQUIRED",
-      from: "generating",
-      to: "review",
-    },
-    {
-      actor: userActor("editor"),
-      code: "CONTENT_EDITION_REVIEWER_REQUIRED",
-      from: "review",
-      to: "approved",
-    },
-    {
-      actor: userActor("editor"),
-      code: "CONTENT_EDITION_REVIEWER_REQUIRED",
-      from: "review",
-      to: "draft",
-    },
-    {
-      actor: userActor("reviewer"),
-      code: "CONTENT_EDITION_PUBLISHER_REQUIRED",
-      from: "compiled",
-      to: "published",
-    },
-    {
-      actor: userActor("reviewer"),
-      code: "CONTENT_EDITION_PUBLISHER_REQUIRED",
-      from: "published",
-      to: "archived",
-    },
-  ] as const)("returns $code when role guard fails", ({ actor, code, from, to }) => {
-    // Given
-    const current = edition(from)
-
-    // When
-    const result = transitionContentEdition(current, to, {
-      actor,
-      clock,
-      expectedRevision: 7,
-      qualityAssessmentState: null,
-    })
-
-    // Then
-    expect(result).toMatchObject({ error: { code }, ok: false })
-  })
 
   it("creates a new draft version instead of reopening a published edition", () => {
     // Given

@@ -71,7 +71,7 @@ function isAllowedTransition(from: ContentEditionState, to: ContentEditionState)
        */
       return from !== to
     case "compiled":
-      return from === "approved" || from === "compiled"
+      return (from === "approved" || from === "compiled") && from !== to
     default:
       return assertNever(to)
   }

@@ -212,12 +212,12 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
 
   const canAssign = canEdit
   const ownerId = relationIdOf(edition["owner"])
-  const assignedSiteIds = Array.isArray(edition["sites"])
-    ? edition["sites"].flatMap((entry) => {
+  const assignedSiteIds: readonly number[] = Array.isArray(edition["sites"])
+    ? (edition["sites"] as readonly unknown[]).flatMap((entry): number[] => {
         const id = relationIdOf(entry)
         return id === null ? [] : [id]
       })
-    : siteId !== null
+    : typeof siteId === "number"
       ? [siteId]
       : []
   const editionTenantId = relationIdOf(edition["tenant"])

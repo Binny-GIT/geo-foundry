@@ -5,12 +5,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useId, useRef, useState } from "react"
 
 import { uiLangOf } from "../i18n/ui-lang"
-import {
-  CheckCircleIcon,
-  FilePlusIcon,
-  SendIcon,
-  SparklesIcon,
-} from "@/components/icons"
+import { CheckCircleIcon, SendIcon } from "@/components/icons"
 import { Badge } from "../ui/Badge"
 import { Button } from "../ui/button"
 import {
@@ -30,8 +25,6 @@ const MESSAGE = {
     assessment: "A passed quality assessment is required before this action.",
     cancel: "Cancel",
     confirm: "Confirm action",
-    createDraftImpact:
-      "A new editable draft is created from this published edition. The published release and its artifacts remain unchanged.",
     default: "This workflow action did not complete.",
     draftCreated: "New draft created.",
     notCompiled: "This edition has not been compiled.",
@@ -44,6 +37,7 @@ const MESSAGE = {
     reasonRequired: "Add a reason before requesting changes.",
     requestChangesImpact:
       "The edition returns to Draft so the editor can revise it. Your reason is required and becomes part of the audit trail.",
+    restoreImpact: "The deleted edition returns to Draft and becomes editable work again.",
     stale: "This edition changed elsewhere — refresh and retry.",
     transitioned: (status: string) => `Edition moved to ${status}.`,
     workflow: "Workflow",
@@ -57,7 +51,6 @@ const MESSAGE = {
     assessment: "需要先获得一次通过的质量评估，才能进行此操作。",
     cancel: "取消",
     confirm: "确认操作",
-    createDraftImpact: "将基于此已发布版本创建新的可编辑草稿；已发布版本及其制品保持不变。",
     default: "该工作流操作未能完成。",
     draftCreated: "已创建新草稿。",
     notCompiled: "该版本尚未编译。",
@@ -69,6 +62,7 @@ const MESSAGE = {
     reasonHint: "该说明会写入受保护的审计记录。",
     reasonRequired: "审核不通过需填写原因。",
     requestChangesImpact: "版本将退回草稿，供编辑修改。必须填写原因，并将其写入审计记录。",
+    restoreImpact: "已删除的版本将回到草稿，重新成为可编辑的工作。",
     stale: "该版本已在别处发生变化，请刷新后重试。",
     transitioned: (status: string) => `版本已流转至 ${status}。`,
     workflow: "工作流",
@@ -83,10 +77,10 @@ const requiresConfirmation = (action: WorkflowAction): boolean => action.confirm
 const requiresReason = (action: WorkflowAction): boolean => action.reasonRequired === true
 
 const impactFor = (action: WorkflowAction, messages: (typeof MESSAGE)["zh"]): string | null => {
-  if (action.type === "draft-from-published") return messages.createDraftImpact
   if (action.type === "publish-operation") return messages.publishImpact
-  if (action.type === "reviewer-approve") return messages.approveImpact
-  if (action.type === "reviewer-request-changes") return messages.requestChangesImpact
+  if (action.type === "restore") return messages.restoreImpact
+  if (action.label === "审核通过" || action.label === "Approve") return messages.approveImpact
+  if (action.reasonRequired === true) return messages.requestChangesImpact
   if (action.target === "archived") return messages.archiveImpact
   return null
 }
@@ -102,7 +96,6 @@ export const WorkflowActions = () => {
   const { i18n } = useTranslation()
   const router = useRouter()
   const statusValue = useFormFields(([fields]) => fields["workflowStatus"]?.value)
-  const workflowRevision = useFormFields(([fields]) => fields["workflowRevision"]?.value)
   const [pending, setPending] = useState<string | null>(null)
   const [selectedAction, setSelectedAction] = useState<WorkflowAction | null>(null)
   const [reason, setReason] = useState("")
@@ -152,36 +145,23 @@ export const WorkflowActions = () => {
   const run = async (action: WorkflowAction, auditReason?: string) => {
     setPending(action.label)
     try {
-      const reviewerDecision =
-        action.type === "reviewer-approve" || action.type === "reviewer-request-changes"
       const endpoint =
-        action.type === "draft-from-published"
-          ? `/api/editions/${id}/draft-from-published`
-          : action.type === "publish-operation"
-            ? `/api/editions/${id}/publish-operations`
-            : action.type === "reviewer-approve"
-              ? `/api/workspaces/reviewer/editions/${id}/approve`
-              : action.type === "reviewer-request-changes"
-                ? `/api/workspaces/reviewer/editions/${id}/request-changes`
-                : `/api/editions/${id}/workflow-transitions`
+        action.type === "publish-operation"
+          ? `/api/editions/${id}/publish-operations`
+          : `/api/editions/${id}/workflow-transitions`
       const normalizedReason = auditReason?.trim()
       const body = {
-        ...(action.type === "transition" ? { target: action.target } : {}),
-        ...(reviewerDecision ? { expectedRevision: Number(workflowRevision) } : {}),
+        ...(action.type === "transition" || action.type === "archive" || action.type === "restore"
+          ? { target: action.target }
+          : {}),
         ...(normalizedReason === undefined || normalizedReason.length === 0
           ? {}
           : { reason: normalizedReason }),
       }
-      const requestId = crypto.randomUUID()
       const response = await fetch(endpoint, {
         body: JSON.stringify(body),
         credentials: "same-origin",
-        headers: {
-          "content-type": "application/json",
-          ...(reviewerDecision
-            ? { "idempotency-key": crypto.randomUUID(), "x-request-id": requestId }
-            : {}),
-        },
+        headers: { "content-type": "application/json" },
         method: "POST",
       })
       const result = (await response.json().catch(() => ({}))) as {
@@ -190,15 +170,13 @@ export const WorkflowActions = () => {
       }
       if (!response.ok) throw new Error(messageFor(result.error?.code))
       toast.success(
-        action.type === "draft-from-published"
-          ? M.draftCreated
-          : action.type === "publish-operation"
-            ? M.publishSubmitted
-            : M.transitioned(
-                isWorkflowStatus(result.workflowStatus)
-                  ? workflowStatusLabel(result.workflowStatus, i18n.language)
-                  : workflowStatusLabel(action.target ?? statusValue, i18n.language),
-              ),
+        action.type === "publish-operation"
+          ? M.publishSubmitted
+          : M.transitioned(
+              isWorkflowStatus(result.workflowStatus)
+                ? workflowStatusLabel(result.workflowStatus, i18n.language)
+                : workflowStatusLabel(action.target ?? statusValue, i18n.language),
+            ),
       )
       setSelectedAction(null)
       setReason("")
@@ -255,10 +233,8 @@ export const WorkflowActions = () => {
               type="button"
               variant={action.tone === "primary" ? "default" : "secondary"}
             >
-              {action.type === "draft-from-published" ? <FilePlusIcon size={15} /> : null}
               {action.type === "publish-operation" ? <SendIcon size={15} /> : null}
-              {action.type === "reviewer-approve" ? <CheckCircleIcon size={15} /> : null}
-              {action.target === "generating" ? <SparklesIcon size={15} /> : null}
+              {action.reasonRequired === true ? <CheckCircleIcon size={15} /> : null}
               {pending === action.label ? M.working : action.label}
             </Button>
           ))}
