@@ -26,7 +26,7 @@ describe("workbench server contract", () => {
     expect(page).toContain("showColumns={query.showColumns}")
     expect(page).toContain("WorkToolbar")
     expect(page).not.toContain("limit: 200")
-    expect(page).not.toContain('query.view')
+    expect(page).not.toContain("query.view")
 
     expect(filters).toContain("greater_than_equal")
     expect(filters).toContain("less_than")
@@ -52,7 +52,7 @@ describe("workbench server contract", () => {
     expect(board).toContain("dropActionFor")
     expect(board).toContain('target="_blank"')
     expect(board).toContain("showColumns")
-    expect(board).toContain('draggable={false}')
+    expect(board).toContain("draggable={false}")
     expect(shell).toContain('isWorkbench ? "h-dvh min-h-0 overflow-hidden" : "min-h-screen"')
     expect(shell).toContain('isWorkbench && "flex min-h-0 flex-1 flex-col overflow-hidden"')
 

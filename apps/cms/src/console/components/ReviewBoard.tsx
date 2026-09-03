@@ -289,7 +289,9 @@ const ReviewBoard = ({
                         {card.title}
                       </Link>
                       <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[var(--console-ink-muted)]">
-                        <span className="min-w-0 max-w-full truncate">{card.siteName ?? "受限站点"}</span>
+                        <span className="min-w-0 max-w-full truncate">
+                          {card.siteName ?? "受限站点"}
+                        </span>
                         <span aria-hidden="true">·</span>
                         <span className="min-w-0 max-w-full truncate">
                           {card.ownerEmail ?? "未分配"}

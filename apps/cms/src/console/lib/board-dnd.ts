@@ -109,6 +109,8 @@ export const dropHintFor = (
   if (card.workflowStatus === "archived") {
     return "已删除是终态，不能再次流转"
   }
-  const status = workflowStatusLabel(card.workflowStatus)
+  const status = isWorkflowStatus(card.workflowStatus)
+    ? workflowStatusLabel(card.workflowStatus)
+    : card.workflowStatus
   return `当前状态「${status}」没有移动到「${target}」的合法操作`
 }

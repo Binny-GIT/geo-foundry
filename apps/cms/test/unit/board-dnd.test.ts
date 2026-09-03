@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest"
 
-import { canDragCard, dropActionFor, dropHintFor, ownColumnOf } from "../../src/console/lib/board-dnd"
+import {
+  canDragCard,
+  dropActionFor,
+  dropHintFor,
+  ownColumnOf,
+} from "../../src/console/lib/board-dnd"
 
 describe("Board drag-and-drop mapping", () => {
   it("Given an editor draft card, when dropping onto any column, then no move resolves (generation starts via the card button)", () => {
@@ -30,7 +35,9 @@ describe("Board drag-and-drop mapping", () => {
 
   it("Given a publisher compiled card, when dropping onto published, then the publish operation resolves", () => {
     expect(dropActionFor("publisher", "compiled", "published")?.type).toBe("publish-operation")
-    expect(dropActionFor("publisher", "published", "archived")).toMatchObject({ target: "archived" })
+    expect(dropActionFor("publisher", "published", "archived")).toMatchObject({
+      target: "archived",
+    })
     expect(dropActionFor("publisher", "compiled", "archived")).toBeNull()
   })
 
