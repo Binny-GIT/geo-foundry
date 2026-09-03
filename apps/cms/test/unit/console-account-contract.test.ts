@@ -84,7 +84,12 @@ describe("console tenant nav and account settings contract", () => {
     expect(form).toContain("currentPassword")
     expect(form).toContain("ACCOUNT_PASSWORD_CURRENT_INVALID")
     expect(form).toContain("minLength={8}")
-    expect(form).toContain("newPassword !== confirmPassword")
+    expect(form).toContain("next !== confirm")
+    // The button submits through the form (Enter works too), stays clickable
+    // during validation, and reads DOM values so autofill cannot strand it.
+    expect(form).toContain('type="submit"')
+    expect(form).toContain("disabled={pending}")
+    expect(form).toContain("instanceof HTMLInputElement")
   })
 
   it("changes the password only after re-verifying the current credential", async () => {

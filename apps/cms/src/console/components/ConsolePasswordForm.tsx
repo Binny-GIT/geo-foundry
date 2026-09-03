@@ -1,13 +1,18 @@
 "use client"
 
-import { useState } from "react"
+import { useState, type FormEvent } from "react"
 
 import { Button } from "@/components/ui/button"
 
 /**
- * Self-service password change form — POST /api/users/me/password. The server
+ * Self-service password change form — POST /api/account/password. The server
  * re-verifies the current password through the login credential path, so this
  * form sends all three fields and maps the endpoint's error codes to copy.
+ *
+ * The submit button is never greyed out by validation: validation feedback on
+ * click (or Enter) tells the operator exactly what is missing, and values are
+ * read from the DOM on submit so browser autofill — which does not always
+ * fire React onChange — still works.
  */
 const ERROR_COPY: Readonly<Record<string, string>> = {
   ACCOUNT_PASSWORD_BODY_INVALID: "输入无效：新密码至少 8 位，且各项不超过 200 字符。",
@@ -28,16 +33,32 @@ const ConsolePasswordForm = () => {
     null,
   )
 
-  const submit = async () => {
-    if (newPassword !== confirmPassword) {
-      setNotice({ ok: false, text: "两次输入的新密码不一致。" })
-      return
+  const fail = (text: string) => {
+    setNotice({ ok: false, text })
+  }
+
+  const submit = async (event?: FormEvent<HTMLFormElement>) => {
+    event?.preventDefault()
+    // DOM-first read: autofilled values are in the inputs even when the
+    // controlled state never heard about them.
+    const form = event?.currentTarget
+    const valueOf = (name: string, state: string): string => {
+      const field = form?.elements.namedItem(name)
+      return field instanceof HTMLInputElement && field.value.length > 0 ? field.value : state
     }
+    const current = valueOf("currentPassword", currentPassword)
+    const next = valueOf("newPassword", newPassword)
+    const confirm = valueOf("confirmPassword", confirmPassword)
+
+    if (current.length === 0) return fail("请先输入当前密码。")
+    if (next.length < 8) return fail(`新密码至少 8 位，当前只有 ${String(next.length)} 位。`)
+    if (next !== confirm) return fail("两次输入的新密码不一致。")
+
     setPending(true)
     setNotice(null)
     try {
       const response = await fetch("/api/account/password", {
-        body: JSON.stringify({ currentPassword, newPassword }),
+        body: JSON.stringify({ currentPassword: current, newPassword: next }),
         credentials: "same-origin",
         headers: { "content-type": "application/json" },
         method: "POST",
@@ -61,14 +82,11 @@ const ConsolePasswordForm = () => {
     }
   }
 
-  const canSubmit =
-    !pending &&
-    currentPassword.length > 0 &&
-    newPassword.length >= 8 &&
-    confirmPassword.length > 0
-
   return (
-    <div className="grid max-w-md gap-4 border-t border-[var(--console-border)] pt-5">
+    <form
+      className="grid max-w-md gap-4 border-t border-[var(--console-border)] pt-5"
+      onSubmit={(event) => void submit(event)}
+    >
       {notice !== null && (
         <p
           className={`m-0 rounded-md border px-3.5 py-2.5 text-sm ${
@@ -86,6 +104,7 @@ const ConsolePasswordForm = () => {
         <input
           autoComplete="current-password"
           className={inputClass}
+          name="currentPassword"
           onChange={(event) => setCurrentPassword(event.target.value)}
           type="password"
           value={currentPassword}
@@ -97,6 +116,7 @@ const ConsolePasswordForm = () => {
           autoComplete="new-password"
           className={inputClass}
           minLength={8}
+          name="newPassword"
           onChange={(event) => setNewPassword(event.target.value)}
           type="password"
           value={newPassword}
@@ -108,21 +128,18 @@ const ConsolePasswordForm = () => {
           autoComplete="new-password"
           className={inputClass}
           minLength={8}
+          name="confirmPassword"
           onChange={(event) => setConfirmPassword(event.target.value)}
           type="password"
           value={confirmPassword}
         />
       </label>
-      <Button
-        className="gf-console-focus"
-        disabled={!canSubmit}
-        onClick={() => void submit()}
-        size="lg"
-        type="button"
-      >
+      {/* type="submit" routes through the form onSubmit so DOM (autofill)
+       * values are read alongside controlled state. */}
+      <Button disabled={pending} size="lg" type="submit">
         {pending ? "提交中…" : "更新密码"}
       </Button>
-    </div>
+    </form>
   )
 }
 
