@@ -10,10 +10,7 @@ import {
   PencilIcon,
   UserIcon,
 } from "@/components/icons"
-import {
-  CONSOLE_RESOURCES,
-  type ConsoleResourceSlug,
-} from "@/console/lib/resources"
+import { CONSOLE_RESOURCES, type ConsoleResourceSlug } from "@/console/lib/resources"
 
 export type TopbarPage = {
   readonly icon: ComponentType<{ readonly size?: number }>
@@ -38,10 +35,7 @@ const STATIC_PAGES: readonly { readonly href: string; readonly page: TopbarPage 
 
 const COLLECTIONS_PREFIX = "/admin/collections/"
 
-export const topbarPageOf = (
-  pathname: string,
-  fallback: TopbarPage,
-): TopbarPage => {
+export const topbarPageOf = (pathname: string, fallback: TopbarPage): TopbarPage => {
   if (pathname === "/admin") return fallback
   for (const entry of STATIC_PAGES) {
     if (pathname === entry.href || pathname.startsWith(`${entry.href}/`)) return entry.page
@@ -53,11 +47,11 @@ export const topbarPageOf = (
       .filter((segment) => segment.length > 0)
     const joined = segments.join("/")
     if (joined === "media/upload") return { icon: FilePlusIcon, label: "上传媒体" }
-    if (joined === "rollback-intents/create")
-      return { icon: PackageIcon, label: "创建回滚意图" }
+    if (joined === "rollback-intents/create") return { icon: PackageIcon, label: "创建回滚意图" }
     const resource = CONSOLE_RESOURCES[segments[0] as ConsoleResourceSlug]
     if (resource !== undefined) {
-      if (segments[1] === "create") return { icon: resource.icon, label: `新建${resource.label.zh}` }
+      if (segments[1] === "create")
+        return { icon: resource.icon, label: `新建${resource.label.zh}` }
       if (segments[2] === "edit") return { icon: resource.icon, label: `编辑${resource.label.zh}` }
       if (segments[1] !== undefined && /^\d+$/.test(segments[1]))
         return { icon: resource.icon, label: `${resource.label.zh}详情` }

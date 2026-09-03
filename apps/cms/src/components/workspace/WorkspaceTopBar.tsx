@@ -3,7 +3,13 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
-import { ChevronDownIcon, LayoutGridIcon, LogOutIcon, PencilIcon, UserIcon } from "@/components/icons"
+import {
+  ChevronDownIcon,
+  LayoutGridIcon,
+  LogOutIcon,
+  PencilIcon,
+  UserIcon,
+} from "@/components/icons"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -66,7 +72,9 @@ export const WorkspaceTopBar = ({ session }: { readonly session: WorkspaceTopBar
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-64">
           <div className="grid gap-0.5 px-2.5 py-2">
-            <strong className="truncate text-sm font-semibold text-slate-900">{session.email}</strong>
+            <strong className="truncate text-sm font-semibold text-slate-900">
+              {session.email}
+            </strong>
             <span className="text-xs text-slate-500">
               {session.roleLabel}
               {session.tenantName === null ? "" : ` · 租户：${session.tenantName}`}
