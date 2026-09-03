@@ -1,6 +1,7 @@
 import {
   isWorkflowStatus,
   type WorkflowAction,
+  type WorkflowStatus,
   workflowStatusLabel,
 } from "../../components/workflow/workflow-actions-model"
 
@@ -48,11 +49,12 @@ export const dropActionFor = (
     }
   }
 
-  const targetStatus = targetColumn === "draft" ? "draft" : targetColumn
+  const targetStatus: WorkflowStatus =
+    targetColumn === "draft" ? "draft" : (targetColumn as WorkflowStatus)
   if (targetStatus === workflowStatus) return null
   return {
     label: `移至${columnLabelOf(targetColumn)}`,
-    target: targetStatus as WorkflowAction["target"],
+    target: targetStatus,
     tone: "secondary",
     type: "transition",
   }

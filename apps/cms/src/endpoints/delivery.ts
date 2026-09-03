@@ -287,7 +287,10 @@ export const deliveryArticleEndpoint: Endpoint = {
         assignedIds.map((id) =>
           req.payload
             .findByID({ collection: "sites", depth: 0, id, overrideAccess: true })
-            .then((doc) => (doc as Record<string, unknown>)["status"] === "active" ? id : null)
+            .then(
+              (doc) =>
+                ((doc as unknown as Record<string, unknown>)["status"] === "active" ? id : null),
+            )
             .catch(() => null),
         ),
       )

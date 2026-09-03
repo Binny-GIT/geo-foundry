@@ -196,7 +196,11 @@ describe("transition result immutability", () => {
     }
 
     // When
-    const result = transitionContentEdition(draft, "published", {
+    /*
+     * 2026-09 自由流转模型：draft→published 已合法；用同态自转移构造非法
+     * Result 以验证冻结语义。
+     */
+    const result = transitionContentEdition(draft, "draft", {
       actor: serviceActor,
       clock,
       expectedRevision: 1,
