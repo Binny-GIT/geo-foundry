@@ -117,7 +117,7 @@ const ConsoleAccountTabs = ({
           </section>
         </>
       ) : (
-        <section className="gf-console-card grid gap-5 p-5 sm:p-6">
+        <section className="gf-console-card grid w-full max-w-xl gap-5 p-5 sm:p-6">
           <div className="flex items-center gap-3">
             <span className="grid size-11 place-items-center rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-400/15 dark:text-indigo-300">
               <KeyRoundIcon size={21} />
