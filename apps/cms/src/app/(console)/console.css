@@ -88,35 +88,63 @@ html[data-console-theme="dark"] .gf-console {
   box-sizing: border-box;
 }
 
-/* Native form controls inherit the console type scale; the shared shadcn
-   Button keeps its own font-medium (the shorthand below would otherwise
-   out-specify single utility classes and flatten its weight). */
-.gf-console button:not([data-slot="button"]),
-.gf-console input,
-.gf-console select,
-.gf-console textarea {
-  font: inherit;
-}
-
-/* The console stylesheet ships no Tailwind preflight, so the browser's
-   default 2px outset button border survives on every button without an
-   explicit border utility. This mirrors preflight inside @layer base, so
-   bordered variants (outline) still win through the utilities layer. */
+/* Scoped preflight — the console stylesheet ships without Tailwind's real
+   preflight (it would also reskin the Payload admin tree that shares this
+   build), so every browser default used to leak through piecemeal: underlined
+   links, bulleted layout lists, UA button chrome/typography, default
+   heading/paragraph margins. This block is the console tree's single global
+   control sheet. It lives in @layer base, which the unlayered Tailwind
+   utilities always outrank — explicit classes (list-disc on editorial body
+   lists, border utilities, font-medium, hover:underline on link variants)
+   keep winning, so only the *native* defaults are erased. */
 @layer base {
-  .gf-console button {
-    border: 0;
+  .gf-console *,
+  .gf-console *::before,
+  .gf-console *::after {
+    border: 0 solid;
+    margin: 0;
+    padding: 0;
   }
-}
 
-/* Button renders a Link through Radix Slot when `asChild` is used. Its
-   foreground comes from the shadcn variant, so generic console link coloring
-   must not override `text-white` on primary actions. */
-.gf-console a[data-slot="button"] {
-  text-decoration: none;
-}
+  .gf-console a {
+    color: inherit;
+    text-decoration: none;
+  }
 
-.gf-console a:not([data-slot="button"]) {
-  color: inherit;
+  .gf-console ul,
+  .gf-console ol {
+    list-style: none;
+  }
+
+  .gf-console img,
+  .gf-console svg,
+  .gf-console video {
+    display: block;
+    vertical-align: middle;
+  }
+
+  .gf-console img,
+  .gf-console video {
+    height: auto;
+    max-width: 100%;
+  }
+
+  /* Native form controls inherit the console type scale (button font-weight
+     stays controllable via utilities because this sits in @layer base). */
+  .gf-console button,
+  .gf-console input,
+  .gf-console select,
+  .gf-console textarea {
+    font: inherit;
+  }
+
+  .gf-console button {
+    background-color: transparent;
+  }
+
+  .gf-console table {
+    border-collapse: collapse;
+  }
 }
 
 .gf-console-focus:focus-visible {

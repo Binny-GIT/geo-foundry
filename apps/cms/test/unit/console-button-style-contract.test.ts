@@ -16,9 +16,12 @@ describe("console button and link style contract", () => {
 
     expect(button).toContain("no-underline")
     expect(button).toContain('data-slot="button"')
-    expect(consoleCss).toContain('.gf-console a[data-slot="button"] {\n  text-decoration: none;')
-    expect(consoleCss).toContain('.gf-console a:not([data-slot="button"])')
-    expect(consoleCss).not.toContain(".gf-console a {\n  text-decoration")
+    // The scoped preflight erases the UA underline/color for every console
+    // link at @layer base; the Button's own utilities (text-white,
+    // no-underline) still win because Tailwind utilities compile unlayered.
+    expect(consoleCss).toContain(".gf-console a {\n    color: inherit;\n    text-decoration: none;\n  }")
+    expect(consoleCss).not.toContain('a:not([data-slot="button"])')
+    expect(consoleCss).not.toContain('a[data-slot="button"] {\n  text-decoration: none;')
   })
 
   it("mirrors the official shadcn v4 button spec with theme tokens", async () => {
@@ -31,11 +34,14 @@ describe("console button and link style contract", () => {
 
     // Official v4 spec: rounded-md, font-medium, 3px focus ring, svg padding.
     expect(button).toContain("rounded-md border-0 text-sm font-medium")
-    // No preflight in the console tree: the browser's default 2px outset
-    // button border must be stripped explicitly (border-0 yields to the
-    // outline variant's border class via tailwind-merge).
+    // No real preflight in the console tree: a scoped one in @layer base
+    // strips the browser's default 2px outset button border (and every other
+    // native default); border-0 keeps shielding the shared Button in the
+    // Payload tree, which this reset never reaches.
     expect(button).toContain("border-0")
-    expect(consoleCss).toContain("@layer base {\n  .gf-console button {\n    border: 0;\n  }\n}")
+    expect(consoleCss).toContain(
+      ".gf-console *,\n  .gf-console *::before,\n  .gf-console *::after {\n    border: 0 solid;",
+    )
     // Focus ring width + standard color syntax: tailwind-merge can tell the
     // two apart, so neither class is collapsed (var() colors cannot be
     // classified and get merged away — verified live on mk-dev).

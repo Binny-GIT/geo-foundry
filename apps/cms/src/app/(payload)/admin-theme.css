@@ -981,6 +981,7 @@ body {
 .gf-edition-preview a {
   color: var(--gf-accent-700);
   font-weight: 650;
+  text-decoration: none;
 }
 
 @media (max-width: 768px) {
@@ -1087,11 +1088,13 @@ body {
   white-space: nowrap;
 }
 
+/* Hover feedback stays color-only — the console design language has no
+   underlined links anywhere (user direction 2026-09-03). */
 .gf-operations-dashboard__section-heading > a:hover,
 .gf-operations-dashboard__activity-heading > a:hover,
 .gf-operations-dashboard__queue-heading > a:hover,
 .gf-sites-workspace a:not(.gf-ui-action-link):hover {
-  text-decoration: underline;
+  color: var(--gf-accent-700);
 }
 
 .gf-operations-dashboard__queue-grid {
