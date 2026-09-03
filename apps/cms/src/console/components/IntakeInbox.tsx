@@ -173,14 +173,8 @@ export const IntakeInbox = ({
     <div className="grid gap-6">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">
-            Editorial intake
-          </p>
-          <h1 className="m-0 pt-1 text-3xl font-semibold tracking-tight text-[var(--console-ink)]">
-            Inbox
-          </h1>
-          <p className="m-0 max-w-2xl pt-2 text-sm leading-6 text-[var(--console-ink-muted)]">
-            Review normalized intake items and turn viable sources into content work.
+          <p className="m-0 max-w-2xl text-sm leading-6 text-[var(--console-ink-muted)]">
+            审阅规范化稿源条目，将有价值的来源转化为内容工作。
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

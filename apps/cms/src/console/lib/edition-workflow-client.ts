@@ -19,7 +19,9 @@ export const EDITION_ACTION_ERRORS: Readonly<Record<string, string>> = {
 
 export const editionActionErrorMessage = (code: unknown): string =>
   (typeof code === "string" ? EDITION_ACTION_ERRORS[code] : undefined) ??
-  "操作未能完成，请刷新后重试。"
+  (typeof code === "string" && code.length > 0
+    ? `操作未能完成（${code}），请刷新后重试。`
+    : "操作未能完成，请刷新后重试。")
 
 export const editionWorkflowEndpointOf = (action: WorkflowAction, id: number): string =>
   action.type === "draft-from-published"

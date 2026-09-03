@@ -34,7 +34,7 @@ export const createReviewComment = async (
   req: TransactionScope = {},
 ): Promise<number> => {
   const claims = resolveSessionClaims(input.user)
-  if (claims === null || claims.kind !== "user" || claims.tenantId === null) {
+  if (claims === null || claims.kind !== "user") {
     throw fail("REVIEW_COMMENT_ACTOR_INVALID")
   }
   const body = input.body.trim()
@@ -48,10 +48,17 @@ export const createReviewComment = async (
     overrideAccess: true,
     req,
   })
+  /*
+   * Super-admin is cross-tenant (claims.tenantId is null): scope follows the
+   * edition's own tenant so request-changes can file its review comment.
+   */
   const tenantId = numberOf(edition.tenant)
+  if (tenantId === null) {
+    throw fail("REVIEW_COMMENT_TENANT_MISMATCH")
+  }
   if (
-    tenantId === null ||
-    (claims.role !== "super-admin" && String(tenantId) !== String(claims.tenantId))
+    claims.role !== "super-admin" &&
+    (claims.tenantId === null || String(tenantId) !== String(claims.tenantId))
   ) {
     throw fail("REVIEW_COMMENT_TENANT_MISMATCH")
   }

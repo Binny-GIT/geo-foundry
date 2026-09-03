@@ -9,7 +9,6 @@ import {
   ChevronDownIcon,
   FilePlusIcon,
   FilterIcon,
-  LayersIcon,
 } from "@/components/icons"
 import { Button } from "@/components/ui/button"
 import {
@@ -128,10 +127,6 @@ export const WorkToolbar = ({
   return (
     <section className="gf-console-card shrink-0 p-3 sm:px-4">
       <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-indigo-500/10 text-indigo-600">
-          <LayersIcon size={18} />
-        </span>
-        <h1 className="m-0 text-base font-bold tracking-tight text-[var(--console-ink)]">工作台</h1>
         <select
           aria-label="期间范围"
           className={selectClass}

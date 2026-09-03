@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
-import { ChevronDownIcon, LayoutGridIcon, LogOutIcon, UserIcon } from "@/components/icons"
+import { ChevronDownIcon, LayoutGridIcon, LogOutIcon, PencilIcon, UserIcon } from "@/components/icons"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -43,12 +43,14 @@ export const WorkspaceTopBar = ({ session }: { readonly session: WorkspaceTopBar
           <LayoutGridIcon size={15} /> 控制台
         </Link>
       </Button>
-      <p className="m-0 min-w-0 flex-1 truncate text-sm font-semibold text-slate-900">
-        <span className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">
-          GF Studio
+      <div className="flex min-w-0 flex-1 items-center gap-2.5">
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-indigo-500/10 text-indigo-600">
+          <PencilIcon size={16} />
         </span>
-        <span className="pl-2">内容编辑工作台</span>
-      </p>
+        <h1 className="m-0 min-w-0 truncate text-base font-bold tracking-tight text-slate-900">
+          编辑稿件
+        </h1>
+      </div>
       <DropdownMenu>
         <DropdownMenuTrigger
           aria-label="账户选项"

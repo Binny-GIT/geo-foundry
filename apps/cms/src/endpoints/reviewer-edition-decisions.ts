@@ -3,6 +3,7 @@ import { z } from "zod"
 
 import { resolveSessionClaims } from "../access/session"
 import { EditionWorkflowError } from "../services/edition-workflow"
+import { ReviewCommentsError } from "../services/review-comments"
 import {
   type ReviewerDecisionTarget,
   ReviewerEditionDecisionError,
@@ -79,6 +80,13 @@ const errorResponseOf = (error: unknown, requestId: string): Response => {
       return response(409, { error: { code: error.code } }, requestId)
     }
     return response(400, { error: { code: error.code } }, requestId)
+  }
+  /*
+   * The decision files a review comment on request-changes; surface its
+   * validation failures as 4xx instead of an opaque 500.
+   */
+  if (error instanceof ReviewCommentsError) {
+    return response(409, { error: { code: error.code } }, requestId)
   }
   throw error
 }

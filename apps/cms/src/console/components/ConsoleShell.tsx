@@ -10,6 +10,7 @@ import { GeoIcon } from "@/components/branding/GeoIcon"
 import {
   ChevronDownIcon,
   KeyRoundIcon,
+  LayoutGridIcon,
   LogOutIcon,
   MenuIcon,
   UserIcon,
@@ -28,6 +29,7 @@ import {
   type ConsoleResourceSlug,
   consoleRoute,
 } from "@/console/lib/resources"
+import { topbarPageOf } from "@/console/lib/topbar-title"
 import { cn } from "@/lib/utils"
 
 export type ConsoleNavigation = {
@@ -129,6 +131,12 @@ export const ConsoleShell = ({
   const businessItems = resolveNavItems(CONSOLE_NAV.business, navigation.resources)
   const adminItems = resolveNavItems(CONSOLE_NAV.admin, navigation.resources)
   const isWorkbench = pathname === "/admin/work"
+  /*
+   * The shared topbar owns the page identity (icon + name as the page's h1);
+   * in-page headers no longer repeat it. Unknown routes fall back to the
+   * dashboard label.
+   */
+  const topbarPage = topbarPageOf(pathname, { icon: LayoutGridIcon, label: "控制台" })
 
   const renderLink = (item: ResolvedNavItem) => {
     /*
@@ -244,12 +252,14 @@ export const ConsoleShell = ({
           >
             <MenuIcon size={18} />
           </button>
-          <p className="m-0 min-w-0 flex-1 truncate text-sm font-semibold text-[var(--console-ink)]">
-            <span className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--console-ink-muted)]">
-              GF Studio
+          <div className="flex min-w-0 flex-1 items-center gap-2.5">
+            <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-indigo-500/10 text-indigo-600">
+              <topbarPage.icon size={16} />
             </span>
-            <span className="pl-2">内容运营管理中心</span>
-          </p>
+            <h1 className="m-0 min-w-0 truncate text-base font-bold tracking-tight text-[var(--console-ink)]">
+              {topbarPage.label}
+            </h1>
+          </div>
           {/* Theme toggle: the sun/moon glyph morphs (morphicons) between
            * modes; text-free icon button keeps the mobile header tight. */}
           <button
