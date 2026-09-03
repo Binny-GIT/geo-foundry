@@ -98,6 +98,16 @@ html[data-console-theme="dark"] .gf-console {
   font: inherit;
 }
 
+/* The console stylesheet ships no Tailwind preflight, so the browser's
+   default 2px outset button border survives on every button without an
+   explicit border utility. This mirrors preflight inside @layer base, so
+   bordered variants (outline) still win through the utilities layer. */
+@layer base {
+  .gf-console button {
+    border: 0;
+  }
+}
+
 /* Button renders a Link through Radix Slot when `asChild` is used. Its
    foreground comes from the shadcn variant, so generic console link coloring
    must not override `text-white` on primary actions. */

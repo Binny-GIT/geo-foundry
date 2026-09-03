@@ -31,6 +31,11 @@ describe("console button and link style contract", () => {
 
     // Official v4 spec: rounded-md, font-medium, 3px focus ring, svg padding.
     expect(button).toContain("rounded-md text-sm font-medium")
+    // No preflight in the console tree: the browser's default 2px outset
+    // button border must be stripped explicitly (border-0 yields to the
+    // outline variant's border class via tailwind-merge).
+    expect(button).toContain("border-0")
+    expect(consoleCss).toContain("@layer base {\n  .gf-console button {\n    border: 0;\n  }\n}")
     // Focus ring width + standard color syntax: tailwind-merge can tell the
     // two apart, so neither class is collapsed (var() colors cannot be
     // classified and get merged away — verified live on mk-dev).
