@@ -86,7 +86,10 @@ export const changeOwnPasswordEndpoint: Endpoint = {
         ...(tenantId !== null && Number.isInteger(tenantId) ? { tenant: tenantId } : {}),
       },
       id: claims.userId,
+      // The local update must carry the live request, or field hooks run
+      // without a session and the role re-assertion whitelist cannot match.
       overrideAccess: true,
+      req,
     })
     return response(200, { ok: true })
   },
