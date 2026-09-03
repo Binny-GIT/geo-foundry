@@ -20,7 +20,9 @@ describe("workflowActionsFor (free-flow lane model)", () => {
     expect(labelsOf("published")).toEqual(["删除"])
     expect(labelsOf("archived")).toEqual(["恢复"])
 
-    expect(labelsOf("review")).toEqual(workflowActionsFor("publisher", "review").map((a) => a.label))
+    expect(labelsOf("review")).toEqual(
+      workflowActionsFor("publisher", "review").map((a) => a.label),
+    )
     expect(labelsOf("published")).toEqual(
       workflowActionsFor("super-admin", "published").map((a) => a.label),
     )
@@ -38,15 +40,7 @@ describe("workflowActionsFor (free-flow lane model)", () => {
 
   it("retires the legacy actions from the surface", () => {
     const all = (
-      [
-        "draft",
-        "generating",
-        "review",
-        "approved",
-        "compiled",
-        "published",
-        "archived",
-      ] as const
+      ["draft", "generating", "review", "approved", "compiled", "published", "archived"] as const
     ).flatMap((status) => workflowActionsFor("super-admin", status).map((a) => a.label))
     for (const legacy of ["开始生成", "质量检查", "退回草稿", "归档版本", "创建新草稿"]) {
       expect(all).not.toContain(legacy)
@@ -66,15 +60,7 @@ describe("workflowStatusLabel", () => {
 describe("WORKFLOW_TONE", () => {
   it("covers every workflow status with a single shared tone vocabulary", () => {
     expect(Object.keys(WORKFLOW_TONE).sort()).toEqual(
-      [
-        "approved",
-        "archived",
-        "compiled",
-        "draft",
-        "generating",
-        "published",
-        "review",
-      ]
+      ["approved", "archived", "compiled", "draft", "generating", "published", "review"]
         .filter(isWorkflowStatus)
         .sort(),
     )

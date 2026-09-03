@@ -195,10 +195,7 @@ export const deliveryArticlesEndpoint: Endpoint = {
              * 分配了就能读到，没分配就读取不到。
              */
             {
-              or: [
-                { site: { equals: site.siteId } },
-                { sites: { contains: site.siteId } },
-              ],
+              or: [{ site: { equals: site.siteId } }, { sites: { contains: site.siteId } }],
             },
             { workflowStatus: { equals: "published" } },
             ...(q.length === 0 ? [] : [{ title: { like: q } }]),
@@ -287,9 +284,8 @@ export const deliveryArticleEndpoint: Endpoint = {
         assignedIds.map((id) =>
           req.payload
             .findByID({ collection: "sites", depth: 0, id, overrideAccess: true })
-            .then(
-              (doc) =>
-                ((doc as unknown as Record<string, unknown>)["status"] === "active" ? id : null),
+            .then((doc) =>
+              (doc as unknown as Record<string, unknown>)["status"] === "active" ? id : null,
             )
             .catch(() => null),
         ),

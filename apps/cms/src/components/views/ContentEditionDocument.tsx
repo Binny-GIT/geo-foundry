@@ -15,6 +15,7 @@ import {
 import { useRouter } from "next/navigation"
 import type { DocumentViewClientProps } from "payload"
 import { useState } from "react"
+import { CheckCircleIcon, EyeIcon, PencilIcon } from "@/components/icons"
 import { ContentEditionContextRail } from "../content-edition/ContentEditionContextRail"
 import { ContentEditionControlRail } from "../content-edition/ContentEditionControlRail"
 import {
@@ -25,7 +26,6 @@ import { ContentEditionPreview } from "../content-edition/ContentEditionPreview"
 import type { VersionSelection } from "../content-edition/ContentEditionRail"
 import { ContentEditionSetupFields } from "../content-edition/ContentEditionSetupFields"
 import { uiLangOf } from "../i18n/ui-lang"
-import { CheckCircleIcon, EyeIcon, PencilIcon } from "@/components/icons"
 import { Badge } from "../ui/Badge"
 import { Button } from "../ui/button"
 import {

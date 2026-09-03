@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 
 import { CONSOLE_NEXT_HEADER, shouldForwardConsoleNext } from "./console/lib/console-next"
 

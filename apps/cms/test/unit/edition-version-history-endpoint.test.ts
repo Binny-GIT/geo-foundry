@@ -1,21 +1,25 @@
 import type { PayloadRequest } from "payload"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const { MockEditionVersionHistoryError, MockWorkflowError, editionVersionHistory, restoreEditionDraft } =
-  vi.hoisted(() => ({
-    MockEditionVersionHistoryError: class MockEditionVersionHistoryError extends Error {
-      constructor(readonly code: string) {
-        super(code)
-      }
-    },
-    MockWorkflowError: class MockWorkflowError extends Error {
-      constructor(readonly code: string) {
-        super(code)
-      }
-    },
-    editionVersionHistory: vi.fn(),
-    restoreEditionDraft: vi.fn(),
-  }))
+const {
+  MockEditionVersionHistoryError,
+  MockWorkflowError,
+  editionVersionHistory,
+  restoreEditionDraft,
+} = vi.hoisted(() => ({
+  MockEditionVersionHistoryError: class MockEditionVersionHistoryError extends Error {
+    constructor(readonly code: string) {
+      super(code)
+    }
+  },
+  MockWorkflowError: class MockWorkflowError extends Error {
+    constructor(readonly code: string) {
+      super(code)
+    }
+  },
+  editionVersionHistory: vi.fn(),
+  restoreEditionDraft: vi.fn(),
+}))
 
 vi.mock("../../src/services/edition-workflow", () => ({
   EditionWorkflowError: MockWorkflowError,

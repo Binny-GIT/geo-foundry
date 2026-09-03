@@ -12,9 +12,9 @@ describe("Console login return location", () => {
     expect(normalizeConsoleNext("/admin/collections/content-editions?status=draft&page=2")).toBe(
       "/admin/collections/content-editions?status=draft&page=2",
     )
-    expect(shouldForwardConsoleNext("/admin/collections/content-editions?status=draft&page=2")).toBe(
-      true,
-    )
+    expect(
+      shouldForwardConsoleNext("/admin/collections/content-editions?status=draft&page=2"),
+    ).toBe(true)
   })
 
   it("rejects external, malformed, non-Console, and excluded destinations", () => {

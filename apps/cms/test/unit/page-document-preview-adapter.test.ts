@@ -10,7 +10,12 @@ describe("content edition preview adapter", () => {
     const result = previewDocumentOf({
       body: [
         { blockName: null, blockType: "heading", id: "row-1", level: "2", text: "Preview title" },
-        { blockType: "list", id: "row-2", items: [{ id: "item-1", text: "One" }], style: "unordered" },
+        {
+          blockType: "list",
+          id: "row-2",
+          items: [{ id: "item-1", text: "One" }],
+          style: "unordered",
+        },
       ],
       contentId: 8,
       editionId: 12,

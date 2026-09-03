@@ -14,8 +14,8 @@ import { BOARD_COLUMNS, type BoardCard, type BoardColumnKey } from "@/console/li
 import {
   editionActionErrorMessage,
   editionWorkflowEndpointOf,
-  workflowActionBodyOf,
   publicationPlanEndpoint,
+  workflowActionBodyOf,
 } from "@/console/lib/edition-workflow-client"
 import { consoleRoute } from "@/console/lib/resources"
 import { cn } from "@/lib/utils"

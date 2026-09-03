@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest"
-
-import { checkReadiness } from "../../src/readiness/check-readiness"
 import { parseCmsEnvironment } from "../../src/config/environment"
+import { checkReadiness } from "../../src/readiness/check-readiness"
 import { createPostgresProbe } from "../../src/readiness/probes"
 import { configurationFailureReport } from "../../src/readiness/runtime-readiness"
 import { DEPENDENCY_CODES, DependencyProbeError } from "../../src/readiness/types"

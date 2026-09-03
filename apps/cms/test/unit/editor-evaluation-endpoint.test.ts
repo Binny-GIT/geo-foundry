@@ -64,7 +64,9 @@ describe("editor evaluation endpoint", () => {
         error: null,
         operationId: "11111111-2222-3333-4444-555555555555",
         operationType: "evaluate",
-        requestPayload: { body: { editionId: 101, thresholds: { dimensionMin: 75, overallMin: 80 } } },
+        requestPayload: {
+          body: { editionId: 101, thresholds: { dimensionMin: 75, overallMin: 80 } },
+        },
         result: null,
         state: "queued",
         tenantId: 7,
@@ -102,12 +104,24 @@ describe("editor evaluation endpoint", () => {
   })
 
   it("rejects anonymous, non-editor, malformed route/header, and strict body input", async () => {
-    expect((await submitEditorEvaluationEndpoint.handler(requestOf({}, { user: null }))).status).toBe(401)
-    for (const role of ["reviewer", "publisher", "tenant-admin", "super-admin", "content-service"]) {
+    expect(
+      (await submitEditorEvaluationEndpoint.handler(requestOf({}, { user: null }))).status,
+    ).toBe(401)
+    for (const role of [
+      "reviewer",
+      "publisher",
+      "tenant-admin",
+      "super-admin",
+      "content-service",
+    ]) {
       const user = role === "super-admin" ? { id: 5, role } : { id: 5, role, tenant: { id: 7 } }
-      expect((await submitEditorEvaluationEndpoint.handler(requestOf({}, { user }))).status).toBe(403)
+      expect((await submitEditorEvaluationEndpoint.handler(requestOf({}, { user }))).status).toBe(
+        403,
+      )
     }
-    expect((await submitEditorEvaluationEndpoint.handler(requestOf({}, { id: "bad" }))).status).toBe(400)
+    expect(
+      (await submitEditorEvaluationEndpoint.handler(requestOf({}, { id: "bad" }))).status,
+    ).toBe(400)
     expect(
       (
         await submitEditorEvaluationEndpoint.handler(
@@ -115,7 +129,9 @@ describe("editor evaluation endpoint", () => {
         )
       ).status,
     ).toBe(400)
-    expect((await submitEditorEvaluationEndpoint.handler(requestOf({ ignored: true }))).status).toBe(400)
+    expect(
+      (await submitEditorEvaluationEndpoint.handler(requestOf({ ignored: true }))).status,
+    ).toBe(400)
     expect(submitEditionEvaluationOperation).not.toHaveBeenCalled()
   })
 

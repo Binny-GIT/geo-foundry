@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, type FormEvent } from "react"
+import { type FormEvent, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 
@@ -29,9 +29,7 @@ const ConsolePasswordForm = () => {
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [pending, setPending] = useState(false)
-  const [notice, setNotice] = useState<{ readonly ok: boolean; readonly text: string } | null>(
-    null,
-  )
+  const [notice, setNotice] = useState<{ readonly ok: boolean; readonly text: string } | null>(null)
 
   const fail = (text: string) => {
     setNotice({ ok: false, text })

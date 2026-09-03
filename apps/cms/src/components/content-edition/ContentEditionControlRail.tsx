@@ -10,7 +10,6 @@ import {
 } from "@payloadcms/ui"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { uiLangOf } from "../i18n/ui-lang"
 import {
   AlertTriangleIcon,
   CalendarClockIcon,
@@ -18,6 +17,7 @@ import {
   ShieldCheckIcon,
   UsersIcon,
 } from "@/components/icons"
+import { uiLangOf } from "../i18n/ui-lang"
 import { Badge, IconBadge } from "../ui"
 import { Button } from "../ui/button"
 import { WorkflowActions } from "../workflow/WorkflowActions"

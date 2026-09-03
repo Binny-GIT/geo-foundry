@@ -4,12 +4,12 @@ import type { ReactNode } from "react"
 
 import { CMS_ACTION } from "@/access/policy"
 import { ConsoleShell } from "@/console/components/ConsoleShell"
+import { CONSOLE_NEXT_HEADER, normalizeConsoleNext } from "@/console/lib/console-next"
 import {
   CONSOLE_RESOURCES,
   type ConsoleResourceSlug,
   VISIBLE_RESOURCE_SLUGS,
 } from "@/console/lib/resources"
-import { CONSOLE_NEXT_HEADER, normalizeConsoleNext } from "@/console/lib/console-next"
 import { canConsole, requireConsoleSession } from "@/console/lib/session.server"
 
 const ROLE_LABEL: Readonly<Record<string, string>> = {

@@ -8,9 +8,9 @@ import {
   siteWorkflowSummary,
   sortSiteWorkload,
   summarizeDomains,
+  WORKFLOW_STATES,
   workflowBottleneck,
   workflowCounts,
-  WORKFLOW_STATES,
 } from "../../src/components/dashboard/operations-model"
 
 describe("operations dashboard view model", () => {

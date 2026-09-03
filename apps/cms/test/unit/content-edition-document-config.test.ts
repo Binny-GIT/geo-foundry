@@ -19,7 +19,9 @@ describe("content edition document workspace config", () => {
     const readVersions = ContentEditions.access.readVersions
     if (readVersions === undefined) throw new Error("readVersions access is required")
 
-    expect(readVersions({ req: { user: { id: 4, role: "editor", tenant: { id: 7 } } } } as never)).toEqual({
+    expect(
+      readVersions({ req: { user: { id: 4, role: "editor", tenant: { id: 7 } } } } as never),
+    ).toEqual({
       "version.tenant": { equals: 7 },
     })
     expect(readVersions({ req: { user: { id: 5, role: "super-admin" } } } as never)).toBe(true)

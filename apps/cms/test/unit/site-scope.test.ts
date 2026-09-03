@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import type { ConsoleSession } from "../../src/console/lib/session.server"
-import { combineWhere, sitesIdScopeWhere, siteScopeWhere } from "../../src/console/lib/site-scope"
+import { combineWhere, siteScopeWhere, sitesIdScopeWhere } from "../../src/console/lib/site-scope"
 
 const sessionOf = (overrides: Partial<ConsoleSession>): ConsoleSession => ({
   email: "fixture@geo-foundry.test",

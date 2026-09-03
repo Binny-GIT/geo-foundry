@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest"
 
-import { BOARD_COLUMNS, boardCardOf, boardColumnOf, groupBoardCards } from "../../src/console/lib/board-model"
+import {
+  BOARD_COLUMNS,
+  boardCardOf,
+  boardColumnOf,
+  groupBoardCards,
+} from "../../src/console/lib/board-model"
 
 const edition = (overrides: Record<string, unknown>): Record<string, unknown> => ({
   auditLog: [],

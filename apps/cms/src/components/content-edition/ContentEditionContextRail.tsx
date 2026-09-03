@@ -3,8 +3,15 @@
 import { toast, useAuth, useDocumentInfo, useFormFields, useTranslation } from "@payloadcms/ui"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+import {
+  CopyIcon,
+  GlobeIcon,
+  LinkIcon,
+  MessageSquareIcon,
+  PlusIcon,
+  UsersIcon,
+} from "@/components/icons"
 import { uiLangOf } from "../i18n/ui-lang"
-import { CopyIcon, GlobeIcon, LinkIcon, MessageSquareIcon, PlusIcon, UsersIcon } from "@/components/icons"
 import { IconBadge } from "../ui"
 import { Button } from "../ui/button"
 import { ContentEditionRail, type VersionSelection } from "./ContentEditionRail"

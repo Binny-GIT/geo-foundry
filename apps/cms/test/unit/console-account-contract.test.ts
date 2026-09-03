@@ -113,6 +113,6 @@ describe("console tenant nav and account settings contract", () => {
     // Service identities keep using keyring API keys, never this endpoint.
     expect(endpoint).toContain("CMS_ROLE.CONTENT_SERVICE")
     expect(endpoint).toContain("ACCOUNT_PASSWORD_ROLE_FORBIDDEN")
-    expect(endpoint).toContain('newPassword: z.string().min(8)')
+    expect(endpoint).toContain("newPassword: z.string().min(8)")
   })
 })

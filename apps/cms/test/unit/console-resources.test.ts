@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest"
 
 import {
   CONSOLE_RESOURCES,
-  VISIBLE_RESOURCE_SLUGS,
   consoleRoute,
   isConsoleResourceSlug,
+  VISIBLE_RESOURCE_SLUGS,
 } from "../../src/console/lib/resources"
 
 describe("Console resource registry", () => {

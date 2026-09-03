@@ -19,7 +19,9 @@ describe("console button and link style contract", () => {
     // The scoped preflight erases the UA underline/color for every console
     // link at @layer base; the Button's own utilities (text-white,
     // no-underline) still win because Tailwind utilities compile unlayered.
-    expect(consoleCss).toContain(".gf-console a {\n    color: inherit;\n    text-decoration: none;\n  }")
+    expect(consoleCss).toContain(
+      ".gf-console a {\n    color: inherit;\n    text-decoration: none;\n  }",
+    )
     expect(consoleCss).not.toContain('a:not([data-slot="button"])')
     expect(consoleCss).not.toContain('a[data-slot="button"] {\n  text-decoration: none;')
   })
@@ -48,7 +50,7 @@ describe("console button and link style contract", () => {
     expect(button).toContain("focus-visible:ring-[3px] focus-visible:ring-indigo-400/60")
     expect(button).toContain("has-[>svg]:px-3")
     expect(button).toContain('lg: "h-10 rounded-md px-6 has-[>svg]:px-4"')
-    expect(button).toContain('data-variant={variant}')
+    expect(button).toContain("data-variant={variant}")
     expect(button).toContain("destructive")
     expect(button).toContain("outline")
     expect(button).toContain("link:")
@@ -118,9 +120,9 @@ describe("console button and link style contract", () => {
     expect(consoleShell).toContain("hidden shrink-0 justify-end border-t border-white/10")
     expect(consoleShell).toContain("lg:justify-center")
     expect(consoleShell).toContain("icon={collapsed ? PanelLeftOpen : PanelLeftClose}")
-    expect(consoleShell.indexOf('aria-label={collapsed ? "展开导航" : "收起导航"}')).toBeGreaterThan(
-      consoleShell.indexOf("</nav>"),
-    )
+    expect(
+      consoleShell.indexOf('aria-label={collapsed ? "展开导航" : "收起导航"}'),
+    ).toBeGreaterThan(consoleShell.indexOf("</nav>"))
 
     expect(payloadNav).toContain("hidden shrink-0 justify-end border-t border-white/10")
     expect(payloadNav).toContain("min-[1441px]:justify-center")

@@ -78,7 +78,10 @@ export const SitesWorkspace = ({
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr className="transition-colors hover:bg-[var(--console-surface-muted)]" key={row.id}>
+              <tr
+                className="transition-colors hover:bg-[var(--console-surface-muted)]"
+                key={row.id}
+              >
                 <td className="border-b border-[var(--console-border)] px-5 py-4 text-sm">
                   <Link
                     className="gf-console-focus font-semibold text-[var(--console-ink)] no-underline hover:text-[var(--console-accent)]"

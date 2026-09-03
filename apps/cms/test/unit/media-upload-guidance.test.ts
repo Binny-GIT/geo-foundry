@@ -6,12 +6,7 @@ import { mediaUploadGuidanceOf } from "../../src/components/media/media-upload-g
 describe("mediaUploadGuidanceOf", () => {
   it("derives visible upload constraints from the authoritative media policy", () => {
     expect(MAX_MEDIA_BYTES).toBe(5 * 1024 * 1024)
-    expect(ALLOWED_MEDIA_MIME_TYPES).toEqual([
-      "image/png",
-      "image/jpeg",
-      "image/webp",
-      "image/gif",
-    ])
+    expect(ALLOWED_MEDIA_MIME_TYPES).toEqual(["image/png", "image/jpeg", "image/webp", "image/gif"])
 
     const guidance = mediaUploadGuidanceOf("en")
     expect(guidance.formats).toBe("PNG · JPEG · WebP · GIF")

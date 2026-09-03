@@ -34,9 +34,11 @@ import { Users } from "./collections/Users"
 import { createPostgresAdapterOptions } from "./config/database"
 import { parseCmsEnvironment } from "./config/environment"
 import { PAGE_DOCUMENT_BLOCKS } from "./editor/page-document-blocks"
-import { addArticleSourceEndpoint } from "./endpoints/article-sources"
 import { changeOwnPasswordEndpoint } from "./endpoints/account-password"
+import { addArticleSourceEndpoint } from "./endpoints/article-sources"
 import { deliveryArticleEndpoint, deliveryArticlesEndpoint } from "./endpoints/delivery"
+import { editionAssignmentEndpoint } from "./endpoints/edition-assignment"
+import { editionDuplicateEndpoint } from "./endpoints/edition-duplicate"
 import {
   editionVersionHistoryEndpoint,
   restoreEditionDraftEndpoint,
@@ -46,8 +48,6 @@ import {
   submitPublishOperationEndpoint,
   transitionEditionEndpoint,
 } from "./endpoints/edition-workflow"
-import { editionAssignmentEndpoint } from "./endpoints/edition-assignment"
-import { editionDuplicateEndpoint } from "./endpoints/edition-duplicate"
 import { editionWorkspaceContextEndpoint } from "./endpoints/edition-workspace-context"
 import { submitEditorEvaluationEndpoint } from "./endpoints/editor-evaluation"
 import {

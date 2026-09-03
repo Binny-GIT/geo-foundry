@@ -4,9 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { SessionClaims } from "../../src/access/session"
 import { draftVersionBodySchema } from "../../src/endpoints/internal/contracts"
 import {
-  INTERNAL_ERROR_CODE,
   configureInternalGuards,
   currentInternalEndpointConfig,
+  INTERNAL_ERROR_CODE,
   internalJsonResponse,
   resetInternalGuardsForTests,
   withInternalGuards,

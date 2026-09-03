@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest"
 
 import { ContentEditions } from "../../src/collections/ContentEditions"
-import { EditionDraftRestoreIdempotency } from "../../src/collections/EditionDraftRestoreIdempotency"
 import { Contents } from "../../src/collections/Contents"
 import { Domains, validateHostnameField } from "../../src/collections/Domains"
+import { EditionDraftRestoreIdempotency } from "../../src/collections/EditionDraftRestoreIdempotency"
 import { IdempotencyRecords } from "../../src/collections/IdempotencyRecords"
 import { Media } from "../../src/collections/Media"
 import { Operations } from "../../src/collections/Operations"
@@ -12,15 +12,15 @@ import { QualityAssessments } from "../../src/collections/QualityAssessments"
 import { Releases } from "../../src/collections/Releases"
 import { RollbackIntents } from "../../src/collections/RollbackIntents"
 import { Sites, validateLocaleField, validateTimezoneField } from "../../src/collections/Sites"
-import { Tenants } from "../../src/collections/Tenants"
-import { UrlRecords } from "../../src/collections/UrlRecords"
-import { Users } from "../../src/collections/Users"
 import {
   localized,
   localizedFields,
   localizedValidationMessage,
   requestLanguage,
 } from "../../src/collections/shared/localized-labels"
+import { Tenants } from "../../src/collections/Tenants"
+import { UrlRecords } from "../../src/collections/UrlRecords"
+import { Users } from "../../src/collections/Users"
 import { validateEditionBody } from "../../src/editor/validate-body"
 
 type Localized = Readonly<{ en: string; zh: string }>

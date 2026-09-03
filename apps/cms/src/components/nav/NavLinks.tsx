@@ -339,10 +339,26 @@ export const NavLinks = ({ visibleSlugs }: NavLinksProps) => {
             )}
           >
             <button
-              aria-label={collapsed ? (isZH ? "展开导航" : "Expand navigation") : isZH ? "收起导航" : "Collapse navigation"}
+              aria-label={
+                collapsed
+                  ? isZH
+                    ? "展开导航"
+                    : "Expand navigation"
+                  : isZH
+                    ? "收起导航"
+                    : "Collapse navigation"
+              }
               className="flex size-8 items-center justify-center rounded-xl bg-white/8 text-white/75 transition-colors hover:bg-white/16 hover:text-white"
               onClick={toggleCollapsed}
-              title={collapsed ? (isZH ? "展开导航" : "Expand navigation") : isZH ? "收起导航" : "Collapse navigation"}
+              title={
+                collapsed
+                  ? isZH
+                    ? "展开导航"
+                    : "Expand navigation"
+                  : isZH
+                    ? "收起导航"
+                    : "Collapse navigation"
+              }
               type="button"
             >
               <MorphIcon

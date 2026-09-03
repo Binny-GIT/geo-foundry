@@ -47,9 +47,7 @@ export function resolveRoleAssignment({
   }
   const requested = typeof incoming === "string" && isCmsRole(incoming) ? incoming : null
   const selfReassert =
-    requested !== null &&
-    requested === originalRole &&
-    String(originalUserId) === claims.userId
+    requested !== null && requested === originalRole && String(originalUserId) === claims.userId
   switch (claims.role) {
     case CMS_ROLE.SUPER_ADMIN:
       return requested

@@ -416,7 +416,9 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
                 </Button>
               ) : (
                 <Button asChild size="sm" type="button" variant="secondary">
-                  <Link href={`${consoleRoute.collection(slug as ConsoleResourceSlug)}?page=${result.page - 1}`}>
+                  <Link
+                    href={`${consoleRoute.collection(slug as ConsoleResourceSlug)}?page=${result.page - 1}`}
+                  >
                     上一页
                   </Link>
                 </Button>
@@ -427,7 +429,9 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
                 </Button>
               ) : (
                 <Button asChild size="sm" type="button" variant="secondary">
-                  <Link href={`${consoleRoute.collection(slug as ConsoleResourceSlug)}?page=${result.page + 1}`}>
+                  <Link
+                    href={`${consoleRoute.collection(slug as ConsoleResourceSlug)}?page=${result.page + 1}`}
+                  >
                     下一页 <ChevronDownIcon size={13} />
                   </Link>
                 </Button>

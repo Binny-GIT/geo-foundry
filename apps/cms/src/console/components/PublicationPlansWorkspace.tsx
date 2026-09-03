@@ -160,10 +160,20 @@ export const PublicationPlansWorkspace = async ({
             </p>
           </div>
           <div className="flex gap-2">
-            <Button asChild size="sm" type="button" variant={view === "day" ? "default" : "secondary"}>
+            <Button
+              asChild
+              size="sm"
+              type="button"
+              variant={view === "day" ? "default" : "secondary"}
+            >
               <Link href={`${consoleRoute.collection("publication-plans")}?view=day`}>按日</Link>
             </Button>
-            <Button asChild size="sm" type="button" variant={view === "week" ? "default" : "secondary"}>
+            <Button
+              asChild
+              size="sm"
+              type="button"
+              variant={view === "week" ? "default" : "secondary"}
+            >
               <Link href={`${consoleRoute.collection("publication-plans")}?view=week`}>按周</Link>
             </Button>
           </div>

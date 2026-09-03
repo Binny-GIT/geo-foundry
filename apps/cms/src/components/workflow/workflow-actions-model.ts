@@ -65,12 +65,7 @@ export type WorkflowAction = {
   readonly reasonRequired?: true
   readonly tone: "primary" | "secondary"
   readonly target?: WorkflowStatus
-  readonly type:
-    | "archive"
-    | "publish-operation"
-    | "restore"
-    | "schedule"
-    | "transition"
+  readonly type: "archive" | "publish-operation" | "restore" | "schedule" | "transition"
 }
 
 export const isWorkflowStatus = (value: unknown): value is WorkflowStatus =>
@@ -88,12 +83,7 @@ type ActionTemplate = {
   readonly reasonRequired?: true
   readonly target?: WorkflowStatus
   readonly tone: "primary" | "secondary"
-  readonly type:
-    | "archive"
-    | "publish-operation"
-    | "restore"
-    | "schedule"
-    | "transition"
+  readonly type: "archive" | "publish-operation" | "restore" | "schedule" | "transition"
   readonly zh: string
 }
 
@@ -105,7 +95,13 @@ type ActionTemplate = {
  */
 const ACTION_TEMPLATES: readonly ActionTemplate[] = [
   // draft → review
-  { en: "Submit for review", target: "review", tone: "primary", type: "transition", zh: "提交审核" },
+  {
+    en: "Submit for review",
+    target: "review",
+    tone: "primary",
+    type: "transition",
+    zh: "提交审核",
+  },
   // review decision (不通过 returns the card to draft inside the rejected lane)
   {
     confirm: true,
@@ -137,7 +133,14 @@ const ACTION_TEMPLATES: readonly ActionTemplate[] = [
     zh: "删除",
   },
   // archived → draft (恢复)
-  { confirm: true, en: "Restore edition", target: "draft", tone: "primary", type: "restore", zh: "恢复" },
+  {
+    confirm: true,
+    en: "Restore edition",
+    target: "draft",
+    tone: "primary",
+    type: "restore",
+    zh: "恢复",
+  },
 ]
 
 /*

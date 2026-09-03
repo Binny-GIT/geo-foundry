@@ -6,13 +6,10 @@ import { QualityAssessments } from "../../src/collections/QualityAssessments"
 import { Releases } from "../../src/collections/Releases"
 import { RollbackIntents } from "../../src/collections/RollbackIntents"
 import { Sites } from "../../src/collections/Sites"
+import { tenantField } from "../../src/collections/shared/tenant-field"
 import { Tenants } from "../../src/collections/Tenants"
 import { Users } from "../../src/collections/Users"
-import { tenantField } from "../../src/collections/shared/tenant-field"
-import {
-  editionHrefOf,
-  editionReferenceOf,
-} from "../../src/components/fields/edition-cell-model"
+import { editionHrefOf, editionReferenceOf } from "../../src/components/fields/edition-cell-model"
 import { siteHrefOf, siteReferenceOf } from "../../src/components/fields/site-cell-model"
 import { tenantHrefOf, tenantReferenceOf } from "../../src/components/fields/tenant-cell-model"
 

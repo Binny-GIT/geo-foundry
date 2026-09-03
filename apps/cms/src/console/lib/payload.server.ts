@@ -7,7 +7,12 @@ import { getPayload, type Payload, type Where } from "payload"
 import { CMS_ACTION, type CmsResource } from "@/access/policy"
 
 import { CONSOLE_RESOURCES, type ConsoleResourceSlug, isConsoleResourceSlug } from "./resources"
-import { type ConsoleSession, canConsole, getConsoleSession, isHumanConsoleSession } from "./session.server"
+import {
+  type ConsoleSession,
+  canConsole,
+  getConsoleSession,
+  isHumanConsoleSession,
+} from "./session.server"
 
 type RecordLike = Record<string, unknown>
 

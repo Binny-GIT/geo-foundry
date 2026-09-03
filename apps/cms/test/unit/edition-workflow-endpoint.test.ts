@@ -30,7 +30,9 @@ const requestOf = (body: unknown): PayloadRequest =>
 
 describe("edition workflow endpoint", () => {
   it("rejects an empty workflow reason before it reaches the service", async () => {
-    const response = await transitionEditionEndpoint.handler(requestOf({ reason: "   ", target: "draft" }))
+    const response = await transitionEditionEndpoint.handler(
+      requestOf({ reason: "   ", target: "draft" }),
+    )
 
     expect(response.status).toBe(400)
     expect(transitionEdition).not.toHaveBeenCalled()

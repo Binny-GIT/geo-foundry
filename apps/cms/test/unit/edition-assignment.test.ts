@@ -87,9 +87,7 @@ describe("edition assignment service", () => {
     })
 
     expect(result).toEqual({ editionId: 101, owner: null })
-    expect(payload.update).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { owner: null } }),
-    )
+    expect(payload.update).toHaveBeenCalledWith(expect.objectContaining({ data: { owner: null } }))
   })
 
   it("rejects a service identity as owner", async () => {
@@ -151,7 +149,10 @@ describe("edition assignment service", () => {
 
   it("rejects an empty patch", async () => {
     await expect(
-      applyEditionAssignment(asPayload(payloadOf(editionOf())), { editionId: 101, user: superAdmin }),
+      applyEditionAssignment(asPayload(payloadOf(editionOf())), {
+        editionId: 101,
+        user: superAdmin,
+      }),
     ).rejects.toBeInstanceOf(EditionAssignmentError)
   })
 })

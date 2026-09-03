@@ -65,9 +65,8 @@ export const getConsoleSession = async (): Promise<ConsoleSession | null> => {
   }
 }
 
-export const isHumanConsoleSession = (
-  session: ConsoleSession | null,
-): session is ConsoleSession => session !== null && session.role !== CMS_ROLE.CONTENT_SERVICE
+export const isHumanConsoleSession = (session: ConsoleSession | null): session is ConsoleSession =>
+  session !== null && session.role !== CMS_ROLE.CONTENT_SERVICE
 
 export const requireConsoleSession = async (next = "/admin"): Promise<ConsoleSession> => {
   const session = await getConsoleSession()

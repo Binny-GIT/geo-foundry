@@ -98,9 +98,7 @@ const ArticleAssignmentPanel = ({
 
   return (
     <section className="gf-console-card grid gap-4 p-5">
-      <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">
-        分配
-      </h2>
+      <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">分配</h2>
 
       {notice !== null && (
         <p
@@ -135,7 +133,9 @@ const ArticleAssignmentPanel = ({
             </select>
           </label>
           <div className="grid gap-2">
-            <span className="text-sm font-medium text-[var(--console-ink)]">所属站点（可多选）</span>
+            <span className="text-sm font-medium text-[var(--console-ink)]">
+              所属站点（可多选）
+            </span>
             <p className="m-0 text-xs leading-5 text-[var(--console-ink-muted)]">
               一篇文章可同时分配多个站点；各站点只呈现分配给自己的文章。
             </p>

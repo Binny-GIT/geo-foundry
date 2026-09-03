@@ -19,20 +19,23 @@ describe("content edition unified workspace", () => {
   })
 
   it("uses a narrow Payload bridge and keeps emergency fallback super-admin-only", async () => {
-    const [legacyRoute, bridge, createBridge, emergency, workspaceLayout, emergencyLayout] = await Promise.all([
-      sourceOf("src/app/(console)/admin/(authenticated)/editions/[id]/page.tsx"),
-      sourceOf("src/app/(workspace)/admin/workspace/editions/[id]/page.tsx"),
-      sourceOf("src/app/(workspace)/admin/workspace/editions/new/page.tsx"),
-      sourceOf("src/app/(console)/admin/%5Femergency/[[...segments]]/page.tsx"),
-      sourceOf("src/app/(workspace)/admin/workspace/layout.tsx"),
-      sourceOf("src/app/(console)/admin/%5Femergency/[[...segments]]/layout.tsx"),
-    ])
+    const [legacyRoute, bridge, createBridge, emergency, workspaceLayout, emergencyLayout] =
+      await Promise.all([
+        sourceOf("src/app/(console)/admin/(authenticated)/editions/[id]/page.tsx"),
+        sourceOf("src/app/(workspace)/admin/workspace/editions/[id]/page.tsx"),
+        sourceOf("src/app/(workspace)/admin/workspace/editions/new/page.tsx"),
+        sourceOf("src/app/(console)/admin/%5Femergency/[[...segments]]/page.tsx"),
+        sourceOf("src/app/(workspace)/admin/workspace/layout.tsx"),
+        sourceOf("src/app/(console)/admin/%5Femergency/[[...segments]]/layout.tsx"),
+      ])
 
     expect(legacyRoute).toContain("/admin/workspace/editions/")
     expect(legacyRoute).toContain("redirect(")
     expect(legacyRoute).not.toContain("ContentEditionStudio")
     expect(bridge).toContain('segments: ["collections", "content-editions", id]')
-    expect(bridge).toContain('requireConsoleSession(`/admin/workspace/editions/${encodeURIComponent(id)}`)')
+    expect(bridge).toContain(
+      "requireConsoleSession(`/admin/workspace/editions/${encodeURIComponent(id)}`)",
+    )
     expect(bridge).toContain("CMS_ACTION.READ")
     expect(bridge).toContain('export const dynamic = "force-dynamic"')
     expect(createBridge).toContain('requireConsoleSession("/admin/workspace/editions/new")')
