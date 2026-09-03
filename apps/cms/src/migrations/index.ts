@@ -174,4 +174,9 @@ export const migrations = [
     down: migration_20260901_003000_intake_content_blocks.down,
     name: "20260901_003000_intake_content_blocks",
   },
+  {
+    up: migration_20260903_131000_edition_sites.up,
+    down: migration_20260903_131000_edition_sites.down,
+    name: "20260903_131000_edition_sites",
+  },
 ]
