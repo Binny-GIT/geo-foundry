@@ -3,7 +3,7 @@
 import { useField } from "@payloadcms/ui"
 import { useEffect, useState } from "react"
 
-type Option = Readonly<{ id: number; label: string; meta?: string }>
+type Option = Readonly<{ id: number; label: string; tenantId: number | null }>
 
 type PayloadList = Readonly<{
   docs?: readonly Record<string, unknown>[]
@@ -15,6 +15,14 @@ const idOf = (value: unknown): number | null =>
 const labelOf = (value: unknown, fallback: string): string =>
   typeof value === "string" && value.trim().length > 0 ? value.trim() : fallback
 
+const tenantOf = (row: Record<string, unknown>): number | null => {
+  const tenant = row["tenant"]
+  if (typeof tenant === "number") return idOf(tenant)
+  return typeof tenant === "object" && tenant !== null
+    ? idOf((tenant as Record<string, unknown>)["id"])
+    : null
+}
+
 const loadOptions = async (
   endpoint: string,
   label: (row: Record<string, unknown>) => string,
@@ -24,7 +32,7 @@ const loadOptions = async (
   const data = (await response.json().catch(() => ({}))) as PayloadList
   return (data.docs ?? []).flatMap((row) => {
     const id = idOf(row["id"])
-    return id === null ? [] : [{ id, label: label(row) }]
+    return id === null ? [] : [{ id, label: label(row), tenantId: tenantOf(row) }]
   })
 }
 
@@ -72,31 +80,29 @@ export const ContentEditionSetupFields = ({ readOnly }: { readonly readOnly: boo
   const [sites, setSites] = useState<readonly Option[]>([])
   const [loading, setLoading] = useState(true)
   const { value: siteValue } = useField<number | null>({ path: "site" })
+  const { value: contentValue } = useField<number | null>({ path: "content" })
   const { setValue: setTenant, value: tenantValue } = useField<number | null>({ path: "tenant" })
 
-  /* Tenant is required but has no control here: tenant-bound users get it
-   * from their session hook, and a super-admin would otherwise have to pick
-   * it by hand. The chosen site already determines it, so mirror that. */
+  /* Content and site must belong to the same tenant — the collection hook
+   * rejects a mismatch — but a super-admin reads every tenant's records. So
+   * the first pick fixes the tenant, the other list narrows to it, and the
+   * required tenant field is filled from that choice instead of by hand. */
+  const selectedTenant =
+    contents.find((option) => option.id === idOf(contentValue))?.tenantId ??
+    sites.find((option) => option.id === idOf(siteValue))?.tenantId ??
+    null
+
   useEffect(() => {
-    const siteId = idOf(siteValue)
-    if (siteId === null || idOf(tenantValue) !== null) return
-    let active = true
-    void fetch(`/api/sites/${siteId}?depth=0`, { credentials: "same-origin" })
-      .then(async (response) => (response.ok ? await response.json() : null))
-      .then((site: unknown) => {
-        if (!active || typeof site !== "object" || site === null) return
-        const tenant = (site as Record<string, unknown>)["tenant"]
-        const tenantId =
-          typeof tenant === "number"
-            ? tenant
-            : idOf((tenant as Record<string, unknown> | null)?.["id"])
-        if (tenantId !== null) setTenant(tenantId)
-      })
-      .catch(() => undefined)
-    return () => {
-      active = false
-    }
-  }, [setTenant, siteValue, tenantValue])
+    if (selectedTenant === null || idOf(tenantValue) === selectedTenant) return
+    setTenant(selectedTenant)
+  }, [selectedTenant, setTenant, tenantValue])
+
+  const visibleContents =
+    selectedTenant === null
+      ? contents
+      : contents.filter((option) => option.tenantId === selectedTenant)
+  const visibleSites =
+    selectedTenant === null ? sites : sites.filter((option) => option.tenantId === selectedTenant)
 
   useEffect(() => {
     let active = true
@@ -133,21 +139,22 @@ export const ContentEditionSetupFields = ({ readOnly }: { readonly readOnly: boo
       <div className="mt-4 grid gap-3">
         <SetupSelect
           label="内容"
-          options={contents}
+          options={visibleContents}
           path="content"
           placeholder={loading ? "正在加载内容…" : "选择内容"}
           readOnly={readOnly}
         />
         <SetupSelect
           label="站点"
-          options={sites}
+          options={visibleSites}
           path="site"
           placeholder={loading ? "正在加载站点…" : "选择站点"}
           readOnly={readOnly}
         />
       </div>
       <p className="m-0 mt-3 text-xs text-[var(--theme-elevation-600)]">
-        租户：{idOf(tenantValue) === null ? "选择站点后自动确定" : `#${idOf(tenantValue)}`}
+        租户：{selectedTenant === null ? "由所选内容或站点自动确定" : `#${selectedTenant}`}
+        {selectedTenant !== null && "（另一个下拉已按该租户过滤）"}
       </p>
     </section>
   )
