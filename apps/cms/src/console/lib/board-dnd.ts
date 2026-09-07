@@ -1,3 +1,4 @@
+import { LayersIcon, XCircleIcon } from "../../components/icons"
 import {
   isWorkflowStatus,
   type WorkflowAction,
@@ -41,6 +42,7 @@ export const dropActionFor = (
     if (workflowStatus === "draft") return null
     return {
       confirm: true,
+      icon: XCircleIcon,
       label: "审核不通过",
       reasonRequired: true,
       target: "draft",
@@ -53,6 +55,10 @@ export const dropActionFor = (
     targetColumn === "draft" ? "draft" : (targetColumn as WorkflowStatus)
   if (targetStatus === workflowStatus) return null
   return {
+    // Generic lane reassignment: never rendered as a button (fires
+    // immediately, no confirm dialog), so the icon only satisfies the
+    // shared WorkflowAction shape.
+    icon: LayersIcon,
     label: `移至${columnLabelOf(targetColumn)}`,
     target: targetStatus,
     tone: "secondary",
