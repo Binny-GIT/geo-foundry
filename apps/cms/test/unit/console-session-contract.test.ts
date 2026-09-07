@@ -24,7 +24,7 @@ describe("Console human session contract", () => {
     expect(session).toContain("isHumanConsoleSession")
     expect(session).toContain("session.role !== CMS_ROLE.CONTENT_SERVICE")
     expect(session).toContain("encodeURIComponent(normalizeConsoleNext(next))")
-    expect(next).toContain("/admin/_emergency")
+    expect(next).toContain('pathname === "/admin/login"')
     expect(next).toContain('pathname === "/admin" || pathname.startsWith("/admin/")')
   })
 
