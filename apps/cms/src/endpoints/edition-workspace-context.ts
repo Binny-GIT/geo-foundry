@@ -142,7 +142,8 @@ export const editionWorkspaceContextEndpoint: Endpoint = {
         user: req.user,
         where: { edition: { equals: editionId } },
       }),
-      tenantId === null || (claims.role !== "editor" && claims.role !== "tenant-admin")
+      tenantId === null ||
+      (claims.role !== "editor" && claims.role !== "super-admin" && claims.role !== "tenant-admin")
         ? Promise.resolve({ docs: [] as unknown[] })
         : req.payload.find({
             collection: "users",

@@ -8,12 +8,13 @@ import {
   useFormFields,
   useTranslation,
 } from "@payloadcms/ui"
-import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import {
-  AlertTriangleIcon,
   CalendarClockIcon,
-  FilePlusIcon,
+  GlobeIcon,
+  LinkIcon,
+  MessageSquareIcon,
+  PlusIcon,
   ShieldCheckIcon,
   UsersIcon,
 } from "@/components/icons"
@@ -21,80 +22,39 @@ import { uiLangOf } from "../i18n/ui-lang"
 import { Badge, IconBadge } from "../ui"
 import { Button } from "../ui/button"
 import { WorkflowActions } from "../workflow/WorkflowActions"
+import { ContentEditionRail, type VersionSelection } from "./ContentEditionRail"
 
 type WorkspaceContext = Readonly<{
-  edition: Readonly<{ siteTimezone: string | null; workflowRevision: number }>
   assignees: readonly Readonly<{ email: string | null; id: number | null; role: string | null }>[]
-  quality: Readonly<{
+  comments: readonly Readonly<{
+    author: Readonly<{ email: string | null; id: number | null }>
+    body: string | null
     createdAt: string | null
-    inputHash: string | null
+    id: number | null
+  }>[]
+  edition: Readonly<{ siteTimezone: string | null; workflowRevision: number }>
+  quality: Readonly<{
     issues: readonly unknown[]
     overall: number | null
     state: string | null
   }> | null
+  sources: readonly Readonly<{
+    id: number | null
+    note: string | null
+    role: string | null
+    intakeItem: Readonly<{ sourceUrl: string | null; title: string | null }>
+  }>[]
 }>
 
 const EMPTY: WorkspaceContext = {
   assignees: [],
+  comments: [],
   edition: { siteTimezone: null, workflowRevision: 0 },
   quality: null,
+  sources: [],
 }
-type SiteOption = Readonly<{ id: number; name: string }>
 
-const COPY = {
-  en: {
-    assignment: "Ownership and priority",
-    blocked: "Blocked",
-    due: "Due date",
-    editorial: "Editorial state",
-    high: "High",
-    low: "Low",
-    normal: "Normal",
-    owner: "Owner",
-    priority: "Priority",
-    quality: "Quality",
-    qualityMissing: "No quality assessment is available for this version.",
-    qualityQueued: "Quality check queued.",
-    qualityRun: "Run quality check",
-    unassigned: "Unassigned",
-    assigned: "Assigned",
-    inProgress: "In progress",
-    urgent: "Urgent",
-    schedule: "Schedule publication",
-    scheduleAt: "Publish at (UTC)",
-    scheduled: "Publication scheduled.",
-    variant: "Create site variant",
-    variantAt: "Target site",
-    variantCreated: "Site variant draft created.",
-    variantEmpty: "No other site is available in this tenant.",
-  },
-  zh: {
-    assignment: "负责人和优先级",
-    blocked: "受阻",
-    due: "截止时间",
-    editorial: "编辑状态",
-    high: "高",
-    low: "低",
-    normal: "普通",
-    owner: "负责人",
-    priority: "优先级",
-    quality: "质量",
-    qualityMissing: "当前版本没有可用质量评估。",
-    qualityQueued: "已提交质量检查。",
-    qualityRun: "运行质量检查",
-    unassigned: "未分配",
-    assigned: "已分配",
-    inProgress: "编辑中",
-    urgent: "紧急",
-    schedule: "创建发布排期",
-    scheduleAt: "发布时间",
-    scheduled: "已创建发布排期。",
-    variant: "创建站点版本",
-    variantAt: "目标站点",
-    variantCreated: "已创建站点版本草稿。",
-    variantEmpty: "当前租户没有其他可用站点。",
-  },
-} as const
+type SiteOption = Readonly<{ id: number; name: string }>
 
 const idOf = (value: unknown): string => {
   if (typeof value === "number" || typeof value === "string") return String(value)
@@ -103,39 +63,97 @@ const idOf = (value: unknown): string => {
   return ""
 }
 
+const idsOf = (value: unknown): readonly number[] =>
+  Array.isArray(value)
+    ? value.flatMap((entry) => {
+        const parsed = Number(idOf(entry))
+        return Number.isInteger(parsed) && parsed > 0 ? [parsed] : []
+      })
+    : []
+
 const localDateValue = (value: unknown): string => {
   if (typeof value !== "string") return ""
   const date = new Date(value)
-  if (Number.isNaN(date.valueOf())) return ""
   // `datetime-local` has no timezone; render UTC deterministically so server
   // and browser hydration do not differ by the viewer's local offset.
-  return date.toISOString().slice(0, 16)
+  return Number.isNaN(date.valueOf()) ? "" : date.toISOString().slice(0, 16)
 }
 
-export const ContentEditionControlRail = ({ readOnly }: { readonly readOnly: boolean }) => {
+const stampOf = (value: string | null, lang: string): string => {
+  if (value === null) return "—"
+  const date = new Date(value)
+  return Number.isNaN(date.valueOf())
+    ? "—"
+    : date.toLocaleString(lang === "zh" ? "zh-CN" : "en-US", { timeZone: "UTC" })
+}
+
+const Card = ({
+  children,
+  count,
+  icon,
+  title,
+  tone = "accent",
+}: {
+  readonly children: React.ReactNode
+  readonly count?: string
+  readonly icon: React.ReactNode
+  readonly title: string
+  readonly tone?: "accent" | "neutral" | "success" | "warning"
+}) => (
+  <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]">
+    <div className="flex items-center gap-3">
+      <IconBadge tone={tone}>{icon}</IconBadge>
+      <div className="min-w-0">
+        <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
+          {title}
+        </p>
+        {count !== undefined && (
+          <strong className="mt-1 block truncate text-sm text-[var(--theme-text)]">{count}</strong>
+        )}
+      </div>
+    </div>
+    {children}
+  </section>
+)
+
+/**
+ * Single editorial rail: assignment (owner, assigned sites, priority),
+ * quality, publication scheduling, linked sources, review comments, workflow
+ * actions and version history. The workspace keeps one column of controls so
+ * the canvas owns the remaining width.
+ */
+export const ContentEditionControlRail = ({
+  onSelectVersion,
+  readOnly,
+  selectedVersion,
+}: {
+  readonly onSelectVersion: (version: VersionSelection) => void
+  readonly readOnly: boolean
+  readonly selectedVersion: VersionSelection
+}) => {
   const { id } = useDocumentInfo()
-  const router = useRouter()
   const { user } = useAuth()
   const { i18n } = useTranslation()
   const lang = uiLangOf(i18n.language)
-  const t = COPY[lang]
   const { setValue: setOwner, value: owner } = useField<unknown>({ path: "owner" })
   const { setValue: setPriority, value: priority } = useField<string>({ path: "priority" })
   const { setValue: setDueAt, value: dueAt } = useField<unknown>({ path: "dueAt" })
   const { setValue: setEditorialStatus, value: editorialStatus } = useField<string>({
     path: "editorialStatus",
   })
+  const { setValue: setSite, value: site } = useField<unknown>({ path: "site" })
+  const { setValue: setSites, value: sites } = useField<unknown>({ path: "sites" })
   const body = useFormFields(([fields]) => fields["body"]?.value)
-  const currentSite = useFormFields(([fields]) => fields["site"]?.value)
+  const workflowRevision = useFormFields(([fields]) => fields["workflowRevision"]?.value)
   const [context, setContext] = useState<WorkspaceContext>(EMPTY)
+  const [siteOptions, setSiteOptions] = useState<readonly SiteOption[]>([])
   const [scheduledFor, setScheduledFor] = useState("")
   const [scheduling, setScheduling] = useState(false)
-  const [sites, setSites] = useState<readonly SiteOption[]>([])
-  const [targetSiteId, setTargetSiteId] = useState("")
-  const [creatingVariant, setCreatingVariant] = useState(false)
-  const [runningQuality, setRunningQuality] = useState(false)
+  const [intakeItemId, setIntakeItemId] = useState("")
+  const [sourceRole, setSourceRole] = useState<"primary" | "supporting">("supporting")
+  const [comment, setComment] = useState("")
 
-  useEffect(() => {
+  const reload = () => {
     if (id === undefined || id === null) return
     void fetch(`/api/workspaces/editions/${id}/context`, {
       credentials: "same-origin",
@@ -146,6 +164,10 @@ export const ContentEditionControlRail = ({ readOnly }: { readonly readOnly: boo
       )
       .then(setContext)
       .catch(() => setContext(EMPTY))
+  }
+
+  useEffect(() => {
+    reload()
   }, [id])
 
   useEffect(() => {
@@ -158,10 +180,10 @@ export const ContentEditionControlRail = ({ readOnly }: { readonly readOnly: boo
       )
       .then((data) => {
         if (!active) return
-        setSites(
-          (data.docs ?? []).flatMap((site) => {
-            const siteId = Number(site["id"])
-            const name = typeof site["name"] === "string" ? site["name"].trim() : ""
+        setSiteOptions(
+          (data.docs ?? []).flatMap((entry) => {
+            const siteId = Number(entry["id"])
+            const name = typeof entry["name"] === "string" ? entry["name"].trim() : ""
             return Number.isInteger(siteId) && siteId > 0 && name.length > 0
               ? [{ id: siteId, name }]
               : []
@@ -169,12 +191,28 @@ export const ContentEditionControlRail = ({ readOnly }: { readonly readOnly: boo
         )
       })
       .catch(() => {
-        if (active) setSites([])
+        if (active) setSiteOptions([])
       })
     return () => {
       active = false
     }
   }, [])
+
+  const role = user?.["role"]
+  const privileged = role === "editor" || role === "tenant-admin" || role === "super-admin"
+  const assignedSiteIds = idsOf(sites)
+  const mainSiteId = idOf(site)
+
+  /* Assigned sites drive delivery: a site reads this edition only when it is
+   * assigned. The primary site stays a single value because the publication
+   * URL registry is scoped to one site, so it follows the assignment. */
+  const toggleSite = (siteId: number) => {
+    const next = assignedSiteIds.includes(siteId)
+      ? assignedSiteIds.filter((entry) => entry !== siteId)
+      : [...assignedSiteIds, siteId]
+    setSites(next)
+    if (next.length > 0 && !next.includes(Number(mainSiteId))) setSite(next[0])
+  }
 
   const qualityTone =
     context.quality?.state === "passed"
@@ -182,46 +220,14 @@ export const ContentEditionControlRail = ({ readOnly }: { readonly readOnly: boo
       : context.quality === null
         ? "neutral"
         : "warning"
-  const currentOwner = idOf(owner)
-  const currentBodyCount = Array.isArray(body) ? body.length : 0
-  const currentSiteId = idOf(currentSite)
-  const canCreateVariant =
-    !readOnly &&
-    id !== undefined &&
-    id !== null &&
-    (user?.["role"] === "editor" ||
-      user?.["role"] === "tenant-admin" ||
-      user?.["role"] === "super-admin")
-  const variantSites = sites.filter((site) => String(site.id) !== currentSiteId)
-  const canRunQuality = !readOnly && user?.["role"] === "editor" && id !== undefined && id !== null
-  const runQuality = async () => {
-    if (!canRunQuality || id === undefined || id === null) return
-    setRunningQuality(true)
-    try {
-      const response = await fetch(`/api/workspaces/editor/editions/${id}/evaluation-operations`, {
-        body: JSON.stringify({}),
-        credentials: "same-origin",
-        headers: {
-          "content-type": "application/json",
-          "idempotency-key": crypto.randomUUID(),
-          "x-request-id": crypto.randomUUID(),
-        },
-        method: "POST",
-      })
-      if (!response.ok) throw new Error()
-      toast.success(t.qualityQueued)
-      router.refresh()
-    } catch {
-      toast.error(lang === "zh" ? "提交质量检查失败。" : "Could not queue the quality check.")
-    } finally {
-      setRunningQuality(false)
-    }
-  }
   const canSchedule =
-    user?.["role"] === "publisher" &&
+    (role === "publisher" || role === "super-admin") &&
     id !== undefined &&
     id !== null &&
     context.edition.siteTimezone !== null
+  const canEditSources = privileged && id !== undefined && id !== null
+  const canComment = (privileged || role === "reviewer") && id !== undefined && id !== null
+
   const schedule = async () => {
     if (!canSchedule || scheduledFor.length === 0 || id === undefined || id === null) return
     setScheduling(true)
@@ -238,61 +244,74 @@ export const ContentEditionControlRail = ({ readOnly }: { readonly readOnly: boo
       })
       if (!response.ok) throw new Error()
       setScheduledFor("")
-      toast.success(t.scheduled)
+      toast.success(lang === "zh" ? "已创建发布排期。" : "Publication scheduled.")
     } catch {
       toast.error(lang === "zh" ? "创建发布排期失败。" : "Could not schedule publication.")
     } finally {
       setScheduling(false)
     }
   }
-  const createVariant = async () => {
-    if (!canCreateVariant || targetSiteId.length === 0 || id === undefined || id === null) return
-    setCreatingVariant(true)
-    try {
-      const response = await fetch(`/api/editions/${id}/site-variants`, {
-        body: JSON.stringify({ siteId: Number(targetSiteId) }),
-        credentials: "same-origin",
-        headers: { "content-type": "application/json" },
-        method: "POST",
-      })
-      const result = (await response.json().catch(() => null)) as { editionId?: number }
-      if (!response.ok || !Number.isInteger(result?.editionId)) throw new Error()
-      toast.success(t.variantCreated)
-      router.push(`/admin/collections/content-editions/${result.editionId}`)
-    } catch {
-      toast.error(lang === "zh" ? "创建站点版本失败。" : "Could not create the site variant.")
-    } finally {
-      setCreatingVariant(false)
+
+  const addSource = async () => {
+    if (id === undefined || id === null || !/^\d+$/.test(intakeItemId.trim())) return
+    const response = await fetch(`/api/editions/${id}/article-sources`, {
+      body: JSON.stringify({ intakeItemId: Number(intakeItemId), role: sourceRole }),
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    })
+    if (!response.ok) {
+      toast.error(lang === "zh" ? "关联来源失败。" : "Could not link source.")
+      return
     }
+    setIntakeItemId("")
+    reload()
   }
+
+  const addComment = async () => {
+    if (id === undefined || id === null || comment.trim().length === 0) return
+    const response = await fetch(`/api/editions/${id}/review-comments`, {
+      body: JSON.stringify({
+        body: comment.trim(),
+        ...(typeof workflowRevision === "number" ? { workflowRevision } : {}),
+      }),
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    })
+    if (!response.ok) {
+      toast.error(lang === "zh" ? "添加评论失败。" : "Could not add comment.")
+      return
+    }
+    setComment("")
+    reload()
+  }
+
+  const fieldClass =
+    "min-h-10 rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)] focus:border-[var(--gf-accent-400)] focus:outline-none focus:ring-2 focus:ring-[var(--gf-accent-200)]"
+  const labelClass = "grid gap-1 text-xs font-bold text-[var(--theme-elevation-600)]"
 
   return (
     <aside
-      aria-label={lang === "zh" ? "任务控制和工作流" : "Editorial controls and workflow"}
+      aria-label={lang === "zh" ? "编辑控制与工作流" : "Editorial controls and workflow"}
       className="grid min-w-0 content-start gap-4"
     >
-      <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]">
-        <div className="flex items-center gap-3">
-          <IconBadge tone="accent">
-            <UsersIcon size={18} />
-          </IconBadge>
-          <div>
-            <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
-              {t.assignment}
-            </p>
-            <strong className="mt-1 block text-sm text-[var(--theme-text)]">{t.editorial}</strong>
-          </div>
-        </div>
+      <WorkflowActions />
+
+      <Card
+        icon={<UsersIcon size={18} />}
+        title={lang === "zh" ? "归属与优先级" : "Ownership and priority"}
+      >
         <div className="mt-4 grid gap-3">
-          <label className="grid gap-1 text-xs font-bold text-[var(--theme-elevation-600)]">
-            {t.owner}
+          <label className={labelClass}>
+            {lang === "zh" ? "负责人" : "Owner"}
             <select
-              className="min-h-10 rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)] focus:border-[var(--gf-accent-400)] focus:outline-none focus:ring-2 focus:ring-[var(--gf-accent-200)]"
+              className={fieldClass}
               disabled={readOnly}
               onChange={(event) =>
                 setOwner(event.target.value.length === 0 ? null : Number(event.target.value))
               }
-              value={currentOwner}
+              value={idOf(owner)}
             >
               <option value="">—</option>
               {context.assignees
@@ -304,24 +323,24 @@ export const ContentEditionControlRail = ({ readOnly }: { readonly readOnly: boo
                 ))}
             </select>
           </label>
-          <label className="grid gap-1 text-xs font-bold text-[var(--theme-elevation-600)]">
-            {t.priority}
+          <label className={labelClass}>
+            {lang === "zh" ? "优先级" : "Priority"}
             <select
-              className="min-h-10 rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)] focus:border-[var(--gf-accent-400)] focus:outline-none focus:ring-2 focus:ring-[var(--gf-accent-200)]"
+              className={fieldClass}
               disabled={readOnly}
               onChange={(event) => setPriority(event.target.value)}
               value={typeof priority === "string" ? priority : "normal"}
             >
-              <option value="low">{t.low}</option>
-              <option value="normal">{t.normal}</option>
-              <option value="high">{t.high}</option>
-              <option value="urgent">{t.urgent}</option>
+              <option value="low">{lang === "zh" ? "低" : "Low"}</option>
+              <option value="normal">{lang === "zh" ? "普通" : "Normal"}</option>
+              <option value="high">{lang === "zh" ? "高" : "High"}</option>
+              <option value="urgent">{lang === "zh" ? "紧急" : "Urgent"}</option>
             </select>
           </label>
-          <label className="grid gap-1 text-xs font-bold text-[var(--theme-elevation-600)]">
-            {t.due}
+          <label className={labelClass}>
+            {lang === "zh" ? "截止时间" : "Due date"}
             <input
-              className="min-h-10 rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)] focus:border-[var(--gf-accent-400)] focus:outline-none focus:ring-2 focus:ring-[var(--gf-accent-200)]"
+              className={fieldClass}
               disabled={readOnly}
               onChange={(event) =>
                 setDueAt(
@@ -334,43 +353,76 @@ export const ContentEditionControlRail = ({ readOnly }: { readonly readOnly: boo
               value={localDateValue(dueAt)}
             />
           </label>
-          <label className="grid gap-1 text-xs font-bold text-[var(--theme-elevation-600)]">
-            {t.editorial}
+          <label className={labelClass}>
+            {lang === "zh" ? "编辑状态" : "Editorial state"}
             <select
-              className="min-h-10 rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)] focus:border-[var(--gf-accent-400)] focus:outline-none focus:ring-2 focus:ring-[var(--gf-accent-200)]"
+              className={fieldClass}
               disabled={readOnly}
               onChange={(event) => setEditorialStatus(event.target.value)}
               value={typeof editorialStatus === "string" ? editorialStatus : "unassigned"}
             >
-              <option value="unassigned">{t.unassigned}</option>
-              <option value="assigned">{t.assigned}</option>
-              <option value="in-progress">{t.inProgress}</option>
-              <option value="blocked">{t.blocked}</option>
+              <option value="unassigned">{lang === "zh" ? "未分配" : "Unassigned"}</option>
+              <option value="assigned">{lang === "zh" ? "已分配" : "Assigned"}</option>
+              <option value="in-progress">{lang === "zh" ? "编辑中" : "In progress"}</option>
+              <option value="blocked">{lang === "zh" ? "受阻" : "Blocked"}</option>
             </select>
           </label>
         </div>
-      </section>
+      </Card>
 
-      <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]">
-        <div className="flex items-center gap-3">
-          <IconBadge tone={qualityTone}>
-            <ShieldCheckIcon size={18} />
-          </IconBadge>
-          <div>
-            <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
-              {t.quality}
-            </p>
-            <strong className="mt-1 block text-sm text-[var(--theme-text)]">
-              {context.quality?.state ?? "—"}
-            </strong>
-          </div>
-        </div>
-        {context.quality === null ? (
-          <p className="m-0 mt-4 text-sm leading-6 text-[var(--theme-elevation-600)]">
-            {t.qualityMissing}
+      <Card
+        count={`${assignedSiteIds.length} ${lang === "zh" ? "个站点" : "sites"}`}
+        icon={<GlobeIcon size={18} />}
+        title={lang === "zh" ? "所属站点" : "Assigned sites"}
+      >
+        <p className="m-0 mt-3 text-xs leading-5 text-[var(--theme-elevation-600)]">
+          {lang === "zh"
+            ? "勾选的站点才能读取这篇文章；第一个勾选的站点作为发布主站点。"
+            : "Only assigned sites can read this article; the first one is the primary publication site."}
+        </p>
+        {siteOptions.length === 0 ? (
+          <p className="m-0 mt-3 text-sm text-[var(--theme-elevation-600)]">
+            {lang === "zh" ? "暂无可选站点。" : "No site is available."}
           </p>
         ) : (
-          <div className="mt-4 grid gap-3">
+          <ul className="m-0 mt-3 grid list-none gap-2 p-0">
+            {siteOptions.map((option) => {
+              const checked = assignedSiteIds.includes(option.id)
+              return (
+                <li key={option.id}>
+                  <label className="flex cursor-pointer items-center gap-2 rounded-lg px-1 py-1 text-sm text-[var(--theme-text)] hover:bg-[var(--theme-elevation-50)]">
+                    <input
+                      checked={checked}
+                      disabled={readOnly}
+                      onChange={() => toggleSite(option.id)}
+                      type="checkbox"
+                    />
+                    <span className="min-w-0 flex-1 truncate">{option.name}</span>
+                    {String(option.id) === mainSiteId && (
+                      <Badge tone="accent">{lang === "zh" ? "主站点" : "Primary"}</Badge>
+                    )}
+                  </label>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </Card>
+
+      <Card
+        count={context.quality?.state ?? "—"}
+        icon={<ShieldCheckIcon size={18} />}
+        title={lang === "zh" ? "质量" : "Quality"}
+        tone={qualityTone}
+      >
+        {context.quality === null ? (
+          <p className="m-0 mt-4 text-sm leading-6 text-[var(--theme-elevation-600)]">
+            {lang === "zh"
+              ? "当前版本没有可用质量评估。"
+              : "No quality assessment is available for this version."}
+          </p>
+        ) : (
+          <div className="mt-4 grid gap-2">
             <div className="flex items-center justify-between gap-3">
               <Badge tone={qualityTone}>{context.quality.state ?? "—"}</Badge>
               <span className="text-xs text-[var(--theme-elevation-600)]">
@@ -378,73 +430,22 @@ export const ContentEditionControlRail = ({ readOnly }: { readonly readOnly: boo
               </span>
             </div>
             <p className="m-0 text-xs leading-5 text-[var(--theme-elevation-600)]">
-              {context.quality.issues.length} issue(s) · {currentBodyCount} block(s)
+              {context.quality.issues.length} issue(s) · {Array.isArray(body) ? body.length : 0}{" "}
+              block(s)
             </p>
           </div>
         )}
-        {canRunQuality && (
-          <Button
-            className="mt-4 w-full"
-            disabled={runningQuality}
-            onClick={() => void runQuality()}
-            size="lg"
-            type="button"
-          >
-            <ShieldCheckIcon size={15} /> {runningQuality ? "…" : t.qualityRun}
-          </Button>
-        )}
-      </section>
-
-      {canCreateVariant && (
-        <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]">
-          <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
-            {t.variant}
-          </p>
-          {variantSites.length === 0 ? (
-            <p className="m-0 mt-3 text-sm leading-6 text-[var(--theme-elevation-600)]">
-              {t.variantEmpty}
-            </p>
-          ) : (
-            <>
-              <label className="mt-3 grid gap-1 text-xs font-bold text-[var(--theme-elevation-600)]">
-                {t.variantAt}
-                <select
-                  className="min-h-10 rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)] focus-visible:ring-2 focus-visible:ring-[var(--gf-accent-400)]"
-                  disabled={creatingVariant}
-                  onChange={(event) => setTargetSiteId(event.target.value)}
-                  value={targetSiteId}
-                >
-                  <option value="">—</option>
-                  {variantSites.map((site) => (
-                    <option key={site.id} value={site.id}>
-                      {site.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <Button
-                className="mt-3 w-full"
-                disabled={targetSiteId.length === 0 || creatingVariant}
-                onClick={() => void createVariant()}
-                size="lg"
-                type="button"
-              >
-                <FilePlusIcon size={15} /> {t.variant}
-              </Button>
-            </>
-          )}
-        </section>
-      )}
+      </Card>
 
       {canSchedule && (
-        <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]">
-          <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
-            {t.schedule}
-          </p>
-          <label className="mt-3 grid gap-1 text-xs font-bold text-[var(--theme-elevation-600)]">
-            {t.scheduleAt}
+        <Card
+          icon={<CalendarClockIcon size={18} />}
+          title={lang === "zh" ? "发布排期" : "Schedule publication"}
+        >
+          <label className={`mt-3 ${labelClass}`}>
+            {lang === "zh" ? "发布时间" : "Publish at"}
             <input
-              className="min-h-10 rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)] focus:border-[var(--gf-accent-400)] focus:outline-none focus:ring-2 focus:ring-[var(--gf-accent-200)]"
+              className={fieldClass}
               onChange={(event) => setScheduledFor(event.target.value)}
               placeholder="2026-12-01T15:00:00.000Z"
               value={scheduledFor}
@@ -457,15 +458,149 @@ export const ContentEditionControlRail = ({ readOnly }: { readonly readOnly: boo
             className="mt-3 w-full"
             disabled={scheduledFor.length === 0 || scheduling}
             onClick={() => void schedule()}
-            size="lg"
+            size="md"
             type="button"
           >
-            <CalendarClockIcon size={15} /> {t.schedule}
+            <CalendarClockIcon size={15} /> {lang === "zh" ? "创建发布排期" : "Schedule"}
           </Button>
-        </section>
+        </Card>
       )}
 
-      <WorkflowActions />
+      <Card
+        count={String(context.sources.length)}
+        icon={<LinkIcon size={18} />}
+        title={lang === "zh" ? "来源" : "Sources"}
+        tone="neutral"
+      >
+        {context.sources.length === 0 ? (
+          <p className="m-0 mt-4 text-sm text-[var(--theme-elevation-600)]">
+            {lang === "zh" ? "暂时没有关联来源。" : "No linked sources yet."}
+          </p>
+        ) : (
+          <ul className="m-0 mt-4 grid list-none gap-3 p-0">
+            {context.sources.map((source, index) => (
+              <li
+                className="rounded-xl border border-[var(--theme-elevation-150)] bg-[var(--theme-elevation-50)] p-3"
+                key={source.id ?? index}
+              >
+                <p className="m-0 text-xs font-bold uppercase tracking-[0.06em] text-[var(--gf-accent-700)]">
+                  {source.role ?? "supporting"}
+                </p>
+                <strong className="mt-1 block text-sm text-[var(--theme-text)]">
+                  {source.intakeItem.title ?? "—"}
+                </strong>
+                {source.intakeItem.sourceUrl !== null && (
+                  <a
+                    className="mt-1 block truncate text-xs font-semibold text-[var(--gf-accent-700)] no-underline hover:text-[var(--gf-accent-400)]"
+                    href={source.intakeItem.sourceUrl}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    {source.intakeItem.sourceUrl}
+                  </a>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        {canEditSources && (
+          <div className="mt-4 grid gap-2 border-t border-[var(--theme-elevation-150)] pt-4">
+            <input
+              aria-label={lang === "zh" ? "稿源条目 ID" : "Intake item ID"}
+              className={fieldClass}
+              onChange={(event) => setIntakeItemId(event.target.value)}
+              placeholder={lang === "zh" ? "稿源条目 ID" : "Intake item ID"}
+              value={intakeItemId}
+            />
+            <select
+              aria-label={lang === "zh" ? "来源角色" : "Source role"}
+              className={fieldClass}
+              onChange={(event) => setSourceRole(event.target.value as "primary" | "supporting")}
+              value={sourceRole}
+            >
+              <option value="supporting">{lang === "zh" ? "辅助来源" : "Supporting"}</option>
+              <option value="primary">{lang === "zh" ? "主要来源" : "Primary"}</option>
+            </select>
+            <Button
+              disabled={intakeItemId.trim().length === 0}
+              onClick={() => void addSource()}
+              size="md"
+              type="button"
+              variant="secondary"
+            >
+              <PlusIcon size={15} /> {lang === "zh" ? "关联来源" : "Add source"}
+            </Button>
+          </div>
+        )}
+      </Card>
+
+      <Card
+        count={String(context.comments.length)}
+        icon={<MessageSquareIcon size={18} />}
+        title={lang === "zh" ? "审核评论" : "Review comments"}
+        tone="neutral"
+      >
+        {context.comments.length === 0 ? (
+          <p className="m-0 mt-4 text-sm text-[var(--theme-elevation-600)]">
+            {lang === "zh" ? "暂时没有审核评论。" : "No review comments yet."}
+          </p>
+        ) : (
+          <ul className="m-0 mt-4 grid list-none gap-3 p-0">
+            {context.comments.map((entry, index) => (
+              <li
+                className="rounded-xl border border-[var(--theme-elevation-150)] bg-[var(--theme-elevation-50)] p-3"
+                key={entry.id ?? index}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <strong className="truncate text-xs text-[var(--theme-text)]">
+                    {entry.author.email ?? "—"}
+                  </strong>
+                  <span className="shrink-0 text-[11px] text-[var(--theme-elevation-600)]">
+                    {stampOf(entry.createdAt, lang)}
+                  </span>
+                </div>
+                <p className="m-0 mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--theme-elevation-700)]">
+                  {entry.body ?? "—"}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+        {canComment && (
+          <div className="mt-4 border-t border-[var(--theme-elevation-150)] pt-4">
+            <textarea
+              aria-label={lang === "zh" ? "评论" : "Comment"}
+              className="min-h-20 w-full resize-y rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] p-3 text-sm text-[var(--theme-text)]"
+              maxLength={2000}
+              onChange={(event) => setComment(event.target.value)}
+              placeholder={
+                lang === "zh"
+                  ? "为当前版本添加编辑意见…"
+                  : "Add editorial feedback for this version…"
+              }
+              value={comment}
+            />
+            <Button
+              className="mt-2 w-full"
+              disabled={comment.trim().length === 0}
+              onClick={() => void addComment()}
+              size="md"
+              type="button"
+              variant="secondary"
+            >
+              <MessageSquareIcon size={15} /> {lang === "zh" ? "添加评论" : "Add comment"}
+            </Button>
+          </div>
+        )}
+      </Card>
+
+      {id !== undefined && id !== null && (
+        <ContentEditionRail
+          onSelectVersion={onSelectVersion}
+          selectedVersion={selectedVersion}
+          showWorkflow={false}
+        />
+      )}
     </aside>
   )
 }

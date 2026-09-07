@@ -4,7 +4,6 @@ import {
   Form,
   OperationProvider,
   toast,
-  useAuth,
   useDocumentInfo,
   useForm,
   useFormFields,
@@ -16,7 +15,11 @@ import { useRouter } from "next/navigation"
 import type { DocumentViewClientProps } from "payload"
 import { useState } from "react"
 import { CheckCircleIcon, EyeIcon, PencilIcon } from "@/components/icons"
-import { ContentEditionContextRail } from "../content-edition/ContentEditionContextRail"
+import {
+  ContentEditionAiChat,
+  ContentEditionAiChatRail,
+  useAiChatPanel,
+} from "../content-edition/ContentEditionAiChat"
 import { ContentEditionControlRail } from "../content-edition/ContentEditionControlRail"
 import {
   ContentEditionEditorCanvas,
@@ -40,6 +43,7 @@ const COPY = {
     editing: "Editing draft",
     preview: "Preview",
     previewing: "Previewing document",
+    readOnly: "You do not have permission to edit this edition.",
     save: "Save draft",
     saved: "Saved",
     saving: "Saving…",
@@ -50,6 +54,7 @@ const COPY = {
     editing: "正在编辑草稿",
     preview: "预览",
     previewing: "正在预览文档",
+    readOnly: "当前账号没有编辑此版本的权限。",
     save: "保存草稿",
     saved: "已保存",
     saving: "正在保存…",
@@ -74,10 +79,9 @@ const ContentEditionDocumentBody = ({ readOnly }: { readonly readOnly: boolean }
   const content = useFormFields(([fields]) => fields["content"]?.value)
   const site = useFormFields(([fields]) => fields["site"]?.value)
   const updatedAt = useFormFields(([fields]) => fields["updatedAt"]?.value)
-  const [mode, setMode] = useState<"edit" | "preview">(
-    id === undefined || id === null ? "edit" : "preview",
-  )
+  const [mode, setMode] = useState<"edit" | "preview">("edit")
   const [selectedVersion, setSelectedVersion] = useState<VersionSelection>(null)
+  const [chatOpen, setChatOpen] = useAiChatPanel()
   // getData reduces block row state into the actual Payload document value.
   // This preserves unsaved editor changes without treating a form field-state
   // object as if it were the stored block array.
@@ -106,7 +110,9 @@ const ContentEditionDocumentBody = ({ readOnly }: { readonly readOnly: boolean }
           summary: selectedVersion.snapshot.summary,
           title: selectedVersion.snapshot.title,
         }
-  const saveState = processing ? t.saving : modified ? t.unsaved : t.saved
+  const saveState = readOnly ? t.readOnly : processing ? t.saving : modified ? t.unsaved : t.saved
+  // A historical selection is read-only by nature, so it forces preview.
+  const activeMode = selectedVersion !== null || readOnly ? "preview" : mode
 
   return (
     <main className="flex min-h-full w-full flex-col gap-5 p-4 sm:p-6 lg:px-8 lg:py-6">
@@ -133,32 +139,29 @@ const ContentEditionDocumentBody = ({ readOnly }: { readonly readOnly: boolean }
             <p className="m-0 mt-1 text-xs text-[var(--theme-elevation-600)]">{saveState}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button
-              aria-pressed={mode === "preview"}
-              onClick={() => {
-                setSelectedVersion(null)
-                setMode("preview")
-              }}
-              size="lg"
-              variant={mode === "preview" ? "default" : "secondary"}
-              type="button"
-            >
-              <EyeIcon size={16} /> {t.preview}
-            </Button>
             {!readOnly && (
               <Button
-                aria-pressed={mode === "edit"}
+                aria-pressed={activeMode === "edit"}
                 onClick={() => {
                   setSelectedVersion(null)
                   setMode("edit")
                 }}
                 size="lg"
-                variant={mode === "edit" ? "default" : "secondary"}
                 type="button"
+                variant={activeMode === "edit" ? "default" : "secondary"}
               >
                 <PencilIcon size={16} /> {t.edit}
               </Button>
             )}
+            <Button
+              aria-pressed={activeMode === "preview"}
+              onClick={() => setMode("preview")}
+              size="lg"
+              type="button"
+              variant={activeMode === "preview" ? "default" : "secondary"}
+            >
+              <EyeIcon size={16} /> {t.preview}
+            </Button>
             {!readOnly && (
               <Button disabled={processing} size="lg" type="submit" variant="dark">
                 <CheckCircleIcon size={15} /> {processing ? t.saving : t.save}
@@ -168,21 +171,24 @@ const ContentEditionDocumentBody = ({ readOnly }: { readonly readOnly: boolean }
         </div>
       </header>
 
-      {/* Responsive three-pane: 2xl keeps the full rail|canvas|control layout,
-       * xl fits rails+canvas while the control rail wraps to a full row, and
-       * below xl everything stacks. Track minimums (240/480/300) replace the
-       * old fixed-ratio tracks so the canvas can never be crushed under the
-       * rails; the canvas is a @container so its inner fields reflow by the
-       * canvas' own width, not the viewport. */}
-      <div className="gf-stagger grid min-w-0 gap-5 2xl:grid-cols-[minmax(240px,0.7fr)_minmax(480px,1.6fr)_minmax(300px,0.8fr)] xl:grid-cols-[minmax(240px,0.9fr)_minmax(420px,1.7fr)]">
-        {id !== undefined && id !== null && (
-          <ContentEditionContextRail
-            onSelectVersion={setSelectedVersion}
-            selectedVersion={selectedVersion}
-          />
+      {/* Left column is the AI assistant, centre is the canvas, right holds
+       * every editorial control. When the assistant is collapsed its track
+       * shrinks to the toggle rail so the canvas takes the freed width. */}
+      <div
+        className={`gf-stagger grid min-w-0 gap-5 ${
+          chatOpen
+            ? "xl:grid-cols-[minmax(300px,0.9fr)_minmax(460px,1.8fr)] 2xl:grid-cols-[minmax(320px,0.8fr)_minmax(520px,1.9fr)_minmax(320px,0.9fr)]"
+            : "xl:grid-cols-[auto_minmax(460px,1fr)] 2xl:grid-cols-[auto_minmax(520px,2fr)_minmax(320px,0.9fr)]"
+        }`}
+      >
+        {chatOpen ? (
+          <ContentEditionAiChat onCollapse={() => setChatOpen(false)} readOnly={readOnly} />
+        ) : (
+          <ContentEditionAiChatRail onExpand={() => setChatOpen(true)} />
         )}
+
         <section className="@container min-w-0">
-          {mode === "preview" ? (
+          {activeMode === "preview" ? (
             <div className="grid gap-4">
               <div className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-5 shadow-[var(--gf-shadow-surface)] sm:p-7">
                 <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
@@ -203,30 +209,27 @@ const ContentEditionDocumentBody = ({ readOnly }: { readonly readOnly: boolean }
             </div>
           ) : (
             <div className="grid gap-4">
-              <div className="grid gap-4">
-                {(id === undefined || id === null) && (
-                  <ContentEditionSetupFields readOnly={readOnly} />
-                )}
-                <div className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-5 shadow-[var(--gf-shadow-surface)] sm:p-7">
-                  <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
-                    {t.editing}
-                  </p>
-                  <div className="mt-5">
-                    <ContentEditionMetadataEditor readOnly={readOnly} />
-                  </div>
+              {(id === undefined || id === null) && (
+                <ContentEditionSetupFields readOnly={readOnly} />
+              )}
+              <div className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-5 shadow-[var(--gf-shadow-surface)] sm:p-7">
+                <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
+                  {t.editing}
+                </p>
+                <div className="mt-5">
+                  <ContentEditionMetadataEditor readOnly={readOnly} />
                 </div>
               </div>
               <ContentEditionEditorCanvas readOnly={readOnly} />
-              <section className="grid gap-3">
-                <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
-                  {t.preview}
-                </p>
-                <ContentEditionPreview source={source} />
-              </section>
             </div>
           )}
         </section>
-        <ContentEditionControlRail readOnly={readOnly} />
+
+        <ContentEditionControlRail
+          onSelectVersion={setSelectedVersion}
+          readOnly={readOnly}
+          selectedVersion={selectedVersion}
+        />
       </div>
     </main>
   )
@@ -240,11 +243,12 @@ const ContentEditionDocumentBody = ({ readOnly }: { readonly readOnly: boolean }
 export const ContentEditionDocument = ({ formState }: DocumentViewClientProps) => {
   const { action, hasSavePermission, id, isEditing, isInitializing, isTrashed, setData } =
     useDocumentInfo()
-  const { user } = useAuth()
   const { i18n } = useTranslation()
   const router = useRouter()
   const lang = uiLangOf(i18n.language)
-  const readOnly = !hasSavePermission || isTrashed || user?.["role"] !== "editor"
+  // Payload's collection access already decides who may write this edition;
+  // a second role check here only locked out tenant admins and super admins.
+  const readOnly = hasSavePermission !== true || isTrashed === true
 
   return (
     <OperationProvider operation={isEditing ? "update" : "create"}>

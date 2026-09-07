@@ -66,7 +66,7 @@ describe("scoped preflight contract", () => {
   it("erases underlined links across the payload admin tree as well", async () => {
     const [theme, rail, sites, ops, release, tenant] = await Promise.all([
       sourceOf("src/app/(payload)/admin-theme.css"),
-      sourceOf("src/components/content-edition/ContentEditionContextRail.tsx"),
+      sourceOf("src/components/content-edition/ContentEditionControlRail.tsx"),
       sourceOf("src/components/sites/SitesOperationsWorkspace.tsx"),
       sourceOf("src/components/dashboard/OperationsDashboard.tsx"),
       sourceOf("src/components/views/ReleaseHistory.tsx"),

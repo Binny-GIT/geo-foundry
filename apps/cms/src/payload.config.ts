@@ -37,6 +37,7 @@ import { PAGE_DOCUMENT_BLOCKS } from "./editor/page-document-blocks"
 import { changeOwnPasswordEndpoint } from "./endpoints/account-password"
 import { addArticleSourceEndpoint } from "./endpoints/article-sources"
 import { deliveryArticleEndpoint, deliveryArticlesEndpoint } from "./endpoints/delivery"
+import { editionAiChatEndpoint } from "./endpoints/edition-ai-chat"
 import { editionAssignmentEndpoint } from "./endpoints/edition-assignment"
 import { editionDuplicateEndpoint } from "./endpoints/edition-duplicate"
 import {
@@ -200,6 +201,7 @@ export default buildConfig({
     editionWorkspaceContextEndpoint,
     editionAssignmentEndpoint,
     editionDuplicateEndpoint,
+    editionAiChatEndpoint,
     renameUrlRecordEndpoint,
     createIntakeItemEndpoint,
     ignoreIntakeItemEndpoint,

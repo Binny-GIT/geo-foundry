@@ -98,8 +98,10 @@ describe("workbench server contract", () => {
     ])
 
     expect(document).toContain(
-      "2xl:grid-cols-[minmax(240px,0.7fr)_minmax(480px,1.6fr)_minmax(300px,0.8fr)]",
+      "2xl:grid-cols-[minmax(320px,0.8fr)_minmax(520px,1.9fr)_minmax(320px,0.9fr)]",
     )
+    // Collapsing the assistant hands its track back to the canvas.
+    expect(document).toContain("2xl:grid-cols-[auto_minmax(520px,2fr)_minmax(320px,0.9fr)]")
     expect(document).toContain("@container")
     expect(layout).toContain("WorkspaceTopBar")
     expect(layout).toContain("requireConsoleSession")
