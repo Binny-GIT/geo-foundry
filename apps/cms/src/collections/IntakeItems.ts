@@ -214,11 +214,6 @@ export const IntakeItems = {
       type: "relationship",
       relationTo: "sites",
       index: true,
-      admin: {
-        components: {
-          Cell: "/components/fields/SiteCell#SiteCell",
-        },
-      },
     },
     {
       name: "assignedTo",

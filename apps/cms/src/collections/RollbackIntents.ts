@@ -28,11 +28,6 @@ export const RollbackIntents = {
       relationTo: "sites",
       required: true,
       index: true,
-      admin: {
-        components: {
-          Cell: "/components/fields/SiteCell#SiteCell",
-        },
-      },
     },
     { name: "runtimeSiteId", type: "text", required: true },
     { name: "targetReleaseId", type: "text", required: true },

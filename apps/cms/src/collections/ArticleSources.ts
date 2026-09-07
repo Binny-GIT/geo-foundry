@@ -87,11 +87,6 @@ export const ArticleSources = {
       relationTo: "content-editions",
       required: true,
       index: true,
-      admin: {
-        components: {
-          Cell: "/components/fields/EditionCell#EditionCell",
-        },
-      },
     },
     {
       name: "intakeItem",

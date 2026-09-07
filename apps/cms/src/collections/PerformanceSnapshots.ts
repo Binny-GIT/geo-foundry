@@ -28,7 +28,6 @@ export const PerformanceSnapshots = {
       relationTo: "sites",
       required: true,
       index: true,
-      admin: { components: { Cell: "/components/fields/SiteCell#SiteCell" } },
     },
     { name: "edition", type: "relationship", relationTo: "content-editions", index: true },
     { name: "url", type: "text", required: true, index: true },

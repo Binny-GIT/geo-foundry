@@ -39,9 +39,6 @@ export const tenantField = ({
       }
     : {}),
   admin: {
-    components: {
-      Cell: "/components/fields/TenantCell#TenantCell",
-    },
     condition: (_, __, { user }) => isSuperAdmin(user),
   },
 })

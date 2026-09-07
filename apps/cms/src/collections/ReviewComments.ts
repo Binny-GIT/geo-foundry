@@ -92,11 +92,6 @@ export const ReviewComments = {
       relationTo: "content-editions",
       required: true,
       index: true,
-      admin: {
-        components: {
-          Cell: "/components/fields/EditionCell#EditionCell",
-        },
-      },
     },
     tenantField({ index: true }),
     {

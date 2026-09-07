@@ -205,15 +205,6 @@ export const ContentEditions = {
     singular: localized("Content edition", "内容版本"),
   },
   admin: {
-    components: {
-      views: {
-        edit: {
-          root: {
-            Component: "/components/views/ContentEditionDocument#ContentEditionDocument",
-          },
-        },
-      },
-    },
     defaultColumns: ["title", "workflowStatus", "site", "creationOrigin", "updatedAt"],
     group: localized("Content", "内容"),
     useAsTitle: "title",
@@ -230,15 +221,6 @@ export const ContentEditions = {
   },
   fields: localizedFields([
     {
-      name: "workflowActions",
-      type: "ui",
-      admin: {
-        components: {
-          Field: "/components/workflow/WorkflowActions#WorkflowActions",
-        },
-      },
-    },
-    {
       name: "content",
       type: "relationship",
       relationTo: "contents",
@@ -249,11 +231,6 @@ export const ContentEditions = {
       type: "relationship",
       relationTo: "sites",
       required: true,
-      admin: {
-        components: {
-          Cell: "/components/fields/SiteCell#SiteCell",
-        },
-      },
     },
     /*
      * 多站点分配（2026-09 重设计）：文章可直接分配到多个站点，读取端按

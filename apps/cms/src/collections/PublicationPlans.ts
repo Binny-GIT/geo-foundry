@@ -29,7 +29,6 @@ export const PublicationPlans = {
       relationTo: "sites",
       required: true,
       index: true,
-      admin: { components: { Cell: "/components/fields/SiteCell#SiteCell" } },
     },
     {
       name: "edition",
@@ -37,7 +36,6 @@ export const PublicationPlans = {
       relationTo: "content-editions",
       required: true,
       index: true,
-      admin: { components: { Cell: "/components/fields/EditionCell#EditionCell" } },
     },
     {
       name: "requestedBy",

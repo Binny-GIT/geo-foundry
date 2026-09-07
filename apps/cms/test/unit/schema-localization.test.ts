@@ -94,9 +94,6 @@ describe("CMS schema localization", () => {
 
   it("keeps media uploads local to the browser file picker", () => {
     expect(Media.upload?.pasteURL).toBe(false)
-    expect(Media.admin?.components?.beforeList).toEqual([
-      "/components/media/MediaUploadGuidance#MediaUploadGuidance",
-    ])
   })
 
   it("localizes generated field and select-option labels without changing stored values", () => {

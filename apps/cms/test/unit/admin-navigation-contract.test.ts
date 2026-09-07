@@ -7,18 +7,15 @@ const root = resolve(import.meta.dirname, "../..")
 const sourceOf = async (path: string): Promise<string> => readFile(resolve(root, path), "utf8")
 
 describe("admin navigation contract", () => {
-  it("renders the unified nav from the shared console registry", async () => {
-    const [navigation, registry] = await Promise.all([
-      sourceOf("src/components/nav/NavLinks.tsx"),
+  it("renders the unified nav from the shared console registry in ConsoleShell", async () => {
+    const [shell, registry] = await Promise.all([
+      sourceOf("src/console/components/ConsoleShell.tsx"),
       sourceOf("src/console/lib/resources.ts"),
     ])
 
-    expect(navigation).toContain("CONSOLE_NAV")
-    expect(navigation).toContain("CONSOLE_NAV.business")
-    expect(navigation).toContain("CONSOLE_NAV.admin")
-    expect(navigation).not.toContain("/history/releases")
-    expect(navigation).not.toContain("`${adminRoute}/tenant`")
-    expect(navigation).not.toContain("`${adminRoute}/system/diagnostics`")
+    expect(shell).toContain("CONSOLE_NAV")
+    expect(shell).toContain("CONSOLE_NAV.business")
+    expect(shell).toContain("CONSOLE_NAV.admin")
 
     expect(registry).toContain('href: "/admin"')
     expect(registry).toContain('href: "/admin/work"')
@@ -26,13 +23,20 @@ describe("admin navigation contract", () => {
     expect(registry).toContain('{ kind: "resource", slug: "sites" }')
   })
 
-  it("does not register removed release, tenant, or diagnostics custom routes", async () => {
-    const config = await sourceOf("src/payload.config.ts")
+  it("keeps the Payload config free of custom admin UI registrations after the frontend de-Payload migration", async () => {
+    const [config, importMap] = await Promise.all([
+      sourceOf("src/payload.config.ts"),
+      sourceOf("src/app/(payload)/admin/importMap.ts"),
+    ])
 
-    expect(config).not.toContain('path: "/history/releases"')
-    expect(config).not.toContain('path: "/tenant"')
-    expect(config).not.toContain('path: "/system/diagnostics"')
-    expect(config).toContain('path: "/work"')
-    expect(config).toContain('path: "/work/editions/:id"')
+    // 前端已去 Payload：config 不得再注册自定义组件视图/导航/图形。
+    expect(config).not.toContain("beforeLogin")
+    expect(config).not.toContain("Nav:")
+    expect(config).not.toContain("dashboard")
+    expect(config).not.toContain("workQueue")
+    // importMap 只允许 Payload 自身必需的客户端组件（S3 上传、集合卡片）。
+    expect(importMap).not.toContain("../../../components/")
+    expect(importMap).not.toContain("/components/nav")
+    expect(importMap).not.toContain("/components/views")
   })
 })

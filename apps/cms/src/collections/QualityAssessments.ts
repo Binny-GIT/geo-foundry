@@ -29,11 +29,6 @@ export const QualityAssessments = {
       type: "relationship",
       relationTo: "content-editions",
       required: true,
-      admin: {
-        components: {
-          Cell: "/components/fields/EditionCell#EditionCell",
-        },
-      },
     },
     {
       name: "site",

@@ -2,7 +2,6 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { postgresAdapter } from "@payloadcms/db-postgres"
 import { multiTenantPlugin } from "@payloadcms/plugin-multi-tenant"
-import { BlocksFeature, lexicalEditor } from "@payloadcms/richtext-lexical"
 import { s3Storage } from "@payloadcms/storage-s3"
 import { en as enLanguage, enTranslations } from "@payloadcms/translations/languages/en"
 import { zh as zhLanguage, zhTranslations } from "@payloadcms/translations/languages/zh"
@@ -33,7 +32,6 @@ import { UrlRecords } from "./collections/UrlRecords"
 import { Users } from "./collections/Users"
 import { createPostgresAdapterOptions } from "./config/database"
 import { parseCmsEnvironment } from "./config/environment"
-import { PAGE_DOCUMENT_BLOCKS } from "./editor/page-document-blocks"
 import { changeOwnPasswordEndpoint } from "./endpoints/account-password"
 import { addArticleSourceEndpoint } from "./endpoints/article-sources"
 import { deliveryArticleEndpoint, deliveryArticlesEndpoint } from "./endpoints/delivery"
@@ -96,34 +94,6 @@ export default buildConfig({
       description: "Geo Foundry content operations workspace",
       icons: [{ rel: "icon", type: "image/svg+xml", url: "/favicon.svg" }],
       titleSuffix: " | Geo Foundry",
-    },
-    components: {
-      beforeLogin: ["/components/branding/LoginIntro#LoginIntro"],
-      graphics: {
-        Icon: "/components/branding/GeoIcon#GeoIcon",
-        Logo: "/components/branding/GeoLogo#GeoLogo",
-      },
-      Nav: "/components/nav/Nav#Nav",
-      views: {
-        dashboard: {
-          Component: "/components/dashboard/OperationsDashboard#OperationsDashboard",
-        },
-        workQueue: {
-          Component: "/components/views/WorkQueue#WorkQueue",
-          exact: true,
-          path: "/work",
-        },
-        editionWorkspace: {
-          Component: "/components/views/EditionWorkspace#EditionWorkspace",
-          exact: true,
-          path: "/work/editions/:id",
-        },
-        operationDetail: {
-          Component: "/components/views/OperationDetail#OperationDetail",
-          exact: true,
-          path: "/work/operations/:id",
-        },
-      },
     },
     // 不依赖外部 Gravatar 服务（测试/生产网络不可达，导致管理端页面 console error 与请求超时）
     avatar: "default",
@@ -225,12 +195,6 @@ export default buildConfig({
   db: postgresAdapter(
     createPostgresAdapterOptions(environment, path.resolve(dirname, "migrations")),
   ),
-  editor: lexicalEditor({
-    features: ({ defaultFeatures }) => [
-      ...defaultFeatures,
-      BlocksFeature({ blocks: PAGE_DOCUMENT_BLOCKS }),
-    ],
-  }),
   plugins: [
     multiTenantPlugin({
       collections: {},

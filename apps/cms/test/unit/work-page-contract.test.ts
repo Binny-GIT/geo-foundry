@@ -89,12 +89,10 @@ describe("workbench server contract", () => {
     expect(board).toContain("flex min-w-0 items-center justify-between gap-1.5")
   })
 
-  it("keeps the workspace three-pane responsive with container queries and a shared top bar", async () => {
-    const [document, layout, topBar, canvas] = await Promise.all([
-      sourceOf("src/components/views/ContentEditionDocument.tsx"),
-      sourceOf("src/app/(workspace)/admin/workspace/layout.tsx"),
-      sourceOf("src/components/workspace/WorkspaceTopBar.tsx"),
-      sourceOf("src/components/content-edition/ContentEditionEditorCanvas.tsx"),
+  it("keeps the workspace three-pane responsive with container queries under the console shell", async () => {
+    const [document, canvas] = await Promise.all([
+      sourceOf("src/console/components/editions/EditionEditor.tsx"),
+      sourceOf("src/console/components/editions/ContentEditionEditorCanvas.tsx"),
     ])
 
     // The assistant owns a sticky full-height column; canvas and rail share
@@ -102,10 +100,9 @@ describe("workbench server contract", () => {
     expect(document).toContain("xl:sticky xl:top-14 xl:h-[calc(100vh-3.5rem)]")
     expect(document).toContain("2xl:grid-cols-[minmax(520px,1.9fr)_minmax(320px,0.9fr)]")
     expect(document).toContain("@container")
-    // The sticky editor column is measured against the 56px workspace top bar.
-    expect(layout).toContain("WorkspaceTopBar")
-    expect(layout).toContain("requireConsoleSession")
-    expect(topBar).toContain("退出登录")
+    // The editor lives in the console tree now: the 56px top bar comes from
+    // ConsoleShell, no separate workspace top bar exists.
+    expect(document).not.toContain("WorkspaceTopBar")
     expect(canvas).toContain("@min-[520px]:grid-cols-2")
   })
 })

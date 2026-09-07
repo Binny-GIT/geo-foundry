@@ -41,9 +41,6 @@ export const Sites = {
     singular: localized("Site", "站点"),
   },
   admin: {
-    components: {
-      beforeList: ["/components/sites/SitesOperationsWorkspace#SitesOperationsWorkspace"],
-    },
     defaultColumns: ["name", "status", "locale", "timezone", "tenant", "updatedAt"],
     group: localized("Sites & Domains", "站点与域名"),
     useAsTitle: "name",

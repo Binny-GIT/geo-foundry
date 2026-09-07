@@ -103,9 +103,6 @@ export const Media = {
     singular: localized("Media item", "媒体项"),
   },
   admin: {
-    components: {
-      beforeList: ["/components/media/MediaUploadGuidance#MediaUploadGuidance"],
-    },
     defaultColumns: ["filename", "alt", "mimeType", "filesize", "tenant", "updatedAt"],
     group: localized("Content", "内容"),
     useAsTitle: "filename",

@@ -63,41 +63,27 @@ describe("scoped preflight contract", () => {
     expect(css).toContain('html[data-console-theme="dark"] [data-slot="dropdown-menu-content"]')
   })
 
-  it("erases underlined links across the payload admin tree as well", async () => {
-    const [theme, rail, sites, ops, release, tenant] = await Promise.all([
+  it("erases underlined links across the editor theme and console editor surfaces", async () => {
+    const [theme, editionTheme, rail, editor] = await Promise.all([
       sourceOf("src/app/(payload)/admin-theme.css"),
-      sourceOf("src/components/content-edition/ContentEditionControlRail.tsx"),
-      sourceOf("src/components/sites/SitesOperationsWorkspace.tsx"),
-      sourceOf("src/components/dashboard/OperationsDashboard.tsx"),
-      sourceOf("src/components/views/ReleaseHistory.tsx"),
-      sourceOf("src/components/views/TenantWorkspace.tsx"),
+      sourceOf("src/console/components/editions/edition-theme.css"),
+      sourceOf("src/console/components/editions/ContentEditionControlRail.tsx"),
+      sourceOf("src/console/components/editions/EditionEditor.tsx"),
     ])
 
     // Body-preview links keep their accent color but drop the UA underline.
-    const previewLink = theme.slice(
-      theme.indexOf(".gf-edition-preview a {"),
-      theme.indexOf(".gf-edition-preview a {") + 200,
+    const previewLink = editionTheme.slice(
+      editionTheme.indexOf(".gf-edition-preview a {"),
+      editionTheme.indexOf(".gf-edition-preview a {") + 200,
     )
     expect(previewLink).toContain("text-decoration: none;")
 
-    // Hover feedback stays color-only on every custom admin surface; the
-    // intake sourceUrl link carries no-underline for its resting state too.
-    expect(theme).not.toContain("text-decoration: underline")
-    for (const source of [rail, sites, ops, release, tenant]) {
+    // Hover feedback stays color-only on every custom admin surface.
+    for (const source of [theme, editionTheme, rail, editor]) {
+      expect(source).not.toContain("text-decoration: underline")
       expect(source).not.toContain("hover:underline")
     }
     expect(rail).toContain("no-underline hover:text-[var(--gf-accent-400)]")
-  })
-
-  it("keeps payload list-cell links safe outside the table stylesheet scope", async () => {
-    const cells = await Promise.all([
-      sourceOf("src/components/fields/EditionCell.tsx"),
-      sourceOf("src/components/fields/SiteCell.tsx"),
-      sourceOf("src/components/fields/TenantCell.tsx"),
-    ])
-    for (const cell of cells) {
-      expect(cell).toContain('className="no-underline"')
-    }
   })
 
   it("keeps editorial bullet lists on native display so markers render", async () => {

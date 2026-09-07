@@ -33,11 +33,6 @@ export const Releases = {
       relationTo: "sites",
       required: true,
       index: true,
-      admin: {
-        components: {
-          Cell: "/components/fields/SiteCell#SiteCell",
-        },
-      },
     },
     {
       name: "state",

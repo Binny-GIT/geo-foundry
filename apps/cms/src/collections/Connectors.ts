@@ -92,11 +92,6 @@ export const Connectors = {
       relationTo: "sites",
       required: true,
       index: true,
-      admin: {
-        components: {
-          Cell: "/components/fields/SiteCell#SiteCell",
-        },
-      },
     },
     tenantField({ index: true }),
     {

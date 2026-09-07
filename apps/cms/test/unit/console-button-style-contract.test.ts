@@ -114,11 +114,9 @@ describe("console button and link style contract", () => {
     }
   })
 
-  it("places the morphing desktop collapse controls at the lower-right side of both nav shells", async () => {
-    const [consoleShell, payloadNav] = await Promise.all([
-      sourceOf("src/console/components/ConsoleShell.tsx"),
-      sourceOf("src/components/nav/NavLinks.tsx"),
-    ])
+  it("places the morphing desktop collapse controls at the lower-right side of the console nav shell", async () => {
+    // Payload 侧栏已随前端去 Payload 删除；ConsoleShell 是唯一导航壳。
+    const consoleShell = await sourceOf("src/console/components/ConsoleShell.tsx")
 
     expect(consoleShell).toContain("hidden shrink-0 justify-end border-t border-white/10")
     expect(consoleShell).toContain("lg:justify-center")
@@ -126,12 +124,5 @@ describe("console button and link style contract", () => {
     expect(
       consoleShell.indexOf('aria-label={collapsed ? "展开导航" : "收起导航"}'),
     ).toBeGreaterThan(consoleShell.indexOf("</nav>"))
-
-    expect(payloadNav).toContain("hidden shrink-0 justify-end border-t border-white/10")
-    expect(payloadNav).toContain("min-[1441px]:justify-center")
-    expect(payloadNav).toContain("icon={collapsed ? PanelLeftOpen : PanelLeftClose}")
-    // Format-agnostic: the bilingual label may wrap across lines, so anchor on
-    // the label text itself rather than the exact JSX one-liner.
-    expect(payloadNav.indexOf('"展开导航"')).toBeGreaterThan(payloadNav.lastIndexOf("LogOutIcon"))
   })
 })
