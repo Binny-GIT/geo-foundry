@@ -127,6 +127,9 @@ const replyOf = async (
         model: config.model,
         temperature: 0.4,
       }),
+      // Next patches the server-side fetch with caching semantics; a
+      // credentialed POST through that patch fails as a bare "fetch failed".
+      cache: "no-store",
       headers: {
         authorization: `Bearer ${config.apiKey}`,
         "content-type": "application/json",
@@ -185,7 +188,9 @@ export const editionAiChatEndpoint: Endpoint = {
       const reply = await replyOf(config, systemPromptOf(record(edition)), parsed.data.messages)
       return response(200, { reply })
     } catch (error) {
+      const cause = (error as { cause?: unknown })?.cause
       req.payload.logger.error({
+        cause: cause === undefined ? undefined : String(cause).slice(0, 300),
         editionId,
         err: error instanceof Error ? error.message : "unknown",
         msg: "edition ai chat failed",
