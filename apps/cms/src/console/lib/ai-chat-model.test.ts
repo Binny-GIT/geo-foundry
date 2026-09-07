@@ -29,6 +29,16 @@ describe("AI chat reply model", () => {
     expect(splitArticle(reply)).toEqual({ article: null, message: reply })
   })
 
+  it("Given an article containing fenced code blocks, when splitting, then the proposal keeps the code intact", () => {
+    const reply =
+      "已改写。\n\n```article\n## 示例\n\n安装命令：\n\n```bash\nnpm install\n```\n\n结束段落。\n```"
+    const parsed = splitArticle(reply)
+    expect(parsed.message).toBe("已改写。")
+    expect(parsed.article).toContain("## 示例")
+    expect(parsed.article).toContain("```bash\nnpm install\n```")
+    expect(parsed.article).toContain("结束段落。")
+  })
+
   it("Given prose with headings and paragraphs, when inserting as blocks, then headings map to heading rows", () => {
     const blocks = blocksOf("## 引言\n\n这是第一段。\n\n这是第二段。")
     expect(blocks).toEqual([

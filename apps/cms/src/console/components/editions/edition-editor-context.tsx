@@ -77,6 +77,11 @@ const idOf = (value: unknown): number | null => {
 const idsOf = (value: unknown): number[] =>
   Array.isArray(value) ? value.map(idOf).filter((id): id is number => id !== null) : []
 
+const stringsOf = (value: unknown): string[] =>
+  Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === "string" && entry.length > 0)
+    : []
+
 const arrayRowsOf = (value: unknown): readonly Row[] =>
   Array.isArray(value)
     ? value.filter((entry): entry is Row => typeof entry === "object" && entry !== null)
@@ -119,7 +124,9 @@ const initialValuesOf = (
     if (doc[key] !== undefined && doc[key] !== null) base[key] = doc[key]
   }
   for (const key of RELATION_KEYS) base[key] = idOf(doc[key])
-  for (const key of ["secondaryTopics", "sites"]) base[key] = idsOf(doc[key])
+  base["sites"] = idsOf(doc["sites"])
+  // secondaryTopics 是 text hasMany（字符串数组），按 id 归一会把它们清空。
+  base["secondaryTopics"] = stringsOf(doc["secondaryTopics"])
   for (const key of ["citations", "entities"]) base[key] = arrayRowsOf(doc[key])
   base["workflowRevision"] =
     typeof doc["workflowRevision"] === "number" ? doc["workflowRevision"] : 0
@@ -177,8 +184,14 @@ export const EditionEditorProvider = ({
   const toastSeq = useRef(0)
   const valuesRef = useRef(values)
   const rowsRef = useRef(rows)
-  // 服务端文档的初始值快照：用于区分“本就是空”与“用户显式清空”。
+  // 服务端已确认的基线快照：用于区分“本就是空”与“用户显式清空”，
+  // 并在保存成功后判断请求期间是否有新编辑。
   const initialRef = useRef(values)
+  // 本地编辑序号：任何字段/正文修改递增；保存时记录提交时刻的序号，
+  // 响应只确认“当时的那份内容”，请求期间的新输入保持未保存状态。
+  const editsRef = useRef(0)
+  // 双击锁：saving state 的更新是异步的，同步 ref 才能挡住连击的第二次进入。
+  const savingRef = useRef(false)
   valuesRef.current = values
   rowsRef.current = rows
 
@@ -200,11 +213,13 @@ export const EditionEditorProvider = ({
   }, [notify])
 
   const setField = useCallback((path: string, value: unknown) => {
+    editsRef.current += 1
     setValues((current) => ({ ...current, [path]: value }))
     setValuesDirty(true)
   }, [])
 
   const replaceBody = useCallback((next: readonly Row[]) => {
+    editsRef.current += 1
     setRows(JSON.parse(JSON.stringify(next)) as Row[])
     setBodyDirty(true)
   }, [])
@@ -212,12 +227,18 @@ export const EditionEditorProvider = ({
   const docId = doc === null ? null : idOf(doc["id"])
 
   const save = useCallback(async (): Promise<boolean> => {
-    if (readOnly || saving) return false
+    if (readOnly || savingRef.current) return false
+    savingRef.current = true
     setSaving(true)
     try {
+      /* 提交时刻的不可变快照：请求期间的新编辑不进本次 payload，
+       * 响应也只把这份快照登记为新的已保存基线。 */
+      const submittedValues: Record<string, unknown> = { ...valuesRef.current }
+      const submittedRows = rowsRef.current
+      const seqAtSubmit = editsRef.current
       const payload: Record<string, unknown> = {}
       for (const key of EDITABLE_KEYS) {
-        const value = valuesRef.current[key]
+        const value = submittedValues[key]
         if (value === undefined) continue
         /* null 只在用户显式清空时发送（原值非空）；本就为空的字段直接省略，
          * 避免覆盖 editorialStatus/priority 等字段的服务端默认值（DB NOT NULL）。 */
@@ -229,7 +250,7 @@ export const EditionEditorProvider = ({
         }
         payload[key] = value
       }
-      payload["body"] = rowsRef.current
+      payload["body"] = submittedRows
       const creating = docId === null
       const response = await fetch(
         creating
@@ -267,8 +288,18 @@ export const EditionEditorProvider = ({
         ...(savedStatus === null ? {} : { workflowStatus: savedStatus }),
         ...(savedUpdatedAt === null ? {} : { updatedAt: savedUpdatedAt }),
       }))
-      setValuesDirty(false)
-      setBodyDirty(false)
+      // 基线推进到已提交快照（补上服务端回写的状态字段）；仅当请求期间
+      // 没有新编辑时才清除 dirty，否则这些输入继续保持“未保存”。
+      initialRef.current = {
+        ...submittedValues,
+        ...(savedRevision === null ? {} : { workflowRevision: savedRevision }),
+        ...(savedStatus === null ? {} : { workflowStatus: savedStatus }),
+        ...(savedUpdatedAt === null ? {} : { updatedAt: savedUpdatedAt }),
+      }
+      if (editsRef.current === seqAtSubmit) {
+        setValuesDirty(false)
+        setBodyDirty(false)
+      }
       if (creating) {
         const createdId = idOf(saved["id"])
         if (createdId === null) {
@@ -285,9 +316,10 @@ export const EditionEditorProvider = ({
       notify("error", "保存请求未能完成，请重试。")
       return false
     } finally {
+      savingRef.current = false
       setSaving(false)
     }
-  }, [docId, notify, readOnly, router, saving])
+  }, [docId, notify, readOnly, router])
 
   /** 工作流流转/恢复后，从服务端 draft 文档回读状态字段，不触碰未保存的编辑内容。 */
   const syncWorkflowState = useCallback(async (): Promise<boolean> => {

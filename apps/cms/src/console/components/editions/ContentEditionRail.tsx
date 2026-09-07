@@ -1,7 +1,6 @@
 "use client"
 
 import { toast, useAuth, useDocumentInfo, useFormFields, useTranslation } from "./edition-editor-context"
-import { useRouter } from "next/navigation"
 import { useEffect, useId, useState } from "react"
 import type { EditionVersionHistoryItem } from "@/services/edition-version-history"
 import { uiLangOf } from "@/components/i18n/ui-lang"
@@ -72,7 +71,6 @@ export const ContentEditionRail = ({
   const { user } = useAuth()
   const { data, id, versionCount } = useDocumentInfo()
   const { i18n } = useTranslation()
-  const router = useRouter()
   const lang = uiLangOf(i18n.language)
   const t = TEXT[lang]
   const workflowStatus = useFormFields(([fields]) => fields["workflowStatus"]?.value)
@@ -160,7 +158,9 @@ export const ContentEditionRail = ({
       setReason("")
       setReasonError(null)
       onSelectVersion(null)
-      router.refresh()
+      /* 恢复会替换正文与文章信息，而编辑器状态层只在初始化时读取服务端
+       * 文档；整页重载让编辑器以恢复后的草稿重建，避免继续显示旧本地正文。 */
+      window.location.reload()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t.restoreHint)
     } finally {
