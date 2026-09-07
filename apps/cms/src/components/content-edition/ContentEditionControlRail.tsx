@@ -397,7 +397,7 @@ export const ContentEditionControlRail = ({
             {lang === "zh" ? "暂无可选站点。" : "No site is available."}
           </p>
         ) : (
-          <ul className="m-0 mt-3 grid list-none gap-2 p-0">
+          <ul className="m-0 mt-3 grid list-none gap-2 p-0 [&>li]:min-w-0">
             {siteOptions.map((option) => {
               const checked = assignedSiteIds.includes(option.id)
               return (
@@ -489,10 +489,10 @@ export const ContentEditionControlRail = ({
             {lang === "zh" ? "暂时没有关联来源。" : "No linked sources yet."}
           </p>
         ) : (
-          <ul className="m-0 mt-4 grid list-none gap-3 p-0">
+          <ul className="m-0 mt-4 grid list-none gap-3 p-0 [&>li]:min-w-0">
             {context.sources.map((source, index) => (
               <li
-                className="rounded-xl border border-[var(--theme-elevation-150)] bg-[var(--theme-elevation-50)] p-3"
+                className="min-w-0 overflow-hidden rounded-xl border border-[var(--theme-elevation-150)] bg-[var(--theme-elevation-50)] p-3"
                 key={source.id ?? index}
               >
                 <p className="m-0 text-xs font-bold uppercase tracking-[0.06em] text-[var(--gf-accent-700)]">
@@ -557,10 +557,10 @@ export const ContentEditionControlRail = ({
             {lang === "zh" ? "暂时没有审核评论。" : "No review comments yet."}
           </p>
         ) : (
-          <ul className="m-0 mt-4 grid list-none gap-3 p-0">
+          <ul className="m-0 mt-4 grid list-none gap-3 p-0 [&>li]:min-w-0">
             {context.comments.map((entry, index) => (
               <li
-                className="rounded-xl border border-[var(--theme-elevation-150)] bg-[var(--theme-elevation-50)] p-3"
+                className="min-w-0 overflow-hidden rounded-xl border border-[var(--theme-elevation-150)] bg-[var(--theme-elevation-50)] p-3"
                 key={entry.id ?? index}
               >
                 <div className="flex items-center justify-between gap-2">
