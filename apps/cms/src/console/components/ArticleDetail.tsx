@@ -3,7 +3,6 @@ import { notFound } from "next/navigation"
 
 import { CMS_ACTION, CMS_RESOURCE } from "@/access/policy"
 import { CMS_ROLE } from "@/access/roles"
-import { ArrowLeftIcon } from "@/components/icons"
 import { Button } from "@/components/ui/button"
 import ArticleAssignmentPanel from "@/console/components/ArticleAssignmentPanel"
 import ArticleBody from "@/console/components/ArticleBody"
@@ -403,21 +402,6 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
   return (
     <div className="grid gap-6 [&>*]:min-w-0">
       <header className="grid gap-3">
-        <Button
-          asChild
-          className="gf-console-focus w-fit"
-          size="sm"
-          type="button"
-          variant="secondary"
-        >
-          <Link
-            className="flex items-center gap-1.5"
-            href={consoleRoute.collection("content-editions")}
-          >
-            <ArrowLeftIcon size={15} />
-            返回文章列表
-          </Link>
-        </Button>
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">
             <h1 className="m-0 max-w-3xl break-words text-2xl font-bold tracking-tight text-[var(--console-ink)]">
