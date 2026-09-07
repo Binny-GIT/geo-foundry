@@ -1,6 +1,6 @@
 "use client"
 
-import { useDocumentInfo, useField } from "@payloadcms/ui"
+import { useDocumentInfo } from "@payloadcms/ui"
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
   FilePlusIcon,
@@ -12,6 +12,7 @@ import {
 } from "@/components/icons"
 import { IconBadge } from "../ui"
 import { Button } from "../ui/button"
+import { useEditionBody } from "./edition-body-context"
 
 const PANEL_KEY = "gf-ai-chat-open"
 const conversationKeyOf = (editionId: string) => `gf-ai-chat:${editionId}`
@@ -82,7 +83,7 @@ export const ContentEditionAiChat = ({
 }) => {
   const { id } = useDocumentInfo()
   const editionId = id === undefined || id === null ? "new" : String(id)
-  const { setValue: setBody, value: body } = useField<unknown[]>({ path: "body" })
+  const { replace: replaceBody, rows: bodyRows } = useEditionBody()
   const [messages, setMessages] = useState<readonly AiChatMessage[]>([])
   const [draft, setDraft] = useState("")
   const [sending, setSending] = useState(false)
@@ -160,8 +161,7 @@ export const ContentEditionAiChat = ({
   const insert = (content: string) => {
     const next = blocksOf(content)
     if (next.length === 0) return
-    const current = Array.isArray(body) ? body : []
-    setBody([...(JSON.parse(JSON.stringify(current)) as unknown[]), ...next])
+    replaceBody([...bodyRows, ...next])
   }
 
   return (

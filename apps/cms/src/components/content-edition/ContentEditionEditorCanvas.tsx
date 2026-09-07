@@ -12,6 +12,7 @@ import {
 } from "@/components/icons"
 import { blocksToMarkdown, markdownToBlocks } from "../../editor/block-markdown"
 import { Button } from "../ui/button"
+import { useEditionBody } from "./edition-body-context"
 
 const MODE_KEY = "gf-editor-mode"
 
@@ -478,10 +479,8 @@ const MarkdownCanvas = ({
 }
 
 export const ContentEditionEditorCanvas = ({ readOnly }: { readonly readOnly: boolean }) => {
-  const { setValue, value } = useField<unknown[]>({ path: "body" })
+  const { dirty, loading, replace, rows } = useEditionBody()
   const [mode, setMode] = useState<EditorMode>("rich")
-  const rows = rowsOf(value)
-  const replace = (next: readonly Record<string, unknown>[]) => setValue(cloneRows(next))
 
   useEffect(() => {
     if (window.localStorage.getItem(MODE_KEY) === "markdown") setMode("markdown")
@@ -500,7 +499,10 @@ export const ContentEditionEditorCanvas = ({ readOnly }: { readonly readOnly: bo
             正文
           </p>
           <h2 className="m-0 mt-1 text-base font-bold text-[var(--theme-text)]">
-            {rows.length} 个区块
+            {loading ? "正在载入正文…" : `${rows.length} 个区块`}
+            {dirty && (
+              <span className="ml-2 text-xs font-medium text-[var(--gf-accent-700)]">未保存</span>
+            )}
           </h2>
         </div>
         <div className="flex flex-wrap items-center gap-2">

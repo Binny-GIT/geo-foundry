@@ -29,6 +29,7 @@ import {
 import { ContentEditionPreview } from "../content-edition/ContentEditionPreview"
 import type { VersionSelection } from "../content-edition/ContentEditionRail"
 import { ContentEditionSetupFields } from "../content-edition/ContentEditionSetupFields"
+import { EditionBodyProvider, useEditionBody } from "../content-edition/edition-body-context"
 import { uiLangOf } from "../i18n/ui-lang"
 import { Badge } from "../ui/Badge"
 import { Button } from "../ui/button"
@@ -71,10 +72,12 @@ const ContentEditionDocumentBody = ({ readOnly }: { readonly readOnly: boolean }
   const t = COPY[lang]
   const processing = useFormProcessing()
   const modified = useFormModified()
+  const { dirty: bodyDirty, rows: bodyRows, save: saveBody } = useEditionBody()
+  const { submit } = useForm()
+  const [savingAll, setSavingAll] = useState(false)
   const workflowStatus = useFormFields(([fields]) => fields["workflowStatus"]?.value)
   const title = useFormFields(([fields]) => fields["title"]?.value)
   const summary = useFormFields(([fields]) => fields["summary"]?.value)
-  const body = useFormFields(([fields]) => fields["body"]?.value)
   const citations = useFormFields(([fields]) => fields["citations"]?.value)
   const entities = useFormFields(([fields]) => fields["entities"]?.value)
   const content = useFormFields(([fields]) => fields["content"]?.value)
@@ -90,7 +93,7 @@ const ContentEditionDocumentBody = ({ readOnly }: { readonly readOnly: boolean }
   const source =
     selectedVersion === null
       ? {
-          body: formData["body"] ?? body,
+          body: bodyRows,
           citations: formData["citations"] ?? citations,
           contentId: formData["content"] ?? content,
           editionId: id,
@@ -111,7 +114,31 @@ const ContentEditionDocumentBody = ({ readOnly }: { readonly readOnly: boolean }
           summary: selectedVersion.snapshot.summary,
           title: selectedVersion.snapshot.title,
         }
-  const saveState = readOnly ? t.readOnly : processing ? t.saving : modified ? t.unsaved : t.saved
+  const saveState = readOnly
+    ? t.readOnly
+    : processing || savingAll
+      ? t.saving
+      : modified || bodyDirty
+        ? t.unsaved
+        : t.saved
+
+  /* The body is stored outside the Payload form, so one click has to write
+   * both halves: the article body first, then the form fields. */
+  const saveAll = async () => {
+    setSavingAll(true)
+    try {
+      const bodySaved = await saveBody()
+      if (!bodySaved) {
+        toast.error(
+          lang === "zh" ? "正文保存失败，请重试。" : "The article body could not be saved.",
+        )
+        return
+      }
+      await submit()
+    } finally {
+      setSavingAll(false)
+    }
+  }
   // A historical selection is read-only by nature, so it forces preview.
   const activeMode = selectedVersion !== null || readOnly ? "preview" : mode
 
@@ -178,8 +205,14 @@ const ContentEditionDocumentBody = ({ readOnly }: { readonly readOnly: boolean }
                 <EyeIcon size={16} /> {t.preview}
               </Button>
               {!readOnly && (
-                <Button disabled={processing} size="lg" type="submit" variant="dark">
-                  <CheckCircleIcon size={15} /> {processing ? t.saving : t.save}
+                <Button
+                  disabled={processing || savingAll}
+                  onClick={() => void saveAll()}
+                  size="lg"
+                  type="button"
+                  variant="dark"
+                >
+                  <CheckCircleIcon size={15} /> {processing || savingAll ? t.saving : t.save}
                 </Button>
               )}
             </div>
@@ -285,7 +318,9 @@ export const ContentEditionDocument = ({ formState }: DocumentViewClientProps) =
           router.refresh()
         }}
       >
-        <ContentEditionDocumentBody readOnly={readOnly} />
+        <EditionBodyProvider>
+          <ContentEditionDocumentBody readOnly={readOnly} />
+        </EditionBodyProvider>
       </Form>
     </OperationProvider>
   )
