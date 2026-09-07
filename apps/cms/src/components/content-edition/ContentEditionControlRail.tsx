@@ -144,6 +144,7 @@ export const ContentEditionControlRail = ({
   const { setValue: setSite, value: site } = useField<unknown>({ path: "site" })
   const { setValue: setSites, value: sites } = useField<unknown>({ path: "sites" })
   const body = useFormFields(([fields]) => fields["body"]?.value)
+  const tenant = useFormFields(([fields]) => fields["tenant"]?.value)
   const workflowRevision = useFormFields(([fields]) => fields["workflowRevision"]?.value)
   const [context, setContext] = useState<WorkspaceContext>(EMPTY)
   const [siteOptions, setSiteOptions] = useState<readonly SiteOption[]>([])
@@ -170,9 +171,20 @@ export const ContentEditionControlRail = ({
     reload()
   }, [id])
 
+  /* Site options must stay inside the edition's tenant: a cross-tenant site
+   * is rejected by the collection hook, so offering one would only produce a
+   * failed save. Super admins read every tenant, hence the explicit filter. */
   useEffect(() => {
+    const tenantId = idOf(tenant)
+    if (tenantId.length === 0) {
+      setSiteOptions([])
+      return
+    }
     let active = true
-    void fetch("/api/sites?depth=0&limit=100&sort=name", { credentials: "same-origin" })
+    void fetch(
+      `/api/sites?depth=0&limit=100&sort=name&where[tenant][equals]=${encodeURIComponent(tenantId)}`,
+      { credentials: "same-origin" },
+    )
       .then(async (response) =>
         response.ok
           ? ((await response.json()) as { docs?: readonly Record<string, unknown>[] })
@@ -196,7 +208,7 @@ export const ContentEditionControlRail = ({
     return () => {
       active = false
     }
-  }, [])
+  }, [tenant])
 
   const role = user?.["role"]
   const privileged = role === "editor" || role === "tenant-admin" || role === "super-admin"

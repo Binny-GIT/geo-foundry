@@ -65,7 +65,7 @@ describe("content edition unified workspace", () => {
     expect(controls).toContain("WorkflowActions")
     expect(controls).toContain('path: "sites"')
     expect(controls).toContain("/api/publication-plan-operations")
-    expect(controls).toContain("/api/sites?depth=0&limit=100&sort=name")
+    expect(controls).toContain("/api/sites?depth=0&limit=100&sort=name&where[tenant][equals]=")
     expect(controls).toContain("article-sources")
     expect(controls).toContain("review-comments")
     expect(controls).toContain("ContentEditionRail")
