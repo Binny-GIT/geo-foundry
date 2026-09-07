@@ -24,6 +24,13 @@ export const PencilIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   </svg>
 )
 
+/** 多选勾选标记。 */
+export const CheckIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <path d="M20 6 9 17l-5-5" />
+  </svg>
+)
+
 /** Preview / document reading. */
 export const EyeIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
