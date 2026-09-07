@@ -100,8 +100,8 @@ const Card = ({
   readonly title: string
   readonly tone?: "accent" | "neutral" | "success" | "warning"
 }) => (
-  <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]">
-    <div className="flex items-center gap-3">
+  <section className="min-w-0 rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]">
+    <div className="flex min-w-0 items-center gap-3">
       <IconBadge tone={tone}>{icon}</IconBadge>
       <div className="min-w-0">
         <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">

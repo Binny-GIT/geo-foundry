@@ -200,7 +200,7 @@ export const WorkflowActions = () => {
     <>
       <section
         aria-label={M.workflowActions}
-        className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]"
+        className="grid min-w-0 gap-3 rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]"
       >
         <div>
           <p className="m-0 mb-1.5 text-xs font-extrabold uppercase tracking-[0.06em] text-[var(--gf-accent-700)]">
@@ -213,7 +213,7 @@ export const WorkflowActions = () => {
             </Badge>
           </div>
         </div>
-        <div className="flex flex-wrap justify-end gap-2">
+        <div className="flex min-w-0 flex-wrap gap-2">
           {actions.map((action) => (
             <Button
               className={action.tone === "primary" ? "" : undefined}
@@ -228,7 +228,7 @@ export const WorkflowActions = () => {
                 }
                 void run(action)
               }}
-              size="lg"
+              size="md"
               type="button"
               variant={action.tone === "primary" ? "default" : "secondary"}
             >

@@ -171,7 +171,7 @@ export const ContentEditionRail = ({
   return (
     <aside className="grid min-w-0 content-start gap-4">
       {showWorkflow && (
-        <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]">
+        <section className="min-w-0 rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]">
           <div className="flex items-center gap-3">
             <IconBadge tone="accent">
               <LayersIcon size={18} />
@@ -193,7 +193,7 @@ export const ContentEditionRail = ({
         </section>
       )}
 
-      <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]">
+      <section className="min-w-0 rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]">
         <div className="flex items-center gap-3">
           <IconBadge tone="neutral">
             <CopyIcon size={18} />
