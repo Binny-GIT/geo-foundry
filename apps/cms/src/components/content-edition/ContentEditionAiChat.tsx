@@ -86,26 +86,30 @@ export const ContentEditionAiChat = ({
   const [messages, setMessages] = useState<readonly AiChatMessage[]>([])
   const [draft, setDraft] = useState("")
   const [sending, setSending] = useState(false)
-  const [hydrated, setHydrated] = useState(false)
   const scroller = useRef<HTMLDivElement>(null)
+  /* Payload reports the document id one render after mount, so the key can
+   * change under us. Writing back only for the key the current transcript was
+   * loaded from prevents an empty state from erasing a stored conversation. */
+  const loadedKey = useRef<string | null>(null)
 
   useEffect(() => {
-    setHydrated(false)
+    const key = conversationKeyOf(editionId)
     try {
-      const stored = window.localStorage.getItem(conversationKeyOf(editionId))
+      const stored = window.localStorage.getItem(key)
       const parsed: unknown = stored === null ? [] : JSON.parse(stored)
       setMessages(Array.isArray(parsed) ? parsed.filter(isMessage) : [])
     } catch {
       setMessages([])
     }
-    setHydrated(true)
+    loadedKey.current = key
   }, [editionId])
 
   useEffect(() => {
-    if (!hydrated) return
-    window.localStorage.setItem(conversationKeyOf(editionId), JSON.stringify(messages))
+    const key = conversationKeyOf(editionId)
+    if (loadedKey.current !== key) return
+    window.localStorage.setItem(key, JSON.stringify(messages))
     scroller.current?.scrollTo({ behavior: "smooth", top: scroller.current.scrollHeight })
-  }, [editionId, hydrated, messages])
+  }, [editionId, messages])
 
   const append = (message: Omit<AiChatMessage, "createdAt" | "id">) =>
     setMessages((current) => [
