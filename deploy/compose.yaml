@@ -42,11 +42,12 @@ services:
       GEO_FOUNDRY_REDIS_DATABASE: ${GEO_FOUNDRY_REDIS_DATABASE:-0}
       GEO_FOUNDRY_REDIS_PASSWORD_FILE: /run/geo-foundry/credentials/redis-password
       # The workspace writing assistant calls the same provider contract as
-      # the worker. It stays disabled (explicit 503) until AI_PROVIDER leaves
-      # `fake` and the ai-api-key credential file exists.
-      AI_PROVIDER: ${AI_PROVIDER:-fake}
-      AI_BASE_URL: ${AI_BASE_URL:-}
-      AI_CHAT_MODEL: ${AI_CHAT_MODEL:-}
+      # the worker, but switches independently: the worker additionally needs
+      # an embedding model and refuses to boot without one, so enabling chat
+      # must not drag the queues along. Falls back to the shared AI_PROVIDER.
+      AI_PROVIDER: ${CMS_AI_PROVIDER:-${AI_PROVIDER:-fake}}
+      AI_BASE_URL: ${CMS_AI_BASE_URL:-${AI_BASE_URL:-}}
+      AI_CHAT_MODEL: ${CMS_AI_CHAT_MODEL:-${AI_CHAT_MODEL:-}}
       AI_TIMEOUT_MS: ${AI_TIMEOUT_MS:-}
       AI_API_KEY_FILE: /run/geo-foundry/credentials/ai-api-key
     volumes:
