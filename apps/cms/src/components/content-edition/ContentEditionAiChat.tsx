@@ -3,6 +3,7 @@
 import { useDocumentInfo } from "@payloadcms/ui"
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
+  CopyIcon,
   FilePlusIcon,
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
@@ -21,6 +22,7 @@ export type AiChatMessage = Readonly<{
   content: string
   createdAt: string
   id: string
+  reasoning?: string
   role: "assistant" | "system" | "user"
 }>
 
@@ -87,6 +89,7 @@ export const ContentEditionAiChat = ({
   const [messages, setMessages] = useState<readonly AiChatMessage[]>([])
   const [draft, setDraft] = useState("")
   const [sending, setSending] = useState(false)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
   const scroller = useRef<HTMLDivElement>(null)
   /* Payload reports the document id one render after mount, so the key can
    * change under us. Writing back only for the key the current transcript was
@@ -105,12 +108,26 @@ export const ContentEditionAiChat = ({
     loadedKey.current = key
   }, [editionId])
 
+  /* Scroll after the browser has laid out the new bubble, otherwise
+   * scrollHeight is still the previous one and the view stops short. */
+  const scrollToLatest = useCallback((behavior: ScrollBehavior = "smooth") => {
+    requestAnimationFrame(() => {
+      const node = scroller.current
+      if (node !== null) node.scrollTo({ behavior, top: node.scrollHeight })
+    })
+  }, [])
+
   useEffect(() => {
     const key = conversationKeyOf(editionId)
     if (loadedKey.current !== key) return
     window.localStorage.setItem(key, JSON.stringify(messages))
-    scroller.current?.scrollTo({ behavior: "smooth", top: scroller.current.scrollHeight })
-  }, [editionId, messages])
+    scrollToLatest()
+  }, [editionId, messages, scrollToLatest])
+
+  // The "生成中" line changes the scroll height too.
+  useEffect(() => {
+    if (sending) scrollToLatest()
+  }, [scrollToLatest, sending])
 
   const append = (message: Omit<AiChatMessage, "createdAt" | "id">) =>
     setMessages((current) => [
@@ -125,6 +142,7 @@ export const ContentEditionAiChat = ({
     append({ content: text, role: "user" })
     setDraft("")
     setSending(true)
+    scrollToLatest()
     try {
       const response = await fetch(
         editionId === "new" ? "/api/editions/ai-chat" : `/api/editions/${editionId}/ai-chat`,
@@ -142,6 +160,7 @@ export const ContentEditionAiChat = ({
       )
       const payload = (await response.json().catch(() => ({}))) as {
         error?: { code?: string }
+        reasoning?: unknown
         reply?: unknown
       }
       if (!response.ok || typeof payload.reply !== "string") {
@@ -153,11 +172,27 @@ export const ContentEditionAiChat = ({
         })
         return
       }
-      append({ content: payload.reply, role: "assistant" })
+      append({
+        content: payload.reply,
+        ...(typeof payload.reasoning === "string" && payload.reasoning.length > 0
+          ? { reasoning: payload.reasoning }
+          : {}),
+        role: "assistant",
+      })
     } catch {
       append({ content: "网络异常，未能发送到 AI 服务。", role: "system" })
     } finally {
       setSending(false)
+    }
+  }
+
+  const copy = async (messageId: string, content: string) => {
+    try {
+      await navigator.clipboard.writeText(content)
+      setCopiedId(messageId)
+      setTimeout(() => setCopiedId((current) => (current === messageId ? null : current)), 1500)
+    } catch {
+      // Clipboard access can be denied; the text stays selectable by hand.
     }
   }
 
@@ -224,18 +259,37 @@ export const ContentEditionAiChat = ({
               }
               key={message.id}
             >
+              {message.reasoning !== undefined && (
+                <details className="mb-2 rounded-lg border border-[var(--theme-elevation-150)] bg-[var(--gf-surface)] px-2 py-1.5">
+                  <summary className="cursor-pointer list-none text-xs font-bold text-[var(--theme-elevation-600)]">
+                    思考过程
+                  </summary>
+                  <p className="m-0 mt-2 whitespace-pre-wrap break-words text-xs leading-5 text-[var(--theme-elevation-600)]">
+                    {message.reasoning}
+                  </p>
+                </details>
+              )}
               <p className="m-0 whitespace-pre-wrap break-words">{message.content}</p>
-              {message.role === "assistant" && !readOnly && (
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 <Button
-                  className="mt-2"
-                  onClick={() => insert(message.content)}
+                  onClick={() => void copy(message.id, message.content)}
                   size="xs"
                   type="button"
                   variant="secondary"
                 >
-                  <FilePlusIcon size={13} /> 插入正文
+                  <CopyIcon size={13} /> {copiedId === message.id ? "已复制" : "复制"}
                 </Button>
-              )}
+                {message.role === "assistant" && !readOnly && (
+                  <Button
+                    onClick={() => insert(message.content)}
+                    size="xs"
+                    type="button"
+                    variant="secondary"
+                  >
+                    <FilePlusIcon size={13} /> 插入正文
+                  </Button>
+                )}
+              </div>
             </article>
           ))
         )}
@@ -251,12 +305,12 @@ export const ContentEditionAiChat = ({
           maxLength={4000}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => {
-            if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
-              event.preventDefault()
-              void send()
-            }
+            // Enter sends; Shift+Enter (and IME composition) keeps the newline.
+            if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return
+            event.preventDefault()
+            void send()
           }}
-          placeholder="描述你的写作需求，Ctrl/⌘ + Enter 发送"
+          placeholder="描述你的写作需求，Enter 发送，Shift + Enter 换行"
           value={draft}
         />
         <div className="mt-2 flex items-center justify-between gap-2">

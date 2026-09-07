@@ -120,11 +120,15 @@ const systemPromptOf = (edition: Record<string, unknown> | null): string =>
         outlineOf(edition["body"]) || "（正文为空）",
       ].join("\n")
 
+/* Reasoning models answer with a separate thinking channel; it is surfaced
+ * to the editor as a collapsible section, never merged into the article text. */
+type Completion = Readonly<{ reasoning: string | null; reply: string }>
+
 const attemptOnce = async (
   config: ProviderConfig,
   system: string,
   messages: readonly ChatMessage[],
-): Promise<string> => {
+): Promise<Completion> => {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), config.timeoutMs)
   try {
@@ -147,13 +151,20 @@ const attemptOnce = async (
     })
     if (!upstream.ok) throw new Error("AI_CHAT_UPSTREAM_FAILED")
     const payload = (await upstream.json()) as {
-      choices?: readonly { message?: { content?: unknown } }[]
+      choices?: readonly {
+        message?: { content?: unknown; reasoning?: unknown; reasoning_content?: unknown }
+      }[]
     }
-    const reply = payload.choices?.[0]?.message?.content
+    const message = payload.choices?.[0]?.message
+    const reply = message?.content
     if (typeof reply !== "string" || reply.trim().length === 0) {
       throw new Error("AI_CHAT_UPSTREAM_EMPTY")
     }
-    return reply.trim()
+    // Gateways differ: some name it reasoning_content, others reasoning.
+    const thinking = message?.reasoning_content ?? message?.reasoning
+    const reasoning =
+      typeof thinking === "string" && thinking.trim().length > 0 ? thinking.trim() : null
+    return { reasoning, reply: reply.trim() }
   } finally {
     clearTimeout(timer)
   }
@@ -170,7 +181,7 @@ const replyOf = async (
   config: ProviderConfig,
   system: string,
   messages: readonly ChatMessage[],
-): Promise<string> => {
+): Promise<Completion> => {
   let lastError: unknown
   for (let attempt = 0; attempt < 3; attempt += 1) {
     if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 1200))
@@ -219,8 +230,11 @@ const chatHandler = async (req: PayloadRequest, editionId: number | null): Promi
   if (config === null) return response(503, { error: { code: "AI_CHAT_UNCONFIGURED" } })
 
   try {
-    const reply = await replyOf(config, systemPromptOf(edition), parsed.data.messages)
-    return response(200, { reply })
+    const completion = await replyOf(config, systemPromptOf(edition), parsed.data.messages)
+    return response(200, {
+      ...(completion.reasoning === null ? {} : { reasoning: completion.reasoning }),
+      reply: completion.reply,
+    })
   } catch (error) {
     const cause = (error as { cause?: unknown })?.cause
     req.payload.logger.error({
