@@ -90,7 +90,7 @@ const InlineTextField = ({
 }) => {
   const { setValue, value } = useField<string>({ path })
   const className = multiline
-    ? "mt-2 min-h-24 w-full resize-y border-0 bg-transparent p-0 text-base leading-7 text-[var(--theme-text)] outline-none placeholder:text-[var(--theme-elevation-400)]"
+    ? "mt-2 min-h-16 w-full resize-y border-0 bg-transparent p-0 text-base leading-7 text-[var(--theme-text)] outline-none placeholder:text-[var(--theme-elevation-400)] field-sizing-content"
     : "mt-2 w-full border-0 bg-transparent p-0 text-base text-[var(--theme-text)] outline-none placeholder:text-[var(--theme-elevation-400)]"
   return (
     <div className="rounded-xl border border-[var(--theme-elevation-150)] bg-[var(--theme-elevation-50)] px-4 py-3 focus-within:border-[var(--gf-accent-400)] focus-within:ring-2 focus-within:ring-[var(--gf-accent-100)]">
@@ -205,8 +205,8 @@ const BlockEditor = ({
       <textarea
         className={
           type === "quote"
-            ? "min-h-20 w-full resize-y border-0 border-l-4 border-[var(--gf-accent-300)] bg-transparent py-0 pl-4 text-base italic leading-8 text-[var(--theme-elevation-700)] outline-none"
-            : "min-h-26 w-full resize-y border-0 bg-transparent p-0 text-base leading-8 text-[var(--theme-text)] outline-none placeholder:text-[var(--theme-elevation-400)]"
+            ? "min-h-12 w-full resize-y border-0 border-l-4 border-[var(--gf-accent-300)] bg-transparent py-0 pl-4 text-base italic leading-8 text-[var(--theme-elevation-700)] outline-none field-sizing-content"
+            : "min-h-12 w-full resize-y border-0 bg-transparent p-0 text-base leading-8 text-[var(--theme-text)] outline-none placeholder:text-[var(--theme-elevation-400)] field-sizing-content"
         }
         onChange={(event) => update({ ...row, text: event.target.value })}
         placeholder={type === "quote" ? "输入引用内容" : "开始输入正文…"}
@@ -218,7 +218,7 @@ const BlockEditor = ({
   if (type === "heading") {
     return (
       <textarea
-        className="min-h-16 w-full resize-y border-0 bg-transparent p-0 text-2xl font-bold leading-9 tracking-tight text-[var(--theme-text)] outline-none"
+        className="min-h-11 w-full resize-y border-0 bg-transparent p-0 text-2xl font-bold leading-9 tracking-tight text-[var(--theme-text)] outline-none field-sizing-content"
         onChange={(event) => update({ ...row, text: event.target.value })}
         placeholder="标题"
         readOnly={readOnly}
@@ -320,7 +320,7 @@ const RichCanvas = ({
   return (
     <div className="divide-y divide-[var(--theme-elevation-100)] px-5 sm:px-7">
       {rows.map((row, index) => (
-        <article className="group relative py-5" key={`${String(row["id"] ?? index)}-${index}`}>
+        <article className="group relative py-3" key={`${String(row["id"] ?? index)}-${index}`}>
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <span className="text-xs font-bold tabular-nums text-[var(--theme-elevation-500)]">
               {String(index + 1).padStart(2, "0")}
