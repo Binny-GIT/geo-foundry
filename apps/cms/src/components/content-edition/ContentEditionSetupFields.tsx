@@ -96,15 +96,15 @@ export const ContentEditionSetupFields = ({ readOnly }: { readonly readOnly: boo
   }, [])
 
   return (
-    <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-5 shadow-[var(--gf-shadow-surface)] sm:p-7">
+    <section className="min-w-0 rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)]">
       <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
         文档设置
       </p>
-      <h2 className="m-0 mt-1 text-lg font-bold text-[var(--theme-text)]">关联内容与站点</h2>
-      <p className="m-0 mt-2 text-sm leading-6 text-[var(--theme-elevation-600)]">
+      <h2 className="m-0 mt-1 text-sm font-bold text-[var(--theme-text)]">关联内容与站点</h2>
+      <p className="m-0 mt-2 text-xs leading-5 text-[var(--theme-elevation-600)]">
         内容与站点均只来自当前会话可读范围，租户由服务端校验。
       </p>
-      <div className="mt-5 grid gap-4 sm:grid-cols-2">
+      <div className="mt-4 grid gap-3">
         <SetupSelect
           label="内容"
           options={contents}

@@ -65,12 +65,10 @@ const WorkspaceLayout = async ({ children }: { readonly children: ReactNode }) =
             },
           }}
         >
-          {/*
-           * -m-4 cancels the console main's p-4: the Payload views inside carry
-           * their own gutters and the edition editor assumes it sits flush
-           * under the 56px top bar (min-h calc(100vh-3.5rem), sticky top-14).
-           */}
-          <div className="gf-workspace-host -m-4 [&>*]:min-w-0">{children}</div>
+          {/* Margin compensation lives in workspace-chrome.css (.gf-workspace-host):
+           * the console main's p-4 is cancelled there so Payload views sit
+           * flush under the top bar. */}
+          <div className="gf-workspace-host">{children}</div>
         </ConsoleShell>
       </RootLayout>
     </>

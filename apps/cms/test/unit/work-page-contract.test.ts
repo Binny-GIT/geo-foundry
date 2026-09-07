@@ -90,10 +90,9 @@ describe("workbench server contract", () => {
   })
 
   it("keeps the workspace three-pane responsive with container queries and a shared top bar", async () => {
-    const [document, layout, topBar, canvas] = await Promise.all([
+    const [document, layout, canvas] = await Promise.all([
       sourceOf("src/components/views/ContentEditionDocument.tsx"),
       sourceOf("src/app/(workspace)/admin/workspace/layout.tsx"),
-      sourceOf("src/components/workspace/WorkspaceTopBar.tsx"),
       sourceOf("src/components/content-edition/ContentEditionEditorCanvas.tsx"),
     ])
 
@@ -102,10 +101,11 @@ describe("workbench server contract", () => {
     expect(document).toContain("xl:sticky xl:top-14 xl:h-[calc(100vh-3.5rem)]")
     expect(document).toContain("2xl:grid-cols-[minmax(520px,1.9fr)_minmax(320px,0.9fr)]")
     expect(document).toContain("@container")
-    expect(layout).toContain("WorkspaceTopBar")
+    // The workspace reuses the console shell; the sticky editor column depends
+    // on that shell's 56px top bar.
+    expect(layout).toContain("ConsoleShell")
     expect(layout).toContain("requireConsoleSession")
-    expect(topBar).toContain("账户设置（修改密码）")
-    expect(topBar).toContain("退出登录")
+    expect(layout).toContain("gf-workspace-host")
     expect(canvas).toContain("@min-[520px]:grid-cols-2")
   })
 })

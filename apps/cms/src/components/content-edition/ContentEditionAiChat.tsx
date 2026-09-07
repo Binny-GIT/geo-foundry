@@ -3,8 +3,11 @@
 import { useDocumentInfo } from "@payloadcms/ui"
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
+  CheckCircleIcon,
   CopyIcon,
+  FileClockIcon,
   FilePlusIcon,
+  RotateCcwIcon,
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
   SendIcon,
@@ -13,14 +16,41 @@ import {
 } from "@/components/icons"
 import { IconBadge } from "../ui"
 import { Button } from "../ui/button"
+import { markdownToBlocks } from "../../editor/block-markdown"
 import { useEditionBody } from "./edition-body-context"
 
 const PANEL_KEY = "gf-ai-chat-open"
+const AUTO_APPLY_KEY = "gf-ai-auto-apply"
+const DRAFT_SESSION_KEY = "gf-ai-draft-session"
 const conversationKeyOf = (editionId: string) => `gf-ai-chat:${editionId}`
+
+/* An unsaved article has no id yet, so its transcript is parked under a
+ * per-tab draft session. Saving navigates to the new document, where the
+ * transcript is adopted once and the draft key is released — otherwise every
+ * new article would share one "new" bucket and lose its history on save. */
+const draftSessionIdOf = (): string => {
+  const existing = window.sessionStorage.getItem(DRAFT_SESSION_KEY)
+  if (existing !== null && existing.length > 0) return existing
+  const created = crypto.randomUUID()
+  window.sessionStorage.setItem(DRAFT_SESSION_KEY, created)
+  return created
+}
+
+const adoptDraftTranscript = (editionKey: string): void => {
+  const draftId = window.sessionStorage.getItem(DRAFT_SESSION_KEY)
+  if (draftId === null || draftId.length === 0) return
+  const draftKey = conversationKeyOf(`draft-${draftId}`)
+  const parked = window.localStorage.getItem(draftKey)
+  window.sessionStorage.removeItem(DRAFT_SESSION_KEY)
+  window.localStorage.removeItem(draftKey)
+  if (parked === null || window.localStorage.getItem(editionKey) !== null) return
+  window.localStorage.setItem(editionKey, parked)
+}
 
 export type AiChatMessage = Readonly<{
   content: string
   createdAt: string
+  article?: string
   id: string
   reasoning?: string
   role: "assistant" | "system" | "user"
@@ -65,6 +95,19 @@ const ERROR_TEXT: Record<string, string> = {
   AI_CHAT_UPSTREAM_FAILED: "AI 服务调用失败，请稍后重试。",
 }
 
+const ARTICLE_FENCE = /```article\s*\n([\s\S]*?)```/
+
+/** Splits an assistant reply into its prose part and the proposed article. */
+const splitArticle = (reply: string): { article: string | null; message: string } => {
+  const match = ARTICLE_FENCE.exec(reply)
+  if (match?.[1] === undefined) return { article: null, message: reply }
+  const message = reply.replace(match[0], "").trim()
+  return {
+    article: match[1].trim(),
+    message: message.length > 0 ? message : "已根据你的要求准备好正文。",
+  }
+}
+
 const blocksOf = (reply: string): Record<string, unknown>[] =>
   reply
     .split(/\n{2,}/)
@@ -84,8 +127,13 @@ export const ContentEditionAiChat = ({
   readonly readOnly: boolean
 }) => {
   const { id } = useDocumentInfo()
-  const editionId = id === undefined || id === null ? "new" : String(id)
+  const saved = id !== undefined && id !== null
+  const editionId = saved ? String(id) : "new"
   const { replace: replaceBody, rows: bodyRows } = useEditionBody()
+  const [autoApply, setAutoApply] = useState(false)
+  const [undoSnapshot, setUndoSnapshot] = useState<readonly Record<string, unknown>[] | null>(null)
+  const [appliedId, setAppliedId] = useState<string | null>(null)
+  const conversationKey = useRef<string>(conversationKeyOf(editionId))
   const [messages, setMessages] = useState<readonly AiChatMessage[]>([])
   const [draft, setDraft] = useState("")
   const [sending, setSending] = useState(false)
@@ -97,7 +145,11 @@ export const ContentEditionAiChat = ({
   const loadedKey = useRef<string | null>(null)
 
   useEffect(() => {
-    const key = conversationKeyOf(editionId)
+    const key = saved
+      ? conversationKeyOf(editionId)
+      : conversationKeyOf(`draft-${draftSessionIdOf()}`)
+    if (saved) adoptDraftTranscript(key)
+    conversationKey.current = key
     try {
       const stored = window.localStorage.getItem(key)
       const parsed: unknown = stored === null ? [] : JSON.parse(stored)
@@ -106,7 +158,7 @@ export const ContentEditionAiChat = ({
       setMessages([])
     }
     loadedKey.current = key
-  }, [editionId])
+  }, [editionId, saved])
 
   /* Scroll after the browser has laid out the new bubble, otherwise
    * scrollHeight is still the previous one and the view stops short. */
@@ -118,16 +170,20 @@ export const ContentEditionAiChat = ({
   }, [])
 
   useEffect(() => {
-    const key = conversationKeyOf(editionId)
+    const key = conversationKey.current
     if (loadedKey.current !== key) return
     window.localStorage.setItem(key, JSON.stringify(messages))
     scrollToLatest()
-  }, [editionId, messages, scrollToLatest])
+  }, [messages, scrollToLatest])
 
   // The "生成中" line changes the scroll height too.
   useEffect(() => {
     if (sending) scrollToLatest()
   }, [scrollToLatest, sending])
+
+  useEffect(() => {
+    setAutoApply(window.localStorage.getItem(AUTO_APPLY_KEY) === "on")
+  }, [])
 
   const append = (message: Omit<AiChatMessage, "createdAt" | "id">) =>
     setMessages((current) => [
@@ -172,13 +228,24 @@ export const ContentEditionAiChat = ({
         })
         return
       }
-      append({
-        content: payload.reply,
-        ...(typeof payload.reasoning === "string" && payload.reasoning.length > 0
-          ? { reasoning: payload.reasoning }
-          : {}),
-        role: "assistant",
-      })
+      const parsedReply = splitArticle(payload.reply)
+      const messageId = crypto.randomUUID()
+      setMessages((current) => [
+        ...current,
+        {
+          ...(parsedReply.article === null ? {} : { article: parsedReply.article }),
+          content: parsedReply.message,
+          createdAt: new Date().toISOString(),
+          id: messageId,
+          ...(typeof payload.reasoning === "string" && payload.reasoning.length > 0
+            ? { reasoning: payload.reasoning }
+            : {}),
+          role: "assistant",
+        },
+      ])
+      if (parsedReply.article !== null && autoApply && !readOnly) {
+        applyArticle(messageId, parsedReply.article, "replace")
+      }
     } catch {
       append({ content: "网络异常，未能发送到 AI 服务。", role: "system" })
     } finally {
@@ -194,6 +261,23 @@ export const ContentEditionAiChat = ({
     } catch {
       // Clipboard access can be denied; the text stays selectable by hand.
     }
+  }
+
+  /* Applying is a single transaction: the pre-change body is kept so one
+   * click restores it, which is the cheapest reliable undo for a draft. */
+  const applyArticle = (messageId: string, markdown: string, mode: "append" | "replace") => {
+    const next = markdownToBlocks(markdown)
+    if (next.length === 0) return
+    setUndoSnapshot(bodyRows)
+    setAppliedId(messageId)
+    replaceBody(mode === "replace" ? next : [...bodyRows, ...next])
+  }
+
+  const undoApply = () => {
+    if (undoSnapshot === null) return
+    replaceBody(undoSnapshot)
+    setUndoSnapshot(null)
+    setAppliedId(null)
   }
 
   const insert = (content: string) => {
@@ -270,6 +354,45 @@ export const ContentEditionAiChat = ({
                 </details>
               )}
               <p className="m-0 whitespace-pre-wrap break-words">{message.content}</p>
+              {message.article !== undefined && (
+                <div className="mt-2 rounded-xl border border-[var(--gf-accent-300)] bg-[var(--gf-tone-accent-bg)] p-2.5">
+                  <p className="m-0 flex items-center gap-1.5 text-xs font-bold text-[var(--gf-accent-700)]">
+                    <FileClockIcon size={13} /> 文章提案 · {message.article.length} 字
+                  </p>
+                  <p className="m-0 mt-1.5 line-clamp-3 whitespace-pre-wrap break-words text-xs leading-5 text-[var(--theme-elevation-600)]">
+                    {message.article.slice(0, 160)}
+                  </p>
+                  {!readOnly && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      <Button
+                        onClick={() => applyArticle(message.id, message.article ?? "", "replace")}
+                        size="xs"
+                        type="button"
+                      >
+                        <CheckCircleIcon size={13} /> 应用到正文
+                      </Button>
+                      <Button
+                        onClick={() => applyArticle(message.id, message.article ?? "", "append")}
+                        size="xs"
+                        type="button"
+                        variant="secondary"
+                      >
+                        <FilePlusIcon size={13} /> 追加到末尾
+                      </Button>
+                      {appliedId === message.id && undoSnapshot !== null && (
+                        <Button onClick={undoApply} size="xs" type="button" variant="secondary">
+                          <RotateCcwIcon size={13} /> 撤销
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                  {appliedId === message.id && (
+                    <p className="m-0 mt-1.5 text-xs font-semibold text-[var(--gf-accent-700)]">
+                      已应用到正文，记得保存草稿。
+                    </p>
+                  )}
+                </div>
+              )}
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 <Button
                   onClick={() => void copy(message.id, message.content)}
@@ -313,9 +436,21 @@ export const ContentEditionAiChat = ({
           placeholder="描述你的写作需求，Enter 发送，Shift + Enter 换行"
           value={draft}
         />
+        <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs text-[var(--theme-elevation-600)]">
+          <input
+            checked={autoApply}
+            disabled={readOnly}
+            onChange={(event) => {
+              setAutoApply(event.target.checked)
+              window.localStorage.setItem(AUTO_APPLY_KEY, event.target.checked ? "on" : "off")
+            }}
+            type="checkbox"
+          />
+          生成后自动应用到正文（可撤销）
+        </label>
         <div className="mt-2 flex items-center justify-between gap-2">
           <span className="text-xs text-[var(--theme-elevation-600)]">
-            {messages.length} 条记录
+            {messages.length} 条记录{saved ? "" : " · 新稿草稿"}
           </span>
           <Button
             disabled={draft.trim().length === 0 || sending}

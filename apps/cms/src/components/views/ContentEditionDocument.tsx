@@ -247,9 +247,6 @@ const ContentEditionDocumentBody = ({ readOnly }: { readonly readOnly: boolean }
               /* Headline and summary first, then the body, then the reference
                * metadata that only matters once the article exists. */
               <div className="grid gap-4">
-                {(id === undefined || id === null) && (
-                  <ContentEditionSetupFields readOnly={readOnly} />
-                )}
                 <div className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-5 shadow-[var(--gf-shadow-surface)] sm:p-7">
                   <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
                     {t.editing}
@@ -264,11 +261,16 @@ const ContentEditionDocumentBody = ({ readOnly }: { readonly readOnly: boolean }
             )}
           </section>
 
-          <ContentEditionControlRail
-            onSelectVersion={setSelectedVersion}
-            readOnly={readOnly}
-            selectedVersion={selectedVersion}
-          />
+          <div className="grid min-w-0 content-start gap-4">
+            {/* An unsaved article picks its content and site here so the canvas
+             * keeps its full width for writing. */}
+            {(id === undefined || id === null) && <ContentEditionSetupFields readOnly={readOnly} />}
+            <ContentEditionControlRail
+              onSelectVersion={setSelectedVersion}
+              readOnly={readOnly}
+              selectedVersion={selectedVersion}
+            />
+          </div>
         </div>
       </div>
     </main>

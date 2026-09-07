@@ -25,3 +25,31 @@
     grid-template-columns: 0 auto;
   }
 }
+
+/*
+ * Root-size reconciliation. Payload ships a 13px rem root, while the console
+ * shell's utility classes are compiled by the console Tailwind unit, which
+ * assumes the browser-default 16px root — left alone the whole shell renders
+ * ~19% smaller than on console routes (admin-tailwind.css solves the same
+ * problem for src/components with 16/13-rescaled tokens). Rescale the shell
+ * geometry back to 16px-equivalent on this tree only. `zoom` (not
+ * transform: scale) keeps in-flow layout and sticky positioning working.
+ */
+body > .gf-console {
+  zoom: calc(16 / 13);
+}
+
+/*
+ * Cancel the console main's p-4 padding so the Payload views inside sit
+ * flush under the top bar (they carry their own gutters, and the edition
+ * editor assumes min-h calc(100vh - 3.5rem)). px values, not rem: the
+ * padding being cancelled comes from the admin-tailwind rescaled token.
+ */
+.gf-workspace-host {
+  margin: -16px;
+  min-width: 0;
+}
+
+.gf-workspace-host > * {
+  min-width: 0;
+}
