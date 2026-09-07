@@ -63,6 +63,27 @@ describe("workbench server contract", () => {
     expect(toolbar).toContain("FilePlusIcon")
   })
 
+  it("renders card workflow actions as icon-only buttons with hover tooltips, secondary left / primary right", async () => {
+    const board = await sourceOf("src/console/components/ReviewBoard.tsx")
+
+    // Icon-only: no bare action.label text node next to the icon, and every
+    // button carries both a native tooltip (title) and an accessible name
+    // (aria-label) since there is no visible text left to announce it.
+    expect(board).toContain("aria-label={action.label}")
+    expect(board).toContain("title={action.label}")
+    expect(board).toContain("<action.icon size={13} />")
+    expect(board).toContain('size="icon-xs"')
+    // The old rendering fell back to the visible label text; icon-only mode
+    // never does — pending state shows an ellipsis glyph instead.
+    expect(board).not.toContain(': action.label}')
+
+    // Secondary (reverse/reject) actions sit left, primary (forward) actions
+    // sit right — justify-between keeps a lone side pinned to its edge.
+    expect(board).toContain('action.tone === "secondary"')
+    expect(board).toContain('action.tone === "primary"')
+    expect(board).toContain("flex min-w-0 items-center justify-between gap-1.5")
+  })
+
   it("keeps the workspace three-pane responsive with container queries and a shared top bar", async () => {
     const [document, layout, topBar, canvas] = await Promise.all([
       sourceOf("src/components/views/ContentEditionDocument.tsx"),

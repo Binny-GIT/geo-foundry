@@ -73,10 +73,37 @@ export const CheckCircleIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => 
   </svg>
 )
 
+/** Rejected / reviewer requests changes. */
+export const XCircleIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <circle cx="12" cy="12" r="9" />
+    <path d="m9 9 6 6" />
+    <path d="m15 9-6 6" />
+  </svg>
+)
+
 /** Publish / send. */
 export const SendIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
   <svg {...base(size, strokeWidth)} aria-hidden="true">
     <path d="m3 11 18-8-8 18-2.5-7.5L3 11Z" />
+  </svg>
+)
+
+/** Submit for review / move to the next pipeline stage. */
+export const UploadIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <path d="M12 3v12" />
+    <path d="m7 8 5-5 5 5" />
+    <path d="M5 21h14" />
+  </svg>
+)
+
+/** Delete / archive an edition off the active lane. */
+export const TrashIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
+  <svg {...base(size, strokeWidth)} aria-hidden="true">
+    <path d="M4 7h16" />
+    <path d="M6 7V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2" />
+    <path d="m7 7 1 13a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2l1-13" />
   </svg>
 )
 

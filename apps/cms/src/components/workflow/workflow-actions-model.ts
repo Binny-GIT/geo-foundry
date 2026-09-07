@@ -1,3 +1,15 @@
+import type { ComponentType } from "react"
+
+import {
+  CalendarClockIcon,
+  CheckCircleIcon,
+  type IconProps,
+  RotateCcwIcon,
+  SendIcon,
+  TrashIcon,
+  UploadIcon,
+  XCircleIcon,
+} from "../icons"
 import { type UiLang, uiLangOf } from "../i18n/ui-lang"
 import type { Tone } from "../ui/tone"
 
@@ -61,6 +73,7 @@ export const workflowLaneLabel = workflowStatusLabel
 
 export type WorkflowAction = {
   readonly confirm?: true
+  readonly icon: ComponentType<IconProps>
   readonly label: string
   readonly reasonRequired?: true
   readonly tone: "primary" | "secondary"
@@ -80,6 +93,7 @@ export const isWorkflowStatus = (value: unknown): value is WorkflowStatus =>
 type ActionTemplate = {
   readonly confirm?: true
   readonly en: string
+  readonly icon: ComponentType<IconProps>
   readonly reasonRequired?: true
   readonly target?: WorkflowStatus
   readonly tone: "primary" | "secondary"
@@ -97,6 +111,7 @@ const ACTION_TEMPLATES: readonly ActionTemplate[] = [
   // draft → review
   {
     en: "Submit for review",
+    icon: UploadIcon,
     target: "review",
     tone: "primary",
     type: "transition",
@@ -106,6 +121,7 @@ const ACTION_TEMPLATES: readonly ActionTemplate[] = [
   {
     confirm: true,
     en: "Approve",
+    icon: CheckCircleIcon,
     target: "approved",
     tone: "primary",
     type: "transition",
@@ -115,18 +131,33 @@ const ACTION_TEMPLATES: readonly ActionTemplate[] = [
     confirm: true,
     reasonRequired: true,
     en: "Reject",
+    icon: XCircleIcon,
     target: "draft",
     tone: "secondary",
     type: "transition",
     zh: "审核不通过",
   },
   // approved → publish via schedule; compiled ships directly
-  { en: "Schedule publish", tone: "primary", type: "schedule", zh: "创建发布排期" },
-  { confirm: true, en: "Publish now", tone: "primary", type: "publish-operation", zh: "发布版本" },
+  {
+    en: "Schedule publish",
+    icon: CalendarClockIcon,
+    tone: "primary",
+    type: "schedule",
+    zh: "创建发布排期",
+  },
+  {
+    confirm: true,
+    en: "Publish now",
+    icon: SendIcon,
+    tone: "primary",
+    type: "publish-operation",
+    zh: "发布版本",
+  },
   // published → archived (删除)
   {
     confirm: true,
     en: "Delete edition",
+    icon: TrashIcon,
     target: "archived",
     tone: "secondary",
     type: "archive",
@@ -136,6 +167,7 @@ const ACTION_TEMPLATES: readonly ActionTemplate[] = [
   {
     confirm: true,
     en: "Restore edition",
+    icon: RotateCcwIcon,
     target: "draft",
     tone: "primary",
     type: "restore",
@@ -171,6 +203,7 @@ export const workflowActionsFor = (
     if (template === undefined) continue
     actions.push({
       ...(template.confirm === true ? { confirm: true } : {}),
+      icon: template.icon,
       label: template[lang],
       ...(template.reasonRequired === true ? { reasonRequired: true } : {}),
       ...(template.target !== undefined ? { target: template.target } : {}),

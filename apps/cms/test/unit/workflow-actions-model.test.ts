@@ -38,6 +38,22 @@ describe("workflowActionsFor (free-flow lane model)", () => {
     })
   })
 
+  it("gives every action its own icon component for icon-only rendering", () => {
+    const all = (
+      ["draft", "generating", "review", "approved", "compiled", "published", "archived"] as const
+    ).flatMap((status) => workflowActionsFor("editor", status))
+    expect(all.length).toBeGreaterThan(0)
+    for (const action of all) {
+      expect(typeof action.icon).toBe("function")
+    }
+    // Approve and reject stay visually opposite; publish/schedule/restore
+    // never collapse onto the same glyph as a sibling action in their lane.
+    const review = workflowActionsFor("editor", "review")
+    expect(review[0]?.icon).not.toBe(review[1]?.icon)
+    const compiled = workflowActionsFor("editor", "compiled")
+    expect(compiled[0]?.icon).not.toBe(compiled[1]?.icon)
+  })
+
   it("retires the legacy actions from the surface", () => {
     const all = (
       ["draft", "generating", "review", "approved", "compiled", "published", "archived"] as const

@@ -275,11 +275,22 @@ const ReviewBoard = ({
                           退回：{card.rejectedReason}
                         </p>
                       )}
-                      {cardActions(card).length > 0 && (
-                        <div className="flex min-w-0 flex-wrap gap-1.5 border-t border-[var(--console-border)] pt-2">
-                          {cardActions(card).map((action) => (
+                      {cardActions(card).length > 0 &&
+                        (() => {
+                          /*
+                           * Icon-only card actions (user direction 2026-09-04):
+                           * label text moves into the native title/aria-label
+                           * tooltip. Secondary (reverse/reject) actions sit at
+                           * the left edge, primary (forward) actions at the
+                           * right — mirroring the confirm dialogs' own
+                           * 取消(left)/确认(right) convention. At most one
+                           * side is ever empty (compiled has two primary
+                           * actions and no secondary), and justify-between
+                           * still pins the populated side to its edge.
+                           */
+                          const renderAction = (action: WorkflowAction) => (
                             <Button
-                              className="h-7 px-2.5 text-[11px]"
+                              aria-label={action.label}
                               disabled={pendingKey !== null}
                               key={action.label}
                               onClick={() => {
@@ -295,14 +306,37 @@ const ReviewBoard = ({
                                 }
                                 void runAction(action, card)
                               }}
+                              size="icon-xs"
+                              title={action.label}
                               type="button"
                               variant={action.tone === "primary" ? "default" : "secondary"}
                             >
-                              {pendingKey === `${card.id}:${action.label}` ? "…" : action.label}
+                              {pendingKey === `${card.id}:${action.label}` ? (
+                                <span aria-hidden="true" className="text-[10px]">
+                                  …
+                                </span>
+                              ) : (
+                                <action.icon size={13} />
+                              )}
                             </Button>
-                          ))}
-                        </div>
-                      )}
+                          )
+                          const secondary = cardActions(card).filter(
+                            (action) => action.tone === "secondary",
+                          )
+                          const primary = cardActions(card).filter(
+                            (action) => action.tone === "primary",
+                          )
+                          return (
+                            <div className="flex min-w-0 items-center justify-between gap-1.5 border-t border-[var(--console-border)] pt-2">
+                              <div className="flex flex-wrap gap-1.5">
+                                {secondary.map(renderAction)}
+                              </div>
+                              <div className="flex flex-wrap gap-1.5">
+                                {primary.map(renderAction)}
+                              </div>
+                            </div>
+                          )
+                        })()}
                     </article>
                   ))
                 )}

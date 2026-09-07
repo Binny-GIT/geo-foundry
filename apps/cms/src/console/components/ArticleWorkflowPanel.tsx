@@ -3,14 +3,7 @@
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
-import {
-  CalendarClockIcon,
-  CheckCircleIcon,
-  MessageSquareIcon,
-  RotateCcwIcon,
-  SendIcon,
-  XIcon,
-} from "@/components/icons"
+import { CalendarClockIcon, CheckCircleIcon, MessageSquareIcon, XIcon } from "@/components/icons"
 import { Button } from "@/components/ui/button"
 import {
   isWorkflowStatus,
@@ -138,16 +131,6 @@ const ArticleWorkflowPanel = ({
     }
   }
 
-  const actionIconOf = (action: WorkflowAction) => {
-    if (action.type === "schedule") return <CalendarClockIcon size={15} />
-    if (action.type === "publish-operation") return <SendIcon size={15} />
-    if (action.type === "restore") return <RotateCcwIcon size={15} />
-    if (action.type === "archive") return <XIcon size={15} />
-    if (action.label === "审核通过") return <CheckCircleIcon size={15} />
-    if (action.label === "审核不通过") return <XIcon size={15} />
-    return <SendIcon size={15} />
-  }
-
   return (
     <section className="gf-console-card grid gap-4 p-5">
       <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">操作</h2>
@@ -189,7 +172,7 @@ const ArticleWorkflowPanel = ({
               type="button"
               variant={action.tone === "primary" ? "default" : "secondary"}
             >
-              {actionIconOf(action)}
+              <action.icon size={15} />
               {pending === action.label ? "…" : action.label}
             </Button>
           ))}
