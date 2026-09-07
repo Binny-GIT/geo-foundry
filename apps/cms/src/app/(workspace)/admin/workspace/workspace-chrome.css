@@ -1,27 +1,43 @@
 /*
- * The workspace tree renders Payload's DefaultTemplate (RootPage) inside the
- * Console shell, so Payload's own sidebar chrome must not double up here:
- * the console sidebar owns navigation, and the console header owns the top
- * bar. Scoped to `.gf-workspace-host` (the wrapper the workspace layout puts
- * around every page), so the payload tree keeps its own sidebar untouched.
+ * Top-bar placement for the workspace tree.
+ *
+ * WorkspaceTopBar sits at the body level (above Payload's DefaultTemplate),
+ * so in normal flow it would push the whole template — sidebar included —
+ * 56px down and span the full viewport width over the sidebar column. That
+ * is exactly the "top bar crowding out the nav" layout this file fixes:
+ *
+ *   - the bar becomes fixed and starts at the sidebar's right edge on
+ *     desktop (>=1441px), matching how every console page lays out (full
+ *     height sidebar + top bar only over the content area);
+ *   - .template-default__wrap (the content column) gets padding-top so the
+ *     views clear the bar, while the sidebar column keeps starting at the
+ *     viewport top — .gf-sidebar is sticky top-0 h-screen and now really is
+ *     full-height;
+ *   - below 1441px Payload collapses the nav into a drawer (0-width track),
+ *     so the bar spans the full width there and reserves room on its left
+ *     for NavLinks' floating open button.
  */
-.gf-workspace-host .gf-sidebar,
-.gf-workspace-host .gf-nav-mobile-toggle {
-  display: none !important;
+.gf-workspace-topbar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  /* keeps the floating nav-open button (left-4 top-4, z-40) from being
+     covered; only visible in the drawer mode this breakpoint applies to. */
+  padding-left: 72px;
 }
 
-/*
- * Desktop (>=1441px) keeps a nav grid track alive via --nav-width even when
- * the sidebar itself is hidden, which would strand a dead 275px column next
- * to the console sidebar. Zero the track itself; Payload's own collapse rule
- * (html[data-gf-nav-collapsed] .template-default--nav-open) only overrides
- * --nav-width, so pinning grid-template-columns wins regardless. Below that
- * breakpoint Payload already collapses the nav into a drawer with a 0-width
- * track, so nothing to do there.
- */
+.template-default__wrap {
+  padding-top: 56px;
+}
+
 @media (min-width: 1441px) {
-  .gf-workspace-host .template-default,
-  .gf-workspace-host .template-default--nav-open {
-    grid-template-columns: 0 auto;
+  .gf-workspace-topbar {
+    left: 275px;
+    padding-left: 0;
+  }
+
+  html[data-gf-nav-collapsed] .gf-workspace-topbar {
+    left: 72px;
   }
 }
