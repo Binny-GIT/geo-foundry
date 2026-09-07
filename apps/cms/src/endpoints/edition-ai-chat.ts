@@ -164,8 +164,7 @@ const attemptOnce = async (
  * failures get two extra attempts. Anything the gateway answered — 4xx/5xx
  * or an empty completion — is terminal and surfaces immediately. */
 const isTransient = (error: unknown): boolean =>
-  error instanceof TypeError ||
-  (error instanceof Error && error.message === "fetch failed")
+  error instanceof TypeError || (error instanceof Error && error.message === "fetch failed")
 
 const replyOf = async (
   config: ProviderConfig,
@@ -183,7 +182,6 @@ const replyOf = async (
     }
   }
   throw lastError
-}
 }
 
 const chatHandler = async (req: PayloadRequest, editionId: number | null): Promise<Response> => {
