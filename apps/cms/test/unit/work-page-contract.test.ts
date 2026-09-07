@@ -18,8 +18,7 @@ describe("workbench server contract", () => {
     expect(page).toContain('collection: "content-editions"')
     expect(page).toContain("depth: 1")
     expect(page).toContain("draft: true")
-    expect(page).toContain("limit: WORK_PAGE_SIZE")
-    expect(page).toContain("page: query.page")
+    expect(page).toContain("limit: WORK_QUERY_LIMIT")
     expect(page).toContain('sort: "-updatedAt"')
     expect(page).toContain("overrideAccess: false")
     expect(page).toContain("siteScopeWhere")
@@ -27,6 +26,12 @@ describe("workbench server contract", () => {
     expect(page).toContain("WorkToolbar")
     expect(page).not.toContain("limit: 200")
     expect(page).not.toContain("query.view")
+    // The board groups a flat query into six status columns, so a global
+    // "page 2 of N" control makes no sense against it (see WORK_QUERY_LIMIT's
+    // comment) — no pagination UI, only a truncation notice when it fires.
+    expect(page).not.toContain("上一页")
+    expect(page).not.toContain("下一页")
+    expect(page).toContain("hiddenCount > 0")
 
     expect(filters).toContain("greater_than_equal")
     expect(filters).toContain("less_than")

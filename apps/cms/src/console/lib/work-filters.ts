@@ -11,7 +11,6 @@ export const ALL_WORK_COLUMNS: readonly BoardColumnKey[] = BOARD_COLUMNS.map((co
 export type WorkQuery = Readonly<{
   from: string | null
   owner: number | null
-  page: number
   q: string | null
   range: WorkRange
   showColumns: readonly BoardColumnKey[]
@@ -66,7 +65,6 @@ export const parseWorkQuery = (
   return {
     from: customIsValid ? from : null,
     owner: positiveInt(first(searchParams["owner"])),
-    page: positiveInt(first(searchParams["page"])) ?? 1,
     q: qRaw.length === 0 ? null : qRaw.slice(0, 100),
     range:
       rawRange === "custom" && !customIsValid
@@ -153,7 +151,6 @@ export const workHref = (query: WorkQuery, overrides: Partial<WorkQuery> = {}): 
   if (showColumns.length !== ALL_WORK_COLUMNS.length) {
     params.set("columns", [...showColumns].join(","))
   }
-  if (merged.page > 1) params.set("page", String(merged.page))
 
   const search = params.toString()
   return search.length === 0 ? "/admin/work" : `/admin/work?${search}`

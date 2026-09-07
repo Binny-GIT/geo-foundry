@@ -109,7 +109,7 @@ export const WorkToolbar = ({
   }, [filterOpen, query])
 
   const go = (overrides: Parameters<typeof workHref>[1]) => {
-    router.push(workHref(query, { page: 1, ...overrides }))
+    router.push(workHref(query, overrides))
   }
 
   const toggleColumn = (key: BoardColumnKey) => {

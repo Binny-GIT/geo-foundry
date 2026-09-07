@@ -14,7 +14,6 @@ describe("Workbench query", () => {
     expect(parseWorkQuery({})).toEqual({
       from: null,
       owner: null,
-      page: 1,
       q: null,
       range: "30d",
       showColumns: ALL_WORK_COLUMNS,
@@ -25,7 +24,6 @@ describe("Workbench query", () => {
       parseWorkQuery({
         from: "not-a-date",
         owner: "-3",
-        page: "x",
         q: "   ",
         range: "custom",
         site: "abc",
@@ -33,7 +31,6 @@ describe("Workbench query", () => {
     ).toEqual({
       from: null,
       owner: null,
-      page: 1,
       q: null,
       range: "30d",
       showColumns: ALL_WORK_COLUMNS,
@@ -48,7 +45,6 @@ describe("Workbench query", () => {
         columns: "draft,review,draft,bogus",
         from: "2026-08-01",
         owner: "7",
-        page: "3",
         q: " http ",
         range: "custom",
         site: "12",
@@ -57,7 +53,6 @@ describe("Workbench query", () => {
     ).toEqual({
       from: "2026-08-01",
       owner: 7,
-      page: 3,
       q: "http",
       range: "custom",
       showColumns: ["draft", "review"],
@@ -115,20 +110,18 @@ describe("Workbench query", () => {
       columns: "draft,review",
       from: "2026-08-01",
       owner: "7",
-      page: "2",
       q: "关键词",
       range: "custom",
       site: "12",
       to: "2026-08-31",
     })
     expect(workHref(query)).toBe(
-      "/admin/work?range=custom&from=2026-08-01&to=2026-08-31&q=%E5%85%B3%E9%94%AE%E8%AF%8D&owner=7&site=12&columns=draft%2Creview&page=2",
+      "/admin/work?range=custom&from=2026-08-01&to=2026-08-31&q=%E5%85%B3%E9%94%AE%E8%AF%8D&owner=7&site=12&columns=draft%2Creview",
     )
     expect(
       workHref(query, {
         from: null,
         owner: null,
-        page: 1,
         q: null,
         range: "30d",
         showColumns: ALL_WORK_COLUMNS,

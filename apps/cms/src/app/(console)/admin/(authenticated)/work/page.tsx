@@ -1,7 +1,4 @@
-import Link from "next/link"
-
 import { CMS_ACTION, CMS_RESOURCE } from "@/access/policy"
-import { Button } from "@/components/ui/button"
 import {
   type PerformanceSuggestion,
   PerformanceSuggestions,
@@ -13,12 +10,20 @@ import { requireConsolePayloadContext } from "@/console/lib/payload.server"
 import { consoleRoute } from "@/console/lib/resources"
 import { canConsole } from "@/console/lib/session.server"
 import { siteScopeWhere } from "@/console/lib/site-scope"
-import { parseWorkQuery, scopedWorkWhere, workHref } from "@/console/lib/work-filters"
+import { parseWorkQuery, scopedWorkWhere } from "@/console/lib/work-filters"
 import { performanceSuggestions } from "@/services/performance-snapshots"
 
 export const metadata = { title: "工作台 | Geo Foundry" }
 
-const WORK_PAGE_SIZE = 60
+/*
+ * The board groups a flat query result into six workflow-status columns
+ * (see groupBoardCards), so this is a scope cap, not a page — there is no
+ * per-column pagination and none is exposed in the UI. It only surfaces
+ * as a truncation notice (below) on the rare filter that matches more
+ * than this many editions; narrowing the date range/site/owner filters
+ * is the intended way to see the rest.
+ */
+const WORK_QUERY_LIMIT = 300
 
 type WorkbenchPageProps = {
   readonly searchParams: Promise<Record<string, string | string[] | undefined>>
@@ -42,14 +47,13 @@ const WorkbenchPage = async ({ searchParams }: WorkbenchPageProps) => {
         collection: "content-editions",
         depth: 1,
         draft: true,
-        limit: WORK_PAGE_SIZE,
+        limit: WORK_QUERY_LIMIT,
         overrideAccess: false,
-        page: query.page,
         sort: "-updatedAt",
         user,
         ...(editionsWhere === undefined ? {} : { where: editionsWhere }),
       })
-      .catch(() => ({ docs: [], page: 1, totalDocs: 0, totalPages: 1 })),
+      .catch(() => ({ docs: [], totalDocs: 0 })),
     canReadOperations
       ? payload
           .count({
@@ -89,9 +93,8 @@ const WorkbenchPage = async ({ searchParams }: WorkbenchPageProps) => {
   ])
 
   const editions = editionResult.docs as unknown as readonly Record<string, unknown>[]
-  const currentPage = editionResult.page ?? query.page
   const totalDocs = editionResult.totalDocs ?? 0
-  const totalPages = editionResult.totalPages ?? 1
+  const hiddenCount = totalDocs - editions.length
 
   const owners: readonly OwnerOption[] = ownerDocs.flatMap((doc) => {
     const id = doc["id"]
@@ -175,31 +178,12 @@ const WorkbenchPage = async ({ searchParams }: WorkbenchPageProps) => {
 
       <ReviewBoard board={groupBoardCards(editions)} role={role} showColumns={query.showColumns} />
 
-      <footer className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-[var(--console-border)] pt-3 text-sm text-[var(--console-ink-muted)]">
-        <span>
-          当前条件下 {totalDocs} 条 · 第 {currentPage} / {totalPages} 页
-        </span>
-        <div className="flex items-center gap-2">
-          {currentPage <= 1 ? (
-            <Button disabled size="sm" type="button" variant="secondary">
-              上一页
-            </Button>
-          ) : (
-            <Button asChild size="sm" type="button" variant="secondary">
-              <Link href={workHref(query, { page: currentPage - 1 })}>上一页</Link>
-            </Button>
-          )}
-          {currentPage >= totalPages ? (
-            <Button disabled size="sm" type="button" variant="secondary">
-              下一页
-            </Button>
-          ) : (
-            <Button asChild size="sm" type="button" variant="secondary">
-              <Link href={workHref(query, { page: currentPage + 1 })}>下一页</Link>
-            </Button>
-          )}
-        </div>
-      </footer>
+      {hiddenCount > 0 && (
+        <p className="m-0 shrink-0 border-t border-[var(--console-border)] pt-3 text-sm text-[var(--console-ink-muted)]">
+          当前筛选下共 {totalDocs} 条，仅展示最近更新的 {editions.length}{" "}
+          条；请缩小时间范围或使用筛选查看其余 {hiddenCount} 条。
+        </p>
+      )}
     </div>
   )
 }
