@@ -96,21 +96,29 @@ const providerConfigOf = (
   }
 }
 
-const systemPromptOf = (edition: Record<string, unknown>): string =>
-  [
-    "你是 Geo Foundry 内容工作台的写作助手，为编辑提供中文写作建议。",
-    "回答要具体、可直接落到稿件里；需要输出正文时用纯文本段落，不要使用 Markdown 表格或代码块。",
-    "只依据用户提供的信息作答，不要编造事实、数据或来源。",
-    "",
-    "当前稿件信息：",
-    `标题：${textOf(edition["title"]) || "（未填写）"}`,
-    `摘要：${textOf(edition["summary"]) || "（未填写）"}`,
-    `主要主题：${textOf(edition["primaryTopic"]) || "（未填写）"}`,
-    `内容角度：${textOf(edition["angle"]) || "（未填写）"}`,
-    "",
-    "正文大纲：",
-    outlineOf(edition["body"]) || "（正文为空）",
-  ].join("\n")
+const BASE_PROMPTS = [
+  "你是 Geo Foundry 内容工作台的写作助手，为编辑提供中文写作建议。",
+  "回答要具体、可直接落到稿件里；需要输出正文时用纯文本段落，不要使用 Markdown 表格或代码块。",
+  "只依据用户提供的信息作答，不要编造事实、数据或来源。",
+]
+
+/* An unsaved draft has no document yet, so there is nothing to inject; the
+ * assistant then works as a plain writing helper until the article exists. */
+const systemPromptOf = (edition: Record<string, unknown> | null): string =>
+  edition === null
+    ? [...BASE_PROMPTS, "", "当前是一篇尚未保存的新稿件，请根据用户的描述起草内容。"].join("\n")
+    : [
+        ...BASE_PROMPTS,
+        "",
+        "当前稿件信息：",
+        `标题：${textOf(edition["title"]) || "（未填写）"}`,
+        `摘要：${textOf(edition["summary"]) || "（未填写）"}`,
+        `主要主题：${textOf(edition["primaryTopic"]) || "（未填写）"}`,
+        `内容角度：${textOf(edition["angle"]) || "（未填写）"}`,
+        "",
+        "正文大纲：",
+        outlineOf(edition["body"]) || "（正文为空）",
+      ].join("\n")
 
 const replyOf = async (
   config: ProviderConfig,
@@ -151,22 +159,21 @@ const replyOf = async (
   }
 }
 
-export const editionAiChatEndpoint: Endpoint = {
-  handler: async (req) => {
-    const editionId = editionIdOf(req)
-    if (editionId === null) return response(400, { error: { code: "AI_CHAT_ID_INVALID" } })
-    if (resolveSessionClaims(req.user) === null) {
-      return response(401, { error: { code: "AI_CHAT_UNAUTHENTICATED" } })
-    }
-    let raw: unknown
-    try {
-      raw = await req.json?.()
-    } catch {
-      return response(400, { error: { code: "AI_CHAT_BODY_INVALID" } })
-    }
-    const parsed = bodySchema.safeParse(raw)
-    if (!parsed.success) return response(400, { error: { code: "AI_CHAT_BODY_INVALID" } })
+const chatHandler = async (req: PayloadRequest, editionId: number | null): Promise<Response> => {
+  if (resolveSessionClaims(req.user) === null) {
+    return response(401, { error: { code: "AI_CHAT_UNAUTHENTICATED" } })
+  }
+  let raw: unknown
+  try {
+    raw = await req.json?.()
+  } catch {
+    return response(400, { error: { code: "AI_CHAT_BODY_INVALID" } })
+  }
+  const parsed = bodySchema.safeParse(raw)
+  if (!parsed.success) return response(400, { error: { code: "AI_CHAT_BODY_INVALID" } })
 
+  let edition: Record<string, unknown> | null = null
+  if (editionId !== null) {
     // Access-controlled read: the assistant may only see editions the caller
     // can already open, so the prompt can never widen tenant scope.
     const found = await req.payload.find({
@@ -178,26 +185,42 @@ export const editionAiChatEndpoint: Endpoint = {
       user: req.user,
       where: { id: { equals: editionId } },
     })
-    const edition = found.docs[0]
-    if (edition === undefined) return response(404, { error: { code: "AI_CHAT_NOT_FOUND" } })
+    const doc = found.docs[0]
+    if (doc === undefined) return response(404, { error: { code: "AI_CHAT_NOT_FOUND" } })
+    edition = record(doc)
+  }
 
-    const config = providerConfigOf(process.env)
-    if (config === null) return response(503, { error: { code: "AI_CHAT_UNCONFIGURED" } })
+  const config = providerConfigOf(process.env)
+  if (config === null) return response(503, { error: { code: "AI_CHAT_UNCONFIGURED" } })
 
-    try {
-      const reply = await replyOf(config, systemPromptOf(record(edition)), parsed.data.messages)
-      return response(200, { reply })
-    } catch (error) {
-      const cause = (error as { cause?: unknown })?.cause
-      req.payload.logger.error({
-        cause: cause === undefined ? undefined : String(cause).slice(0, 300),
-        editionId,
-        err: error instanceof Error ? error.message : "unknown",
-        msg: "edition ai chat failed",
-      })
-      return response(502, { error: { code: "AI_CHAT_UPSTREAM_FAILED" } })
-    }
+  try {
+    const reply = await replyOf(config, systemPromptOf(edition), parsed.data.messages)
+    return response(200, { reply })
+  } catch (error) {
+    const cause = (error as { cause?: unknown })?.cause
+    req.payload.logger.error({
+      cause: cause === undefined ? undefined : String(cause).slice(0, 300),
+      editionId,
+      err: error instanceof Error ? error.message : "unknown",
+      msg: "edition ai chat failed",
+    })
+    return response(502, { error: { code: "AI_CHAT_UPSTREAM_FAILED" } })
+  }
+}
+
+export const editionAiChatEndpoint: Endpoint = {
+  handler: async (req) => {
+    const editionId = editionIdOf(req)
+    if (editionId === null) return response(400, { error: { code: "AI_CHAT_ID_INVALID" } })
+    return chatHandler(req, editionId)
   },
   method: "post",
   path: "/editions/:id/ai-chat",
+}
+
+/* Same assistant for the unsaved-draft editor: no edition context yet. */
+export const editionAiChatDraftEndpoint: Endpoint = {
+  handler: async (req) => chatHandler(req, null),
+  method: "post",
+  path: "/editions/ai-chat",
 }

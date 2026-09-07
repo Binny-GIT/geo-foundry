@@ -126,17 +126,20 @@ export const ContentEditionAiChat = ({
     setDraft("")
     setSending(true)
     try {
-      const response = await fetch(`/api/editions/${editionId}/ai-chat`, {
-        body: JSON.stringify({
-          messages: history
-            .filter((message) => message.role !== "system")
-            .slice(-20)
-            .map((message) => ({ content: message.content, role: message.role })),
-        }),
-        credentials: "same-origin",
-        headers: { "content-type": "application/json" },
-        method: "POST",
-      })
+      const response = await fetch(
+        editionId === "new" ? "/api/editions/ai-chat" : `/api/editions/${editionId}/ai-chat`,
+        {
+          body: JSON.stringify({
+            messages: history
+              .filter((message) => message.role !== "system")
+              .slice(-20)
+              .map((message) => ({ content: message.content, role: message.role })),
+          }),
+          credentials: "same-origin",
+          headers: { "content-type": "application/json" },
+          method: "POST",
+        },
+      )
       const payload = (await response.json().catch(() => ({}))) as {
         error?: { code?: string }
         reply?: unknown
