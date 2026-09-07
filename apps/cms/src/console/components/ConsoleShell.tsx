@@ -243,7 +243,7 @@ export const ConsoleShell = ({
         </div>
       </aside>
       <div className={cn("min-w-0 flex-1", isWorkbench && "flex min-h-0 flex-col")}>
-        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-[var(--console-border)] bg-[color-mix(in_srgb,var(--console-canvas)_92%,transparent)] px-4 backdrop-blur lg:px-8">
+        <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-[var(--console-border)] bg-[color-mix(in_srgb,var(--console-canvas)_92%,transparent)] px-4 backdrop-blur">
           <button
             aria-label="打开导航"
             className="gf-console-focus grid size-9 place-items-center rounded-md border border-[var(--console-border)] bg-[var(--console-surface)] text-[var(--console-ink)] lg:hidden"
@@ -351,7 +351,7 @@ export const ConsoleShell = ({
         </header>
         <main
           className={cn(
-            "w-full px-4 py-6 lg:px-8 lg:py-8",
+            "w-full p-4",
             isWorkbench && "flex min-h-0 flex-1 flex-col overflow-hidden",
           )}
         >

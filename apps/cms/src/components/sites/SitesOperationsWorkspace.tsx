@@ -215,7 +215,7 @@ export const SitesOperationsWorkspace = async ({ i18n, payload, user }: SitesWor
   return (
     <section
       aria-label={t.headline}
-      className="mx-auto mb-8 flex max-w-[1440px] flex-col gap-6 p-8 md:p-6"
+      className="mx-auto mb-8 flex max-w-[1440px] flex-col gap-6 p-4"
     >
       <header className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-end">
         <div>

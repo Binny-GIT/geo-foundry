@@ -539,7 +539,7 @@ export const OperationsDashboard = async ({ i18n, payload, user }: DashboardProp
   const role = user?.role
   if (!humanRoles.has(role as ReadableRole)) {
     return (
-      <main className="gf-operations-dashboard mx-auto max-w-[1440px] p-8 md:p-6">
+      <main className="gf-operations-dashboard mx-auto max-w-[1440px] p-4">
         <section className={`${cardClass} grid gap-2 p-10`}>
           <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
             {t.kicker}
@@ -724,7 +724,7 @@ export const OperationsDashboard = async ({ i18n, payload, user }: DashboardProp
   const workloadRows = readinessRows.slice(0, 6)
 
   return (
-    <main className="gf-command-dashboard mx-auto flex max-w-[1440px] flex-col gap-10 p-8 md:gap-8 md:p-6">
+    <main className="gf-command-dashboard mx-auto flex max-w-[1440px] flex-col gap-10 p-4 md:gap-8">
       <header className={`${cardClass} relative overflow-hidden p-6 sm:p-7`}>
         <div
           aria-hidden="true"

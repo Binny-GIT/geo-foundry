@@ -120,7 +120,7 @@ const systemPromptOf = (edition: Record<string, unknown> | null): string =>
         outlineOf(edition["body"]) || "（正文为空）",
       ].join("\n")
 
-const replyOf = async (
+const attemptOnce = async (
   config: ProviderConfig,
   system: string,
   messages: readonly ChatMessage[],
@@ -157,6 +157,33 @@ const replyOf = async (
   } finally {
     clearTimeout(timer)
   }
+}
+
+/* The api-hub gateway occasionally fails the TCP connect (undici's default
+ * 10s timeout) while a retry a second later succeeds, so network-level
+ * failures get two extra attempts. Anything the gateway answered — 4xx/5xx
+ * or an empty completion — is terminal and surfaces immediately. */
+const isTransient = (error: unknown): boolean =>
+  error instanceof TypeError ||
+  (error instanceof Error && error.message === "fetch failed")
+
+const replyOf = async (
+  config: ProviderConfig,
+  system: string,
+  messages: readonly ChatMessage[],
+): Promise<string> => {
+  let lastError: unknown
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 1200))
+    try {
+      return await attemptOnce(config, system, messages)
+    } catch (error) {
+      lastError = error
+      if (!isTransient(error)) throw error
+    }
+  }
+  throw lastError
+}
 }
 
 const chatHandler = async (req: PayloadRequest, editionId: number | null): Promise<Response> => {
