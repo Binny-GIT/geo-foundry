@@ -122,19 +122,20 @@ const ContentEditionDocumentBody = ({ readOnly }: { readonly readOnly: boolean }
         ? t.unsaved
         : t.saved
 
-  /* The body is stored outside the Payload form, so one click has to write
-   * both halves: the article body first, then the form fields. */
+  /* The body is stored outside the Payload form, so one click writes both
+   * halves. The form goes first: its own block row state still carries the
+   * body as loaded, so submitting after our PATCH would restore the old
+   * article. Writing the body last makes the edited version win. */
   const saveAll = async () => {
     setSavingAll(true)
     try {
+      await submit()
       const bodySaved = await saveBody()
       if (!bodySaved) {
         toast.error(
           lang === "zh" ? "正文保存失败，请重试。" : "The article body could not be saved.",
         )
-        return
       }
-      await submit()
     } finally {
       setSavingAll(false)
     }
