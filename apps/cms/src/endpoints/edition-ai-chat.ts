@@ -70,7 +70,14 @@ const providerConfigOf = (
   if (environment["AI_PROVIDER"] !== "openai-compatible") return null
   const baseUrl = environment["AI_BASE_URL"]?.trim()
   const model = environment["AI_CHAT_MODEL"]?.trim()
-  const apiKey = optionalCmsCredential(environment, "AI_API_KEY")
+  // A missing or wrongly-permissioned key file means "not configured yet",
+  // not a server fault: the operator still has to install the credential.
+  let apiKey: string | undefined
+  try {
+    apiKey = optionalCmsCredential(environment, "AI_API_KEY")
+  } catch {
+    return null
+  }
   if (
     baseUrl === undefined ||
     baseUrl.length === 0 ||
