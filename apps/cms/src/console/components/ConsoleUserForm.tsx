@@ -6,7 +6,12 @@ import { CMS_ROLE, type CmsRole } from "@/access/roles"
 import { PlusIcon } from "@/components/icons"
 import { Button } from "@/components/ui/button"
 import { consoleRoute } from "../lib/resources"
-import { assignableUserRoles, type UserFormActorRole, userFormPayload } from "../lib/user-form"
+import {
+  assignableUserRoles,
+  USER_ROLE_LABEL,
+  type UserFormActorRole,
+  userFormPayload,
+} from "../lib/user-form"
 
 type TenantOption = {
   readonly id: number | string
@@ -36,15 +41,6 @@ const documentSiteIds = (sites: unknown): readonly string[] => {
     }
     return []
   })
-}
-
-const ROLE_LABEL: Readonly<Record<CmsRole, string>> = {
-  [CMS_ROLE.CONTENT_SERVICE]: "内容服务",
-  [CMS_ROLE.EDITOR]: "编辑",
-  [CMS_ROLE.PUBLISHER]: "发布",
-  [CMS_ROLE.REVIEWER]: "审阅",
-  [CMS_ROLE.SUPER_ADMIN]: "超级管理员",
-  [CMS_ROLE.TENANT_ADMIN]: "租户管理员",
 }
 
 const errorMessage = (payload: PayloadError): string =>
@@ -207,7 +203,7 @@ export const ConsoleUserForm = ({
         >
           {assignableUserRoles(actorRole).map((option) => (
             <option key={option} value={option}>
-              {ROLE_LABEL[option]}
+              {USER_ROLE_LABEL[option]}
             </option>
           ))}
         </select>

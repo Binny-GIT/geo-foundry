@@ -4,12 +4,11 @@ import { CMS_ACTION, CMS_RESOURCE } from "@/access/policy"
 import { CMS_ROLE } from "@/access/roles"
 import { ChevronDownIcon, NAV_ICON_BY_SLUG } from "@/components/icons"
 import { Button } from "@/components/ui/button"
-import { ConsoleCreateDialog } from "@/console/components/ConsoleCreateDialog"
-import { CreateArticleLink } from "@/console/components/CreateArticleLink"
 import EditionsWorkspace, { type FilterOption } from "@/console/components/EditionsWorkspace"
 import { PageHeader } from "@/console/components/PageHeader"
 import { PublicationPlansWorkspace } from "@/console/components/PublicationPlansWorkspace"
 import SitesWorkspace, { type SiteRow } from "@/console/components/SitesWorkspace"
+import UsersWorkspace from "@/console/components/UsersWorkspace"
 import { articleListWhere, parseArticleListQuery } from "@/console/lib/article-filters"
 import { findConsoleDocuments, requireConsolePayloadContext } from "@/console/lib/payload.server"
 import {
@@ -20,6 +19,7 @@ import {
 } from "@/console/lib/resources"
 import { canConsole } from "@/console/lib/session.server"
 import { combineWhere, siteScopeWhere, sitesIdScopeWhere } from "@/console/lib/site-scope"
+import { parseUserListQuery, userListWhere } from "@/console/lib/user-filters"
 
 const formatValue = (value: unknown, relationship = false): string => {
   if (relationship && (typeof value === "number" || typeof value === "string")) return "受限"
@@ -82,6 +82,7 @@ type CollectionPageProps = {
   readonly searchParams: Promise<{
     readonly page?: string
     readonly q?: string
+    readonly role?: string
     readonly site?: string
     readonly status?: string
     readonly tenant?: string
@@ -139,21 +140,47 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
     ])
     return (
       <div className="grid gap-6 [&>*]:min-w-0">
-        <PageHeader
-          actions={
-            canConsole(context.session, CMS_RESOURCE.EDITIONS, CMS_ACTION.CREATE) ? (
-              <CreateArticleLink />
-            ) : null
-          }
-          icon={NAV_ICON_BY_SLUG["content-editions"]}
-          title="文章列表"
-        />
         <EditionsWorkspace
+          canCreate={canConsole(context.session, CMS_RESOURCE.EDITIONS, CMS_ACTION.CREATE)}
           docs={result.docs}
           isSuperAdmin={context.session.role === CMS_ROLE.SUPER_ADMIN}
           page={result.page}
           query={articleQuery}
           siteOptions={siteOptions}
+          tenantOptions={tenantOptions}
+          totalDocs={result.totalDocs}
+          totalPages={result.totalPages}
+        />
+      </div>
+    )
+  }
+
+  if (slug === "users") {
+    const context = await requireConsolePayloadContext()
+    const isSuperAdmin = context.session.role === CMS_ROLE.SUPER_ADMIN
+    const userQuery = parseUserListQuery(query)
+    const [result, tenantOptions] = await Promise.all([
+      findConsoleDocuments({ page, slug, where: userListWhere(userQuery) }),
+      isSuperAdmin
+        ? filterOptions(context, "tenants")
+        : Promise.resolve([] as readonly FilterOption[]),
+    ])
+    // Creating a user means assigning a role, which only the two admin roles do.
+    const createActorRole =
+      canConsole(context.session, CMS_RESOURCE.USERS, CMS_ACTION.CREATE) &&
+      (isSuperAdmin || context.session.role === CMS_ROLE.TENANT_ADMIN)
+        ? isSuperAdmin
+          ? CMS_ROLE.SUPER_ADMIN
+          : CMS_ROLE.TENANT_ADMIN
+        : null
+    return (
+      <div className="grid gap-6 [&>*]:min-w-0">
+        <UsersWorkspace
+          createActorRole={createActorRole}
+          docs={result.docs}
+          isSuperAdmin={isSuperAdmin}
+          page={result.page}
+          query={userQuery}
           tenantOptions={tenantOptions}
           totalDocs={result.totalDocs}
           totalPages={result.totalPages}
@@ -252,14 +279,9 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
   const columns = resource.defaultColumns
   const canCreate =
     resource.resource !== null && canConsole(context.session, resource.resource, CMS_ACTION.CREATE)
-  const createSupported = [
-    "contents",
-    "content-editions",
-    "domains",
-    "sites",
-    "tenants",
-    "users",
-  ].includes(slug)
+  // content-editions / sites / users render their own workspace above and never
+  // reach this generic list.
+  const createSupported = ["contents", "domains", "tenants"].includes(slug)
   const canUploadMedia =
     slug === "media" &&
     resource.resource !== null &&
@@ -273,25 +295,13 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
         icon={NAV_ICON_BY_SLUG[slug]}
         actions={
           <>
-            {canCreate &&
-            slug === "users" &&
-            (context.session.role === CMS_ROLE.SUPER_ADMIN ||
-              context.session.role === CMS_ROLE.TENANT_ADMIN) ? (
-              <ConsoleCreateDialog
-                actorRole={
-                  context.session.role === CMS_ROLE.SUPER_ADMIN
-                    ? CMS_ROLE.SUPER_ADMIN
-                    : CMS_ROLE.TENANT_ADMIN
-                }
-                createLabel="用户"
-              />
-            ) : canCreate && createSupported && slug !== "users" ? (
+            {canCreate && createSupported && (
               <Button asChild size="sm" type="button">
                 <Link href={`${consoleRoute.collection(slug as ConsoleResourceSlug)}/create`}>
                   新建{resource.label.zh}
                 </Link>
               </Button>
-            ) : null}
+            )}
             {canUploadMedia && (
               <Button asChild size="sm" type="button">
                 <Link href="/admin/collections/media/upload">上传媒体</Link>

@@ -2,6 +2,15 @@ import { CMS_ROLE, CMS_ROLES, type CmsRole, isCmsRole } from "../../access/roles
 
 export type UserFormActorRole = typeof CMS_ROLE.SUPER_ADMIN | typeof CMS_ROLE.TENANT_ADMIN
 
+export const USER_ROLE_LABEL: Readonly<Record<CmsRole, string>> = {
+  [CMS_ROLE.CONTENT_SERVICE]: "内容服务",
+  [CMS_ROLE.EDITOR]: "编辑",
+  [CMS_ROLE.PUBLISHER]: "发布",
+  [CMS_ROLE.REVIEWER]: "审阅",
+  [CMS_ROLE.SUPER_ADMIN]: "超级管理员",
+  [CMS_ROLE.TENANT_ADMIN]: "租户管理员",
+}
+
 export type UserFormInput = {
   readonly email: string
   readonly password?: string
