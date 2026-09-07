@@ -287,10 +287,19 @@ const ReviewBoard = ({
                            * side is ever empty (compiled has two primary
                            * actions and no secondary), and justify-between
                            * still pins the populated side to its edge.
+                           * Ghost + muted ink (user direction 2026-09-07):
+                           * the row stays quiet against the card content at
+                           * rest; tone only shows on hover (indigo=forward,
+                           * rose=reverse) instead of a solid fill.
                            */
                           const renderAction = (action: WorkflowAction) => (
                             <Button
                               aria-label={action.label}
+                              className={
+                                action.tone === "primary"
+                                  ? "text-[var(--console-ink-muted)] hover:bg-indigo-50 hover:text-indigo-600"
+                                  : "text-[var(--console-ink-muted)] hover:bg-rose-50 hover:text-rose-600"
+                              }
                               disabled={pendingKey !== null}
                               key={action.label}
                               onClick={() => {
@@ -309,7 +318,7 @@ const ReviewBoard = ({
                               size="icon-xs"
                               title={action.label}
                               type="button"
-                              variant={action.tone === "primary" ? "default" : "secondary"}
+                              variant="ghost"
                             >
                               {pendingKey === `${card.id}:${action.label}` ? (
                                 <span aria-hidden="true" className="text-[10px]">
