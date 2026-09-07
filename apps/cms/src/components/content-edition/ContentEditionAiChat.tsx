@@ -7,16 +7,16 @@ import {
   CopyIcon,
   FileClockIcon,
   FilePlusIcon,
-  RotateCcwIcon,
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
+  RotateCcwIcon,
   SendIcon,
   SparklesIcon,
   TrashIcon,
 } from "@/components/icons"
+import { markdownToBlocks } from "../../editor/block-markdown"
 import { IconBadge } from "../ui"
 import { Button } from "../ui/button"
-import { markdownToBlocks } from "../../editor/block-markdown"
 import { useEditionBody } from "./edition-body-context"
 
 const PANEL_KEY = "gf-ai-chat-open"

@@ -71,6 +71,32 @@ export const ContentEditionSetupFields = ({ readOnly }: { readonly readOnly: boo
   const [contents, setContents] = useState<readonly Option[]>([])
   const [sites, setSites] = useState<readonly Option[]>([])
   const [loading, setLoading] = useState(true)
+  const { value: siteValue } = useField<number | null>({ path: "site" })
+  const { setValue: setTenant, value: tenantValue } = useField<number | null>({ path: "tenant" })
+
+  /* Tenant is required but has no control here: tenant-bound users get it
+   * from their session hook, and a super-admin would otherwise have to pick
+   * it by hand. The chosen site already determines it, so mirror that. */
+  useEffect(() => {
+    const siteId = idOf(siteValue)
+    if (siteId === null || idOf(tenantValue) !== null) return
+    let active = true
+    void fetch(`/api/sites/${siteId}?depth=0`, { credentials: "same-origin" })
+      .then(async (response) => (response.ok ? await response.json() : null))
+      .then((site: unknown) => {
+        if (!active || typeof site !== "object" || site === null) return
+        const tenant = (site as Record<string, unknown>)["tenant"]
+        const tenantId =
+          typeof tenant === "number"
+            ? tenant
+            : idOf((tenant as Record<string, unknown> | null)?.["id"])
+        if (tenantId !== null) setTenant(tenantId)
+      })
+      .catch(() => undefined)
+    return () => {
+      active = false
+    }
+  }, [setTenant, siteValue, tenantValue])
 
   useEffect(() => {
     let active = true
@@ -120,6 +146,9 @@ export const ContentEditionSetupFields = ({ readOnly }: { readonly readOnly: boo
           readOnly={readOnly}
         />
       </div>
+      <p className="m-0 mt-3 text-xs text-[var(--theme-elevation-600)]">
+        租户：{idOf(tenantValue) === null ? "选择站点后自动确定" : `#${idOf(tenantValue)}`}
+      </p>
     </section>
   )
 }

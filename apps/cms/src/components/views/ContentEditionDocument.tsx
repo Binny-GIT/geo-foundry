@@ -66,6 +66,7 @@ const COPY = {
 
 const ContentEditionDocumentBody = ({ readOnly }: { readonly readOnly: boolean }) => {
   const { id } = useDocumentInfo()
+  const router = useRouter()
   const { getData } = useForm()
   const { i18n } = useTranslation()
   const lang = uiLangOf(i18n.language)
@@ -129,6 +130,31 @@ const ContentEditionDocumentBody = ({ readOnly }: { readonly readOnly: boolean }
   const saveAll = async () => {
     setSavingAll(true)
     try {
+      /* A brand-new article has no document to PATCH, and its body never
+       * reaches the Payload form state, so create it in one request with the
+       * form values and the edited body merged. */
+      if (id === undefined || id === null) {
+        const response = await fetch("/api/content-editions?depth=0&draft=true", {
+          body: JSON.stringify({ ...(getData() as Record<string, unknown>), body: bodyRows }),
+          credentials: "same-origin",
+          headers: { "content-type": "application/json" },
+          method: "POST",
+        })
+        const created = (await response.json().catch(() => ({}))) as {
+          doc?: { id?: unknown }
+          errors?: readonly { message?: string }[]
+        }
+        if (!response.ok || created.doc?.id === undefined) {
+          toast.error(
+            created.errors?.[0]?.message ??
+              (lang === "zh" ? "创建文章失败。" : "The article could not be created."),
+          )
+          return
+        }
+        toast.success(lang === "zh" ? "草稿已保存。" : "Draft saved.")
+        router.push(`/admin/workspace/editions/${String(created.doc.id)}`)
+        return
+      }
       await submit()
       const bodySaved = await saveBody()
       if (!bodySaved) {
@@ -256,7 +282,10 @@ const ContentEditionDocumentBody = ({ readOnly }: { readonly readOnly: boolean }
                   </div>
                 </div>
                 <ContentEditionEditorCanvas readOnly={readOnly} />
-                <ContentEditionMetadataEditor readOnly={readOnly} />
+                <ContentEditionMetadataEditor
+                  defaultOpen={id === undefined || id === null}
+                  readOnly={readOnly}
+                />
               </div>
             )}
           </section>

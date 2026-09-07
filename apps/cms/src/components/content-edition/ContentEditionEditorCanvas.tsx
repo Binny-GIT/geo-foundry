@@ -710,8 +710,17 @@ export const ContentEditionHeadlineFields = ({ readOnly }: { readonly readOnly: 
  * Topic, angle and reference metadata. It is collapsed by default because it
  * is reviewed once per article, unlike the body which is edited constantly.
  */
-export const ContentEditionMetadataEditor = ({ readOnly }: { readonly readOnly: boolean }) => (
-  <details className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] px-5 py-4 shadow-[var(--gf-shadow-surface)] sm:px-7">
+export const ContentEditionMetadataEditor = ({
+  defaultOpen = false,
+  readOnly,
+}: {
+  readonly defaultOpen?: boolean
+  readonly readOnly: boolean
+}) => (
+  <details
+    className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] px-5 py-4 shadow-[var(--gf-shadow-surface)] sm:px-7"
+    open={defaultOpen}
+  >
     <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
       <span>
         <span className="block text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
@@ -727,14 +736,14 @@ export const ContentEditionMetadataEditor = ({ readOnly }: { readonly readOnly: 
       <div className="grid gap-4 @min-[520px]:grid-cols-2">
         <InlineTextField
           hint="文章的核心议题，用于站点归类与检索"
-          label="主要主题"
+          label="主要主题（必填）"
           path="primaryTopic"
           placeholder="主要主题"
           readOnly={readOnly}
         />
         <InlineTextField
           hint="同一主题下的切入视角，生成与站点适配会参考它"
-          label="内容角度"
+          label="内容角度（必填）"
           path="angle"
           placeholder="内容角度"
           readOnly={readOnly}
