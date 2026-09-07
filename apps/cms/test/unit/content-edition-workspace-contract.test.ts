@@ -11,9 +11,7 @@ describe("content edition unified workspace", () => {
 
     expect(document).toContain("ContentEditionAiChat")
     expect(document).toContain("ContentEditionControlRail")
-    expect(document).toContain(
-      "2xl:grid-cols-[minmax(320px,0.8fr)_minmax(520px,1.9fr)_minmax(320px,0.9fr)]",
-    )
+    expect(document).toContain("2xl:grid-cols-[minmax(520px,1.9fr)_minmax(320px,0.9fr)]")
     expect(document).toContain("ContentEditionEditorCanvas")
     expect(document).toContain("ContentEditionPreview")
   })
@@ -76,5 +74,9 @@ describe("content edition unified workspace", () => {
     expect(chat).toContain("/api/editions/${editionId}/ai-chat")
     expect(editor).toContain("StructuredRowsField")
     expect(editor).not.toContain("JsonField")
+    // Two body editors backed by the same block array.
+    expect(editor).toContain("blocksToMarkdown")
+    expect(editor).toContain("markdownToBlocks")
+    expect(editor).toContain("gf-editor-mode")
   })
 })

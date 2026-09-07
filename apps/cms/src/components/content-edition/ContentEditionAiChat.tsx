@@ -167,9 +167,9 @@ export const ContentEditionAiChat = ({
   return (
     <aside
       aria-label="AI 写作助手"
-      className="flex min-w-0 flex-col gap-0 self-start rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] shadow-[var(--gf-shadow-surface)]"
+      className="flex h-full min-h-0 min-w-0 flex-col rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] shadow-[var(--gf-shadow-surface)]"
     >
-      <header className="flex items-center gap-3 border-b border-[var(--theme-elevation-150)] px-4 py-3">
+      <header className="flex shrink-0 items-center gap-3 border-b border-[var(--theme-elevation-150)] px-4 py-3">
         <IconBadge tone="accent">
           <SparklesIcon size={18} />
         </IconBadge>
@@ -204,10 +204,7 @@ export const ContentEditionAiChat = ({
         </Button>
       </header>
 
-      <div
-        className="flex max-h-[min(60vh,640px)] min-h-40 flex-col gap-3 overflow-y-auto px-4 py-4"
-        ref={scroller}
-      >
+      <div className="flex min-h-40 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4" ref={scroller}>
         {messages.length === 0 ? (
           <p className="m-0 text-sm leading-6 text-[var(--theme-elevation-600)]">
             向助手描述你的写作意图，例如“帮我基于当前摘要写三段引言”。对话记录只保存在本浏览器，可随时清空。
@@ -244,7 +241,7 @@ export const ContentEditionAiChat = ({
         )}
       </div>
 
-      <div className="border-t border-[var(--theme-elevation-150)] px-4 py-3">
+      <div className="shrink-0 border-t border-[var(--theme-elevation-150)] px-4 py-3">
         <textarea
           aria-label="向 AI 助手提问"
           className="min-h-20 w-full resize-y rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] p-3 text-sm leading-6 text-[var(--theme-text)] outline-none focus:border-[var(--gf-accent-400)] focus:ring-2 focus:ring-[var(--gf-accent-200)]"
@@ -278,7 +275,7 @@ export const ContentEditionAiChat = ({
 }
 
 export const ContentEditionAiChatRail = ({ onExpand }: { readonly onExpand: () => void }) => (
-  <div className="flex flex-row items-center gap-2 rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-2 shadow-[var(--gf-shadow-surface)] 2xl:flex-col 2xl:self-start 2xl:py-3">
+  <div className="flex h-full flex-row items-center gap-2 rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-2 shadow-[var(--gf-shadow-surface)] xl:flex-col xl:py-3">
     <Button
       aria-label="展开 AI 助手"
       onClick={onExpand}
@@ -290,7 +287,7 @@ export const ContentEditionAiChatRail = ({ onExpand }: { readonly onExpand: () =
       <PanelLeftOpenIcon size={16} />
     </Button>
     <SparklesIcon size={16} />
-    <span className="text-xs font-bold text-[var(--theme-elevation-600)] 2xl:[writing-mode:vertical-rl]">
+    <span className="text-xs font-bold text-[var(--theme-elevation-600)] xl:[writing-mode:vertical-rl]">
       AI 助手
     </span>
   </div>

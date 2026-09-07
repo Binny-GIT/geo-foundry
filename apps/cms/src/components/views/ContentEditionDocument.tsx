@@ -23,6 +23,7 @@ import {
 import { ContentEditionControlRail } from "../content-edition/ContentEditionControlRail"
 import {
   ContentEditionEditorCanvas,
+  ContentEditionHeadlineFields,
   ContentEditionMetadataEditor,
 } from "../content-edition/ContentEditionEditorCanvas"
 import { ContentEditionPreview } from "../content-edition/ContentEditionPreview"
@@ -115,121 +116,126 @@ const ContentEditionDocumentBody = ({ readOnly }: { readonly readOnly: boolean }
   const activeMode = selectedVersion !== null || readOnly ? "preview" : mode
 
   return (
-    <main className="flex min-h-full w-full flex-col gap-5 p-4 sm:p-6 lg:px-8 lg:py-6">
-      <header className="gf-card-in rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)] sm:p-5">
-        <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div className="min-w-0">
-            <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
-              Geo Foundry · Content edition
-            </p>
-            <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2">
-              <h1 className="min-w-0 truncate text-xl font-bold tracking-tight text-[var(--theme-text)] sm:text-2xl">
-                {typeof title === "string" && title.length > 0
-                  ? title
-                  : lang === "zh"
-                    ? "未命名内容版本"
-                    : "Untitled content edition"}
-              </h1>
-              {isWorkflowStatus(workflowStatus) && (
-                <Badge tone={WORKFLOW_TONE[workflowStatus]}>
-                  {workflowStatusLabel(workflowStatus, i18n.language)}
-                </Badge>
-              )}
+    /* The assistant owns a full-height column of its own: it starts at the top
+     * bar, spans the viewport, and sticks while the document scrolls, so the
+     * conversation stays reachable from anywhere in a long article. */
+    <main className="flex min-h-[calc(100vh-3.5rem)] w-full flex-col xl:flex-row">
+      {chatOpen ? (
+        <div className="shrink-0 p-4 pb-0 sm:p-6 sm:pb-0 xl:sticky xl:top-14 xl:h-[calc(100vh-3.5rem)] xl:w-[360px] xl:p-5 2xl:w-[400px]">
+          <ContentEditionAiChat onCollapse={() => setChatOpen(false)} readOnly={readOnly} />
+        </div>
+      ) : (
+        <div className="shrink-0 p-4 pb-0 sm:p-6 sm:pb-0 xl:sticky xl:top-14 xl:h-[calc(100vh-3.5rem)] xl:w-16 xl:p-3">
+          <ContentEditionAiChatRail onExpand={() => setChatOpen(true)} />
+        </div>
+      )}
+
+      <div className="flex min-w-0 flex-1 flex-col gap-5 p-4 sm:p-6 lg:py-6 xl:pl-0">
+        <header className="gf-card-in rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-4 shadow-[var(--gf-shadow-surface)] sm:p-5">
+          <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div className="min-w-0">
+              <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
+                Geo Foundry · Content edition
+              </p>
+              <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2">
+                <h1 className="min-w-0 truncate text-xl font-bold tracking-tight text-[var(--theme-text)] sm:text-2xl">
+                  {typeof title === "string" && title.length > 0
+                    ? title
+                    : lang === "zh"
+                      ? "未命名内容版本"
+                      : "Untitled content edition"}
+                </h1>
+                {isWorkflowStatus(workflowStatus) && (
+                  <Badge tone={WORKFLOW_TONE[workflowStatus]}>
+                    {workflowStatusLabel(workflowStatus, i18n.language)}
+                  </Badge>
+                )}
+              </div>
+              <p className="m-0 mt-1 text-xs text-[var(--theme-elevation-600)]">{saveState}</p>
             </div>
-            <p className="m-0 mt-1 text-xs text-[var(--theme-elevation-600)]">{saveState}</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {!readOnly && (
+            <div className="flex flex-wrap gap-2">
+              {!readOnly && (
+                <Button
+                  aria-pressed={activeMode === "edit"}
+                  onClick={() => {
+                    setSelectedVersion(null)
+                    setMode("edit")
+                  }}
+                  size="lg"
+                  type="button"
+                  variant={activeMode === "edit" ? "default" : "secondary"}
+                >
+                  <PencilIcon size={16} /> {t.edit}
+                </Button>
+              )}
               <Button
-                aria-pressed={activeMode === "edit"}
-                onClick={() => {
-                  setSelectedVersion(null)
-                  setMode("edit")
-                }}
+                aria-pressed={activeMode === "preview"}
+                onClick={() => setMode("preview")}
                 size="lg"
                 type="button"
-                variant={activeMode === "edit" ? "default" : "secondary"}
+                variant={activeMode === "preview" ? "default" : "secondary"}
               >
-                <PencilIcon size={16} /> {t.edit}
+                <EyeIcon size={16} /> {t.preview}
               </Button>
-            )}
-            <Button
-              aria-pressed={activeMode === "preview"}
-              onClick={() => setMode("preview")}
-              size="lg"
-              type="button"
-              variant={activeMode === "preview" ? "default" : "secondary"}
-            >
-              <EyeIcon size={16} /> {t.preview}
-            </Button>
-            {!readOnly && (
-              <Button disabled={processing} size="lg" type="submit" variant="dark">
-                <CheckCircleIcon size={15} /> {processing ? t.saving : t.save}
-              </Button>
-            )}
-          </div>
-        </div>
-      </header>
-
-      {/* Left column is the AI assistant, centre is the canvas, right holds
-       * every editorial control. When the assistant is collapsed its track
-       * shrinks to the toggle rail so the canvas takes the freed width. */}
-      <div
-        className={`gf-stagger grid min-w-0 gap-5 ${
-          chatOpen
-            ? "xl:grid-cols-[minmax(300px,0.9fr)_minmax(460px,1.8fr)] 2xl:grid-cols-[minmax(320px,0.8fr)_minmax(520px,1.9fr)_minmax(320px,0.9fr)]"
-            : "xl:grid-cols-[auto_minmax(460px,1fr)] 2xl:grid-cols-[auto_minmax(520px,2fr)_minmax(320px,0.9fr)]"
-        }`}
-      >
-        {chatOpen ? (
-          <ContentEditionAiChat onCollapse={() => setChatOpen(false)} readOnly={readOnly} />
-        ) : (
-          <ContentEditionAiChatRail onExpand={() => setChatOpen(true)} />
-        )}
-
-        <section className="@container min-w-0">
-          {activeMode === "preview" ? (
-            <div className="grid gap-4">
-              <div className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-5 shadow-[var(--gf-shadow-surface)] sm:p-7">
-                <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
-                  {selectedVersion === null
-                    ? t.previewing
-                    : lang === "zh"
-                      ? "历史版本预览"
-                      : "Historical version preview"}
-                </p>
-                <h2 className="m-0 mt-2 text-3xl font-bold tracking-tight text-[var(--theme-text)]">
-                  {typeof source.title === "string" ? source.title : "—"}
-                </h2>
-                <p className="m-0 mt-3 max-w-3xl whitespace-pre-wrap text-base leading-7 text-[var(--theme-elevation-700)]">
-                  {typeof source.summary === "string" ? source.summary : "—"}
-                </p>
-              </div>
-              <ContentEditionPreview historical={selectedVersion !== null} source={source} />
-            </div>
-          ) : (
-            <div className="grid gap-4">
-              {(id === undefined || id === null) && (
-                <ContentEditionSetupFields readOnly={readOnly} />
+              {!readOnly && (
+                <Button disabled={processing} size="lg" type="submit" variant="dark">
+                  <CheckCircleIcon size={15} /> {processing ? t.saving : t.save}
+                </Button>
               )}
-              <div className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-5 shadow-[var(--gf-shadow-surface)] sm:p-7">
-                <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
-                  {t.editing}
-                </p>
-                <div className="mt-5">
-                  <ContentEditionMetadataEditor readOnly={readOnly} />
-                </div>
-              </div>
-              <ContentEditionEditorCanvas readOnly={readOnly} />
             </div>
-          )}
-        </section>
+          </div>
+        </header>
 
-        <ContentEditionControlRail
-          onSelectVersion={setSelectedVersion}
-          readOnly={readOnly}
-          selectedVersion={selectedVersion}
-        />
+        {/* Canvas and editorial rail share the remaining width; the rail wraps
+         * below the canvas before the canvas is squeezed. */}
+        <div className="gf-stagger grid min-w-0 gap-5 2xl:grid-cols-[minmax(520px,1.9fr)_minmax(320px,0.9fr)]">
+          <section className="@container min-w-0">
+            {activeMode === "preview" ? (
+              <div className="grid gap-4">
+                <div className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-5 shadow-[var(--gf-shadow-surface)] sm:p-7">
+                  <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
+                    {selectedVersion === null
+                      ? t.previewing
+                      : lang === "zh"
+                        ? "历史版本预览"
+                        : "Historical version preview"}
+                  </p>
+                  <h2 className="m-0 mt-2 text-3xl font-bold tracking-tight text-[var(--theme-text)]">
+                    {typeof source.title === "string" ? source.title : "—"}
+                  </h2>
+                  <p className="m-0 mt-3 max-w-3xl whitespace-pre-wrap text-base leading-7 text-[var(--theme-elevation-700)]">
+                    {typeof source.summary === "string" ? source.summary : "—"}
+                  </p>
+                </div>
+                <ContentEditionPreview historical={selectedVersion !== null} source={source} />
+              </div>
+            ) : (
+              /* Headline and summary first, then the body, then the reference
+               * metadata that only matters once the article exists. */
+              <div className="grid gap-4">
+                {(id === undefined || id === null) && (
+                  <ContentEditionSetupFields readOnly={readOnly} />
+                )}
+                <div className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] p-5 shadow-[var(--gf-shadow-surface)] sm:p-7">
+                  <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
+                    {t.editing}
+                  </p>
+                  <div className="mt-5">
+                    <ContentEditionHeadlineFields readOnly={readOnly} />
+                  </div>
+                </div>
+                <ContentEditionEditorCanvas readOnly={readOnly} />
+                <ContentEditionMetadataEditor readOnly={readOnly} />
+              </div>
+            )}
+          </section>
+
+          <ContentEditionControlRail
+            onSelectVersion={setSelectedVersion}
+            readOnly={readOnly}
+            selectedVersion={selectedVersion}
+          />
+        </div>
       </div>
     </main>
   )

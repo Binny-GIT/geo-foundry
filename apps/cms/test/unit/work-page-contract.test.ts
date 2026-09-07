@@ -80,7 +80,7 @@ describe("workbench server contract", () => {
     expect(board).toContain('size="icon-xs"')
     // The old rendering fell back to the visible label text; icon-only mode
     // never does — pending state shows an ellipsis glyph instead.
-    expect(board).not.toContain(': action.label}')
+    expect(board).not.toContain(": action.label}")
 
     // Secondary (reverse/reject) actions sit left, primary (forward) actions
     // sit right — justify-between keeps a lone side pinned to its edge.
@@ -97,11 +97,10 @@ describe("workbench server contract", () => {
       sourceOf("src/components/content-edition/ContentEditionEditorCanvas.tsx"),
     ])
 
-    expect(document).toContain(
-      "2xl:grid-cols-[minmax(320px,0.8fr)_minmax(520px,1.9fr)_minmax(320px,0.9fr)]",
-    )
-    // Collapsing the assistant hands its track back to the canvas.
-    expect(document).toContain("2xl:grid-cols-[auto_minmax(520px,2fr)_minmax(320px,0.9fr)]")
+    // The assistant owns a sticky full-height column; canvas and rail share
+    // the rest of the width.
+    expect(document).toContain("xl:sticky xl:top-14 xl:h-[calc(100vh-3.5rem)]")
+    expect(document).toContain("2xl:grid-cols-[minmax(520px,1.9fr)_minmax(320px,0.9fr)]")
     expect(document).toContain("@container")
     expect(layout).toContain("WorkspaceTopBar")
     expect(layout).toContain("requireConsoleSession")
