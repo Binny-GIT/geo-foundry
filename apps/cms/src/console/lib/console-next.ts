@@ -11,9 +11,7 @@ const isExcludedConsoleNextPath = (pathname: string): boolean =>
   pathname === "/admin/forgot-password" ||
   pathname.startsWith("/admin/forgot-password/") ||
   pathname === "/admin/reset-password" ||
-  pathname.startsWith("/admin/reset-password/") ||
-  pathname === "/admin/_emergency" ||
-  pathname.startsWith("/admin/_emergency/")
+  pathname.startsWith("/admin/reset-password/")
 
 const isAdminPath = (pathname: string): boolean =>
   pathname === "/admin" || pathname.startsWith("/admin/")

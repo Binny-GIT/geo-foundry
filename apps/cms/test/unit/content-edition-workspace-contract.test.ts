@@ -17,11 +17,11 @@ describe("content edition unified workspace", () => {
   })
 
   it("hosts the editor on console routes with no Payload bridge left behind", async () => {
-    const [legacyRoute, editPage, createPage, emergency] = await Promise.all([
+    const [legacyRoute, editPage, createPage, config] = await Promise.all([
       sourceOf("src/app/(console)/admin/(authenticated)/editions/[id]/page.tsx"),
       sourceOf("src/app/(console)/admin/(authenticated)/workspace/editions/[id]/page.tsx"),
       sourceOf("src/app/(console)/admin/(authenticated)/workspace/editions/new/page.tsx"),
-      sourceOf("src/app/(console)/admin/%5Femergency/[[...segments]]/page.tsx"),
+      sourceOf("src/payload.config.ts"),
     ])
 
     expect(legacyRoute).toContain("/admin/workspace/editions/")
@@ -36,8 +36,9 @@ describe("content edition unified workspace", () => {
     expect(editPage).toContain("draft: true")
     expect(editPage).toContain("EditionEditor")
     expect(createPage).toContain("doc={null}")
-    // 应急入口保留 Payload 兜底且仅超管可用。
-    expect(emergency).toContain("requireEmergencySuperAdmin")
+    // Payload UI 已整体移除：无 emergency 兜底树，admin 路由指向 console 首页。
+    expect(config).not.toContain("_emergency")
+    expect(config).toContain('admin: "/admin"')
   })
 
   it("binds workspace metadata and review controls to the native field state layer", async () => {

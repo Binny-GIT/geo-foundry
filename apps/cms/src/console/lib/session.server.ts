@@ -74,23 +74,6 @@ export const requireConsoleSession = async (next = "/admin"): Promise<ConsoleSes
   redirect(`/admin/login?next=${encodeURIComponent(normalizeConsoleNext(next))}`)
 }
 
-export const requireEmergencySuperAdmin = async (): Promise<ConsoleSession> => {
-  const session = await getConsoleSession()
-  if (session?.role === CMS_ROLE.SUPER_ADMIN) return session
-  redirect("/admin")
-}
-
-/**
- * The Payload subtree hosts the canonical three-pane edition workspace, so any
- * authenticated session may enter; every collection operation inside still
- * goes through the server-side RBAC matrix.
- */
-export const requireEmergencySession = async (next = "/admin"): Promise<ConsoleSession> => {
-  const session = await getConsoleSession()
-  if (isHumanConsoleSession(session)) return session
-  redirect(`/admin/login?next=${encodeURIComponent(normalizeConsoleNext(next))}`)
-}
-
 export const canConsole = (
   session: ConsoleSession,
   resource: CmsResource,

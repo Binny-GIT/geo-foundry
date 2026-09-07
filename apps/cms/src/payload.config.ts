@@ -82,7 +82,7 @@ export default buildConfig({
   // Payload remains the backend/auth/RBAC engine. Its generated admin is a
   // super-admin-only emergency fallback; the product Console owns /admin.
   routes: {
-    admin: "/admin/_emergency",
+    admin: "/admin",
   },
   admin: {
     importMap: {
