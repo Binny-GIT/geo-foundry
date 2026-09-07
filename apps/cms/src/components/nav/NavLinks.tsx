@@ -188,7 +188,7 @@ export const NavLinks = ({ visibleSlugs }: NavLinksProps) => {
         <button
           aria-label={t("general:open") + " " + t("general:menu")}
           className={cn(
-            "fixed left-4 top-4 z-40 flex size-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-md transition-colors hover:bg-slate-50 hover:text-slate-900 min-[1441px]:hidden",
+            "gf-nav-mobile-toggle fixed left-4 top-4 z-40 flex size-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-md transition-colors hover:bg-slate-50 hover:text-slate-900 min-[1441px]:hidden",
           )}
           onClick={() => setNavOpen(true)}
           type="button"

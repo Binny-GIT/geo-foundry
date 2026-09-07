@@ -1,0 +1,27 @@
+/*
+ * The workspace tree renders Payload's DefaultTemplate (RootPage) inside the
+ * Console shell, so Payload's own sidebar chrome must not double up here:
+ * the console sidebar owns navigation, and the console header owns the top
+ * bar. Scoped to `.gf-workspace-host` (the wrapper the workspace layout puts
+ * around every page), so the payload tree keeps its own sidebar untouched.
+ */
+.gf-workspace-host .gf-sidebar,
+.gf-workspace-host .gf-nav-mobile-toggle {
+  display: none !important;
+}
+
+/*
+ * Desktop (>=1441px) keeps a nav grid track alive via --nav-width even when
+ * the sidebar itself is hidden, which would strand a dead 275px column next
+ * to the console sidebar. Zero the track itself; Payload's own collapse rule
+ * (html[data-gf-nav-collapsed] .template-default--nav-open) only overrides
+ * --nav-width, so pinning grid-template-columns wins regardless. Below that
+ * breakpoint Payload already collapses the nav into a drawer with a 0-width
+ * track, so nothing to do there.
+ */
+@media (min-width: 1441px) {
+  .gf-workspace-host .template-default,
+  .gf-workspace-host .template-default--nav-open {
+    grid-template-columns: 0 auto;
+  }
+}
