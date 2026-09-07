@@ -77,7 +77,7 @@ describe("Workbench query", () => {
       and: [
         { title: { like: "标题" } },
         { owner: { equals: 7 } },
-        { site: { equals: 12 } },
+        { or: [{ site: { equals: 12 } }, { sites: { contains: 12 } }] },
         {
           updatedAt: {
             greater_than_equal: "2026-08-03T00:00:00.000Z",

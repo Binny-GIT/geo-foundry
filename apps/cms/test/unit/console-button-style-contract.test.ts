@@ -98,14 +98,17 @@ describe("console button and link style contract", () => {
   })
 
   it("renders terminal pagination controls as real disabled buttons instead of disabled-looking links", async () => {
-    const [work, editions, sites, collections] = await Promise.all([
-      sourceOf("src/app/(console)/admin/(authenticated)/work/page.tsx"),
+    // The workbench board groups one query into six status columns instead
+    // of a flat list, so a global "page 2 of N" control doesn't map onto it
+    // — it carries no pagination UI at all (see the WORK_QUERY_LIMIT comment
+    // in work/page.tsx) and is intentionally excluded here.
+    const [editions, sites, collections] = await Promise.all([
       sourceOf("src/console/components/EditionsWorkspace.tsx"),
       sourceOf("src/console/components/SitesWorkspace.tsx"),
       sourceOf("src/app/(console)/admin/(authenticated)/collections/[slug]/page.tsx"),
     ])
 
-    for (const source of [work, editions, sites, collections]) {
+    for (const source of [editions, sites, collections]) {
       expect(source).toContain("<Button disabled")
       expect(source).not.toContain("aria-disabled")
     }
