@@ -12,7 +12,6 @@ import {
 } from "@/components/icons"
 import { blocksToMarkdown, markdownToBlocks } from "../../../editor/block-markdown"
 import { Button } from "@/components/ui/button"
-import { useEditionBody } from "./edition-editor-context"
 
 const MODE_KEY = "gf-editor-mode"
 
@@ -475,85 +474,6 @@ const MarkdownCanvas = ({
         原样保留，请勿手工改动其内容，切回文章编辑器仍可正常编辑。
       </p>
     </div>
-  )
-}
-
-export const ContentEditionEditorCanvas = ({ readOnly }: { readonly readOnly: boolean }) => {
-  const { dirty, loading, replace, rows } = useEditionBody()
-  const [mode, setMode] = useState<EditorMode>("rich")
-
-  useEffect(() => {
-    if (window.localStorage.getItem(MODE_KEY) === "markdown") setMode("markdown")
-  }, [])
-
-  const switchTo = (next: EditorMode) => {
-    setMode(next)
-    window.localStorage.setItem(MODE_KEY, next)
-  }
-
-  return (
-    <section className="rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] shadow-[var(--gf-shadow-surface)]">
-      <header className="flex flex-col gap-3 border-b border-[var(--theme-elevation-150)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
-            正文
-          </p>
-          <h2 className="m-0 mt-1 text-base font-bold text-[var(--theme-text)]">
-            {loading ? "正在载入正文…" : `${rows.length} 个区块`}
-            {dirty && (
-              <span className="ml-2 text-xs font-medium text-[var(--gf-accent-700)]">未保存</span>
-            )}
-          </h2>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex rounded-lg border border-[var(--theme-elevation-200)] p-0.5">
-            <Button
-              aria-pressed={mode === "rich"}
-              onClick={() => switchTo("rich")}
-              size="sm"
-              type="button"
-              variant={mode === "rich" ? "default" : "ghost"}
-            >
-              <PencilIcon size={14} /> 文章编辑器
-            </Button>
-            <Button
-              aria-pressed={mode === "markdown"}
-              onClick={() => switchTo("markdown")}
-              size="sm"
-              type="button"
-              variant={mode === "markdown" ? "default" : "ghost"}
-            >
-              <FileClockIcon size={14} /> Markdown
-            </Button>
-          </div>
-          {!readOnly && mode === "rich" && (
-            <>
-              <Button
-                onClick={() => replace([...rows, emptyBlockOf("paragraph")])}
-                size="sm"
-                type="button"
-                variant="secondary"
-              >
-                <PlusIcon size={14} strokeWidth={1.8} /> 段落
-              </Button>
-              <Button
-                onClick={() => replace([...rows, emptyBlockOf("heading")])}
-                size="sm"
-                type="button"
-                variant="secondary"
-              >
-                <PlusIcon size={14} strokeWidth={1.8} /> 标题
-              </Button>
-            </>
-          )}
-        </div>
-      </header>
-      {mode === "rich" ? (
-        <RichCanvas readOnly={readOnly} replace={replace} rows={rows} />
-      ) : (
-        <MarkdownCanvas readOnly={readOnly} replace={replace} rows={rows} />
-      )}
-    </section>
   )
 }
 

@@ -7,6 +7,7 @@ import {
 
 import { claimsFromRequest, collectionAccess } from "../access/functions"
 import { CMS_RESOURCE, readScope } from "../access/policy"
+import { markdownToBlocks } from "../editor/block-markdown"
 import { PAGE_DOCUMENT_BLOCKS } from "../editor/page-document-blocks"
 import { validateEditionBody } from "../editor/validate-body"
 import { canonicalize } from "../services/edition-input-hash"
@@ -58,6 +59,14 @@ const contentFieldChanged = (
 ): boolean =>
   Object.hasOwn(data, field) &&
   JSON.stringify(canonicalize(data[field])) !== JSON.stringify(canonicalize(originalDoc?.[field]))
+
+/* Markdown 是编辑真相：任何写入只要带 bodyMarkdown，就同步派生 body 区块，
+ * 供编译/发布/Delivery 消费。派生在其余 beforeChange 之前执行。 */
+const deriveBodyFromMarkdown: CollectionBeforeChangeHook = ({ data }) => {
+  if (typeof data["bodyMarkdown"] !== "string") return data
+  data["body"] = markdownToBlocks(data["bodyMarkdown"])
+  return data
+}
 
 const trackContentVersion: CollectionBeforeChangeHook = ({ data, operation, originalDoc }) => {
   if (
@@ -217,7 +226,12 @@ export const ContentEditions = {
     drafts: true,
   },
   hooks: {
-    beforeChange: [trackContentVersion, ensureTenantConsistency, ensureMediaReferences],
+    beforeChange: [
+    deriveBodyFromMarkdown,
+    trackContentVersion,
+    ensureTenantConsistency,
+    ensureMediaReferences,
+  ],
   },
   fields: localizedFields([
     {
@@ -290,11 +304,19 @@ export const ContentEditions = {
       required: true,
     },
     {
+      /* Markdown 是正文的唯一编辑真相（编辑器/AI/版本都读写 bodyMarkdown）；
+       * body 降级为服务端派生数据，供编译、发布与 Delivery 的区块链路消费，
+       * 不再出现在任何编辑界面。保存草稿允许正文暂空，发布链路自会校验。 */
       name: "body",
       type: "blocks",
       blocks: PAGE_DOCUMENT_BLOCKS,
-      required: true,
+      admin: { hidden: true },
       validate: validateEditionBody,
+    },
+    {
+      name: "bodyMarkdown",
+      type: "text",
+      index: true,
     },
     {
       name: "primaryTopic",

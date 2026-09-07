@@ -28,6 +28,7 @@ import * as migration_20260901_001000_api_usage_locked_rels from "./20260901_001
 import * as migration_20260901_002000_reading_city from "./20260901_002000_reading_city"
 import * as migration_20260901_003000_intake_content_blocks from "./20260901_003000_intake_content_blocks"
 import * as migration_20260903_131000_edition_sites from "./20260903_131000_edition_sites"
+import * as migration_20260908_010000_edition_body_markdown from "./20260908_010000_edition_body_markdown"
 
 export const migrations = [
   {
@@ -179,5 +180,10 @@ export const migrations = [
     up: migration_20260903_131000_edition_sites.up,
     down: migration_20260903_131000_edition_sites.down,
     name: "20260903_131000_edition_sites",
+  },
+  {
+    up: migration_20260908_010000_edition_body_markdown.up,
+    down: migration_20260908_010000_edition_body_markdown.down,
+    name: "20260908_010000_edition_body_markdown",
   },
 ]

@@ -1,6 +1,8 @@
 "use client"
 
 import { useRouter } from "next/navigation"
+
+import { blocksToMarkdown, markdownToBlocks } from "@/editor/block-markdown"
 import {
   createContext,
   type ReactNode,
@@ -25,8 +27,11 @@ type ToastItem = { readonly id: number; readonly kind: ToastKind; readonly messa
 
 type EditionBody = Readonly<{
   dirty: boolean
+  /** 正文的 Markdown 全文（唯一编辑真相）。 */
+  markdown: string
   loading: boolean
-  replace: (rows: readonly Row[]) => void
+  replaceMarkdown: (next: string) => void
+  /** 派生区块视图，仅供预览/渲染消费，不是编辑入口。 */
   rows: readonly Row[]
   save: () => Promise<boolean>
 }>
@@ -152,7 +157,8 @@ const EditionBodyContext = createContext<EditionBody | null>(null)
 const EMPTY_BODY: EditionBody = {
   dirty: false,
   loading: false,
-  replace: () => undefined,
+  markdown: "",
+  replaceMarkdown: () => undefined,
   rows: [],
   save: async () => true,
 }
@@ -173,7 +179,13 @@ export const EditionEditorProvider = ({
 }) => {
   const router = useRouter()
   const [values, setValues] = useState<Record<string, unknown>>(() => initialValuesOf(doc))
-  const [rows, setRows] = useState<readonly Row[]>(() => arrayRowsOf(doc?.["body"]))
+  /* Markdown 是正文唯一编辑真相：存量文章无 bodyMarkdown 时由 blocks 转换而来；
+   * rows 只是给预览/AI 用的派生视图，不直接编辑。 */
+  const [markdown, setMarkdown] = useState<string>(() => {
+    const stored = doc?.["bodyMarkdown"]
+    if (typeof stored === "string" && stored.length > 0) return stored
+    return blocksToMarkdown(arrayRowsOf(doc?.["body"]))
+  })
   const [valuesDirty, setValuesDirty] = useState(false)
   const [bodyDirty, setBodyDirty] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -183,7 +195,7 @@ export const EditionEditorProvider = ({
   const [toasts, setToasts] = useState<readonly ToastItem[]>([])
   const toastSeq = useRef(0)
   const valuesRef = useRef(values)
-  const rowsRef = useRef(rows)
+  const markdownRef = useRef(markdown)
   // 服务端已确认的基线快照：用于区分“本就是空”与“用户显式清空”，
   // 并在保存成功后判断请求期间是否有新编辑。
   const initialRef = useRef(values)
@@ -193,7 +205,7 @@ export const EditionEditorProvider = ({
   // 双击锁：saving state 的更新是异步的，同步 ref 才能挡住连击的第二次进入。
   const savingRef = useRef(false)
   valuesRef.current = values
-  rowsRef.current = rows
+  markdownRef.current = markdown
 
   const notify = useCallback((kind: ToastKind, message: string) => {
     toastSeq.current += 1
@@ -218,9 +230,9 @@ export const EditionEditorProvider = ({
     setValuesDirty(true)
   }, [])
 
-  const replaceBody = useCallback((next: readonly Row[]) => {
+  const replaceMarkdown = useCallback((next: string) => {
     editsRef.current += 1
-    setRows(JSON.parse(JSON.stringify(next)) as Row[])
+    setMarkdown(next)
     setBodyDirty(true)
   }, [])
 
@@ -234,7 +246,7 @@ export const EditionEditorProvider = ({
       /* 提交时刻的不可变快照：请求期间的新编辑不进本次 payload，
        * 响应也只把这份快照登记为新的已保存基线。 */
       const submittedValues: Record<string, unknown> = { ...valuesRef.current }
-      const submittedRows = rowsRef.current
+      const submittedMarkdown = markdownRef.current
       const seqAtSubmit = editsRef.current
       const payload: Record<string, unknown> = {}
       for (const key of EDITABLE_KEYS) {
@@ -250,7 +262,7 @@ export const EditionEditorProvider = ({
         }
         payload[key] = value
       }
-      payload["body"] = submittedRows
+      payload["bodyMarkdown"] = submittedMarkdown
       const creating = docId === null
       const response = await fetch(
         creating
@@ -344,9 +356,18 @@ export const EditionEditorProvider = ({
     }
   }, [docId])
 
+  const derivedRows = useMemo<readonly Row[]>(() => markdownToBlocks(markdown), [markdown])
+
   const bodyValue = useMemo<EditionBody>(
-    () => ({ dirty: bodyDirty, loading: false, replace: replaceBody, rows, save }),
-    [bodyDirty, replaceBody, rows, save],
+    () => ({
+      dirty: bodyDirty,
+      loading: false,
+      markdown,
+      replaceMarkdown,
+      rows: derivedRows,
+      save,
+    }),
+    [bodyDirty, derivedRows, markdown, replaceMarkdown, save],
   )
   const stateValue = useMemo<EditionEditorState>(
     () => ({

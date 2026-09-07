@@ -15,7 +15,6 @@ import {
   SparklesIcon,
   TrashIcon,
 } from "@/components/icons"
-import { markdownToBlocks } from "../../../editor/block-markdown"
 import { IconBadge } from "@/components/ui"
 import { Button } from "@/components/ui/button"
 import { useEditionBody } from "./edition-editor-context"
@@ -106,9 +105,9 @@ export const ContentEditionAiChat = ({
   const { id } = useDocumentInfo()
   const saved = id !== undefined && id !== null
   const editionId = saved ? String(id) : "new"
-  const { replace: replaceBody, rows: bodyRows } = useEditionBody()
+  const { markdown, replaceMarkdown } = useEditionBody()
   const [autoApply, setAutoApply] = useState(false)
-  const [undoSnapshot, setUndoSnapshot] = useState<readonly Record<string, unknown>[] | null>(null)
+  const [undoSnapshot, setUndoSnapshot] = useState<string | null>(null)
   const [appliedId, setAppliedId] = useState<string | null>(null)
   const conversationKey = useRef<string>(conversationKeyOf(editionId))
   const [messages, setMessages] = useState<readonly AiChatMessage[]>([])
@@ -240,27 +239,32 @@ export const ContentEditionAiChat = ({
     }
   }
 
-  /* Applying is a single transaction: the pre-change body is kept so one
+  /* Applying is a single transaction: the pre-change Markdown is kept so one
    * click restores it, which is the cheapest reliable undo for a draft. */
-  const applyArticle = (messageId: string, markdown: string, mode: "append" | "replace") => {
-    const next = markdownToBlocks(markdown)
-    if (next.length === 0) return
-    setUndoSnapshot(bodyRows)
+  const applyArticle = (messageId: string, article: string, mode: "append" | "replace") => {
+    if (article.trim().length === 0) return
+    setUndoSnapshot(markdown)
     setAppliedId(messageId)
-    replaceBody(mode === "replace" ? next : [...bodyRows, ...next])
+    replaceMarkdown(
+      mode === "replace" ? article : markdown.length > 0 ? `${markdown}
+
+${article}` : article,
+    )
   }
 
   const undoApply = () => {
     if (undoSnapshot === null) return
-    replaceBody(undoSnapshot)
+    replaceMarkdown(undoSnapshot)
     setUndoSnapshot(null)
     setAppliedId(null)
   }
 
   const insert = (content: string) => {
-    const next = blocksOf(content)
-    if (next.length === 0) return
-    replaceBody([...bodyRows, ...next])
+    const text = content.trim()
+    if (text.length === 0) return
+    replaceMarkdown(markdown.length > 0 ? `${markdown}
+
+${text}` : text)
   }
 
   return (

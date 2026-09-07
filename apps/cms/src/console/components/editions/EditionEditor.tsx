@@ -16,11 +16,8 @@ import {
   useAiChatPanel,
 } from "./ContentEditionAiChat"
 import { ContentEditionControlRail } from "./ContentEditionControlRail"
-import {
-  ContentEditionEditorCanvas,
-  ContentEditionHeadlineFields,
-  ContentEditionMetadataEditor,
-} from "./ContentEditionEditorCanvas"
+import { ContentEditionHeadlineFields, ContentEditionMetadataEditor } from "./ContentEditionEditorCanvas"
+import { EditionMarkdownEditor } from "./EditionMarkdownEditor"
 import { ContentEditionPreview } from "./ContentEditionPreview"
 import type { VersionSelection } from "./ContentEditionRail"
 import { ContentEditionSetupFields } from "./ContentEditionSetupFields"
@@ -186,7 +183,7 @@ const EditorBody = ({ readOnly }: { readonly readOnly: boolean }) => {
                     <ContentEditionHeadlineFields readOnly={readOnly} />
                   </div>
                 </div>
-                <ContentEditionEditorCanvas readOnly={readOnly} />
+                <EditionMarkdownEditor readOnly={readOnly} />
                 <ContentEditionMetadataEditor defaultOpen={id === null} readOnly={readOnly} />
               </div>
             )}
