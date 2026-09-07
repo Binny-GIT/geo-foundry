@@ -11,8 +11,17 @@ const PROTECTED_BLOCK_OPENING = ":::gf-block"
 const isRow = (value: unknown): value is Row =>
   typeof value === "object" && value !== null && !Array.isArray(value)
 
+/*
+ * Payload 给每个区块行注入 id，并把未填写的 blockName/extensions 存成 null。
+ * 这些是存储噪声而不是内容：把它们计入「额外字段」会让真实文档里的每一段
+ * 都退化成保护块，Markdown 模式就失去意义。id 由 Payload 在保存时重建，
+ * 因此可读映射允许丢弃；带有真实值的 extensions/blockName 仍走保护块保真。
+ */
+const isStorageNoise = (row: Row, key: string): boolean =>
+  key === "id" || ((key === "blockName" || key === "extensions") && row[key] === null)
+
 const hasOnlyKeys = (row: Row, allowed: readonly string[]): boolean =>
-  Object.keys(row).every((key) => allowed.includes(key))
+  Object.keys(row).every((key) => allowed.includes(key) || isStorageNoise(row, key))
 
 const hasOptionalString = (row: Row, key: string): boolean =>
   !Object.hasOwn(row, key) || typeof row[key] === "string"

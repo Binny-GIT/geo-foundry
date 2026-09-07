@@ -59,7 +59,6 @@ const answer = 42
         id: "paragraph-1",
         text: "Stored",
       },
-      { blockType: "heading", id: "heading-1", level: "3", text: "Stored heading" },
       {
         alt: "A diagram",
         blockType: "image",
@@ -69,20 +68,6 @@ const answer = 42
         id: "image-1",
         src: "https://example.com/image.png",
         width: 640,
-      },
-      {
-        attribution: "Author",
-        blockType: "quote",
-        citeUrl: "https://example.com/citation",
-        extensions: null,
-        id: "quote-1",
-        text: "Stored quote",
-      },
-      {
-        blockType: "list",
-        id: "list-1",
-        items: [{ id: "list-item-1", text: "Stored item" }],
-        style: "unordered",
       },
       {
         blockType: "table",
@@ -140,6 +125,41 @@ const answer = 42
     expect(markdown).toContain(":::gf-block")
     expect(markdown).toContain('"id":"paragraph-1"')
     expect(markdownToBlocks(markdown)).toEqual(blocks)
+  })
+
+  it("keeps stored rows readable when they only carry Payload row noise", () => {
+    // Real documents always carry a row id plus null blockName/extensions;
+    // those must not push every paragraph into a protected block.
+    const stored = [
+      {
+        blockName: null,
+        blockType: "heading",
+        extensions: null,
+        id: "a",
+        level: "3",
+        text: "标题",
+      },
+      { blockName: null, blockType: "paragraph", extensions: null, id: "b", text: "正文段落" },
+      {
+        blockName: null,
+        blockType: "list",
+        extensions: null,
+        id: "c",
+        items: [{ id: "c1", text: "第一项" }],
+        style: "ordered",
+      },
+    ]
+
+    const markdown = blocksToMarkdown(stored)
+
+    expect(markdown).not.toContain(":::gf-block")
+    expect(markdown).toContain("### 标题")
+    // The row id is machine-owned and rebuilt on save, so content survives.
+    expect(markdownToBlocks(markdown)).toEqual([
+      { blockType: "heading", level: "3", text: "标题" },
+      { blockType: "paragraph", text: "正文段落" },
+      { blockType: "list", items: [{ text: "第一项" }], style: "ordered" },
+    ])
   })
 
   it("parses handwritten Markdown despite blank lines, trailing spaces, and CRLF", () => {
