@@ -24,7 +24,6 @@ export type TopbarPage = {
  * create/edit suffixes.
  */
 const STATIC_PAGES: readonly { readonly href: string; readonly page: TopbarPage }[] = [
-  { href: "/admin/workspace/editions/", page: { icon: PencilIcon, label: "编辑稿件" } },
   { href: "/admin/work/editions/", page: { icon: PencilIcon, label: "编辑稿件" } },
   { href: "/admin/work/operations/", page: { icon: PackageIcon, label: "操作详情" } },
   { href: "/admin/work", page: { icon: LayersIcon, label: "工作台" } },
