@@ -177,6 +177,8 @@ export const EditionEditorProvider = ({
   const toastSeq = useRef(0)
   const valuesRef = useRef(values)
   const rowsRef = useRef(rows)
+  // 服务端文档的初始值快照：用于区分“本就是空”与“用户显式清空”。
+  const initialRef = useRef(values)
   valuesRef.current = values
   rowsRef.current = rows
 
@@ -216,7 +218,16 @@ export const EditionEditorProvider = ({
       const payload: Record<string, unknown> = {}
       for (const key of EDITABLE_KEYS) {
         const value = valuesRef.current[key]
-        payload[key] = value === undefined ? null : value
+        if (value === undefined) continue
+        /* null 只在用户显式清空时发送（原值非空）；本就为空的字段直接省略，
+         * 避免覆盖 editorialStatus/priority 等字段的服务端默认值（DB NOT NULL）。 */
+        if (value === null) {
+          if (initialRef.current[key] !== null && initialRef.current[key] !== undefined) {
+            payload[key] = null
+          }
+          continue
+        }
+        payload[key] = value
       }
       payload["body"] = rowsRef.current
       const creating = docId === null
