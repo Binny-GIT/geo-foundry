@@ -146,11 +146,6 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
             ) : null
           }
           icon={NAV_ICON_BY_SLUG["content-editions"]}
-          meta={
-            <span className="rounded-full border border-[var(--console-border)] bg-[var(--console-surface)] px-3 py-1 text-xs font-semibold text-[var(--console-ink-muted)]">
-              {result.totalDocs} 篇
-            </span>
-          }
           title="文章列表"
         />
         <EditionsWorkspace

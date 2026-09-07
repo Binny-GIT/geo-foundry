@@ -2,9 +2,16 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
-import { AlertTriangleIcon, ChevronDownIcon, FilePlusIcon, FilterIcon } from "@/components/icons"
+import {
+  AlertTriangleIcon,
+  CalendarClockIcon,
+  ChevronDownIcon,
+  FilePlusIcon,
+  FilterIcon,
+  SearchIcon,
+} from "@/components/icons"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -34,16 +41,22 @@ type SiteOption = Readonly<{ readonly id: number; readonly name: string }>
 type StoredFilters = {
   columns?: readonly string[]
   filterOpen?: boolean
-  owner?: number | null
+  owner?: readonly number[]
   q?: string | null
   range?: WorkRange
-  site?: number | null
+  site?: readonly number[]
 }
 
 const hasQueryParams = (): boolean => window.location.search.length > 0
 
 const selectClass =
   "gf-console-focus h-9 cursor-pointer rounded-md border border-[var(--console-border)] bg-[var(--console-surface)] px-2.5 text-sm text-[var(--console-ink)] outline-none"
+
+const leadingIconClass =
+  "pointer-events-none absolute left-2.5 top-1/2 grid -translate-y-1/2 place-items-center text-[var(--console-ink-muted)]"
+
+const filterDropdownTriggerClass =
+  "gf-console-focus flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-[var(--console-border)] bg-[var(--console-surface)] px-2.5 text-sm text-[var(--console-ink)] outline-none"
 
 export const WorkToolbar = ({
   canCreate,
@@ -61,6 +74,12 @@ export const WorkToolbar = ({
   const router = useRouter()
   const [filterOpen, setFilterOpen] = useState(false)
   const [search, setSearch] = useState(query.q ?? "")
+  const [columns, setColumns] = useState(query.showColumns)
+  const [ownerSel, setOwnerSel] = useState(query.owner)
+  const [siteSel, setSiteSel] = useState(query.site)
+  const columnsRef = useRef(columns)
+  const ownerRef = useRef(ownerSel)
+  const siteRef = useRef(siteSel)
 
   /*
    * Filter memory: on first mount with a clean URL, restore the persisted
@@ -81,8 +100,8 @@ export const WorkToolbar = ({
         ...query,
         ...(stored.range !== undefined ? { range: stored.range } : {}),
         ...(stored.q !== null && stored.q !== undefined ? { q: stored.q } : {}),
-        owner: stored.owner ?? null,
-        site: stored.site ?? null,
+        owner: stored.owner ?? [],
+        site: stored.site ?? [],
         showColumns:
           stored.columns !== undefined && stored.columns.length > 0
             ? stored.columns.filter((key): key is BoardColumnKey =>
@@ -97,13 +116,19 @@ export const WorkToolbar = ({
 
   useEffect(() => {
     setSearch(query.q ?? "")
+    setColumns(query.showColumns)
+    setOwnerSel(query.owner)
+    setSiteSel(query.site)
+    columnsRef.current = query.showColumns
+    ownerRef.current = query.owner
+    siteRef.current = query.site
     const stored: StoredFilters = {
       columns: [...query.showColumns],
       filterOpen,
-      owner: query.owner,
+      owner: [...query.owner],
       q: query.q,
       range: query.range,
-      site: query.site,
+      site: [...query.site],
     }
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
   }, [filterOpen, query])
@@ -112,28 +137,78 @@ export const WorkToolbar = ({
     router.push(workHref(query, overrides))
   }
 
+  /*
+   * Every multi-select toggle below reads and writes a ref alongside its
+   * mirrored state. `query` (and the state synced from it) only catches up
+   * once the resulting navigation round-trips back from the server, so
+   * clicking several checkboxes back to back before that round-trip lands
+   * used to compute each toggle from the same stale base — losing all but
+   * the last click and freezing the trigger label on a stale count (e.g.
+   * "状态：5/6" regardless of how many boxes were actually toggled). The ref
+   * is updated synchronously on every click, so the next click always sees
+   * the latest selection.
+   */
   const toggleColumn = (key: BoardColumnKey) => {
-    const next = query.showColumns.includes(key)
-      ? query.showColumns.filter((column) => column !== key)
-      : [...query.showColumns, key]
-    go({ showColumns: next.length === 0 ? ALL_WORK_COLUMNS : next })
+    const current = columnsRef.current
+    const next = current.includes(key)
+      ? current.filter((column) => column !== key)
+      : [...current, key]
+    const applied = next.length === 0 ? ALL_WORK_COLUMNS : next
+    columnsRef.current = applied
+    setColumns(applied)
+    go({ showColumns: applied })
+  }
+
+  const toggleOwner = (id: number) => {
+    const current = ownerRef.current
+    const next = current.includes(id) ? current.filter((owner) => owner !== id) : [...current, id]
+    ownerRef.current = next
+    setOwnerSel(next)
+    go({ owner: next })
+  }
+
+  const clearOwner = () => {
+    ownerRef.current = []
+    setOwnerSel([])
+    go({ owner: [] })
+  }
+
+  const toggleSite = (id: number) => {
+    const current = siteRef.current
+    const next = current.includes(id) ? current.filter((site) => site !== id) : [...current, id]
+    siteRef.current = next
+    setSiteSel(next)
+    go({ site: next })
+  }
+
+  const clearSite = () => {
+    siteRef.current = []
+    setSiteSel([])
+    go({ site: [] })
   }
 
   return (
     <section className="gf-console-card shrink-0 p-3 sm:px-4">
       <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
-        <select
-          aria-label="期间范围"
-          className={selectClass}
-          onChange={(event) => go({ from: null, range: event.target.value as WorkRange, to: null })}
-          value={query.range === "custom" ? "custom" : query.range}
-        >
-          {RANGE_OPTIONS.map((range) => (
-            <option key={range} value={range}>
-              {workRangeLabel(range)}
-            </option>
-          ))}
-        </select>
+        <div className="relative">
+          <span aria-hidden className={leadingIconClass}>
+            <CalendarClockIcon size={14} />
+          </span>
+          <select
+            aria-label="期间范围"
+            className={cn(selectClass, "pl-8")}
+            onChange={(event) =>
+              go({ from: null, range: event.target.value as WorkRange, to: null })
+            }
+            value={query.range === "custom" ? "custom" : query.range}
+          >
+            {RANGE_OPTIONS.map((range) => (
+              <option key={range} value={range}>
+                {workRangeLabel(range)}
+              </option>
+            ))}
+          </select>
+        </div>
         {failedCount > 0 && (
           <Button asChild type="button" variant="danger">
             <Link href={consoleRoute.collection("operations")}>
@@ -177,25 +252,27 @@ export const WorkToolbar = ({
               go({ q: search.trim().length === 0 ? null : search.trim() })
             }}
           >
-            <input
-              aria-label="搜索标题"
-              className="gf-console-focus h-9 min-w-0 flex-1 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-sm text-[var(--console-ink)] outline-none placeholder:text-[var(--console-ink-muted)]"
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="按关键词过滤标题…"
-              value={search}
-            />
+            <div className="relative min-w-0 flex-1">
+              <span aria-hidden className={leadingIconClass}>
+                <SearchIcon size={14} />
+              </span>
+              <input
+                aria-label="搜索标题"
+                className="gf-console-focus h-9 w-full rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] py-0 pl-8 pr-3 text-sm text-[var(--console-ink)] outline-none placeholder:text-[var(--console-ink-muted)]"
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="按关键词过滤标题…"
+                value={search}
+              />
+            </div>
           </form>
           <div className="ml-auto flex shrink-0 flex-wrap items-center gap-2">
             <DropdownMenu>
-              <DropdownMenuTrigger
-                className="gf-console-focus flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border border-[var(--console-border)] bg-[var(--console-surface)] px-2.5 text-sm text-[var(--console-ink)] outline-none"
-                aria-label="筛选状态列"
-              >
+              <DropdownMenuTrigger aria-label="筛选状态列" className={filterDropdownTriggerClass}>
                 <span className="font-medium">
                   状态：
-                  {query.showColumns.length === ALL_WORK_COLUMNS.length
+                  {columns.length === ALL_WORK_COLUMNS.length
                     ? "全部"
-                    : `${query.showColumns.length}/${ALL_WORK_COLUMNS.length}`}
+                    : `${columns.length}/${ALL_WORK_COLUMNS.length}`}
                 </span>
                 <span
                   aria-hidden
@@ -207,7 +284,7 @@ export const WorkToolbar = ({
               <DropdownMenuContent align="end" className="min-w-36">
                 {BOARD_COLUMNS.map((column) => (
                   <DropdownMenuCheckboxItem
-                    checked={query.showColumns.includes(column.key)}
+                    checked={columns.includes(column.key)}
                     key={column.key}
                     onCheckedChange={() => toggleColumn(column.key)}
                     onSelect={(event) => event.preventDefault()}
@@ -217,36 +294,70 @@ export const WorkToolbar = ({
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-            <select
-              aria-label="分配人"
-              className={`${selectClass} w-44 shrink-0`}
-              onChange={(event) =>
-                go({ owner: event.target.value === "" ? null : Number(event.target.value) })
-              }
-              value={query.owner === null ? "" : String(query.owner)}
-            >
-              <option value="">全部分配人</option>
-              {owners.map((owner) => (
-                <option key={owner.id} value={owner.id}>
-                  <DeferredText>{owner.email}</DeferredText>
-                </option>
-              ))}
-            </select>
-            <select
-              aria-label="站点"
-              className={`${selectClass} w-36 shrink-0`}
-              onChange={(event) =>
-                go({ site: event.target.value === "" ? null : Number(event.target.value) })
-              }
-              value={query.site === null ? "" : String(query.site)}
-            >
-              <option value="">全部站点</option>
-              {sites.map((site) => (
-                <option key={site.id} value={site.id}>
-                  {site.name}
-                </option>
-              ))}
-            </select>
+            <DropdownMenu>
+              <DropdownMenuTrigger aria-label="筛选分配人" className={filterDropdownTriggerClass}>
+                <span className="font-medium">
+                  分配人：{ownerSel.length === 0 ? "全部" : `${ownerSel.length}/${owners.length}`}
+                </span>
+                <span
+                  aria-hidden
+                  className="grid place-items-center text-[var(--console-ink-muted)]"
+                >
+                  <ChevronDownIcon size={14} />
+                </span>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="max-h-72 min-w-48 overflow-y-auto">
+                <DropdownMenuCheckboxItem
+                  checked={ownerSel.length === 0}
+                  onCheckedChange={() => clearOwner()}
+                  onSelect={(event) => event.preventDefault()}
+                >
+                  全部分配人
+                </DropdownMenuCheckboxItem>
+                {owners.map((owner) => (
+                  <DropdownMenuCheckboxItem
+                    checked={ownerSel.includes(owner.id)}
+                    key={owner.id}
+                    onCheckedChange={() => toggleOwner(owner.id)}
+                    onSelect={(event) => event.preventDefault()}
+                  >
+                    <DeferredText>{owner.email}</DeferredText>
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger aria-label="筛选站点" className={filterDropdownTriggerClass}>
+                <span className="font-medium">
+                  站点：{siteSel.length === 0 ? "全部" : `${siteSel.length}/${sites.length}`}
+                </span>
+                <span
+                  aria-hidden
+                  className="grid place-items-center text-[var(--console-ink-muted)]"
+                >
+                  <ChevronDownIcon size={14} />
+                </span>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="max-h-72 min-w-40 overflow-y-auto">
+                <DropdownMenuCheckboxItem
+                  checked={siteSel.length === 0}
+                  onCheckedChange={() => clearSite()}
+                  onSelect={(event) => event.preventDefault()}
+                >
+                  全部站点
+                </DropdownMenuCheckboxItem>
+                {sites.map((site) => (
+                  <DropdownMenuCheckboxItem
+                    checked={siteSel.includes(site.id)}
+                    key={site.id}
+                    onCheckedChange={() => toggleSite(site.id)}
+                    onSelect={(event) => event.preventDefault()}
+                  >
+                    {site.name}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       )}
@@ -259,8 +370,12 @@ export const WorkToolbar = ({
         >
           <input name="range" type="hidden" value="custom" />
           {query.q !== null && <input name="q" type="hidden" value={query.q} />}
-          {query.owner !== null && <input name="owner" type="hidden" value={query.owner} />}
-          {query.site !== null && <input name="site" type="hidden" value={query.site} />}
+          {query.owner.length > 0 && (
+            <input name="owner" type="hidden" value={[...query.owner].join(",")} />
+          )}
+          {query.site.length > 0 && (
+            <input name="site" type="hidden" value={[...query.site].join(",")} />
+          )}
           {query.showColumns.length !== ALL_WORK_COLUMNS.length && (
             <input name="columns" type="hidden" value={[...query.showColumns].join(",")} />
           )}

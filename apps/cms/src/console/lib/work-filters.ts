@@ -10,11 +10,11 @@ export const ALL_WORK_COLUMNS: readonly BoardColumnKey[] = BOARD_COLUMNS.map((co
 
 export type WorkQuery = Readonly<{
   from: string | null
-  owner: number | null
+  owner: readonly number[]
   q: string | null
   range: WorkRange
   showColumns: readonly BoardColumnKey[]
-  site: number | null
+  site: readonly number[]
   to: string | null
 }>
 
@@ -42,6 +42,16 @@ const parseColumns = (value: string | null): readonly BoardColumnKey[] => {
   return keys.length === 0 ? ALL_WORK_COLUMNS : [...new Set(keys)]
 }
 
+/** Comma-separated id list for the multi-select owner/site filters; unlike columns, an empty list means "no filter" rather than "all". */
+const parseIds = (value: string | null): readonly number[] => {
+  if (value === null) return []
+  const ids = value
+    .split(",")
+    .map((part) => positiveInt(part.trim()))
+    .filter((id): id is number => id !== null)
+  return [...new Set(ids)]
+}
+
 const utcDay = (value: Date): Date =>
   new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()))
 
@@ -64,7 +74,7 @@ export const parseWorkQuery = (
 
   return {
     from: customIsValid ? from : null,
-    owner: positiveInt(first(searchParams["owner"])),
+    owner: parseIds(first(searchParams["owner"])),
     q: qRaw.length === 0 ? null : qRaw.slice(0, 100),
     range:
       rawRange === "custom" && !customIsValid
@@ -73,7 +83,7 @@ export const parseWorkQuery = (
           ? (rawRange as WorkRange)
           : "30d",
     showColumns: parseColumns(first(searchParams["columns"])),
-    site: positiveInt(first(searchParams["site"])),
+    site: parseIds(first(searchParams["site"])),
     to: customIsValid ? to : null,
   }
 }
@@ -115,10 +125,10 @@ const dateWhere = (query: WorkQuery, now: Date): Where | undefined => {
 export const workWhere = (query: WorkQuery, now = new Date()): Where | undefined => {
   const conditions: Where[] = []
   if (query.q !== null) conditions.push({ title: { like: query.q } })
-  if (query.owner !== null) conditions.push({ owner: { equals: query.owner } })
-  if (query.site !== null) {
+  if (query.owner.length > 0) conditions.push({ owner: { in: [...query.owner] } })
+  if (query.site.length > 0) {
     conditions.push({
-      or: [{ site: { equals: query.site } }, { sites: { contains: query.site } }],
+      or: query.site.flatMap((id) => [{ site: { equals: id } }, { sites: { contains: id } }]),
     })
   }
   const dates = dateWhere(query, now)
@@ -143,8 +153,8 @@ export const workHref = (query: WorkQuery, overrides: Partial<WorkQuery> = {}): 
     params.set("to", merged.to)
   }
   if (merged.q !== null) params.set("q", merged.q)
-  if (merged.owner !== null) params.set("owner", String(merged.owner))
-  if (merged.site !== null) params.set("site", String(merged.site))
+  if (merged.owner.length > 0) params.set("owner", [...merged.owner].join(","))
+  if (merged.site.length > 0) params.set("site", [...merged.site].join(","))
   const { showColumns } = merged
   if (showColumns.length !== ALL_WORK_COLUMNS.length) {
     params.set("columns", [...showColumns].join(","))

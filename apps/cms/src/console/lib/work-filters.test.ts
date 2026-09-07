@@ -13,11 +13,11 @@ describe("Workbench query", () => {
   it("Given missing or malformed search params, when parsing, then it selects bounded defaults with all columns", () => {
     expect(parseWorkQuery({})).toEqual({
       from: null,
-      owner: null,
+      owner: [],
       q: null,
       range: "30d",
       showColumns: ALL_WORK_COLUMNS,
-      site: null,
+      site: [],
       to: null,
     })
     expect(
@@ -30,11 +30,11 @@ describe("Workbench query", () => {
       }),
     ).toEqual({
       from: null,
-      owner: null,
+      owner: [],
       q: null,
       range: "30d",
       showColumns: ALL_WORK_COLUMNS,
-      site: null,
+      site: [],
       to: null,
     })
   })
@@ -52,13 +52,19 @@ describe("Workbench query", () => {
       }),
     ).toEqual({
       from: "2026-08-01",
-      owner: 7,
+      owner: [7],
       q: "http",
       range: "custom",
       showColumns: ["draft", "review"],
-      site: 12,
+      site: [12],
       to: "2026-08-31",
     })
+  })
+
+  it("Given multiple owner/site ids, when parsing, then it dedupes and drops invalid ones from the comma list", () => {
+    expect(parseWorkQuery({ owner: "7,9,7,-1,abc", site: "12,13" })).toEqual(
+      expect.objectContaining({ owner: [7, 9], site: [12, 13] }),
+    )
   })
 
   it("Given filters, when producing where conditions, then it maps q/owner/site onto payload operators and bounds the UTC day range", () => {
@@ -76,8 +82,35 @@ describe("Workbench query", () => {
     ).toEqual({
       and: [
         { title: { like: "标题" } },
-        { owner: { equals: 7 } },
+        { owner: { in: [7] } },
         { or: [{ site: { equals: 12 } }, { sites: { contains: 12 } }] },
+        {
+          updatedAt: {
+            greater_than_equal: "2026-08-03T00:00:00.000Z",
+            less_than: "2026-09-02T00:00:00.000Z",
+          },
+        },
+      ],
+    })
+  })
+
+  it("Given multiple owner/site ids, when producing where conditions, then it maps them onto an in-list and OR'd site/sites pairs", () => {
+    expect(
+      workWhere(
+        parseWorkQuery({ owner: "7,9", range: "30d", site: "12,13" }),
+        new Date("2026-09-01T00:00:00.000Z"),
+      ),
+    ).toEqual({
+      and: [
+        { owner: { in: [7, 9] } },
+        {
+          or: [
+            { site: { equals: 12 } },
+            { sites: { contains: 12 } },
+            { site: { equals: 13 } },
+            { sites: { contains: 13 } },
+          ],
+        },
         {
           updatedAt: {
             greater_than_equal: "2026-08-03T00:00:00.000Z",
@@ -121,14 +154,19 @@ describe("Workbench query", () => {
     expect(
       workHref(query, {
         from: null,
-        owner: null,
+        owner: [],
         q: null,
         range: "30d",
         showColumns: ALL_WORK_COLUMNS,
-        site: null,
+        site: [],
         to: null,
       }),
     ).toBe("/admin/work")
+  })
+
+  it("Given multiple selected owners/sites, when generating deep links, then it joins ids with commas", () => {
+    const query = parseWorkQuery({ owner: "7,9", site: "12,13" })
+    expect(workHref(query)).toBe("/admin/work?owner=7%2C9&site=12%2C13")
   })
 
   it("Given a UTC now value, when deriving default custom days, then it returns the inclusive trailing 30-day interval", () => {

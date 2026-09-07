@@ -26,7 +26,7 @@ export const PageHeader = ({
         <div className="flex min-w-0 flex-wrap items-center gap-2">{meta}</div>
       )}
       {actions !== undefined && actions !== null && (
-        <div className="flex flex-wrap items-center gap-2">{actions}</div>
+        <div className="ml-auto flex flex-wrap items-center gap-2">{actions}</div>
       )}
     </header>
   )

@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { FilterIcon, RotateCcwIcon } from "@/components/icons"
 import { Button } from "@/components/ui/button"
 import {
   ARTICLE_STATUS_OPTIONS,
@@ -120,7 +121,7 @@ export const EditionsWorkspace = ({
       )}
       <div className="flex items-center gap-2">
         <Button size="md" type="submit">
-          筛选
+          <FilterIcon size={15} /> 筛选
         </Button>
         <Button asChild size="md" type="button" variant="secondary">
           <Link
@@ -133,7 +134,7 @@ export const EditionsWorkspace = ({
               tenant: null,
             })}
           >
-            重置
+            <RotateCcwIcon size={15} /> 重置
           </Link>
         </Button>
       </div>

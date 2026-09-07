@@ -300,7 +300,7 @@ export const ContentEditionControlRail = ({
   }
 
   const fieldClass =
-    "min-h-10 rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)] focus:border-[var(--gf-accent-400)] focus:outline-none focus:ring-2 focus:ring-[var(--gf-accent-200)]"
+    "min-h-10 w-full min-w-0 rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)] focus:border-[var(--gf-accent-400)] focus:outline-none focus:ring-2 focus:ring-[var(--gf-accent-200)]"
   const labelClass = "grid gap-1 text-xs font-bold text-[var(--theme-elevation-600)]"
 
   return (
