@@ -1,14 +1,9 @@
 import type { PayloadRequest } from "payload"
 
 import {
-  cancelOperation,
-  completeOperationStage,
-  getOperation,
-  listNonTerminalOperations,
   OperationsLedgerError,
   type OperationType,
   operationRequestHashOf,
-  startOperationStage,
   submitOperation,
 } from "../../services/operations-ledger"
 import {
@@ -28,6 +23,14 @@ import {
   submitOperationBodySchema,
 } from "./contracts"
 import { internalJsonResponse, withInternalGuards } from "./guards"
+import {
+  cancelOperation,
+  completeOperationStage,
+  getOperation,
+  listNonTerminalOperations,
+  startOperationStage,
+} from "../../server/repositories/operations-ledger"
+import { serverRuntime } from "../../server/runtime"
 
 const publicOperationIdOf = (req: PayloadRequest): string => {
   const raw = req.routeParams?.["operationId"]
@@ -139,7 +142,7 @@ const handleSubmitOperation = withInternalGuards(
 const handleGetOperation = withInternalGuards(
   { bodySchema: null, operation: "getOperation" },
   async (req, ctx) => {
-    const operation = await getOperation(req.payload, publicOperationIdOf(req), req.user)
+    const operation = await getOperation(serverRuntime().db, publicOperationIdOf(req), req.user)
     return internalJsonResponse(200, { operation }, ctx.requestId, null)
   },
 )
@@ -147,7 +150,7 @@ const handleGetOperation = withInternalGuards(
 const handleStartStage = withInternalGuards(
   { bodySchema: startOperationStageBodySchema, operation: "startOperationStage" },
   async (req, ctx, body: StartOperationStageBody) => {
-    const operation = await startOperationStage(req.payload, {
+    const operation = await startOperationStage(serverRuntime().db, {
       attempt: body.attempt,
       operationId: publicOperationIdOf(req),
       stage: body.stage,
@@ -160,7 +163,7 @@ const handleStartStage = withInternalGuards(
 const handleCompleteStage = withInternalGuards(
   { bodySchema: completeOperationStageBodySchema, operation: "completeOperationStage" },
   async (req, ctx, body: CompleteOperationStageBody) => {
-    const operation = await completeOperationStage(req.payload, {
+    const operation = await completeOperationStage(serverRuntime().db, {
       attempt: body.attempt,
       operationId: publicOperationIdOf(req),
       outcome: body.outcome,
@@ -176,7 +179,7 @@ const handleCompleteStage = withInternalGuards(
 const handleCancelOperation = withInternalGuards(
   { bodySchema: cancelOperationBodySchema, operation: "cancelOperation" },
   async (req, ctx, body: CancelOperationBody) => {
-    const operation = await cancelOperation(req.payload, {
+    const operation = await cancelOperation(serverRuntime().db, {
       operationId: publicOperationIdOf(req),
       reason: body.reason,
       user: req.user,
@@ -188,7 +191,7 @@ const handleCancelOperation = withInternalGuards(
 const handleListNonTerminal = withInternalGuards(
   { bodySchema: null, operation: "listNonTerminalOperations" },
   async (req, ctx) => {
-    const result = await listNonTerminalOperations(req.payload, req.user)
+    const result = await listNonTerminalOperations(serverRuntime().db, req.user)
     return internalJsonResponse(200, result, ctx.requestId, null)
   },
 )
