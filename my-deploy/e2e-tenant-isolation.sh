@@ -30,7 +30,7 @@ SKEY=$(sudo python3 -c 'import json;print(json.load(open("/opt/geo-foundry/crede
 auth() { echo "Authorization: users API-Key $SKEY"; }
 
 expect_denied() { # name url jar expect40x [method body]
-  local name=$1 url=$2 jar=$3 want=$4 method=${5:-GET} body=$6
+  local name=$1 url=$2 jar=$3 want=$4 method=${5:-GET} body=${6:-}
   local extra=()
   [ -n "$jar" ] && extra+=(-b "$jar")
   [ -n "$body" ] && extra+=(-H 'Content-Type: application/json' -d "$body")
