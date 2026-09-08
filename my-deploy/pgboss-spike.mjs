@@ -40,6 +40,11 @@ const grantToWorker = () =>
   `)
 
 await db.execute(sql`CREATE TABLE IF NOT EXISTS spike_rows (id serial primary key, note text)`)
+// 队列全部建完（每个队列一张分区表）才授权，避免运行中新建分区表缺权限。
+await boss.createQueue("spike-q").catch(() => {})
+await boss.createQueue("spike-singleton", { policy: "short" }).catch(() => {})
+await boss.createQueue("spike-cron").catch(() => {})
+await grantToWorker()
 
 await db.transaction(async (tx) => {
   await tx.execute(sql`INSERT INTO spike_rows (note) VALUES ('committed')`)
@@ -60,10 +65,6 @@ try {
 jobs = await adminPool.query("SELECT count(*)::int AS n FROM pgboss_spike.job WHERE data->>'kind'='rollback'")
 check("send in rolled-back tx vanishes", rolledBack && jobs.rows[0].n === 0)
 
-// 队列全部建完（每个队列一张分区表）才授权，避免运行中新建分区表缺权限。
-await boss.createQueue("spike-q").catch(() => {})
-await boss.createQueue("spike-singleton", { policy: "short" }).catch(() => {})
-await boss.createQueue("spike-cron").catch(() => {})
 await grantToWorker()
 
 // ---------- 2. 受限 role 消费 / 业务表隔离 ----------
