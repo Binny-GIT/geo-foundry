@@ -88,7 +88,7 @@ SITE_BODY="{\"name\":\"e2e-site-$TS\",\"locale\":\"en-US\",\"timezone\":\"UTC\",
 R=$(call /tmp/cp-t.jar POST /sites "$SITE_BODY")
 SID=$(body "$R" | jget '["doc"]["id"]' 2>/dev/null)
 [ "$(status "$R")" = 201 ] && [ -n "$SID" ] && [ "$(PSQL "SELECT tenant_id||'|'||quality_thresholds_overall_minimum FROM geo_foundry.sites WHERE id=$SID")" = "413|75" ] \
-  && [ "$(PSQL "SELECT count(*) FROM geo_foundry.sites_texts WHERE parent_id=$SID")" = 3 ] && ok "site create 201 (texts=3)" || bad "site create $R"
+  && [ "$(PSQL "SELECT content_strategy_preferred_topics::text||'|'||content_strategy_content_angles::text FROM geo_foundry.sites WHERE id=$SID")" = '["t1", "t2"]|["a1"]' ] && ok "site create 201 (strategy arrays persisted)" || bad "site create $R"
 R=$(call /tmp/cp-t.jar PATCH "/sites/$SID" '{"timezone":"Not/AZone"}')
 [ "$(status "$R")" = 400 ] && ok "site patch invalid timezone 400" || bad "site tz $R"
 R=$(call /tmp/cp-t.jar PATCH "/sites/$SID" '{"name":"e2e-site-renamed","status":"disabled"}')
@@ -146,7 +146,7 @@ page /tmp/cp-e.jar "/admin/collections/media/$MID" "替代文本" "media detail 
 PSQL "DELETE FROM geo_foundry.users_sessions WHERE parent_id IN ($NUID,$RUID)" >/dev/null 2>&1
 PSQL "DELETE FROM geo_foundry.users WHERE id IN ($NUID,$RUID)" >/dev/null
 PSQL "DELETE FROM geo_foundry.domains WHERE id=$DID" >/dev/null
-PSQL "DELETE FROM geo_foundry.sites_texts WHERE parent_id=$SID; DELETE FROM geo_foundry.sites WHERE id=$SID" >/dev/null
+PSQL "DELETE FROM geo_foundry.sites WHERE id=$SID" >/dev/null
 PSQL "DELETE FROM geo_foundry.tenants WHERE id=$TID" >/dev/null
 PSQL "DELETE FROM geo_foundry.media WHERE id=$MID" >/dev/null
 rm -f /tmp/e2e-$TS.png /tmp/e2e-$TS.back

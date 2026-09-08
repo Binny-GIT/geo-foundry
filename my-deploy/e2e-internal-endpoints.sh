@@ -84,7 +84,7 @@ PSQL "UPDATE geo_foundry.connectors SET status='disabled' WHERE id=2" >/dev/null
 
 # ---------- 3. compile-snapshot ----------
 R=$(call GET "/internal/sites/375/compile-snapshot")
-EXPECT=$(PSQL "SELECT count(*) FROM geo_foundry._content_editions_v v JOIN geo_foundry.url_records u ON u.content_id=v.version_content_id AND u.site_id=375 AND u.state='active' WHERE v.latest AND v.version_site_id=375 AND v.version_workflow_status IN ('approved','compiled','published')")
+EXPECT=$(PSQL "SELECT count(*) FROM geo_foundry.edition_revisions v JOIN geo_foundry.url_records u ON u.edition_id=v.parent_id AND u.site_id=375 AND u.state='active' WHERE v.latest AND v.site_id=375 AND v.workflow_status IN ('approved','compiled','published')")
 GOT=$(body "$R" | python3 -c 'import json,sys;d=json.load(sys.stdin);print(len(d["editions"]))' 2>/dev/null)
 [ "$(status "$R")" = 200 ] && [ "$(body "$R" | jget '["site"]["canonicalDomain"]')" = e2e-scheduled-publish-375.test ] \
   && [ "$GOT" = "$EXPECT" ] && ok "compile-snapshot site 375 editions=$GOT" || bad "compile-snapshot $(status "$R") got=$GOT expect=$EXPECT"

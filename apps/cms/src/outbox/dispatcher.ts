@@ -82,7 +82,8 @@ export const dispatchPendingOutbox = async (
       await queue.add(
         row.type,
         {
-          aggregateId: row.aggregateId,
+          // aggregate_id 是 numeric 列（Drizzle 以字符串返回）；worker 契约要求整数。
+          aggregateId: Number(row.aggregateId),
           eventId: row.eventId,
           eventPayload: row.eventPayload,
           operationId: row.operationId,

@@ -28,9 +28,9 @@ draft() { curl -s -b /tmp/wf-e.jar "$BASE/api/content-editions/$ED?draft=true&de
 rev_of() { echo "$1" | python3 -c 'import json,sys;print(json.load(sys.stdin)["workflowRevision"])'; }
 
 D0=$(draft); R0=$(rev_of "$D0")
-V0=$(Q "count(*) FROM geo_foundry._content_editions_v WHERE parent_id=$ED")
+V0=$(Q "count(*) FROM geo_foundry.edition_revisions WHERE parent_id=$ED")
 O0=$(Q "count(*) FROM geo_foundry.outbox_events WHERE aggregate_id='$ED'")
-U0=$(Q "count(*) FROM geo_foundry.url_records WHERE content_id=619")
+U0=$(Q "count(*) FROM geo_foundry.url_records WHERE edition_id=586")
 C0=$(Q "count(*) FROM geo_foundry.review_comments WHERE edition_id=$ED AND kind='request-changes'")
 I0=$(Q "count(*) FROM geo_foundry.reviewer_edition_decision_idempotency WHERE edition_id=$ED")
 echo "pre: rev=$R0 versions=$V0 outbox=$O0 urls=$U0 comments=$C0 idem=$I0"
@@ -52,7 +52,7 @@ d=json.load(sys.stdin)
 assert d["workflowStatus"]=="approved" and d["workflowRevision"]=='"$((R1+1))"', d' \
   && ok "reviewer approve -> approved rev $((R1+1))" || bad "approve $A1"
 R2=$(rev_of "$(draft)"); [ "$R2" = "$((R1+1))" ] && ok "draft revision now $R2" || bad "rev after approve $R2"
-U1=$(Q "count(*) FROM geo_foundry.url_records WHERE content_id=619")
+U1=$(Q "count(*) FROM geo_foundry.url_records WHERE edition_id=586")
 # approve 的 URL 预留幂等：已有 active/reserved 记录时复用，不再新增。
 [ "$U1" -ge "$U0" ] && [ "$U1" -ge 1 ] && ok "URL reserved-or-reused ($U0->$U1)" || bad "urls $U0->$U1"
 
@@ -61,7 +61,7 @@ A2=$(curl -s -X POST "$BASE/api/workspaces/reviewer/editions/$ED/approve" -b /tm
   -H 'Content-Type: application/json' -H "x-request-id: wf-a2-$TS" -H "idempotency-key: $K1" \
   -d "{\"expectedRevision\":$R1}")
 [ "$A2" = "$A1" ] && ok "approve replay identical response" || bad "replay differs: $A2"
-V_NOW=$(Q "count(*) FROM geo_foundry._content_editions_v WHERE parent_id=$ED")
+V_NOW=$(Q "count(*) FROM geo_foundry.edition_revisions WHERE parent_id=$ED")
 RP1=$(Q "replay_count FROM geo_foundry.reviewer_edition_decision_idempotency WHERE idempotency_key='$K1'")
 [ "$RP1" = "1" ] && ok "reviewer replayCount=1" || bad "replayCount=$RP1"
 
@@ -165,7 +165,7 @@ S=$(curl -s -w '\n%{http_code}' -X POST "$BASE/api/editions/$ED/workflow-transit
 FIN=$(rev_of "$(draft)"); [ "$FIN" -gt "$R4" ] && ok "final revision=$FIN (draft)" || bad "final rev=$FIN"
 
 # 12. 总对账
-VF=$(Q "count(*) FROM geo_foundry._content_editions_v WHERE parent_id=$ED")
+VF=$(Q "count(*) FROM geo_foundry.edition_revisions WHERE parent_id=$ED")
 OF=$(Q "count(*) FROM geo_foundry.outbox_events WHERE aggregate_id='$ED'")
 IF=$(Q "count(*) FROM geo_foundry.reviewer_edition_decision_idempotency WHERE edition_id=$ED")
 echo "final: versions=$V0->$VF outbox=$O0->$OF idem=$I0->$IF pending_outbox=$(Q "count(*) FROM geo_foundry.outbox_events WHERE aggregate_id='$ED' AND status='pending'")"

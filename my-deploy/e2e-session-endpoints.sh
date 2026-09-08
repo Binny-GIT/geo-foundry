@@ -77,7 +77,7 @@ AD=$(curl -s -w '\n%{http_code}' -X POST "$BASE/api/intake-operations/$ID3/adopt
 [ "$(echo "$AD" | tail -1)" = "200" ] && echo "$AD" | head -1 | python3 -c '
 import json,sys
 d=json.load(sys.stdin)
-assert d["sourceLinked"] is True and d["editionId"]>0 and d["contentId"]>0, d' \
+assert d["sourceLinked"] is True and d["editionId"]>0 and "contentId" not in d, d' \
   && ok "intake adopt -> edition+content+source" || bad "adopt $(echo "$AD"|tail -2)"
 ADOPT_ED=$(echo "$AD" | head -1 | python3 -c 'import json,sys;print(json.load(sys.stdin)["editionId"])')
 
@@ -127,7 +127,7 @@ for E in "$NEW_ED" "$ADOPT_ED"; do
   curl -s -o /dev/null -X POST "$BASE/api/editions/$E/workflow-transitions" -b /tmp/s-e.jar \
     -H 'Content-Type: application/json' -d '{"target":"archived","reason":"E2E session batch cleanup"}'
 done
-FIN=$(PSQL "SELECT version_workflow_status FROM geo_foundry._content_editions_v WHERE parent_id=586 AND latest")
+FIN=$(PSQL "SELECT workflow_status FROM geo_foundry.edition_revisions WHERE parent_id=586 AND latest")
 [ "$FIN" = "draft" ] && ok "586 restored to draft" || bad "586 status=$FIN"
 
 echo

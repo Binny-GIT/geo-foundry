@@ -56,7 +56,7 @@ vs=json.load(sys.stdin)["versions"]
 print(vs[min(5,len(vs)-1)]["id"])')
 echo "restore target version=$TARGET"
 
-VDB_PRE=$(PSQL "SELECT count(*) FROM geo_foundry._content_editions_v WHERE parent_id=$ED")
+VDB_PRE=$(PSQL "SELECT count(*) FROM geo_foundry.edition_revisions WHERE parent_id=$ED")
 OBDB_PRE=$(PSQL "SELECT count(*) FROM geo_foundry.outbox_events WHERE aggregate_id='$ED'")
 IDEM_PRE=$(PSQL "SELECT count(*) FROM geo_foundry.edition_draft_restore_idempotency WHERE edition_id=$ED")
 echo "db pre: versions=$VDB_PRE outbox586=$OBDB_PRE idem=$IDEM_PRE"
@@ -78,7 +78,7 @@ R2=$(curl -s -w '\n%{http_code}' -X POST "$BASE/api/workspaces/editions/$ED/rest
 R2_CODE=$(echo "$R2" | tail -1); R2_BODY=$(echo "$R2" | head -n -1)
 [ "$R2_CODE" = "200" ] && [ "$R2_BODY" = "$R1_BODY" ] && ok "replay same key -> identical response" || bad "replay code=$R2_CODE body=$R2_BODY"
 
-VDB_MID=$(PSQL "SELECT count(*) FROM geo_foundry._content_editions_v WHERE parent_id=$ED")
+VDB_MID=$(PSQL "SELECT count(*) FROM geo_foundry.edition_revisions WHERE parent_id=$ED")
 [ "$VDB_MID" = "$((VDB_PRE+1))" ] && ok "replay added no version ($VDB_PRE->$VDB_MID)" || bad "version count after replay: $VDB_PRE->$VDB_MID"
 
 RPC=$(PSQL "SELECT replay_count FROM geo_foundry.edition_draft_restore_idempotency WHERE idempotency_key='$K1'")
@@ -122,10 +122,10 @@ print(hashlib.md5((d.get("bodyMarkdown") or "").encode()).hexdigest())')
 [ "$MD_POST" = "$BODYMD5_PRE" ] && ok "final markdown equals baseline" || bad "final markdown differs from baseline"
 
 # --- 终态对账 ---
-VDB_POST=$(PSQL "SELECT count(*) FROM geo_foundry._content_editions_v WHERE parent_id=$ED")
+VDB_POST=$(PSQL "SELECT count(*) FROM geo_foundry.edition_revisions WHERE parent_id=$ED")
 OBDB_POST=$(PSQL "SELECT count(*) FROM geo_foundry.outbox_events WHERE aggregate_id='$ED'")
 PENDING=$(PSQL "SELECT count(*) FROM geo_foundry.outbox_events WHERE aggregate_id='$ED' AND status='pending'")
-LATEST_AUDIT=$(PSQL "SELECT version_audit_log::jsonb -> -1 ->> 'action' FROM geo_foundry._content_editions_v WHERE parent_id=$ED AND latest LIMIT 1")
+LATEST_AUDIT=$(PSQL "SELECT audit_log::jsonb -> -1 ->> 'action' FROM geo_foundry.edition_revisions WHERE parent_id=$ED AND latest LIMIT 1")
 IDEM_POST=$(PSQL "SELECT count(*) FROM geo_foundry.edition_draft_restore_idempotency WHERE edition_id=$ED")
 
 [ "$VDB_POST" = "$((VDB_PRE+2))" ] && ok "exactly 2 new versions ($VDB_PRE->$VDB_POST)" || bad "versions $VDB_PRE->$VDB_POST"
