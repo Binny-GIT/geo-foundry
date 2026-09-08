@@ -4,17 +4,16 @@
  * 设计约束：
  * - 只做数据访问，不做访问控制判定（那是 service/access 层的事）；
  * - 返回 DTO 而非表行，调用方不接触 drizzle 类型；
- * - 写操作接受可选事务（tx 参数），保证登录计数的读写落在同一事务。
+ * - 登录成功的 session 插入与失败计数清零在同一事务提交。
  */
 
-import { and, eq, gt, sql } from "drizzle-orm"
+import { and, eq, gt, inArray, sql } from "drizzle-orm"
 
+import { payloadApiKeyIndexesOf } from "../auth/compat"
 import type { ServerDb } from "../db/client"
-import { users, usersSessions, usersRole } from "../db/schema"
+import { users, usersSessions, type usersRole } from "../db/schema"
 
 export type UserAuthRecord = Readonly<{
-  apiKey: string | null
-  apiKeyIndex: string | null
   email: string
   enableAPIToken: boolean
   hash: string | null
@@ -29,8 +28,6 @@ export type UserAuthRecord = Readonly<{
 type UserRow = typeof users.$inferSelect
 
 const authRecordOf = (row: UserRow): UserAuthRecord => ({
-  apiKey: row.apiKey,
-  apiKeyIndex: row.apiKeyIndex,
   email: row.email,
   enableAPIToken: row.enableAPIToken === true,
   hash: row.hash,
@@ -57,20 +54,43 @@ export class UsersRepository {
     return row === undefined ? null : authRecordOf(row)
   }
 
-  /** Worker keyring：Payload 的 API-Key 按「索引前缀 + 全键」两列存储。 */
-  async findIdByApiKey(apiKey: string): Promise<number | null> {
+  /**
+   * Worker keyring：数据库 api_key 是密文，不能与明文比较；按 Payload 官方
+   * 策略计算 HMAC-SHA256 / legacy SHA1 两种 api_key_index 查询。
+   */
+  async findAuthByApiKey(apiKey: string, configSecret: string): Promise<UserAuthRecord | null> {
+    const indexes = payloadApiKeyIndexesOf(apiKey, configSecret)
     const rows = await this.db
-      .select({ id: users.id })
+      .select()
       .from(users)
-      .where(and(eq(users.apiKey, apiKey), eq(users.enableAPIToken, true)))
+      .where(and(inArray(users.apiKeyIndex, indexes), eq(users.enableAPIToken, true)))
       .limit(1)
-    return rows[0]?.id ?? null
+    const row = rows[0]
+    return row === undefined ? null : authRecordOf(row)
   }
 
   async recordLoginFailure(id: number): Promise<{ attempts: number; lockUntil: Date | null }> {
+    const now = new Date()
+    const lockUntil = new Date(now.getTime() + 10 * 60 * 1000)
     const rows = await this.db
       .update(users)
-      .set({ loginAttempts: sql`${users.loginAttempts} + 1`, updatedAt: new Date() })
+      .set({
+        loginAttempts: sql`CASE
+          WHEN ${users.lockUntil} IS NOT NULL AND ${users.lockUntil} <= ${now} THEN 1
+          ELSE COALESCE(${users.loginAttempts}, 0) + 1
+        END`,
+        lockUntil: sql`CASE
+          WHEN (
+            CASE
+              WHEN ${users.lockUntil} IS NOT NULL AND ${users.lockUntil} <= ${now} THEN 1
+              ELSE COALESCE(${users.loginAttempts}, 0) + 1
+            END
+          ) >= 5 THEN ${lockUntil}
+          WHEN ${users.lockUntil} IS NOT NULL AND ${users.lockUntil} <= ${now} THEN NULL
+          ELSE ${users.lockUntil}
+        END`,
+        updatedAt: now,
+      })
       .where(eq(users.id, id))
       .returning({ attempts: users.loginAttempts, lockUntil: users.lockUntil })
     const row = rows[0]
@@ -85,6 +105,49 @@ export class UsersRepository {
       .where(eq(users.id, id))
   }
 
+  /**
+   * 登录成功事务：按用户 advisory lock 串行化 session order，清理过期行、
+   * 插入新 sid，并把失败计数/锁定同时清零。任一步失败都不会签出孤儿会话。
+   */
+  async createLoginSession(userId: number, sid: string, expiresAt: Date): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(${userId})`)
+      await tx
+        .delete(usersSessions)
+        .where(and(eq(usersSessions.parentId, userId), sql`${usersSessions.expiresAt} <= NOW()`))
+      const maxOrderRows = await tx
+        .select({ order: sql<number>`COALESCE(MAX(${usersSessions.order}), -1)` })
+        .from(usersSessions)
+        .where(eq(usersSessions.parentId, userId))
+      await tx.insert(usersSessions).values({
+        createdAt: new Date(),
+        expiresAt,
+        id: sid,
+        order: Number(maxOrderRows[0]?.order ?? -1) + 1,
+        parentId: userId,
+      })
+      await tx
+        .update(users)
+        .set({ loginAttempts: "0", lockUntil: null, updatedAt: new Date() })
+        .where(eq(users.id, userId))
+    })
+  }
+
+  async hasActiveSession(userId: number, sid: string): Promise<boolean> {
+    const rows = await this.db
+      .select({ id: usersSessions.id })
+      .from(usersSessions)
+      .where(
+        and(
+          eq(usersSessions.parentId, userId),
+          eq(usersSessions.id, sid),
+          gt(usersSessions.expiresAt, new Date()),
+        ),
+      )
+      .limit(1)
+    return rows.length > 0
+  }
+
   /** 会话撤销：按 sid 删除 users_sessions 行（Payload 撤销语义的等价实现）。 */
   async revokeSession(userId: number, sid: string): Promise<boolean> {
     const rows = await this.db
@@ -92,6 +155,14 @@ export class UsersRepository {
       .where(and(eq(usersSessions.parentId, userId), eq(usersSessions.id, sid)))
       .returning({ id: usersSessions.id })
     return rows.length > 0
+  }
+
+  async revokeAllSessions(userId: number): Promise<number> {
+    const rows = await this.db
+      .delete(usersSessions)
+      .where(eq(usersSessions.parentId, userId))
+      .returning({ id: usersSessions.id })
+    return rows.length
   }
 
   async activeSessionIds(userId: number): Promise<readonly string[]> {

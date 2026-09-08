@@ -11,13 +11,8 @@ import type { Endpoint, PayloadRequest } from "payload"
 import { z } from "zod"
 
 import { parseCmsEnvironment } from "../config/environment"
-import {
-  payloadSigningKeyOf,
-  verifyPasswordCompat,
-  verifySessionTokenCompat,
-} from "../server/auth/compat"
+import { verifyPasswordCompat, verifySessionTokenCompat } from "../server/auth/compat"
 import { createServerDb } from "../server/db/client"
-import { AuthenticationError } from "../server/errors"
 import { UsersRepository } from "../server/repositories/users"
 import {
   issueCompatSessionToken,
@@ -81,11 +76,20 @@ export const authCompatSessionGetEndpoint: Endpoint = {
     }
     const { configSecret, connectionString } = envOf()
     const claims = await verifySessionTokenCompat(token, configSecret)
-    if (claims === null || typeof claims["id"] !== "number") {
+    if (
+      claims === null ||
+      claims["collection"] !== "users" ||
+      typeof claims["id"] !== "number" ||
+      typeof claims["sid"] !== "string"
+    ) {
       return response(401, { error: { code: "AUTH_PROBE_TOKEN_INVALID" } })
     }
-    const user = await repoOf(connectionString).findAuthById(claims["id"])
-    if (user === null) {
+    const repo = repoOf(connectionString)
+    const [user, activeSession] = await Promise.all([
+      repo.findAuthById(claims["id"]),
+      repo.hasActiveSession(claims["id"], claims["sid"]),
+    ])
+    if (user === null || !activeSession) {
       return response(401, { error: { code: "AUTH_PROBE_TOKEN_INVALID" } })
     }
     return response(200, {
@@ -112,25 +116,31 @@ export const authCompatSessionPostEndpoint: Endpoint = {
 
     const { configSecret, connectionString } = envOf()
     const repo = repoOf(connectionString)
-    const user = await repo.findAuthByEmail(parsed.data.email)
+    const email = parsed.data.email.toLowerCase()
+    const user = await repo.findAuthByEmail(email)
     /* 无论用户是否存在都执行一次校验，避免时序侧信道泄露账号存在性。 */
     const dummy = { hash: "0".repeat(1024), salt: "0".repeat(64) }
     const passwordOk = await verifyPasswordCompat(
       parsed.data.password,
       user === null ? dummy : { hash: user.hash ?? "", salt: user.salt ?? "" },
     )
-    if (user === null || !passwordOk) {
-      return response(401, LOGIN_REJECTED_BODY)
-    }
-    if (user.lockUntil !== null && user.lockUntil.getTime() > Date.now()) {
+    const locked = user !== null && user.lockUntil !== null && user.lockUntil.getTime() > Date.now()
+    if (locked) {
+      // 仍做过一次 PBKDF2（上方），但已锁定账号不再增加次数或延长锁定。
       return response(423, { error: { code: "AUTH_PROBE_ACCOUNT_LOCKED" } })
     }
+    if (user === null || !passwordOk) {
+      if (user !== null) await repo.recordLoginFailure(user.id)
+      return response(401, LOGIN_REJECTED_BODY)
+    }
+    const sid = randomUUID()
     const session = await issueCompatSessionToken({
       configSecret,
       email: user.email,
-      sid: randomUUID(),
+      sid,
       userId: user.id,
     })
+    await repo.createLoginSession(user.id, sid, new Date(session.expiresAt * 1000))
     return response(200, {
       expiresAt: session.expiresAt,
       strategy: "compat",

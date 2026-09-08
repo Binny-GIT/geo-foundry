@@ -4,7 +4,9 @@ import { SignJWT } from "jose"
 import { describe, expect, it } from "vitest"
 
 import {
+  apiKeyFromAuthorization,
   type StoredCredentials,
+  payloadApiKeyIndexesOf,
   payloadSigningKeyOf,
   verifyPasswordCompat,
   verifySessionTokenCompat,
@@ -35,6 +37,27 @@ describe("auth compat: password", () => {
 
   it("Given empty stored fields, when verifying, then it refuses instead of hashing", async () => {
     await expect(verifyPasswordCompat("x", { hash: "", salt: "" })).resolves.toBe(false)
+  })
+})
+
+describe("auth compat: API key", () => {
+  const configSecret = "mk-dev-test-secret-must-be-long-enough"
+
+  it("derives current SHA-256 and legacy SHA-1 indexes with Payload's signing key", () => {
+    const key = "worker-key-1"
+    const signingKey = payloadSigningKeyOf(configSecret)
+    expect(payloadApiKeyIndexesOf(key, configSecret)).toEqual([
+      crypto.createHmac("sha1", signingKey).update(key).digest("hex"),
+      crypto.createHmac("sha256", signingKey).update(key).digest("hex"),
+    ])
+  })
+
+  it("strictly parses only the users API-Key authorization contract", () => {
+    expect(apiKeyFromAuthorization("users API-Key abc123")).toBe("abc123")
+    expect(apiKeyFromAuthorization("users Bearer abc123")).toBeNull()
+    expect(apiKeyFromAuthorization("sites API-Key abc123")).toBeNull()
+    expect(apiKeyFromAuthorization("users API-Key ")).toBeNull()
+    expect(apiKeyFromAuthorization(null)).toBeNull()
   })
 })
 

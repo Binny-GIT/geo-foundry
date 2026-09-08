@@ -16,6 +16,7 @@ import {
   pgSchema,
   serial,
   timestamp,
+  uniqueIndex,
   varchar,
 } from "drizzle-orm/pg-core"
 
@@ -52,7 +53,7 @@ export const users = geo.table(
   },
   (table) => [
     index("users_tenant_idx").on(table.tenantId),
-    index("users_email_idx").on(table.email),
+    uniqueIndex("users_email_idx").on(table.email),
   ],
 )
 
@@ -77,5 +78,5 @@ export const tenants = geo.table(
     updatedAt: timestamp("updated_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
   },
-  (table) => [index("tenants_name_idx").on(table.name)],
+  (table) => [uniqueIndex("tenants_name_idx").on(table.name)],
 )

@@ -19,6 +19,29 @@ import { jwtVerify } from "jose"
 export const payloadSigningKeyOf = (configSecret: string): string =>
   crypto.createHash("sha256").update(configSecret).digest("hex").slice(0, 32)
 
+/**
+ * Payload API-Key 不按 api_key 密文列匹配，而是用运行时签名密钥对明文 key
+ * 计算 HMAC 索引。SHA-1 是 v3.46.0 以前的兼容形态，SHA-256 是当前形态。
+ */
+export const payloadApiKeyIndexesOf = (
+  apiKey: string,
+  configSecret: string,
+): readonly [sha1: string, sha256: string] => {
+  const signingKey = payloadSigningKeyOf(configSecret)
+  return [
+    crypto.createHmac("sha1", signingKey).update(apiKey).digest("hex"),
+    crypto.createHmac("sha256", signingKey).update(apiKey).digest("hex"),
+  ]
+}
+
+/** 严格解析 Worker 的固定 Authorization 契约。 */
+export const apiKeyFromAuthorization = (authorization: string | null): string | null => {
+  const prefix = "users API-Key "
+  if (authorization === null || !authorization.startsWith(prefix)) return null
+  const apiKey = authorization.slice(prefix.length)
+  return apiKey.length > 0 ? apiKey : null
+}
+
 export type StoredCredentials = Readonly<{
   /** users.hash：512 字节的 hex（1024 字符）。 */
   readonly hash: string

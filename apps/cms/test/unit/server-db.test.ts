@@ -3,24 +3,18 @@ import { describe, expect, it } from "vitest"
 import { createServerDb } from "../../src/server/db/client"
 import {
   AuthenticationError,
-  DomainError,
+  type DomainError,
   DomainValidationError,
   EntityNotFoundError,
   StaleRevisionError,
   TenantScopeError,
 } from "../../src/server/errors"
-import { UsersRepository } from "../../src/server/repositories/users"
-
 /* 不连接数据库：drizzle 的查询构造是纯计算，toSQL() 足以锁住
  * 表名/列名/参数形态——迁移 DDL 与 schema.ts 一旦漂移立刻在这里暴露。 */
 const db = createServerDb("postgresql://mock:mock@localhost:5432/mock")
 
 describe("server db schema bindings", () => {
   it("targets the geo_foundry schema with the migration's column names", () => {
-    const repo = new UsersRepository(db)
-    const select = repo.findAuthByEmail("user@example.com")
-    // 仓储方法返回 Promise；改用底层 builder 直接断言关键列绑定
-    void select
     const sql = db.select().from(db._.fullSchema.users).limit(1).toSQL()
     expect(sql.sql).toContain('"geo_foundry"."users"')
   })
