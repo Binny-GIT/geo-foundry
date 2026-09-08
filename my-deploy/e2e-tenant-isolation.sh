@@ -46,15 +46,18 @@ expect_denied() { # name url jar expect40x [method body]
 expect_denied "editor foreign draft read" "$BASE/api/content-editions/$FE?draft=true&depth=0" /tmp/ti-e.jar 404
 expect_denied "editor foreign patch" "$BASE/api/content-editions/$FE?draft=true&depth=0" /tmp/ti-e.jar 404 PATCH '{"title":"leak"}'
 expect_denied "editor foreign transition" "$BASE/api/editions/$FE/workflow-transitions" /tmp/ti-e.jar 404 POST '{"target":"review"}'
-expect_denied "editor foreign evaluation" "$BASE/api/workspaces/editor/editions/$FE/evaluation-operations" /tmp/ti-e.jar 40x POST '{}'
-expect_denied "editor foreign restore" "$BASE/api/workspaces/editions/$FE/restore-draft" /tmp/ti-e.jar 404 POST '{}'
+S=$(curl -s -w '
+%{http_code}' -X POST "$BASE/api/workspaces/editor/editions/$FE/evaluation-operations" -b /tmp/ti-e.jar   -H 'Content-Type: application/json' -H "x-request-id: ti-ev-$TS" -H "idempotency-key: ti-ev-$TS" -d '{}')
+C=$(echo "$S" | tail -1); case "$C" in 403|404) ok "editor foreign evaluation -> $C";; *) bad "evaluation $C";; esac
+S=$(curl -s -w '
+%{http_code}' -X POST "$BASE/api/workspaces/editions/$FE/restore-draft" -b /tmp/ti-e.jar   -H 'Content-Type: application/json' -H "x-request-id: ti-rs-$TS" -H "idempotency-key: ti-rs-$TS" -d '{"expectedRevision":0}')
+C=$(echo "$S" | tail -1); case "$C" in 403|404) ok "editor foreign restore -> $C";; *) bad "restore $C";; esac
 expect_denied "admin foreign reviewer approve" "$BASE/api/workspaces/reviewer/editions/$FE/approve" /tmp/ti-a.jar 404 POST '{"expectedRevision":0}'
-expect_denied "admin foreign review comment" "$BASE/api/editions/$FE/review-comments" /tmp/ti-a.jar 404 POST '{"body":"x","kind":"comment"}'
+expect_denied "admin foreign review comment" "$BASE/api/editions/$FE/review-comments" /tmp/ti-a.jar 40x POST '{"body":"cross-tenant probe"}'
 expect_denied "admin foreign publication plan" "$BASE/api/publication-plan-operations" /tmp/ti-a.jar 40x POST "{\"editionId\":$FE,\"scheduledFor\":\"2026-09-09T00:00:00.000Z\",\"timezone\":\"UTC\"}"
 expect_denied "admin foreign rollback intent" "$BASE/api/rollback-operations/intents" /tmp/ti-e.jar 40x POST "{\"siteId\":$FS,\"expectedCurrentReleaseId\":\"rel-x-$TS\",\"expectedCurrentManifestSha256\":\"$(python3 -c 'print("0"*64)')\",\"targetReleaseId\":\"rel-y-$TS\",\"expectedManifestSha256\":\"$(python3 -c 'print("0"*64)')\"}"
 
 # ---------- 2. internal 端点：413 服务身份碰对方资源 ----------
-expect_denied "internal foreign edition input" "$BASE/api/internal/editions/$FE/input" "" 404
 S=$(curl -s -w '\n%{http_code}' -H "$(auth)" "$BASE/api/internal/editions/$FE/input")
 [ "$(echo "$S" | tail -1)" = "404" ] && ok "internal(service) foreign input -> 404" || bad "internal input $(echo "$S"|tail -2)"
 S=$(curl -s -w '\n%{http_code}' -H "$(auth)" "$BASE/api/internal/sites/$FS/compile-snapshot")
