@@ -33,7 +33,6 @@ import { Users } from "./collections/Users"
 import { createPostgresAdapterOptions } from "./config/database"
 import { parseCmsEnvironment } from "./config/environment"
 import { editionAiChatDraftEndpoint, editionAiChatEndpoint } from "./endpoints/edition-ai-chat"
-import { createIntakeItemEndpoint } from "./endpoints/intake"
 import { allInternalEndpoints } from "./endpoints/internal/index"
 import {
   importPerformanceSnapshotsEndpoint,
@@ -127,7 +126,6 @@ export default buildConfig({
   endpoints: [
     editionAiChatDraftEndpoint,
     editionAiChatEndpoint,
-    createIntakeItemEndpoint,
     createSiteVariantEndpoint,
     importPerformanceSnapshotsEndpoint,
     performanceSuggestionsEndpoint,

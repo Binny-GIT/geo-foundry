@@ -9,6 +9,7 @@ import { z } from "zod"
 
 import { blocksToMarkdown } from "../../editor/block-markdown"
 import { enqueueIntakeFetchFromEnvironment } from "../../services/intake-queue"
+import { IntakeError, normalizeIntakeInput } from "../../services/intake"
 import { authenticateRequest } from "../auth/session"
 import { contentEditions, editionVersionRels, editionVersions } from "../db/edition-schema"
 import { contents, sites } from "../db/entity-schema"
@@ -82,7 +83,8 @@ const adoptSchema = z.object({ siteId: z.coerce.number().int().positive().option
 
 export const intakeOpsActionOf = (
   slug: readonly string[] | undefined,
-): "ignore" | "merge" | "retry" | "adopt" | null => {
+): "create" | "ignore" | "merge" | "retry" | "adopt" | null => {
+  if (slug?.length === 1 && slug[0] === "intake-operations") return "create"
   if (slug?.length !== 3 || slug[0] !== "intake-operations") return null
   if (slug[2] === "ignore" || slug[2] === "merge" || slug[2] === "retry" || slug[2] === "adopt") {
     return slug[2]
@@ -116,6 +118,127 @@ export const handleIntakeOpsPost = async (
 
   const db = serverRuntime().db
   try {
+    if (action === "create") {
+      try {
+        raw = await request.json()
+      } catch {
+        return json(400, { error: { code: "INTAKE_CREATE_BODY_INVALID" } })
+      }
+      const createSchema = z
+        .object({
+          channel: z.enum(["manual", "url", "webhook", "rss"]),
+          connectorId: z.coerce.number().int().positive().optional(),
+          contentHash: z.string().trim().min(1).max(512).optional(),
+          sourceUrl: z.string().trim().min(1).max(4_000).optional(),
+          suggestedSiteId: z.coerce.number().int().positive().optional(),
+          summary: z.string().trim().min(1).max(20_000).optional(),
+          title: z.string().trim().min(1).max(1_000),
+        })
+        .strict()
+      const parsed = createSchema.safeParse(raw)
+      const tenantId = scope.kind === "global" ? null : scope.tenantId
+      if (!parsed.success || tenantId === null) {
+        return json(400, { error: { code: "INTAKE_CREATE_BODY_INVALID" } })
+      }
+      try {
+        const normalized = normalizeIntakeInput({
+          channel: parsed.data.channel,
+          ...(parsed.data.connectorId === undefined ? {} : { connectorId: parsed.data.connectorId }),
+          ...(parsed.data.contentHash === undefined ? {} : { contentHash: parsed.data.contentHash }),
+          ...(parsed.data.sourceUrl === undefined ? {} : { sourceUrl: parsed.data.sourceUrl }),
+          ...(parsed.data.suggestedSiteId === undefined
+            ? {}
+            : { suggestedSiteId: parsed.data.suggestedSiteId }),
+          ...(parsed.data.summary === undefined ? {} : { summary: parsed.data.summary }),
+          tenantId,
+          title: parsed.data.title,
+        })
+        const result = await db.transaction(async (tx) => {
+          const lowerTitle = normalized.title.trim().replace(/\s+/g, " ").toLocaleLowerCase()
+          const candidates = await tx
+            .select()
+            .from(intakeItems)
+            .where(eq(intakeItems.tenantId, tenantId))
+            .limit(500)
+          const duplicates = candidates.filter(
+            (item) =>
+              (normalized.normalizedUrl !== undefined && item.normalizedUrl === normalized.normalizedUrl) ||
+              (normalized.contentHash !== undefined && item.contentHash === normalized.contentHash) ||
+              ((item.title ?? "").trim().replace(/\s+/g, " ").toLocaleLowerCase() === lowerTitle),
+          )
+          const duplicateOf = duplicates[0]
+          const inserted = await tx
+            .insert(intakeItems)
+            .values({
+              channel: normalized.channel,
+              ...(normalized.connectorId === undefined ? {} : { connectorId: normalized.connectorId }),
+              ...(normalized.contentHash === undefined ? {} : { contentHash: normalized.contentHash }),
+              ...(duplicateOf === undefined ? {} : { duplicateOfId: duplicateOf.id }),
+              duplicateStatus: duplicateOf === undefined ? "unique" : "duplicate",
+              ...(normalized.normalizedUrl === undefined ? {} : { normalizedUrl: normalized.normalizedUrl }),
+              ...(normalized.sourceUrl === undefined ? {} : { sourceUrl: normalized.sourceUrl }),
+              ...(normalized.suggestedSiteId === undefined
+                ? {}
+                : { suggestedSiteId: normalized.suggestedSiteId }),
+              ...(normalized.summary === undefined ? {} : { summary: normalized.summary }),
+              status: duplicateOf === undefined ? "new" : "duplicate",
+              tenantId,
+              title: normalized.title,
+            })
+            .returning()
+          const item = inserted[0]
+          if (item === undefined) throw new IntakeOpsError("INTAKE_CREATE_FAILED")
+          return { duplicates, item }
+        })
+        const shouldFetch =
+          result.duplicates.length === 0 &&
+          (parsed.data.channel === "url" || parsed.data.channel === "rss")
+        if (!shouldFetch) {
+          return json(result.duplicates.length === 0 ? 201 : 200, {
+            duplicateIds: result.duplicates.map((item) => item.id),
+            fetchQueued: false,
+            intakeItem: rowOf(result.item),
+          })
+        }
+        try {
+          await enqueueIntakeFetchFromEnvironment({
+            intakeItemId: result.item.id,
+            tenantId: result.item.tenantId,
+          })
+          await db
+            .update(intakeItems)
+            .set({ status: "fetching", updatedAt: new Date() })
+            .where(eq(intakeItems.id, result.item.id))
+          return json(201, {
+            duplicateIds: [],
+            fetchQueued: true,
+            intakeItem: rowOf({ ...result.item, status: "fetching" }),
+          })
+        } catch {
+          await db
+            .update(intakeItems)
+            .set({
+              failureCode: "INTAKE_QUEUE_UNAVAILABLE",
+              failureReason:
+                "The fetch task could not be queued. Retry this intake item when the worker is available.",
+              status: "new",
+              updatedAt: new Date(),
+            })
+            .where(eq(intakeItems.id, result.item.id))
+          return json(202, {
+            duplicateIds: [],
+            fetchQueued: false,
+            intakeItem: rowOf({ ...result.item, status: "new" }),
+          })
+        }
+      } catch (error) {
+        if (error instanceof IntakeError) {
+          return json(statusOf(error.code), { error: { code: error.code } })
+        }
+        throw error
+      }
+    }
+
     if (action === "ignore") {
       const item = await db.transaction(async (tx) => {
         await loadItem(tx, itemId, tenantId)
