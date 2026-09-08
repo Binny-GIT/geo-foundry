@@ -1,4 +1,4 @@
-import type { Payload } from "payload"
+import { createLocalReq, type Payload, type PayloadRequest } from "payload"
 
 import { resolveSessionClaims } from "../access/session"
 import { blocksToMarkdown, markdownToBlocks } from "../editor/block-markdown"
@@ -205,13 +205,17 @@ export const editionVersionHistory = async (
   input: { readonly editionId: number; readonly user: unknown },
 ): Promise<readonly EditionVersionHistoryItem[]> => {
   await ensureReadableEdition(payload, input.editionId, input.user)
+  const req = await createLocalReq(
+    { req: { user: input.user as PayloadRequest["user"] } },
+    payload,
+  )
   const versions = await versionStore(payload).findVersions({
     collection: "content-editions",
     depth: 0,
     limit: 20,
     overrideAccess: false,
+    req,
     sort: "-createdAt",
-    user: input.user,
     where: { parent: { equals: input.editionId } },
   })
   return versions.docs

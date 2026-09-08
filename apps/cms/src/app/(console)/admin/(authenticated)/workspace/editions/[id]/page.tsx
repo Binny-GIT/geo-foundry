@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation"
+import { createLocalReq } from "payload"
 
 import { CMS_ACTION, CMS_RESOURCE } from "@/access/policy"
 import { EditionEditor } from "@/console/features/editions/components/EditionEditor"
@@ -19,21 +20,21 @@ const versionCountOf = async (
   editionId: number,
 ): Promise<number> => {
   try {
-    // findVersions 尚未进入 Payload 公开类型（版本历史服务同样在转）。
     const versionStore = context.payload as unknown as {
       findVersions(options: {
         collection: string
         limit: number
         overrideAccess: boolean
-        user: unknown
+        req: unknown
         where: Record<string, unknown>
       }): Promise<{ totalDocs?: number }>
     }
+    const req = await createLocalReq({ user: context.user }, context.payload)
     const result = await versionStore.findVersions({
       collection: "content-editions",
       limit: 1,
       overrideAccess: false,
-      user: context.user,
+      req,
       where: { parent: { equals: editionId } },
     })
     return typeof result.totalDocs === "number" ? result.totalDocs : 0
