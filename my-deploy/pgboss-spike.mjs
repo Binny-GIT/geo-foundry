@@ -26,6 +26,18 @@ const db = drizzle(adminPool)
 const boss = new PgBoss({ connectionString: ADMIN, schema: "pgboss_spike" })
 await boss.start()
 
+// 生产同款授权模型：owner 建好 schema 后一次性授权，并让未来新建的表自动带权限，
+// 这样 worker（migrate:false）永远不需要 DDL，业务 schema 一律不授。
+await adminPool.query(`
+  GRANT USAGE ON SCHEMA pgboss_spike TO spike_worker;
+  GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA pgboss_spike TO spike_worker;
+  GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA pgboss_spike TO spike_worker;
+  ALTER DEFAULT PRIVILEGES FOR ROLE spike_admin IN SCHEMA pgboss_spike
+    GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO spike_worker;
+  ALTER DEFAULT PRIVILEGES FOR ROLE spike_admin IN SCHEMA pgboss_spike
+    GRANT USAGE, SELECT ON SEQUENCES TO spike_worker;
+`)
+
 await db.execute(sql`CREATE TABLE IF NOT EXISTS spike_rows (id serial primary key, note text)`)
 await boss.createQueue("spike-q").catch(() => {}) // 已存在则忽略
 
