@@ -6,6 +6,7 @@ import {
 } from "./outbox/dispatcher"
 import config from "./payload.config"
 import { pollDueRssConnectors } from "./services/connector-polling"
+import { loggerOf } from "./server/observability/logger"
 
 const OUTBOX_INTERVAL_MS = 1_000
 const RSS_POLL_TIMER_MS = 60_000
@@ -17,8 +18,10 @@ type BackgroundRuntime = {
 
 type GlobalWithRuntime = typeof globalThis & { [RUNTIME]?: BackgroundRuntime }
 
+const backgroundLog = loggerOf({ component: "background" })
+
 const emit = (code: string, detail: Record<string, unknown>) =>
-  console.error(JSON.stringify({ code, detail }))
+  backgroundLog.warn({ code, ...detail }, "background runtime event")
 
 export const register = async (): Promise<void> => {
   if (
