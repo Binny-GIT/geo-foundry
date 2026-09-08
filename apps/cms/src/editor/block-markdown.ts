@@ -50,6 +50,11 @@ const isFencedOpening = (line: string): boolean => line.startsWith("```")
 
 const isFencedClosing = (line: string): boolean => /^```[\t ]*$/.test(line)
 
+/* 图片行：![alt](src) 或 ![alt](src "caption")。src 不含空白与括号，alt 不含方括号。 */
+const IMAGE_LINE = /^!\[([^\][]*)\]\(([^()\s]+)(?: "([^"]*)")?\)$/
+
+const imageMatchOf = (line: string): RegExpExecArray | null => IMAGE_LINE.exec(line)
+
 const headingMatchOf = (line: string): RegExpExecArray | null => /^(#{2,6})[\t ](.*)$/.exec(line)
 
 const quoteLineOf = (line: string): string | null => {
@@ -70,7 +75,8 @@ const isMarkdownBlockStart = (line: string): boolean =>
   isFencedOpening(line) ||
   headingMatchOf(line) !== null ||
   quoteLineOf(line) !== null ||
-  listItemOf(line) !== null
+  listItemOf(line) !== null ||
+  imageMatchOf(line) !== null
 
 const isReadableParagraphText = (text: string): boolean => {
   if (text.length === 0 || text.includes("\r")) return false
@@ -126,6 +132,28 @@ const isReadableList = (row: Row): boolean =>
   Array.isArray(row["items"]) &&
   row["items"].length > 0 &&
   row["items"].every(isReadableListItem)
+
+/* 图片按标准 Markdown 语法可读化；带 width/height 等额外字段的仍走保护块保真。 */
+const isReadableImage = (row: Row): boolean => {
+  if (
+    row["blockType"] !== "image" ||
+    !hasOnlyKeys(row, ["blockType", "src", "alt", "caption"])
+  ) {
+    return false
+  }
+  const src = stringOf(row, "src")
+  const alt = stringOf(row, "alt")
+  const caption = optionalStringOf(row, "caption")
+  return (
+    src !== null &&
+    alt !== null &&
+    !/\s/.test(src) &&
+    !/[()]/.test(src) &&
+    !hasLineBreak(alt) &&
+    !/[[\]]/.test(alt) &&
+    (caption === undefined || (!hasLineBreak(caption) && !/"/.test(caption)))
+  )
+}
 
 const isReadableCode = (row: Row): boolean => {
   if (
@@ -209,6 +237,14 @@ const readableMarkdownOf = (row: Row): string | null => {
       "```",
       ...(caption === undefined ? [] : [`*${caption}*`]),
     ].join("\n")
+  }
+
+  if (isReadableImage(row)) {
+    const src = stringOf(row, "src")
+    const alt = stringOf(row, "alt")
+    const caption = optionalStringOf(row, "caption")
+    if (src === null || alt === null) return null
+    return caption === undefined ? `![${alt}](${src})` : `![${alt}](${src} "${caption}")`
   }
 
   return null
@@ -333,6 +369,18 @@ export const markdownToBlocks = (markdown: string): Record<string, unknown>[] =>
         const segment = fencedCodeSegmentAt(lines, index)
         blocks.push(segment.block)
         index = segment.nextIndex
+        continue
+      }
+
+      const imageMatch = imageMatchOf(line)
+      if (imageMatch !== null) {
+        blocks.push({
+          alt: imageMatch[1] ?? "",
+          blockType: "image",
+          src: imageMatch[2] ?? "",
+          ...(imageMatch[3] === undefined ? {} : { caption: imageMatch[3] }),
+        })
+        index += 1
         continue
       }
 
