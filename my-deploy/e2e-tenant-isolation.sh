@@ -50,7 +50,7 @@ S=$(curl -s -w '
 %{http_code}' -X POST "$BASE/api/workspaces/editor/editions/$FE/evaluation-operations" -b /tmp/ti-e.jar   -H 'Content-Type: application/json' -H "x-request-id: ti-ev-$TS" -H "idempotency-key: ti-ev-$TS" -d '{}')
 C=$(echo "$S" | tail -1); case "$C" in 403|404) ok "editor foreign evaluation -> $C";; *) bad "evaluation $C";; esac
 S=$(curl -s -w '
-%{http_code}' -X POST "$BASE/api/workspaces/editions/$FE/restore-draft" -b /tmp/ti-e.jar   -H 'Content-Type: application/json' -H "x-request-id: ti-rs-$TS" -H "idempotency-key: ti-rs-$TS" -d '{"expectedRevision":0}')
+%{http_code}' -X POST "$BASE/api/workspaces/editions/$FE/restore-draft" -b /tmp/ti-e.jar   -H 'Content-Type: application/json' -H "x-request-id: ti-rs-$TS" -H "idempotency-key: ti-rs-$TS" -d '{"expectedRevision":0,"expectedUpdatedAt":"2026-09-09T00:00:00.000Z","reason":"probe","versionId":1}')
 C=$(echo "$S" | tail -1); case "$C" in 403|404) ok "editor foreign restore -> $C";; *) bad "restore $C";; esac
 expect_denied "admin foreign reviewer approve" "$BASE/api/workspaces/reviewer/editions/$FE/approve" /tmp/ti-a.jar 404 POST '{"expectedRevision":0}'
 expect_denied "admin foreign review comment" "$BASE/api/editions/$FE/review-comments" /tmp/ti-a.jar 40x POST '{"body":"cross-tenant probe"}'
