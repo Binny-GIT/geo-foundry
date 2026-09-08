@@ -23,7 +23,8 @@ const boss = new PgBoss({
 })
 
 await boss.start()
-const queues = Object.values(JOB_QUEUE)
+// worker-maintenance：worker 的 cron 承载队列（schedule 外键要求队列先存在）。
+const queues = [...Object.values(JOB_QUEUE), "worker-maintenance"]
 for (const queue of queues) {
   // createQueue 不支持原地改 policy；重建部署时如需变更策略，先删队列再建。
   await boss.createQueue(queue, { ...QUEUE_CREATION_OPTIONS }).catch((error) => {
