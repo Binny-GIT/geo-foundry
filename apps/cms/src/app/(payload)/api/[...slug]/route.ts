@@ -29,6 +29,8 @@ import { handleEntityListGet } from "@/server/routes/entity-reads"
 import { handleDeliveryGet } from "@/server/routes/delivery"
 import { handleWorkspaceContextGet } from "@/server/routes/workspace-context"
 import { handleArticleSourcePost } from "@/server/routes/article-sources"
+import { handlePublicationPlanPost } from "@/server/routes/publication-plans"
+import { handleEvaluationPost, handleRollbackIntentPost } from "@/server/routes/release-ops"
 import { handleReviewCommentPost } from "@/server/routes/review-comments"
 import { handleReviewerDecisionPost } from "@/server/routes/reviewer-decisions"
 import { logger } from "@/server/observability/logger"
@@ -113,6 +115,9 @@ export const POST = async (request: Request, context: RouteContext): Promise<Res
     ["edition-ops-post", () => handleEditionOpsPost(request, params.slug)],
     ["intake-ops-post", () => handleIntakeOpsPost(request, params.slug)],
     ["article-source-post", () => handleArticleSourcePost(request, params.slug)],
+    ["publication-plan-post", () => handlePublicationPlanPost(request, params.slug)],
+    ["rollback-intent-post", () => handleRollbackIntentPost(request, params.slug)],
+    ["evaluation-post", () => handleEvaluationPost(request, params.slug)],
     ["reviewer-decision-post", () => handleReviewerDecisionPost(request, params.slug)],
     ["review-comment-post", () => handleReviewCommentPost(request, params.slug)],
     ["edition-draft-post", () => handleEditionDraftPost(request, params.slug)],

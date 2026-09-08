@@ -32,12 +32,7 @@ import { UrlRecords } from "./collections/UrlRecords"
 import { Users } from "./collections/Users"
 import { createPostgresAdapterOptions } from "./config/database"
 import { parseCmsEnvironment } from "./config/environment"
-import {
-  authCompatSessionGetEndpoint,
-  authCompatSessionPostEndpoint,
-} from "./endpoints/auth-compat-probe"
 import { editionAiChatDraftEndpoint, editionAiChatEndpoint } from "./endpoints/edition-ai-chat"
-import { submitEditorEvaluationEndpoint } from "./endpoints/editor-evaluation"
 import { createIntakeItemEndpoint } from "./endpoints/intake"
 import { allInternalEndpoints } from "./endpoints/internal/index"
 import {
@@ -45,11 +40,6 @@ import {
   importPerformanceSnapshotsEndpoint,
   performanceSuggestionsEndpoint,
 } from "./endpoints/performance-snapshots"
-import {
-  cancelPublicationPlanEndpoint,
-  createPublicationPlanEndpoint,
-} from "./endpoints/publication-plans"
-import { createRollbackIntentEndpoint } from "./endpoints/rollback-intents"
 import { createSiteVariantEndpoint } from "./endpoints/site-variants"
 import { renameUrlRecordEndpoint } from "./endpoints/url-records"
 
@@ -137,9 +127,6 @@ export default buildConfig({
     },
   },
   endpoints: [
-    authCompatSessionGetEndpoint,
-    authCompatSessionPostEndpoint,
-    createRollbackIntentEndpoint,
     editionAiChatDraftEndpoint,
     editionAiChatEndpoint,
     renameUrlRecordEndpoint,
@@ -148,9 +135,6 @@ export default buildConfig({
     importPerformanceSnapshotsEndpoint,
     performanceSuggestionsEndpoint,
     acceptPerformanceSuggestionEndpoint,
-    createPublicationPlanEndpoint,
-    cancelPublicationPlanEndpoint,
-    submitEditorEvaluationEndpoint,
     ...allInternalEndpoints,
   ],
   db: postgresAdapter(
