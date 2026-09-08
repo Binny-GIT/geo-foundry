@@ -36,12 +36,10 @@ import { editionAiChatDraftEndpoint, editionAiChatEndpoint } from "./endpoints/e
 import { createIntakeItemEndpoint } from "./endpoints/intake"
 import { allInternalEndpoints } from "./endpoints/internal/index"
 import {
-  acceptPerformanceSuggestionEndpoint,
   importPerformanceSnapshotsEndpoint,
   performanceSuggestionsEndpoint,
 } from "./endpoints/performance-snapshots"
 import { createSiteVariantEndpoint } from "./endpoints/site-variants"
-import { renameUrlRecordEndpoint } from "./endpoints/url-records"
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 const environment = parseCmsEnvironment(process.env)
@@ -129,12 +127,10 @@ export default buildConfig({
   endpoints: [
     editionAiChatDraftEndpoint,
     editionAiChatEndpoint,
-    renameUrlRecordEndpoint,
     createIntakeItemEndpoint,
     createSiteVariantEndpoint,
     importPerformanceSnapshotsEndpoint,
     performanceSuggestionsEndpoint,
-    acceptPerformanceSuggestionEndpoint,
     ...allInternalEndpoints,
   ],
   db: postgresAdapter(
