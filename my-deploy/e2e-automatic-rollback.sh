@@ -17,6 +17,9 @@ PBPW="${GF_E2E_PUBLISHER_PASSWORD:?}"
 PSQL() { sudo docker exec pg-server psql -U gpucloud -d geo_foundry -qAt -c "$1"; }
 Q() { PSQL "SELECT $1"; }
 
+login() { # email pass jar
+  curl -s -X POST $BASE/api/users/login -H 'Content-Type: application/json'     -d "{\"email\":\"$1\",\"password\":\"$2\"}" -c "$3" -o /dev/null
+}
 login gf-root-test@geo-foundry.dev "$RTPW" /tmp/rb-r.jar
 login e2e-scheduled-publisher@geo-foundry.test "$PBPW" /tmp/rb-p.jar
 SKEY=$(sudo python3 -c 'import json;print(json.load(open("/opt/geo-foundry/credentials/content-service-keyring.json"))["tenants"]["413"])')
