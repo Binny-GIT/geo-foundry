@@ -37,7 +37,6 @@ import {
   authCompatSessionPostEndpoint,
 } from "./endpoints/auth-compat-probe"
 import { addArticleSourceEndpoint } from "./endpoints/article-sources"
-import { deliveryArticleEndpoint, deliveryArticlesEndpoint } from "./endpoints/delivery"
 import { editionAiChatDraftEndpoint, editionAiChatEndpoint } from "./endpoints/edition-ai-chat"
 import { editionAssignmentEndpoint } from "./endpoints/edition-assignment"
 import { editionDuplicateEndpoint } from "./endpoints/edition-duplicate"
@@ -170,8 +169,6 @@ export default buildConfig({
     createPublicationPlanEndpoint,
     cancelPublicationPlanEndpoint,
     submitEditorEvaluationEndpoint,
-    deliveryArticlesEndpoint,
-    deliveryArticleEndpoint,
     ...allInternalEndpoints,
   ],
   db: postgresAdapter(

@@ -24,6 +24,7 @@ import {
 } from "@/server/routes/edition-writes"
 import { handleEditionWorkflowPost } from "@/server/routes/edition-workflow"
 import { handleEntityListGet } from "@/server/routes/entity-reads"
+import { handleDeliveryGet } from "@/server/routes/delivery"
 import { handleReviewCommentPost } from "@/server/routes/review-comments"
 import { handleReviewerDecisionPost } from "@/server/routes/reviewer-decisions"
 import { logger } from "@/server/observability/logger"
@@ -91,6 +92,7 @@ export const GET = async (request: Request, context: RouteContext): Promise<Resp
     ["edition-version-get", () => handleEditionVersionGet(request, params.slug)],
     ["edition-draft-get", () => handleEditionDraftGet(request, params.slug)],
     ["entity-list-get", () => handleEntityListGet(request, params.slug)],
+    ["delivery-get", () => handleDeliveryGet(request, params.slug)],
   ])
   if (handled !== undefined) return handled
   return payloadGet(request, context)

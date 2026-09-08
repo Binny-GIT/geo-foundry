@@ -13,6 +13,7 @@ import * as editionSchema from "./edition-schema"
 import * as entitySchema from "./entity-schema"
 import * as ledgerSchema from "./ledger-schema"
 import * as coreSchema from "./schema"
+import * as sessionSchema from "./session-schema"
 import * as workflowSchema from "./workflow-schema"
 
 export const serverSchema = {
@@ -20,6 +21,7 @@ export const serverSchema = {
   ...editionSchema,
   ...entitySchema,
   ...ledgerSchema,
+  ...sessionSchema,
   ...workflowSchema,
 }
 
