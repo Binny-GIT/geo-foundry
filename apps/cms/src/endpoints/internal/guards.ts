@@ -1,8 +1,10 @@
 import type { ZodType } from "zod"
 
+import { logger } from "../../server/observability/logger"
 import { resolveSessionClaims, type SessionClaims } from "../../access/session"
 import { ReleaseRegistryError } from "../../server/repositories/release-registry"
 import { RollbackIntentError } from "../../server/repositories/rollback-intents"
+import { WorkflowRepositoryError } from "../../server/repositories/edition-workflow"
 import { EditionWorkflowError } from "../../services/edition-workflow"
 import { EmbeddingStoreError } from "../../services/embedding-store"
 import { IntakeError } from "../../services/intake"
@@ -161,7 +163,7 @@ const WORKFLOW_STATUS_BY_CODE: Readonly<Record<string, number>> = {
 }
 
 const workflowErrorToResponse = (
-  error: EditionWorkflowError,
+  error: EditionWorkflowError | WorkflowRepositoryError,
   requestId: string,
   allowOrigin: string | null,
 ): Response => {
@@ -184,7 +186,7 @@ const workflowErrorToResponse = (
   return internalErrorResponse(
     status,
     error.code,
-    error.detail ?? error.code,
+    "detail" in error ? (error.detail ?? error.code) : error.code,
     requestId,
     allowOrigin,
   )
@@ -556,7 +558,7 @@ export const withInternalGuards =
         statusText: response.statusText,
       })
     } catch (error) {
-      if (error instanceof EditionWorkflowError) {
+      if (error instanceof EditionWorkflowError || error instanceof WorkflowRepositoryError) {
         return workflowErrorToResponse(error, requestId, allowOrigin)
       }
       if (error instanceof OperationsLedgerError) {
@@ -574,6 +576,8 @@ export const withInternalGuards =
       if (error instanceof EmbeddingStoreError) {
         return embeddingErrorToResponse(error, requestId, allowOrigin)
       }
+      // 兜底异常必须带堆栈落日志，否则 500 无法定位（曾因此掩盖跨租户 500）。
+      logger.error({ err: error, requestId }, "internal endpoint failed")
       return internalErrorResponse(
         500,
         INTERNAL_ERROR_CODE.INTERNAL,
