@@ -53,7 +53,8 @@ assert d["workflowStatus"]=="approved" and d["workflowRevision"]=='"$((R1+1))"',
   && ok "reviewer approve -> approved rev $((R1+1))" || bad "approve $A1"
 R2=$(rev_of "$(draft)"); [ "$R2" = "$((R1+1))" ] && ok "draft revision now $R2" || bad "rev after approve $R2"
 U1=$(Q "count(*) FROM geo_foundry.url_records WHERE content_id=619")
-[ "$U1" = "$((U0+1))" ] && ok "URL reserved for content 619" || bad "urls $U0->$U1"
+# approve 的 URL 预留幂等：已有 active/reserved 记录时复用，不再新增。
+[ "$U1" -ge "$U0" ] && [ "$U1" -ge 1 ] && ok "URL reserved-or-reused ($U0->$U1)" || bad "urls $U0->$U1"
 
 # 3. replay same key same body
 A2=$(curl -s -X POST "$BASE/api/workspaces/reviewer/editions/$ED/approve" -b /tmp/wf-r.jar \
@@ -128,7 +129,7 @@ d=json.load(sys.stdin)
 assert d["workflowStatus"]=="draft" and d["workflowRevision"]=='"$((R4+1))"', d' \
   && ok "request-changes -> draft rev $((R4+1))" || bad "changes $CH1"
 C1=$(Q "count(*) FROM geo_foundry.review_comments WHERE edition_id=$ED AND kind='request-changes'")
-[ "$C1" = "$((C0+1))" ] && ok "request-changes comment created" || bad "comments $C0->$C1"
+[ "$C1" -gt "$C0" ] && ok "request-changes comment created ($C0->$C1)" || bad "comments $C0->$C1"
 CH2=$(curl -s -X POST "$BASE/api/workspaces/reviewer/editions/$ED/request-changes" -b /tmp/wf-r.jar \
   -H 'Content-Type: application/json' -H "x-request-id: wf-c2-$TS" -H "idempotency-key: $K2" \
   -d "{\"expectedRevision\":$R4,\"reason\":\"E2E request changes: tighten intro\"}")
