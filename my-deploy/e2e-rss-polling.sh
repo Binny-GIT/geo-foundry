@@ -34,9 +34,13 @@ PX=$(Q "count(*) FROM geo_foundry.intake_items WHERE connector_id=$CID_X")
 [ "$LX" = "t" ] && [ "$PX" = "0" ] && ok "no-endpoint connector skipped + backed off" || bad "X polled=$LX parent=$PX"
 PY=$(Q "id||'|'||status FROM geo_foundry.intake_items WHERE connector_id=$CID_Y AND channel='rss' ORDER BY id DESC LIMIT 1")
 PID=${PY%%|*}; PST=${PY##*|}
-[ -n "$PID" ] && [ "$PST" = "fetching" ] && ok "parent intake created -> fetching (id=$PID)" || bad "parent=$PY"
-JOB=$(sudo docker exec redis-server redis-cli --no-auth-warning EXISTS "geo-foundry:content-intake:intake-$PID" 2>/dev/null || echo na)
-[ "$JOB" = "1" ] && ok "intake job enqueued (jobId intake-$PID)" || echo "note: intake job key not found ($JOB), continuing"
+# 75s 等待窗口内常驻 worker 可能已消费并把不可达 feed 置为 failed，两者都算链路打通。
+[ -n "$PID" ] && { [ "$PST" = "fetching" ] || [ "$PST" = "failed" ]; }   && ok "parent intake created (id=$PID status=$PST)" || bad "parent=$PY"
+RPW=$(sudo cat /opt/geo-foundry/credentials/redis-password 2>/dev/null || echo "")
+if [ -n "$RPW" ]; then
+  JOB=$(sudo docker exec redis-server redis-cli --no-auth-warning -a "$RPW" EXISTS "geo-foundry:content-intake:intake-$PID" 2>/dev/null || echo na)
+  [ "$JOB" = "1" ] && ok "intake job enqueued (jobId intake-$PID)" || echo "note: intake job key not found ($JOB), continuing"
+fi
 
 # ---------- 2. tick2：parent fetching 中不重复 ----------
 # ---------- 2. 常驻 worker 真实消费：拉取不可达 feed → failed ----------
