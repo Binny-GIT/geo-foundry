@@ -63,8 +63,11 @@ const contentFieldChanged = (
 
 /* 正文双向归一化在其余 beforeChange 之前执行：新写入 Markdown→blocks，
  * legacy body-only 写入 blocks→Markdown；见 normalizeEditionBodyWrite。 */
-const normalizeBodyTruth: CollectionBeforeChangeHook = ({ data }) =>
-  normalizeEditionBodyWrite(data)
+const normalizeBodyTruth: CollectionBeforeChangeHook = ({ data, originalDoc }) =>
+  normalizeEditionBodyWrite(
+    data,
+    originalDoc as Readonly<Record<string, unknown>> | undefined,
+  )
 
 const trackContentVersion: CollectionBeforeChangeHook = ({ data, operation, originalDoc }) => {
   if (

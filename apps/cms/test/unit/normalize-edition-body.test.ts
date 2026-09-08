@@ -30,11 +30,37 @@ describe("edition body write normalization", () => {
     expect(normalized["body"]).toEqual(data["body"])
   })
 
+  it("does not let a merged stale Markdown field overwrite changed legacy blocks", () => {
+    const original = {
+      body: [{ blockType: "paragraph", text: "旧正文" }],
+      bodyMarkdown: "旧正文",
+      title: "标题",
+    }
+    // Payload beforeChange.data 是与 original 合并后的完整文档：本次请求只改 body，
+    // 但旧 bodyMarkdown 仍会出现在 data 里。
+    const data: Record<string, unknown> = {
+      ...original,
+      body: [
+        { blockType: "heading", level: "2", text: "新标题" },
+        { blockType: "paragraph", text: "新正文" },
+      ],
+    }
+    const normalized = normalizeEditionBodyWrite(data, original)
+    expect(normalized["bodyMarkdown"]).toBe("## 新标题\n\n新正文")
+    expect(normalized["body"]).toEqual(data["body"])
+  })
+
   it("does not touch the body for a metadata-only write", () => {
-    const data = { owner: 1116, priority: "high" }
-    expect(normalizeEditionBodyWrite(data)).toEqual(data)
-    expect(Object.hasOwn(data, "body")).toBe(false)
-    expect(Object.hasOwn(data, "bodyMarkdown")).toBe(false)
+    const original = {
+      body: [{ blockType: "paragraph", text: "正文" }],
+      bodyMarkdown: "正文",
+      owner: null,
+      priority: "normal",
+    }
+    const data = { ...original, owner: 1116, priority: "high" }
+    expect(normalizeEditionBodyWrite(data, original)).toEqual(data)
+    expect(data["bodyMarkdown"]).toBe("正文")
+    expect(data["body"]).toEqual(original.body)
   })
 
   it("preserves unknown legacy blocks through a protected Markdown segment", () => {
