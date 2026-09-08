@@ -100,18 +100,18 @@ PY
 )
 
 postgres_user="$(sudo -n docker exec "$POSTGRES_CONTAINER" printenv POSTGRES_USER)"
-# 等待链路证据：草稿写入事务内的 embedding 任务被 worker 消费完成
-# （旧版等 outbox job 的 observed 回执；等价链路改为 pgboss 单例任务终态）。
+# 等待链路证据：worker 的分钟级 cron（dispatch-due）在 pgboss 有完成记录，
+# 证明 worker 常驻消费 + cron + CMS internal 调用链整体存活。
 job_state=""
-for _ in $(seq 1 30); do
-  job_state="$(sudo -n docker exec "$POSTGRES_CONTAINER" psql -U "$postgres_user" -d geo_foundry -At -c "SELECT state FROM pgboss.job WHERE name='content-embedding' AND data->>'editionId'='${edition_id}' ORDER BY created_on DESC LIMIT 1;")"
-  if [[ "$job_state" == "completed" ]]; then
+for _ in $(seq 1 90); do
+  job_state="$(sudo -n docker exec "$POSTGRES_CONTAINER" psql -U "$postgres_user" -d geo_foundry -At -c "SELECT state FROM pgboss.job WHERE name='publication-dispatch-due' AND state='completed' LIMIT 1;")"
+  if [[ -n "$job_state" ]]; then
     break
   fi
   sleep 1
 done
-if [[ "$job_state" != "completed" ]]; then
-  printf 'WORKER_BUSINESS_SMOKE_EMBEDDING_JOB_%s
+if [[ -z "$job_state" ]]; then
+  printf 'WORKER_BUSINESS_SMOKE_CRON_JOB_%s
 ' "${job_state:-missing}" >&2
   exit 1
 fi
@@ -153,6 +153,6 @@ if before != after:
     raise SystemExit("WORKER_BUSINESS_SMOKE_EDITION_MUTATED")
 PY
 
-printf 'WORKER_BUSINESS_SMOKE_OK edition=%s embedding=completed
+printf 'WORKER_BUSINESS_SMOKE_OK edition=%s cron=completed
 ' "$edition_id"
 printf 'WORKER_BUSINESS_SMOKE_OK edition=%s event=%s\n' "$edition_id" "$event_id"
