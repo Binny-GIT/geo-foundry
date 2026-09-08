@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest"
 
-import { restorableEditionFieldsOf } from "../../src/services/edition-version-history"
+import {
+  editionVersionSnapshotOf,
+  restorableEditionFieldsOf,
+} from "../../src/services/edition-version-history"
 
 describe("edition draft restore model", () => {
   it("restores the Markdown truth and only explicitly editable content fields", () => {
@@ -34,5 +37,27 @@ describe("edition draft restore model", () => {
     expect(fields).not.toHaveProperty("compiledRelease")
     expect(fields).not.toHaveProperty("auditLog")
     expect(fields).not.toHaveProperty("tenant")
+  })
+
+  it("keeps valid early drafts whose optional article information is still empty", () => {
+    const snapshot = editionVersionSnapshotOf({
+      angle: "",
+      bodyMarkdown: "E2E 验证占位段落",
+      citations: null,
+      creationOrigin: "human",
+      entities: null,
+      primaryTopic: "",
+      secondaryTopics: [],
+      summary: "",
+      title: "E2E 新建文章验证（可删除）",
+    })
+    expect(snapshot).not.toBeNull()
+    expect(snapshot).toMatchObject({
+      angle: "",
+      body: [{ blockType: "paragraph", text: "E2E 验证占位段落" }],
+      bodyMarkdown: "E2E 验证占位段落",
+      primaryTopic: "",
+      summary: "",
+    })
   })
 })

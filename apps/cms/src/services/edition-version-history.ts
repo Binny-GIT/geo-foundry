@@ -87,13 +87,15 @@ type StoredVersion = Readonly<{
   version: unknown
 }>
 
-const snapshotOf = (value: unknown): EditionVersionSnapshot | null => {
+export const editionVersionSnapshotOf = (value: unknown): EditionVersionSnapshot | null => {
   const row = recordOf(value)
   if (row === null) return null
-  const title = textOf(row["title"])
-  const summary = textOf(row["summary"])
-  const angle = textOf(row["angle"])
-  const primaryTopic = textOf(row["primaryTopic"])
+  /* 草稿允许标题之外的文章信息暂时为空；历史版本只拒绝非字符串，不能把
+   * 合法空字符串误判为损坏并从列表静默过滤。 */
+  const title = typeof row["title"] === "string" ? row["title"] : null
+  const summary = typeof row["summary"] === "string" ? row["summary"] : null
+  const angle = typeof row["angle"] === "string" ? row["angle"] : null
+  const primaryTopic = typeof row["primaryTopic"] === "string" ? row["primaryTopic"] : null
   const creationOrigin = textOf(row["creationOrigin"])
   const storedMarkdown = row["bodyMarkdown"]
   const storedBody = row["body"]
@@ -133,7 +135,7 @@ const snapshotOf = (value: unknown): EditionVersionSnapshot | null => {
 }
 
 const historyItemOf = (value: StoredVersion): EditionVersionHistoryItem | null => {
-  const snapshot = snapshotOf(value.version)
+  const snapshot = editionVersionSnapshotOf(value.version)
   const id = numberOf(value.id)
   const version = recordOf(value.version)
   const createdAt = textOf(value.createdAt)
@@ -381,7 +383,7 @@ export async function restoreEditionDraft(
         },
       })
       const source = versions.docs[0]
-      const snapshot = source === undefined ? null : snapshotOf(source.version)
+      const snapshot = source === undefined ? null : editionVersionSnapshotOf(source.version)
       if (snapshot === null)
         throw fail("EDITION_DRAFT_RESTORE_VERSION_NOT_FOUND", String(input.versionId))
 
