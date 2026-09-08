@@ -14,6 +14,7 @@ import {
   serial,
   text,
   timestamp,
+  uniqueIndex,
   varchar,
 } from "drizzle-orm/pg-core"
 
@@ -149,5 +150,30 @@ export const editionVersionRels = geo.table(
     index("_content_editions_v_rels_parent_idx").on(table.parentId),
     index("_content_editions_v_rels_path_idx").on(table.path),
     index("_content_editions_v_rels_sites_id_idx").on(table.siteId),
+  ],
+)
+
+export const editionDraftRestoreIdempotency = geo.table(
+  "edition_draft_restore_idempotency",
+  {
+    id: serial("id").primaryKey(),
+    uniqueKey: varchar("unique_key").notNull(),
+    tenantId: integer("tenant_id").notNull(),
+    endpoint: varchar("endpoint").notNull(),
+    idempotencyKey: varchar("idempotency_key").notNull(),
+    requestHash: varchar("request_hash").notNull(),
+    editionId: integer("edition_id").notNull(),
+    versionId: varchar("version_id").notNull(),
+    actorUserId: varchar("actor_user_id").notNull(),
+    requestId: varchar("request_id").notNull(),
+    responsePayload: jsonb("response_payload").notNull(),
+    replayCount: numeric("replay_count").default("0"),
+    updatedAt: timestamp("updated_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("edition_draft_restore_idempotency_unique_key_idx").on(table.uniqueKey),
+    index("edition_draft_restore_idempotency_edition_idx").on(table.editionId),
+    index("edition_draft_restore_idempotency_version_id_idx").on(table.versionId),
   ],
 )

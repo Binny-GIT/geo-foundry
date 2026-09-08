@@ -2,7 +2,7 @@
 
 import { toast, useEditionEditor } from "../state/edition-editor-context"
 import { useEffect, useId, useState } from "react"
-import type { EditionVersionHistoryItem } from "@/services/edition-version-history"
+import type { EditionHistoryItem as EditionVersionHistoryItem } from "@/server/repositories/edition-versions"
 import type { UiLang } from "@/components/i18n/ui-lang"
 import { CopyIcon, LayersIcon } from "@/components/icons"
 import { Badge, IconBadge } from "@/components/ui"

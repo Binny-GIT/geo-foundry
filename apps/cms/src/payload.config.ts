@@ -42,10 +42,6 @@ import { editionAiChatDraftEndpoint, editionAiChatEndpoint } from "./endpoints/e
 import { editionAssignmentEndpoint } from "./endpoints/edition-assignment"
 import { editionDuplicateEndpoint } from "./endpoints/edition-duplicate"
 import {
-  editionVersionHistoryEndpoint,
-  restoreEditionDraftEndpoint,
-} from "./endpoints/edition-version-history"
-import {
   createDraftFromPublishedEndpoint,
   submitPublishOperationEndpoint,
   transitionEditionEndpoint,
@@ -170,8 +166,6 @@ export default buildConfig({
     transitionEditionEndpoint,
     reviewerApproveEditionEndpoint,
     reviewerRequestChangesEditionEndpoint,
-    editionVersionHistoryEndpoint,
-    restoreEditionDraftEndpoint,
     editionWorkspaceContextEndpoint,
     editionAssignmentEndpoint,
     editionDuplicateEndpoint,

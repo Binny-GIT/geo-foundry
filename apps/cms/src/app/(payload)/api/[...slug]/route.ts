@@ -15,6 +15,10 @@ import {
 } from "@/server/routes/auth"
 import { handleEditionDraftGet } from "@/server/routes/edition-reads"
 import {
+  handleEditionVersionGet,
+  handleEditionVersionPost,
+} from "@/server/routes/edition-versions"
+import {
   handleEditionDraftPatch,
   handleEditionDraftPost,
 } from "@/server/routes/edition-writes"
@@ -34,6 +38,8 @@ export const GET = async (request: Request, context: RouteContext): Promise<Resp
   const params = await context.params
   const authResponse = await handleUsersAuthGet(request, params.slug)
   if (authResponse !== null) return authResponse
+  const versionResponse = await handleEditionVersionGet(request, params.slug)
+  if (versionResponse !== null) return versionResponse
   const editionResponse = await handleEditionDraftGet(request, params.slug)
   if (editionResponse !== null) return editionResponse
   const entityResponse = await handleEntityListGet(request, params.slug)
@@ -46,6 +52,8 @@ export const POST = async (request: Request, context: RouteContext): Promise<Res
   if (accountResponse !== null) return accountResponse
   const authResponse = await handleUsersAuthPost(request, params.slug)
   if (authResponse !== null) return authResponse
+  const versionResponse = await handleEditionVersionPost(request, params.slug)
+  if (versionResponse !== null) return versionResponse
   const editionResponse = await handleEditionDraftPost(request, params.slug)
   return editionResponse ?? payloadPost(request, context)
 }
