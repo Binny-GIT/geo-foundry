@@ -7,10 +7,10 @@ const root = resolve(import.meta.dirname, "../..")
 const sourceOf = (path: string): Promise<string> => readFile(resolve(root, path), "utf8")
 
 describe("intake inbox URL import", () => {
-  it("keeps URL intake creation in the Console while delegating fetch safety to the existing endpoint", async () => {
-    const [inbox, endpoint] = await Promise.all([
+  it("keeps URL intake creation in the Console while delegating fetch safety to the Drizzle route", async () => {
+    const [inbox, route] = await Promise.all([
       sourceOf("src/console/components/IntakeInbox.tsx"),
-      sourceOf("src/endpoints/intake.ts"),
+      sourceOf("src/server/routes/intake-ops.ts"),
     ])
 
     expect(inbox).toContain("导入公开 URL")
@@ -19,7 +19,8 @@ describe("intake inbox URL import", () => {
     expect(inbox).toContain('channel: "url"')
     expect(inbox).toContain('fetch("/api/intake-operations"')
     expect(inbox).toContain("canManage &&")
-    expect(endpoint).toContain('path: "/intake-operations"')
-    expect(endpoint).toContain("scheduleIntakeFetch")
+    expect(route).toContain('slug[0] === "intake-operations"')
+    expect(route).toContain("enqueueIntakeFetchFromEnvironment")
+    expect(route).toContain("INTAKE_QUEUE_UNAVAILABLE")
   })
 })
