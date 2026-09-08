@@ -40,13 +40,7 @@ import { addArticleSourceEndpoint } from "./endpoints/article-sources"
 import { editionAiChatDraftEndpoint, editionAiChatEndpoint } from "./endpoints/edition-ai-chat"
 import { editionWorkspaceContextEndpoint } from "./endpoints/edition-workspace-context"
 import { submitEditorEvaluationEndpoint } from "./endpoints/editor-evaluation"
-import {
-  adoptIntakeItemEndpoint,
-  createIntakeItemEndpoint,
-  ignoreIntakeItemEndpoint,
-  mergeIntakeItemEndpoint,
-} from "./endpoints/intake"
-import { retryIntakeItemEndpoint } from "./endpoints/intake-retry"
+import { createIntakeItemEndpoint } from "./endpoints/intake"
 import { allInternalEndpoints } from "./endpoints/internal/index"
 import {
   acceptPerformanceSuggestionEndpoint,
@@ -153,10 +147,6 @@ export default buildConfig({
     editionAiChatEndpoint,
     renameUrlRecordEndpoint,
     createIntakeItemEndpoint,
-    ignoreIntakeItemEndpoint,
-    mergeIntakeItemEndpoint,
-    retryIntakeItemEndpoint,
-    adoptIntakeItemEndpoint,
     addArticleSourceEndpoint,
     createSiteVariantEndpoint,
     importPerformanceSnapshotsEndpoint,

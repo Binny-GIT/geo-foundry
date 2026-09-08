@@ -7,9 +7,7 @@ import {
   createIntakeItem,
   type IntakeChannel,
   IntakeError,
-  ignoreIntakeItem,
   markIntakeQueueUnavailable,
-  mergeIntakeItems,
   scheduleIntakeFetch,
 } from "../services/intake"
 import { enqueueIntakeFetchFromEnvironment } from "../services/intake-queue"
@@ -157,71 +155,5 @@ export const createIntakeItemEndpoint: Endpoint = {
   path: "/intake-operations",
 }
 
-export const ignoreIntakeItemEndpoint: Endpoint = {
-  handler: async (req) => {
-    const denied = requireEditable(req)
-    if (denied !== null) return denied
-    const intakeItemId = intakeItemIdOf(req)
-    if (intakeItemId === null) return response(400, { error: { code: "INTAKE_ITEM_ID_INVALID" } })
-    try {
-      return response(200, {
-        intakeItem: await ignoreIntakeItem(req.payload, intakeItemId, req.user),
-      })
-    } catch (error) {
-      if (error instanceof IntakeError) return intakeErrorResponse(error)
-      throw error
-    }
-  },
-  method: "post",
-  path: "/intake-operations/:id/ignore",
-}
 
-export const mergeIntakeItemEndpoint: Endpoint = {
-  handler: async (req) => {
-    const denied = requireEditable(req)
-    if (denied !== null) return denied
-    const intakeItemId = intakeItemIdOf(req)
-    if (intakeItemId === null) return response(400, { error: { code: "INTAKE_ITEM_ID_INVALID" } })
-    const parsed = mergeBodySchema.safeParse(await bodyOf(req))
-    if (!parsed.success) return response(400, { error: { code: "INTAKE_MERGE_BODY_INVALID" } })
-    try {
-      return response(200, {
-        intakeItem: await mergeIntakeItems(
-          req.payload,
-          intakeItemId,
-          parsed.data.targetIntakeItemId,
-          req.user,
-        ),
-      })
-    } catch (error) {
-      if (error instanceof IntakeError) return intakeErrorResponse(error)
-      throw error
-    }
-  },
-  method: "post",
-  path: "/intake-operations/:id/merge",
-}
 
-export const adoptIntakeItemEndpoint: Endpoint = {
-  handler: async (req) => {
-    const denied = requireEditable(req)
-    if (denied !== null) return denied
-    const intakeItemId = intakeItemIdOf(req)
-    if (intakeItemId === null) return response(400, { error: { code: "INTAKE_ITEM_ID_INVALID" } })
-    const parsed = adoptBodySchema.safeParse(await bodyOf(req))
-    if (!parsed.success) return response(400, { error: { code: "INTAKE_ADOPT_BODY_INVALID" } })
-    try {
-      const result = await adoptIntakeItem(req.payload, {
-        intakeItemId,
-        ...(parsed.data.siteId === undefined ? {} : { siteId: parsed.data.siteId }),
-        user: req.user,
-      })
-      return response(result.sourceLinked ? 201 : 409, result)
-    } catch (error) {
-      if (error instanceof IntakeError) return intakeErrorResponse(error)
-      throw error
-    }
-  },
-  method: "post",
-  path: "/intake-operations/:id/adopt",
-}
