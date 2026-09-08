@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { authCookie, handleUsersAuthGet, handleUsersAuthPost } from "../../src/server/routes/auth"
+import { authCookie, compatAuthRouteOf } from "../../src/server/routes/auth"
 
 describe("compat auth route surface", () => {
   it("serializes the exact Payload cookie name and attributes", () => {
@@ -15,11 +15,15 @@ describe("compat auth route surface", () => {
     expect(expired).toContain("SameSite=Lax")
   })
 
-  it("only claims login/logout/me and leaves other users routes to Payload fallback", async () => {
-    const request = new Request("https://example.test/api/users/forgot-password")
-    await expect(handleUsersAuthGet(request, ["users", "forgot-password"])).resolves.toBeNull()
-    await expect(handleUsersAuthPost(request, ["users", "forgot-password"])).resolves.toBeNull()
-    await expect(handleUsersAuthGet(request, ["users"])).resolves.toBeNull()
-    await expect(handleUsersAuthPost(request, ["users", "reset-password"])).resolves.toBeNull()
+  it("claims only the migrated auth routes and leaves forgot/reset/users CRUD to Payload fallback", () => {
+    expect(compatAuthRouteOf("GET", ["users", "me"])).toBe("me")
+    expect(compatAuthRouteOf("POST", ["users", "login"])).toBe("login")
+    expect(compatAuthRouteOf("POST", ["users", "logout"])).toBe("logout")
+    expect(compatAuthRouteOf("POST", ["users", "refresh-token"])).toBe("refresh")
+    expect(compatAuthRouteOf("POST", ["account", "password"])).toBe("account-password")
+    expect(compatAuthRouteOf("POST", ["users", "forgot-password"])).toBeNull()
+    expect(compatAuthRouteOf("POST", ["users", "reset-password"])).toBeNull()
+    expect(compatAuthRouteOf("GET", ["users"])).toBeNull()
+    expect(compatAuthRouteOf("GET", ["users", "123"])).toBeNull()
   })
 })

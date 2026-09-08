@@ -8,7 +8,10 @@ import { randomUUID } from "node:crypto"
 
 import { z } from "zod"
 
-import { verifyPasswordCompat } from "../auth/compat"
+import {
+  generatePasswordCredentialsCompat,
+  verifyPasswordCompat,
+} from "../auth/compat"
 import { authenticateRequest } from "../auth/session"
 import { UsersRepository, type UserAuthRecord } from "../repositories/users"
 import { serverRuntime } from "../runtime"
@@ -20,6 +23,13 @@ const loginSchema = z
     password: z.string().min(1).max(256),
   })
   .passthrough()
+
+const passwordChangeSchema = z
+  .object({
+    currentPassword: z.string().min(1).max(200),
+    newPassword: z.string().min(8).max(200),
+  })
+  .strict()
 
 const json = (status: number, body: unknown, headers?: Headers): Response => {
   const resultHeaders = headers ?? new Headers()
@@ -144,24 +154,118 @@ const handleLogout = async (request: Request): Promise<Response> => {
   return json(200, { message: "成功登出。" }, headers)
 }
 
+const handleRefresh = async (request: Request): Promise<Response> => {
+  const auth = await authenticateRequest(request.headers)
+  if (auth === null || auth.session === null) {
+    return json(403, { errors: [{ message: "您无权执行此操作。" }] })
+  }
+  const { configSecret, db } = serverRuntime()
+  const repository = new UsersRepository(db)
+  const refreshed = await issueCompatSessionToken({
+    configSecret,
+    email: auth.user.email,
+    sid: auth.session.sid,
+    userId: auth.user.id,
+  })
+  const updated = await repository.refreshSession(
+    auth.user.id,
+    auth.session.sid,
+    new Date(refreshed.expiresAt * 1000),
+  )
+  if (!updated) return json(403, { errors: [{ message: "您无权执行此操作。" }] })
+  const headers = new Headers({ "set-cookie": cookieOf(refreshed.token, refreshed.expiresAt) })
+  return json(
+    200,
+    {
+      exp: refreshed.expiresAt,
+      message: "令牌刷新成功。",
+      refreshedToken: refreshed.token,
+      setCookie: true,
+      strategy: "local-jwt",
+      user: await publicUser(repository, auth.user),
+    },
+    headers,
+  )
+}
+
+const handlePasswordChange = async (request: Request): Promise<Response> => {
+  const auth = await authenticateRequest(request.headers)
+  if (auth === null || auth.session === null) {
+    return json(401, { error: { code: "ACCOUNT_PASSWORD_UNAUTHENTICATED" } })
+  }
+  if (auth.claims.role === "content-service") {
+    return json(403, { error: { code: "ACCOUNT_PASSWORD_ROLE_FORBIDDEN" } })
+  }
+  let raw: unknown
+  try {
+    raw = await request.json()
+  } catch {
+    return json(400, { error: { code: "ACCOUNT_PASSWORD_BODY_INVALID" } })
+  }
+  const parsed = passwordChangeSchema.safeParse(raw)
+  if (!parsed.success) {
+    return json(400, { error: { code: "ACCOUNT_PASSWORD_BODY_INVALID" } })
+  }
+  const repository = new UsersRepository(serverRuntime().db)
+  const valid = await verifyPasswordCompat(parsed.data.currentPassword, {
+    hash: auth.user.hash ?? "",
+    salt: auth.user.salt ?? "",
+  })
+  if (!valid) {
+    return json(400, { error: { code: "ACCOUNT_PASSWORD_CURRENT_INVALID" } })
+  }
+  const credentials = await generatePasswordCredentialsCompat(parsed.data.newPassword)
+  const updated = await repository.updatePasswordHash(auth.user.id, credentials)
+  return updated
+    ? json(200, { ok: true })
+    : json(500, { error: { code: "ACCOUNT_PASSWORD_UPDATE_FAILED" } })
+}
+
+export type CompatAuthRoute = "account-password" | "login" | "logout" | "me" | "refresh"
+
+export const compatAuthRouteOf = (
+  method: "GET" | "POST",
+  slug: readonly string[] | undefined,
+): CompatAuthRoute | null => {
+  if (slug?.length !== 2) return null
+  if (method === "GET" && slug[0] === "users" && slug[1] === "me") return "me"
+  if (method !== "POST") return null
+  if (slug[0] === "account" && slug[1] === "password") return "account-password"
+  if (slug[0] !== "users") return null
+  if (slug[1] === "login") return "login"
+  if (slug[1] === "logout") return "logout"
+  if (slug[1] === "refresh-token") return "refresh"
+  return null
+}
+
 export const handleUsersAuthGet = async (
   request: Request,
   slug: readonly string[] | undefined,
-): Promise<Response | null> => {
-  if (slug?.length === 2 && slug[0] === "users" && slug[1] === "me") {
-    return handleMe(request)
-  }
-  return null
-}
+): Promise<Response | null> =>
+  compatAuthRouteOf("GET", slug) === "me" ? handleMe(request) : null
 
 export const handleUsersAuthPost = async (
   request: Request,
   slug: readonly string[] | undefined,
 ): Promise<Response | null> => {
-  if (slug?.length !== 2 || slug[0] !== "users") return null
-  if (slug[1] === "login") return handleLogin(request)
-  if (slug[1] === "logout") return handleLogout(request)
-  return null
+  switch (compatAuthRouteOf("POST", slug)) {
+    case "login":
+      return handleLogin(request)
+    case "logout":
+      return handleLogout(request)
+    case "refresh":
+      return handleRefresh(request)
+    default:
+      return null
+  }
 }
+
+export const handleAccountAuthPost = async (
+  request: Request,
+  slug: readonly string[] | undefined,
+): Promise<Response | null> =>
+  compatAuthRouteOf("POST", slug) === "account-password"
+    ? handlePasswordChange(request)
+    : null
 
 export const authCookie = { cookieOf, expiredCookie }

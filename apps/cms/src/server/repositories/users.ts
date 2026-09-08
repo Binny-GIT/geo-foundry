@@ -94,7 +94,6 @@ export class UsersRepository {
           WHEN ${users.lockUntil} IS NOT NULL AND ${users.lockUntil} <= ${now} THEN NULL
           ELSE ${users.lockUntil}
         END`,
-        updatedAt: now,
       })
       .where(eq(users.id, id))
       .returning({ attempts: users.loginAttempts, lockUntil: users.lockUntil })
@@ -106,7 +105,7 @@ export class UsersRepository {
   async resetLoginFailures(id: number): Promise<void> {
     await this.db
       .update(users)
-      .set({ loginAttempts: "0", lockUntil: null, updatedAt: new Date() })
+      .set({ loginAttempts: "0", lockUntil: null })
       .where(eq(users.id, id))
   }
 
@@ -133,7 +132,7 @@ export class UsersRepository {
       })
       await tx
         .update(users)
-        .set({ loginAttempts: "0", lockUntil: null, updatedAt: new Date() })
+        .set({ loginAttempts: "0", lockUntil: null })
         .where(eq(users.id, userId))
     })
   }
@@ -168,6 +167,35 @@ export class UsersRepository {
       .where(eq(usersSessions.parentId, userId))
       .returning({ id: usersSessions.id })
     return rows.length
+  }
+
+  async refreshSession(userId: number, sid: string, expiresAt: Date): Promise<boolean> {
+    return this.db.transaction(async (tx) => {
+      await tx
+        .delete(usersSessions)
+        .where(and(eq(usersSessions.parentId, userId), sql`${usersSessions.expiresAt} <= NOW()`))
+      const rows = await tx
+        .update(usersSessions)
+        .set({ expiresAt })
+        .where(and(eq(usersSessions.parentId, userId), eq(usersSessions.id, sid)))
+        .returning({ id: usersSessions.id })
+      return rows.length === 1
+    })
+  }
+
+  async updatePasswordHash(userId: number, credentials: Readonly<{ hash: string; salt: string }>): Promise<boolean> {
+    const rows = await this.db
+      .update(users)
+      .set({
+        hash: credentials.hash,
+        resetPasswordExpiration: null,
+        resetPasswordToken: null,
+        salt: credentials.salt,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning({ id: users.id })
+    return rows.length === 1
   }
 
   async activeSessions(userId: number): Promise<

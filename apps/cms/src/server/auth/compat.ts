@@ -49,6 +49,20 @@ export type StoredCredentials = Readonly<{
   readonly salt: string
 }>
 
+/** 生成与 Payload 完全相同的 PBKDF2 salt/hash，供新建与修改密码。 */
+export const generatePasswordCredentialsCompat = async (
+  password: string,
+): Promise<StoredCredentials> => {
+  const salt = crypto.randomBytes(32).toString("hex")
+  const hash = await new Promise<Buffer>((resolve, reject) => {
+    crypto.pbkdf2(password, salt, 25_000, 512, "sha256", (error, hashRaw) => {
+      if (error !== null) reject(error)
+      else resolve(hashRaw)
+    })
+  })
+  return { hash: hash.toString("hex"), salt }
+}
+
 /** 校验明文密码与存储凭据是否匹配（参数与 Payload authenticate 逐字一致）。 */
 export const verifyPasswordCompat = async (
   password: string,

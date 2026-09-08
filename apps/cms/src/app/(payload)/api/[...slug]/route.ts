@@ -8,7 +8,11 @@ import {
   REST_PUT,
 } from "@payloadcms/next/routes"
 
-import { handleUsersAuthGet, handleUsersAuthPost } from "@/server/routes/auth"
+import {
+  handleAccountAuthPost,
+  handleUsersAuthGet,
+  handleUsersAuthPost,
+} from "@/server/routes/auth"
 import { handleEntityListGet } from "@/server/routes/entity-reads"
 
 const payloadGet = REST_GET(config)
@@ -30,6 +34,8 @@ export const GET = async (request: Request, context: RouteContext): Promise<Resp
 
 export const POST = async (request: Request, context: RouteContext): Promise<Response> => {
   const params = await context.params
+  const accountResponse = await handleAccountAuthPost(request, params.slug)
+  if (accountResponse !== null) return accountResponse
   const authResponse = await handleUsersAuthPost(request, params.slug)
   return authResponse ?? payloadPost(request, context)
 }

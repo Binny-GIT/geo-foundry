@@ -32,7 +32,6 @@ import { UrlRecords } from "./collections/UrlRecords"
 import { Users } from "./collections/Users"
 import { createPostgresAdapterOptions } from "./config/database"
 import { parseCmsEnvironment } from "./config/environment"
-import { changeOwnPasswordEndpoint } from "./endpoints/account-password"
 import {
   authCompatSessionGetEndpoint,
   authCompatSessionPostEndpoint,
@@ -163,7 +162,6 @@ export default buildConfig({
     },
   },
   endpoints: [
-    changeOwnPasswordEndpoint,
     authCompatSessionGetEndpoint,
     authCompatSessionPostEndpoint,
     createRollbackIntentEndpoint,

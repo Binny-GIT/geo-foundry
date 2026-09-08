@@ -3,7 +3,7 @@ import { resolve } from "node:path"
 
 import { describe, expect, it } from "vitest"
 
-import { CMS_ACTION, CMS_RESOURCE, decideAccess } from "../../src/access/policy"
+import { CMS_ACTION, decideAccess } from "../../src/access/policy"
 import { CMS_ROLE, type CmsRole } from "../../src/access/roles"
 import {
   CONSOLE_NAV,
@@ -57,7 +57,7 @@ describe("console tenant nav and account settings contract", () => {
   it("splits the header dropdown into profile and password deep-links", async () => {
     const shell = await sourceOf("src/console/components/ConsoleShell.tsx")
 
-    expect(shell).toContain("${consoleRoute.account}?tab=password")
+    expect(shell).toContain(["$", "{consoleRoute.account}", "?tab=password"].join(""))
     expect(shell).toContain("个人资料")
     expect(shell).not.toContain("账户设置（修改密码）")
     expect(shell).toContain("KeyRoundIcon")
@@ -92,27 +92,23 @@ describe("console tenant nav and account settings contract", () => {
     expect(form).toContain("instanceof HTMLInputElement")
   })
 
-  it("changes the password only after re-verifying the current credential", async () => {
-    const [endpoint, config] = await Promise.all([
-      sourceOf("src/endpoints/account-password.ts"),
+  it("changes the password through compat auth without invalidating the current session", async () => {
+    const [authRoute, gateway, config] = await Promise.all([
+      sourceOf("src/server/routes/auth.ts"),
+      sourceOf("src/app/(payload)/api/[...slug]/route.ts"),
       sourceOf("src/payload.config.ts"),
     ])
 
-    expect(config).toContain("changeOwnPasswordEndpoint")
-    // Mounted under /api/account — the /api/users tree belongs to the auth
-    // collection's REST layer and terminal-404s unknown sub-routes.
-    expect(endpoint).toContain('path: "/account/password"')
-    expect(endpoint).toContain('method: "post"')
-    // Current password goes through the same credential path as login.
-    expect(endpoint).toContain("req.payload.login")
-    expect(endpoint).toContain("ACCOUNT_PASSWORD_CURRENT_INVALID")
-    // The update re-sends the stored role/tenant verbatim (role is required);
-    // the role hook lets non-admins re-assert only their OWN stored role.
-    expect(endpoint).toContain("role: claims.role")
-    expect(endpoint).toContain("overrideAccess: true")
-    // Service identities keep using keyring API keys, never this endpoint.
-    expect(endpoint).toContain("CMS_ROLE.CONTENT_SERVICE")
-    expect(endpoint).toContain("ACCOUNT_PASSWORD_ROLE_FORBIDDEN")
-    expect(endpoint).toContain("newPassword: z.string().min(8)")
+    expect(gateway).toContain("handleAccountAuthPost")
+    expect(authRoute).toContain('slug[0] === "account" && slug[1] === "password"')
+    expect(authRoute).toContain("authenticateRequest(request.headers)")
+    expect(authRoute).toContain("verifyPasswordCompat")
+    expect(authRoute).toContain("generatePasswordCredentialsCompat")
+    expect(authRoute).toContain("updatePasswordHash")
+    expect(authRoute).toContain("ACCOUNT_PASSWORD_CURRENT_INVALID")
+    expect(authRoute).toContain("ACCOUNT_PASSWORD_ROLE_FORBIDDEN")
+    expect(authRoute).toContain("newPassword: z.string().min(8)")
+    expect(authRoute).not.toContain("req.payload.login")
+    expect(config).not.toContain("changeOwnPasswordEndpoint")
   })
 })
