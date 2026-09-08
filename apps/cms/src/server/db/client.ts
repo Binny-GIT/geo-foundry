@@ -9,11 +9,12 @@
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres"
 import type { Pool } from "pg"
 
+import * as editionSchema from "./edition-schema"
 import * as entitySchema from "./entity-schema"
 import * as ledgerSchema from "./ledger-schema"
 import * as coreSchema from "./schema"
 
-export const serverSchema = { ...coreSchema, ...entitySchema, ...ledgerSchema }
+export const serverSchema = { ...coreSchema, ...editionSchema, ...entitySchema, ...ledgerSchema }
 
 export type ServerDb = NodePgDatabase<typeof serverSchema>
 

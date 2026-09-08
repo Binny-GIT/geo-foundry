@@ -13,6 +13,7 @@ import {
   handleUsersAuthGet,
   handleUsersAuthPost,
 } from "@/server/routes/auth"
+import { handleEditionDraftGet } from "@/server/routes/edition-reads"
 import { handleEntityListGet } from "@/server/routes/entity-reads"
 
 const payloadGet = REST_GET(config)
@@ -28,6 +29,8 @@ export const GET = async (request: Request, context: RouteContext): Promise<Resp
   const params = await context.params
   const authResponse = await handleUsersAuthGet(request, params.slug)
   if (authResponse !== null) return authResponse
+  const editionResponse = await handleEditionDraftGet(request, params.slug)
+  if (editionResponse !== null) return editionResponse
   const entityResponse = await handleEntityListGet(request, params.slug)
   return entityResponse ?? payloadGet(request, context)
 }
