@@ -2,6 +2,11 @@ import type { Endpoint, PayloadRequest } from "payload"
 import { z } from "zod"
 
 import { resolveSessionClaims } from "../access/session"
+
+import { authenticateRequest } from "../server/auth/session"
+import { EditionsRepository } from "../server/repositories/editions"
+import { entityScopeOf } from "../server/repositories/entities"
+import { serverRuntime } from "../server/runtime"
 import {
   type ProviderConfig,
   providerConfigOf,
@@ -140,17 +145,13 @@ const chatHandler = async (req: PayloadRequest, editionId: number | null): Promi
   if (editionId !== null) {
     // Access-controlled read: the assistant may only see editions the caller
     // can already open, so the prompt can never widen tenant scope.
-    const found = await req.payload.find({
-      collection: "content-editions",
-      depth: 0,
-      draft: true,
-      limit: 1,
-      overrideAccess: false,
-      user: req.user,
-      where: { id: { equals: editionId } },
-    })
-    const doc = found.docs[0]
-    if (doc === undefined) return response(404, { error: { code: "AI_CHAT_NOT_FOUND" } })
+    const auth = await authenticateRequest(req.headers)
+    const scope = auth === null ? null : entityScopeOf(auth)
+    const doc =
+      scope === null
+        ? null
+        : await new EditionsRepository(serverRuntime().db).findDraft(scope, editionId)
+    if (doc === null) return response(404, { error: { code: "AI_CHAT_NOT_FOUND" } })
     edition = record(doc)
   }
 

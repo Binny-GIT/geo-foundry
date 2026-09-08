@@ -27,6 +27,8 @@ import { handleEditionOpsPost } from "@/server/routes/edition-ops"
 import { handleIntakeOpsPost } from "@/server/routes/intake-ops"
 import { handleEntityListGet } from "@/server/routes/entity-reads"
 import { handleDeliveryGet } from "@/server/routes/delivery"
+import { handleWorkspaceContextGet } from "@/server/routes/workspace-context"
+import { handleArticleSourcePost } from "@/server/routes/article-sources"
 import { handleReviewCommentPost } from "@/server/routes/review-comments"
 import { handleReviewerDecisionPost } from "@/server/routes/reviewer-decisions"
 import { logger } from "@/server/observability/logger"
@@ -92,6 +94,7 @@ export const GET = async (request: Request, context: RouteContext): Promise<Resp
   const handled = await dispatch(request, params.slug, [
     ["users-auth-get", () => handleUsersAuthGet(request, params.slug)],
     ["edition-version-get", () => handleEditionVersionGet(request, params.slug)],
+    ["workspace-context-get", () => handleWorkspaceContextGet(request, params.slug)],
     ["edition-draft-get", () => handleEditionDraftGet(request, params.slug)],
     ["entity-list-get", () => handleEntityListGet(request, params.slug)],
     ["delivery-get", () => handleDeliveryGet(request, params.slug)],
@@ -109,6 +112,7 @@ export const POST = async (request: Request, context: RouteContext): Promise<Res
     ["edition-workflow-post", () => handleEditionWorkflowPost(request, params.slug)],
     ["edition-ops-post", () => handleEditionOpsPost(request, params.slug)],
     ["intake-ops-post", () => handleIntakeOpsPost(request, params.slug)],
+    ["article-source-post", () => handleArticleSourcePost(request, params.slug)],
     ["reviewer-decision-post", () => handleReviewerDecisionPost(request, params.slug)],
     ["review-comment-post", () => handleReviewCommentPost(request, params.slug)],
     ["edition-draft-post", () => handleEditionDraftPost(request, params.slug)],

@@ -36,9 +36,7 @@ import {
   authCompatSessionGetEndpoint,
   authCompatSessionPostEndpoint,
 } from "./endpoints/auth-compat-probe"
-import { addArticleSourceEndpoint } from "./endpoints/article-sources"
 import { editionAiChatDraftEndpoint, editionAiChatEndpoint } from "./endpoints/edition-ai-chat"
-import { editionWorkspaceContextEndpoint } from "./endpoints/edition-workspace-context"
 import { submitEditorEvaluationEndpoint } from "./endpoints/editor-evaluation"
 import { createIntakeItemEndpoint } from "./endpoints/intake"
 import { allInternalEndpoints } from "./endpoints/internal/index"
@@ -142,12 +140,10 @@ export default buildConfig({
     authCompatSessionGetEndpoint,
     authCompatSessionPostEndpoint,
     createRollbackIntentEndpoint,
-    editionWorkspaceContextEndpoint,
     editionAiChatDraftEndpoint,
     editionAiChatEndpoint,
     renameUrlRecordEndpoint,
     createIntakeItemEndpoint,
-    addArticleSourceEndpoint,
     createSiteVariantEndpoint,
     importPerformanceSnapshotsEndpoint,
     performanceSuggestionsEndpoint,
