@@ -93,6 +93,15 @@ const sortOf = (
 export class EntitiesRepository {
   constructor(private readonly db: ServerDb) {}
 
+  async tenantName(id: number): Promise<string | null> {
+    const rows = await this.db
+      .select({ name: tenants.name })
+      .from(tenants)
+      .where(eq(tenants.id, id))
+      .limit(1)
+    return rows[0]?.name ?? null
+  }
+
   async listTenants(scope: EntityScope, input: ListInput): Promise<PayloadPage<Record<string, unknown>>> {
     const where =
       scope.kind === "global"

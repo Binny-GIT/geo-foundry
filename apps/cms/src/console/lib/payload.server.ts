@@ -1,11 +1,10 @@
 import "server-only"
 
 import config from "@payload-config"
-import { headers } from "next/headers"
 import { notFound } from "next/navigation"
 import { getPayload, type Payload, type Where } from "payload"
-import { CMS_ACTION, type CmsResource } from "@/access/policy"
 
+import { CMS_ACTION, type CmsResource } from "@/access/policy"
 import { CONSOLE_RESOURCES, type ConsoleResourceSlug, isConsoleResourceSlug } from "./resources"
 import {
   type ConsoleSession,
@@ -14,22 +13,53 @@ import {
   isHumanConsoleSession,
 } from "./session.server"
 
-type RecordLike = Record<string, unknown>
+ type RecordLike = Record<string, unknown>
+
+type PayloadUserContext = RecordLike & {
+  readonly collection: "users"
+  readonly email: string
+  readonly id: number
+  readonly role: ConsoleSession["role"]
+  readonly sites: readonly number[]
+  readonly tenant: number | null
+}
 
 type PayloadContext = {
   readonly payload: Payload
   readonly session: ConsoleSession
-  readonly user: NonNullable<Awaited<ReturnType<Payload["auth"]>>["user"]>
+  readonly user: PayloadUserContext
 }
 
-export const requireConsolePayloadContext = async (): Promise<PayloadContext> => {
-  const payload = await getPayload({ config })
-  const result = await payload.auth({ headers: await headers() })
-  const session = await getConsoleSession()
-  if (!isHumanConsoleSession(session) || result.user === null || result.user === undefined) {
-    notFound()
+const payloadUserOf = (session: ConsoleSession): PayloadUserContext | null => {
+  const id = Number(session.id)
+  if (!Number.isInteger(id) || id <= 0) return null
+  const tenantId = session.tenantId === null ? null : Number(session.tenantId)
+  if (session.tenantId !== null && (!Number.isInteger(tenantId) || (tenantId ?? 0) <= 0)) {
+    return null
   }
-  return { payload, session, user: result.user }
+  return {
+    _strategy: "compat-session",
+    collection: "users",
+    email: session.email,
+    id,
+    role: session.role,
+    sites: session.siteIds ?? [],
+    tenant: tenantId,
+  }
+}
+
+/**
+ * 混合迁移窗口：认证由 compat layer 完成；Payload 仅作为尚未迁出集合的
+ * Local API adapter。user 上下文从已验证 ConsoleSession 重建，Payload 不再
+ * 参与认证判断；旧 cookie 与 active sid 语义仍完全兼容。
+ */
+export const requireConsolePayloadContext = async (): Promise<PayloadContext> => {
+  const session = await getConsoleSession()
+  if (!isHumanConsoleSession(session)) notFound()
+  const user = payloadUserOf(session)
+  if (user === null) notFound()
+  const payload = await getPayload({ config })
+  return { payload, session, user }
 }
 
 export const requireReadableConsoleResource = (
@@ -37,7 +67,6 @@ export const requireReadableConsoleResource = (
   slug: string,
 ): ConsoleResourceSlug => {
   if (!isConsoleResourceSlug(slug)) notFound()
-
   const resource = CONSOLE_RESOURCES[slug]
   if (resource.resource === null || !canConsole(session, resource.resource, CMS_ACTION.READ)) {
     notFound()
@@ -60,9 +89,6 @@ export const findConsoleDocuments = async ({
   const readableSlug = requireReadableConsoleResource(context.session, slug)
   const result = await context.payload.find({
     collection: readableSlug,
-    // Only hydrate relationships that the current session can read. Payload's
-    // access layer still applies to nested records, so unreadable references
-    // remain absent rather than leaking a title or ID.
     depth: CONSOLE_RESOURCES[readableSlug].relationshipColumns === undefined ? 0 : 1,
     limit: Math.min(Math.max(limit, 1), 100),
     overrideAccess: false,
@@ -71,7 +97,6 @@ export const findConsoleDocuments = async ({
     user: context.user,
     ...(where === undefined ? {} : { where }),
   })
-
   return {
     docs: result.docs as unknown as readonly RecordLike[],
     page: result.page ?? page,
@@ -98,8 +123,6 @@ export const findConsoleDocument = async ({
       user: context.user,
     })) as unknown as RecordLike
   } catch {
-    // Both denied and non-existent records intentionally resolve to the same
-    // Console not-found surface to preserve Payload's tenant-existence guard.
     notFound()
   }
 }
@@ -108,12 +131,16 @@ export const countConsoleResource = async (
   context: PayloadContext,
   resource: CmsResource,
   slug: ConsoleResourceSlug,
-): Promise<number | null> => {
-  if (!canConsole(context.session, resource, CMS_ACTION.READ)) return null
-  const result = await context.payload.count({
-    collection: slug,
-    overrideAccess: false,
-    user: context.user,
-  })
-  return result.totalDocs
+): Promise<number> => {
+  if (!canConsole(context.session, resource, CMS_ACTION.READ)) return 0
+  try {
+    const result = await context.payload.count({
+      collection: slug,
+      overrideAccess: false,
+      user: context.user,
+    })
+    return result.totalDocs
+  } catch {
+    return 0
+  }
 }

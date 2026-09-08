@@ -1,13 +1,14 @@
 import "server-only"
 
-import config from "@payload-config"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
-import { getPayload } from "payload"
+
 import { CMS_ACTION, type CmsAction, type CmsResource, decideAccess } from "@/access/policy"
 import { CMS_ROLE, type CmsRole } from "@/access/roles"
-import { resolveSessionClaims, type SessionClaims } from "@/access/session"
 import { normalizeConsoleNext } from "@/console/lib/console-next"
+import { authenticateRequest, type AuthenticatedRequest } from "@/server/auth/session"
+import { EntitiesRepository } from "@/server/repositories/entities"
+import { serverRuntime } from "@/server/runtime"
 
 export type ConsoleSession = {
   readonly email: string
@@ -18,51 +19,32 @@ export type ConsoleSession = {
   readonly tenantName: string | null
 }
 
-const stringValue = (value: unknown): string | null =>
-  typeof value === "string" && value.length > 0 ? value : null
-
-const sessionFromClaims = (user: unknown, claims: SessionClaims): ConsoleSession | null => {
-  if (typeof user !== "object" || user === null) return null
-  const email = stringValue((user as Record<string, unknown>)["email"])
-  if (email === null) return null
-  const unrestricted = claims.role === CMS_ROLE.SUPER_ADMIN || claims.role === CMS_ROLE.TENANT_ADMIN
-  const rawSites = (user as Record<string, unknown>)["sites"]
-  const siteIds = Array.isArray(rawSites)
-    ? rawSites.filter((id): id is number => typeof id === "number" && id > 0)
-    : []
+const sessionFromAuth = (auth: AuthenticatedRequest): ConsoleSession => {
+  const unrestricted =
+    auth.claims.role === CMS_ROLE.SUPER_ADMIN || auth.claims.role === CMS_ROLE.TENANT_ADMIN
   return Object.freeze({
-    email,
-    id: claims.userId,
-    role: claims.role,
-    siteIds: unrestricted || siteIds.length === 0 ? null : siteIds,
-    tenantId: claims.tenantId,
+    email: auth.user.email,
+    id: auth.claims.userId,
+    role: auth.claims.role,
+    siteIds: unrestricted || auth.siteIds.length === 0 ? null : auth.siteIds,
+    tenantId: auth.claims.tenantId,
     tenantName: null,
   })
 }
 
 /**
- * The Console consumes the same HTTP-only Payload auth cookie as the REST
- * endpoints. It never decodes a client token or trusts role data posted by a
- * browser; malformed sessions are denied through resolveSessionClaims().
+ * Console 页面守卫直接解析现有 payload-token：兼容验签、active sid、用户与
+ * tenant invariant 全部由自建认证层完成，不再依赖 Payload 认证管线。
  */
 export const getConsoleSession = async (): Promise<ConsoleSession | null> => {
-  const payload = await getPayload({ config })
-  const result = await payload.auth({ headers: await headers() })
-  const claims = resolveSessionClaims(result.user)
-  const session = claims === null ? null : sessionFromClaims(result.user, claims)
-  if (session === null || session.tenantId === null) return session
-  try {
-    const tenant = (await payload.findByID({
-      collection: "tenants",
-      depth: 0,
-      id: session.tenantId,
-      overrideAccess: true,
-    })) as unknown as Record<string, unknown>
-    const name = stringValue(tenant["name"])
-    return Object.freeze({ ...session, tenantName: name })
-  } catch {
-    return session
-  }
+  const auth = await authenticateRequest(await headers())
+  if (auth === null) return null
+  const session = sessionFromAuth(auth)
+  if (session.tenantId === null) return session
+  const tenantId = Number(session.tenantId)
+  if (!Number.isInteger(tenantId) || tenantId <= 0) return null
+  const tenantName = await new EntitiesRepository(serverRuntime().db).tenantName(tenantId)
+  return Object.freeze({ ...session, tenantName })
 }
 
 export const isHumanConsoleSession = (session: ConsoleSession | null): session is ConsoleSession =>

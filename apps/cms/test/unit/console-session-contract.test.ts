@@ -14,13 +14,17 @@ describe("Console human session contract", () => {
     expect(users).toContain("useAPIKey: true")
   })
 
-  it("uses Payload-verified sessions for human Console guards and normalizes invalid return locations", async () => {
-    const [session, next] = await Promise.all([
+  it("uses compat-verified active sessions for human Console guards and normalizes invalid return locations", async () => {
+    const [session, compat, next] = await Promise.all([
       sourceOf("src/console/lib/session.server.ts"),
+      sourceOf("src/server/auth/session.ts"),
       sourceOf("src/console/lib/console-next.ts"),
     ])
 
-    expect(session).toContain("payload.auth({ headers: await headers() })")
+    expect(session).toContain("authenticateRequest(await headers())")
+    expect(session).not.toContain("payload.auth(")
+    expect(compat).toContain("verifySessionTokenCompat")
+    expect(compat).toContain("hasActiveSession")
     expect(session).toContain("isHumanConsoleSession")
     expect(session).toContain("session.role !== CMS_ROLE.CONTENT_SERVICE")
     expect(session).toContain("encodeURIComponent(normalizeConsoleNext(next))")
@@ -44,11 +48,13 @@ describe("Console human session contract", () => {
     expect(layout).toContain("requireConsoleSession(")
   })
 
-  it("keeps reusable Console data context limited to human browser sessions", async () => {
+  it("keeps Payload only as a collection adapter after compat session verification", async () => {
     const payloadContext = await sourceOf("src/console/lib/payload.server.ts")
 
     expect(payloadContext).toContain("isHumanConsoleSession")
     expect(payloadContext).toContain("if (!isHumanConsoleSession(session)")
+    expect(payloadContext).toContain("payloadUserOf(session)")
+    expect(payloadContext).not.toContain("payload.auth(")
   })
 
   it("only redirects an existing human session from login to the dashboard", async () => {
