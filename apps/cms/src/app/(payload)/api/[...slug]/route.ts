@@ -14,18 +14,14 @@ import {
   handleUsersAuthPost,
 } from "@/server/routes/auth"
 import { handleEditionDraftGet } from "@/server/routes/edition-reads"
-import {
-  handleEditionVersionGet,
-  handleEditionVersionPost,
-} from "@/server/routes/edition-versions"
-import {
-  handleEditionDraftPatch,
-  handleEditionDraftPost,
-} from "@/server/routes/edition-writes"
+import { handleEditionVersionGet, handleEditionVersionPost } from "@/server/routes/edition-versions"
+import { handleEditionDraftPatch, handleEditionDraftPost } from "@/server/routes/edition-writes"
 import { handleEditionWorkflowPost } from "@/server/routes/edition-workflow"
 import { handleEditionOpsPost } from "@/server/routes/edition-ops"
 import { handleIntakeOpsPost } from "@/server/routes/intake-ops"
 import { handleEntityListGet } from "@/server/routes/entity-reads"
+import { handleEntityCreatePost, handleEntityUpdatePatch } from "@/server/routes/entity-writes"
+import { handleMediaFileGet, handleMediaUploadPost } from "@/server/routes/media"
 import { handleDeliveryGet } from "@/server/routes/delivery"
 import { handleWorkspaceContextGet } from "@/server/routes/workspace-context"
 import { handleArticleSourcePost } from "@/server/routes/article-sources"
@@ -100,6 +96,7 @@ export const GET = async (request: Request, context: RouteContext): Promise<Resp
     ["workspace-context-get", () => handleWorkspaceContextGet(request, params.slug)],
     ["edition-draft-get", () => handleEditionDraftGet(request, params.slug)],
     ["entity-list-get", () => handleEntityListGet(request, params.slug)],
+    ["media-file-get", () => handleMediaFileGet(request, params.slug)],
     ["delivery-get", () => handleDeliveryGet(request, params.slug)],
   ])
   if (handled !== undefined) return handled
@@ -123,6 +120,8 @@ export const POST = async (request: Request, context: RouteContext): Promise<Res
     ["reviewer-decision-post", () => handleReviewerDecisionPost(request, params.slug)],
     ["review-comment-post", () => handleReviewCommentPost(request, params.slug)],
     ["edition-draft-post", () => handleEditionDraftPost(request, params.slug)],
+    ["entity-create-post", () => handleEntityCreatePost(request, params.slug)],
+    ["media-upload-post", () => handleMediaUploadPost(request, params.slug)],
   ])
   if (handled !== undefined) return handled
   return payloadPost(request, context)
@@ -133,6 +132,7 @@ export const PATCH = async (request: Request, context: RouteContext): Promise<Re
   const params = await context.params
   const handled = await dispatch(request, params.slug, [
     ["edition-draft-patch", () => handleEditionDraftPatch(request, params.slug)],
+    ["entity-update-patch", () => handleEntityUpdatePatch(request, params.slug)],
   ])
   if (handled !== undefined) return handled
   return payloadPatch(request, context)

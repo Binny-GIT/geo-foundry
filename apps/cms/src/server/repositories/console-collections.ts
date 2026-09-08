@@ -4,7 +4,7 @@
  * 页面现有的 formatValue 约定一致；租户范围强制加在各表的 tenant_id 上。
  */
 
-import { and, asc, count, desc, eq, ilike, inArray, type SQL } from "drizzle-orm"
+import { and, count, desc, eq, ilike, inArray, type SQL } from "drizzle-orm"
 import { alias } from "drizzle-orm/pg-core"
 
 import type { ConsoleResourceSlug } from "../../console/lib/resources"
