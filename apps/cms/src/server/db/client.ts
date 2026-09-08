@@ -13,8 +13,15 @@ import * as editionSchema from "./edition-schema"
 import * as entitySchema from "./entity-schema"
 import * as ledgerSchema from "./ledger-schema"
 import * as coreSchema from "./schema"
+import * as workflowSchema from "./workflow-schema"
 
-export const serverSchema = { ...coreSchema, ...editionSchema, ...entitySchema, ...ledgerSchema }
+export const serverSchema = {
+  ...coreSchema,
+  ...editionSchema,
+  ...entitySchema,
+  ...ledgerSchema,
+  ...workflowSchema,
+}
 
 export type ServerDb = NodePgDatabase<typeof serverSchema>
 

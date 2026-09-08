@@ -22,7 +22,10 @@ import {
   handleEditionDraftPatch,
   handleEditionDraftPost,
 } from "@/server/routes/edition-writes"
+import { handleEditionWorkflowPost } from "@/server/routes/edition-workflow"
 import { handleEntityListGet } from "@/server/routes/entity-reads"
+import { handleReviewCommentPost } from "@/server/routes/review-comments"
+import { handleReviewerDecisionPost } from "@/server/routes/reviewer-decisions"
 
 const payloadGet = REST_GET(config)
 const payloadPatch = REST_PATCH(config)
@@ -54,6 +57,12 @@ export const POST = async (request: Request, context: RouteContext): Promise<Res
   if (authResponse !== null) return authResponse
   const versionResponse = await handleEditionVersionPost(request, params.slug)
   if (versionResponse !== null) return versionResponse
+  const workflowResponse = await handleEditionWorkflowPost(request, params.slug)
+  if (workflowResponse !== null) return workflowResponse
+  const reviewerResponse = await handleReviewerDecisionPost(request, params.slug)
+  if (reviewerResponse !== null) return reviewerResponse
+  const commentResponse = await handleReviewCommentPost(request, params.slug)
+  if (commentResponse !== null) return commentResponse
   const editionResponse = await handleEditionDraftPost(request, params.slug)
   return editionResponse ?? payloadPost(request, context)
 }

@@ -41,11 +41,6 @@ import { deliveryArticleEndpoint, deliveryArticlesEndpoint } from "./endpoints/d
 import { editionAiChatDraftEndpoint, editionAiChatEndpoint } from "./endpoints/edition-ai-chat"
 import { editionAssignmentEndpoint } from "./endpoints/edition-assignment"
 import { editionDuplicateEndpoint } from "./endpoints/edition-duplicate"
-import {
-  createDraftFromPublishedEndpoint,
-  submitPublishOperationEndpoint,
-  transitionEditionEndpoint,
-} from "./endpoints/edition-workflow"
 import { editionWorkspaceContextEndpoint } from "./endpoints/edition-workspace-context"
 import { submitEditorEvaluationEndpoint } from "./endpoints/editor-evaluation"
 import {
@@ -65,11 +60,6 @@ import {
   cancelPublicationPlanEndpoint,
   createPublicationPlanEndpoint,
 } from "./endpoints/publication-plans"
-import { createReviewCommentEndpoint } from "./endpoints/review-comments"
-import {
-  reviewerApproveEditionEndpoint,
-  reviewerRequestChangesEditionEndpoint,
-} from "./endpoints/reviewer-edition-decisions"
 import { createRollbackIntentEndpoint } from "./endpoints/rollback-intents"
 import { createSiteVariantEndpoint } from "./endpoints/site-variants"
 import { renameUrlRecordEndpoint } from "./endpoints/url-records"
@@ -161,11 +151,6 @@ export default buildConfig({
     authCompatSessionGetEndpoint,
     authCompatSessionPostEndpoint,
     createRollbackIntentEndpoint,
-    createDraftFromPublishedEndpoint,
-    submitPublishOperationEndpoint,
-    transitionEditionEndpoint,
-    reviewerApproveEditionEndpoint,
-    reviewerRequestChangesEditionEndpoint,
     editionWorkspaceContextEndpoint,
     editionAssignmentEndpoint,
     editionDuplicateEndpoint,
@@ -178,7 +163,6 @@ export default buildConfig({
     retryIntakeItemEndpoint,
     adoptIntakeItemEndpoint,
     addArticleSourceEndpoint,
-    createReviewCommentEndpoint,
     createSiteVariantEndpoint,
     importPerformanceSnapshotsEndpoint,
     performanceSuggestionsEndpoint,

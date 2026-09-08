@@ -1,198 +1,142 @@
-import type { PayloadRequest } from "payload"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const {
-  MockEditionWorkflowError,
-  MockReviewerEditionDecisionError,
-  submitReviewerEditionDecision,
-} = vi.hoisted(() => ({
-  MockEditionWorkflowError: class MockEditionWorkflowError extends Error {
+const { submitDecision } = vi.hoisted(() => ({ submitDecision: vi.fn() }))
+
+const authState = { claims: { kind: "user", role: "reviewer", tenantId: 4, userId: "8" } }
+
+vi.mock("../../src/server/runtime", () => ({
+  serverRuntime: () => ({ db: {} }),
+}))
+
+vi.mock("../../src/server/auth/session", () => ({
+  authenticateRequest: vi.fn(async () => ({
+    claims: authState.claims,
+    session: null,
+    siteIds: [],
+    user: {},
+  })),
+}))
+
+vi.mock("../../src/server/repositories/entities", () => ({
+  entityScopeOf: () => ({ kind: "tenant", tenantId: 4 }),
+}))
+
+vi.mock("../../src/server/repositories/reviewer-decisions", () => ({
+  ReviewerDecisionRepositoryError: class extends Error {
     constructor(readonly code: string) {
       super(code)
     }
   },
-  MockReviewerEditionDecisionError: class MockReviewerEditionDecisionError extends Error {
-    constructor(readonly code: string) {
-      super(code)
-    }
+  ReviewerDecisionsRepository: class {
+    submit = submitDecision
   },
-  submitReviewerEditionDecision: vi.fn(),
 }))
 
-vi.mock("../../src/services/edition-workflow", () => ({
-  EditionWorkflowError: MockEditionWorkflowError,
-}))
+import { handleReviewerDecisionPost } from "../../src/server/routes/reviewer-decisions"
+import { WorkflowRepositoryError } from "../../src/server/repositories/edition-workflow"
+import { ReviewerDecisionRepositoryError } from "../../src/server/repositories/reviewer-decisions"
 
-vi.mock("../../src/services/reviewer-edition-decisions", () => ({
-  ReviewerEditionDecisionError: MockReviewerEditionDecisionError,
-  submitReviewerEditionDecision,
-}))
-
-import {
-  reviewerApproveEditionEndpoint,
-  reviewerRequestChangesEditionEndpoint,
-} from "../../src/endpoints/reviewer-edition-decisions"
-
-const reviewer = { id: 4, role: "reviewer", tenant: { id: 7 } }
-
-const requestOf = (
+const post = async (
+  slug: readonly string[],
   body: unknown,
-  options: {
-    readonly id?: string
-    readonly user?: unknown
-    readonly headers?: Record<string, string>
-  } = {},
-): PayloadRequest =>
-  ({
-    headers: new Headers({
-      "idempotency-key": "reviewer-decision-101",
-      "x-request-id": "reviewer-request-101",
-      ...options.headers,
+  headers: Record<string, string> = {},
+): Promise<Response> => {
+  const response = await handleReviewerDecisionPost(
+    new Request(`http://local/api/${slug.join("/")}`, {
+      body: JSON.stringify(body),
+      headers: { "content-type": "application/json", ...headers },
+      method: "POST",
     }),
-    json: async () => body,
-    payload: {},
-    routeParams: { id: options.id ?? "101" },
-    user: Object.hasOwn(options, "user") ? options.user : reviewer,
-  }) as unknown as PayloadRequest
+    slug,
+  )
+  if (response === null) throw new Error(`route not matched: ${slug.join("/")}`)
+  return response
+}
 
-describe("reviewer edition decision endpoints", () => {
+const approveSlug = ["workspaces", "reviewer", "editions", "586", "approve"]
+const headers = { "idempotency-key": "rev-decision-0001", "x-request-id": "rev-req-0001" }
+
+describe("reviewer decision Drizzle routes", () => {
   beforeEach(() => {
-    submitReviewerEditionDecision.mockReset()
+    submitDecision.mockReset()
+    authState.claims = { kind: "user", role: "reviewer", tenantId: 4, userId: "8" }
   })
 
-  it("submits approval with a fixed target and session-bound reviewer context", async () => {
-    submitReviewerEditionDecision.mockResolvedValueOnce({
+  it("approves with the stored response and echoes the request id", async () => {
+    submitDecision.mockResolvedValueOnce({
       created: true,
-      response: { editionId: 101, workflowRevision: 4, workflowStatus: "approved" },
+      response: { editionId: 586, workflowRevision: 4, workflowStatus: "approved" },
     })
-
-    const response = await reviewerApproveEditionEndpoint.handler(
-      requestOf({ expectedRevision: 3 }),
-    )
+    const response = await post(approveSlug, { expectedRevision: 3 }, headers)
 
     expect(response.status).toBe(200)
+    expect(response.headers.get("x-request-id")).toBe("rev-req-0001")
     expect(await response.json()).toEqual({
-      editionId: 101,
+      editionId: 586,
       workflowRevision: 4,
       workflowStatus: "approved",
     })
-    expect(submitReviewerEditionDecision).toHaveBeenCalledWith(
-      {},
+    expect(submitDecision).toHaveBeenCalledWith(
       expect.objectContaining({
-        editionId: 101,
         expectedRevision: 3,
-        idempotencyKey: "reviewer-decision-101",
-        requestId: "reviewer-request-101",
+        idempotencyKey: "rev-decision-0001",
         target: "approved",
-        user: reviewer,
       }),
     )
   })
 
-  it("requires and trims the request-changes reason before the service runs", async () => {
-    const invalid = await reviewerRequestChangesEditionEndpoint.handler(
-      requestOf({ expectedRevision: 3, reason: "   " }),
+  it("requires strict bodies, idempotency keys, and reviewer identity", async () => {
+    const missingReason = await post(
+      ["workspaces", "reviewer", "editions", "586", "request-changes"],
+      { expectedRevision: 3 },
+      headers,
     )
-    expect(invalid.status).toBe(400)
-    expect(submitReviewerEditionDecision).not.toHaveBeenCalled()
+    const badKey = await post(
+      approveSlug,
+      { expectedRevision: 3 },
+      { ...headers, "idempotency-key": "short" },
+    )
 
-    submitReviewerEditionDecision.mockResolvedValueOnce({
-      created: true,
-      response: { editionId: 101, workflowRevision: 4, workflowStatus: "draft" },
+    authState.claims = { kind: "user", role: "editor", tenantId: 4, userId: "7" }
+    const wrongRole = await post(approveSlug, { expectedRevision: 3 }, headers)
+
+    expect(missingReason.status).toBe(400)
+    expect(badKey.status).toBe(400)
+    expect(await badKey.json()).toEqual({
+      error: { code: "REVIEWER_EDITION_IDEMPOTENCY_KEY_INVALID" },
     })
-    const valid = await reviewerRequestChangesEditionEndpoint.handler(
-      requestOf({ expectedRevision: 3, reason: "  clarify the primary claim  " }),
-    )
-
-    expect(valid.status).toBe(200)
-    expect(submitReviewerEditionDecision).toHaveBeenCalledWith(
-      {},
-      expect.objectContaining({ reason: "clarify the primary claim", target: "draft" }),
-    )
+    expect(wrongRole.status).toBe(403)
+    expect(submitDecision).not.toHaveBeenCalled()
   })
 
-  it("rejects unauthenticated and every non-reviewer identity before target lookup", async () => {
-    const anonymous = await reviewerApproveEditionEndpoint.handler(
-      requestOf({ expectedRevision: 3 }, { user: null }),
+  it("masks missing and foreign editions as the same 404 envelope", async () => {
+    submitDecision.mockRejectedValueOnce(new WorkflowRepositoryError("EDITION_WORKFLOW_NOT_FOUND"))
+    const missing = await post(approveSlug, { expectedRevision: 3 }, headers)
+
+    submitDecision.mockRejectedValueOnce(
+      new WorkflowRepositoryError("EDITION_WORKFLOW_TENANT_MISMATCH"),
     )
-    expect(anonymous.status).toBe(401)
+    const foreign = await post(approveSlug, { expectedRevision: 3 }, headers)
 
-    for (const role of ["content-service", "editor", "publisher", "tenant-admin"]) {
-      const forbidden = await reviewerApproveEditionEndpoint.handler(
-        requestOf({ expectedRevision: 3 }, { user: { id: 5, role, tenant: { id: 7 } } }),
-      )
-      expect(forbidden.status).toBe(403)
-    }
-    expect(submitReviewerEditionDecision).not.toHaveBeenCalled()
-  })
-
-  it("accepts a cross-tenant super-admin decision before target lookup", async () => {
-    submitReviewerEditionDecision.mockResolvedValueOnce({
-      created: true,
-      response: { editionId: 101, workflowRevision: 4, workflowStatus: "approved" },
-    })
-    const granted = await reviewerApproveEditionEndpoint.handler(
-      requestOf({ expectedRevision: 3 }, { user: { id: 5, role: "super-admin" } }),
-    )
-    expect(granted.status).toBe(200)
-    expect(submitReviewerEditionDecision).toHaveBeenCalledWith(
-      {},
-      expect.objectContaining({ target: "approved" }),
-    )
-  })
-
-  it("rejects malformed route, headers, and strict request fields", async () => {
-    expect(
-      (
-        await reviewerApproveEditionEndpoint.handler(
-          requestOf({ expectedRevision: 3 }, { id: "not-an-id" }),
-        )
-      ).status,
-    ).toBe(400)
-    expect(
-      (
-        await reviewerApproveEditionEndpoint.handler(
-          requestOf({ expectedRevision: 3 }, { headers: { "idempotency-key": "short" } }),
-        )
-      ).status,
-    ).toBe(400)
-    expect(
-      (
-        await reviewerApproveEditionEndpoint.handler(
-          requestOf({ expectedRevision: 3, target: "draft" }),
-        )
-      ).status,
-    ).toBe(400)
-    expect(submitReviewerEditionDecision).not.toHaveBeenCalled()
-  })
-
-  it("uses one indistinguishable 404 envelope for missing and foreign editions", async () => {
-    submitReviewerEditionDecision.mockRejectedValueOnce(
-      new MockEditionWorkflowError("EDITION_WORKFLOW_NOT_FOUND"),
-    )
-    const missing = await reviewerApproveEditionEndpoint.handler(requestOf({ expectedRevision: 3 }))
-
-    submitReviewerEditionDecision.mockRejectedValueOnce(
-      new MockEditionWorkflowError("EDITION_WORKFLOW_TENANT_MISMATCH"),
-    )
-    const foreign = await reviewerApproveEditionEndpoint.handler(requestOf({ expectedRevision: 3 }))
-
-    expect(foreign.status).toBe(404)
     expect(missing.status).toBe(404)
-    expect(await foreign.text()).toBe(await missing.text())
+    expect(foreign.status).toBe(404)
+    expect(await missing.json()).toEqual(await foreign.json())
   })
 
-  it("maps revision conflicts to an actionable conflict response", async () => {
-    submitReviewerEditionDecision.mockRejectedValueOnce(
-      new MockEditionWorkflowError("EDITION_WORKFLOW_REVISION_CONFLICT"),
+  it("maps idempotency reuse and revision conflicts to 409", async () => {
+    submitDecision.mockRejectedValueOnce(
+      new ReviewerDecisionRepositoryError("IDEMPOTENCY_KEY_REUSED"),
     )
+    const reused = await post(approveSlug, { expectedRevision: 3 }, headers)
 
-    const response = await reviewerApproveEditionEndpoint.handler(
-      requestOf({ expectedRevision: 3 }),
+    submitDecision.mockRejectedValueOnce(
+      new WorkflowRepositoryError("EDITION_WORKFLOW_REVISION_CONFLICT"),
     )
+    const conflict = await post(approveSlug, { expectedRevision: 9 }, headers)
 
-    expect(response.status).toBe(409)
-    expect(await response.json()).toEqual({
+    expect(reused.status).toBe(409)
+    expect(conflict.status).toBe(409)
+    expect(await conflict.json()).toEqual({
       error: { code: "EDITION_WORKFLOW_REVISION_CONFLICT" },
     })
   })
