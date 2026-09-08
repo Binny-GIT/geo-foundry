@@ -1,7 +1,7 @@
 /*
  * 稿源操作路由：ignore / merge / retry / adopt。
  * create 仍在旧 Payload endpoint（去重规则未迁移）。
- * adopt 用事务包住 contents+editions+article_sources+intake 写入（旧实现无事务）。
+ * adopt 用事务包住 editions+article_sources+intake 写入（旧实现无事务）。
  */
 
 import { eq } from "drizzle-orm"
@@ -11,8 +11,8 @@ import { blocksToMarkdown } from "../../editor/block-markdown"
 import { enqueueIntakeFetchFromEnvironment } from "../../services/intake-queue"
 import { IntakeError, normalizeIntakeInput } from "../../services/intake"
 import { authenticateRequest } from "../auth/session"
-import { contentEditions, editionVersionRels, editionVersions } from "../db/edition-schema"
-import { contents, sites } from "../db/entity-schema"
+import { contentEditions, editionVersions } from "../db/edition-schema"
+import { sites } from "../db/entity-schema"
 import { articleSources, intakeItems } from "../db/session-schema"
 import { entityScopeOf } from "../repositories/entities"
 import { serverRuntime } from "../runtime"
@@ -33,7 +33,9 @@ const json = (status: number, body: unknown): Response =>
 const statusOf = (code: string): number =>
   code === "INTAKE_ITEM_NOT_FOUND"
     ? 404
-    : code === "INTAKE_TENANT_MISMATCH" || code === "INTAKE_EDITOR_REQUIRED" || code === "INTAKE_ACTOR_INVALID"
+    : code === "INTAKE_TENANT_MISMATCH" ||
+        code === "INTAKE_EDITOR_REQUIRED" ||
+        code === "INTAKE_ACTOR_INVALID"
       ? 403
       : code === "INTAKE_MERGE_SELF_REFERENCE" || code === "INTAKE_FETCH_STATE_INVALID"
         ? 409
@@ -145,8 +147,12 @@ export const handleIntakeOpsPost = async (
       try {
         const normalized = normalizeIntakeInput({
           channel: parsed.data.channel,
-          ...(parsed.data.connectorId === undefined ? {} : { connectorId: parsed.data.connectorId }),
-          ...(parsed.data.contentHash === undefined ? {} : { contentHash: parsed.data.contentHash }),
+          ...(parsed.data.connectorId === undefined
+            ? {}
+            : { connectorId: parsed.data.connectorId }),
+          ...(parsed.data.contentHash === undefined
+            ? {}
+            : { contentHash: parsed.data.contentHash }),
           ...(parsed.data.sourceUrl === undefined ? {} : { sourceUrl: parsed.data.sourceUrl }),
           ...(parsed.data.suggestedSiteId === undefined
             ? {}
@@ -164,20 +170,28 @@ export const handleIntakeOpsPost = async (
             .limit(500)
           const duplicates = candidates.filter(
             (item) =>
-              (normalized.normalizedUrl !== undefined && item.normalizedUrl === normalized.normalizedUrl) ||
-              (normalized.contentHash !== undefined && item.contentHash === normalized.contentHash) ||
-              ((item.title ?? "").trim().replace(/\s+/g, " ").toLocaleLowerCase() === lowerTitle),
+              (normalized.normalizedUrl !== undefined &&
+                item.normalizedUrl === normalized.normalizedUrl) ||
+              (normalized.contentHash !== undefined &&
+                item.contentHash === normalized.contentHash) ||
+              (item.title ?? "").trim().replace(/\s+/g, " ").toLocaleLowerCase() === lowerTitle,
           )
           const duplicateOf = duplicates[0]
           const inserted = await tx
             .insert(intakeItems)
             .values({
               channel: normalized.channel,
-              ...(normalized.connectorId === undefined ? {} : { connectorId: normalized.connectorId }),
-              ...(normalized.contentHash === undefined ? {} : { contentHash: normalized.contentHash }),
+              ...(normalized.connectorId === undefined
+                ? {}
+                : { connectorId: normalized.connectorId }),
+              ...(normalized.contentHash === undefined
+                ? {}
+                : { contentHash: normalized.contentHash }),
               ...(duplicateOf === undefined ? {} : { duplicateOfId: duplicateOf.id }),
               duplicateStatus: duplicateOf === undefined ? "unique" : "duplicate",
-              ...(normalized.normalizedUrl === undefined ? {} : { normalizedUrl: normalized.normalizedUrl }),
+              ...(normalized.normalizedUrl === undefined
+                ? {}
+                : { normalizedUrl: normalized.normalizedUrl }),
               ...(normalized.sourceUrl === undefined ? {} : { sourceUrl: normalized.sourceUrl }),
               ...(normalized.suggestedSiteId === undefined
                 ? {}
@@ -324,22 +338,17 @@ export const handleIntakeOpsPost = async (
       const blocks = Array.isArray(item.contentBlocks)
         ? (item.contentBlocks as unknown[]).filter(
             (block): block is Record<string, unknown> =>
-              typeof block === "object" && block !== null && typeof (block as Record<string, unknown>)["blockType"] === "string",
+              typeof block === "object" &&
+              block !== null &&
+              typeof (block as Record<string, unknown>)["blockType"] === "string",
           )
         : []
-      const markdown =
-        blocks.length > 0 ? blocksToMarkdown(blocks) : summary
+      const markdown = blocks.length > 0 ? blocksToMarkdown(blocks) : summary
       const citations =
         item.sourceUrl === null || item.sourceUrl === undefined
           ? []
           : [{ id: `intake-${item.id}`, title, url: item.sourceUrl }]
       const now = new Date()
-      const contentRows = await tx
-        .insert(contents)
-        .values({ createdBy: "human", intent: "intake", tenantId: item.tenantId, topic: title })
-        .returning({ id: contents.id })
-      const contentId = contentRows[0]?.id
-      if (contentId === undefined) throw new IntakeOpsError("INTAKE_ADOPTION_FAILED")
       const rootRows = await tx
         .insert(contentEditions)
         .values({
@@ -348,15 +357,16 @@ export const handleIntakeOpsPost = async (
           bodyMarkdown: markdown,
           citations,
           compiledRelease: null,
-          contentId,
           contentModifiedAt: now,
           creationOrigin: "human",
           editorialStatus: "unassigned",
           entities: [],
           ownerId: null,
           primaryTopic: title,
+          secondaryTopics: [],
           priority: "normal",
           siteId,
+          sites: [siteId],
           status: "draft",
           summary,
           tenantId: item.tenantId,
@@ -375,7 +385,6 @@ export const handleIntakeOpsPost = async (
           bodyMarkdown: markdown,
           citations,
           compiledRelease: null,
-          contentId,
           contentModifiedAt: now,
           creationOrigin: "human",
           editorialStatus: "unassigned",
@@ -384,8 +393,10 @@ export const handleIntakeOpsPost = async (
           ownerId: null,
           parentId: editionId,
           primaryTopic: title,
+          secondaryTopics: [],
           priority: "normal",
           siteId,
+          sites: [siteId],
           status: "draft",
           summary,
           tenantId: item.tenantId,
@@ -396,14 +407,7 @@ export const handleIntakeOpsPost = async (
           workflowStatus: "draft",
         })
         .returning({ id: editionVersions.id })
-      const versionId = versionRows[0]?.id
-      if (versionId === undefined) throw new IntakeOpsError("INTAKE_ADOPTION_FAILED")
-      await tx.insert(editionVersionRels).values({
-        order: 1,
-        parentId: versionId,
-        path: "version.sites",
-        siteId,
-      })
+      if (versionRows[0]?.id === undefined) throw new IntakeOpsError("INTAKE_ADOPTION_FAILED")
       await tx.insert(articleSources).values({
         editionId,
         intakeItemId: item.id,
@@ -415,10 +419,9 @@ export const handleIntakeOpsPost = async (
         .update(intakeItems)
         .set({ adoptedEditionId: editionId, status: "adopted", updatedAt: new Date() })
         .where(eq(intakeItems.id, item.id))
-      return { contentId, editionId, intakeItem: item }
+      return { editionId, intakeItem: item }
     })
     return json(200, {
-      contentId: result.contentId,
       editionId: result.editionId,
       intakeItem: rowOf(result.intakeItem),
       sourceLinked: true,

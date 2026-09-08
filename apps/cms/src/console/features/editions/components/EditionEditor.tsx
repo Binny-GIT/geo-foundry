@@ -16,7 +16,10 @@ import {
   useAiChatPanel,
 } from "../ai/ContentEditionAiChat"
 import { ContentEditionControlRail } from "./ContentEditionControlRail"
-import { ContentEditionHeadlineFields, ContentEditionMetadataEditor } from "./ContentEditionEditorCanvas"
+import {
+  ContentEditionHeadlineFields,
+  ContentEditionMetadataEditor,
+} from "./ContentEditionEditorCanvas"
 import { EditionMarkdownEditor } from "../editor/EditionMarkdownEditor"
 import { ContentEditionPreview } from "./ContentEditionPreview"
 import type { VersionSelection } from "./ContentEditionRail"
@@ -44,7 +47,6 @@ const EditorBody = ({ readOnly }: { readonly readOnly: boolean }) => {
   const summary = values["summary"]
   const citations = values["citations"]
   const entities = values["entities"]
-  const content = values["content"]
   const site = values["site"]
   const updatedAt = values["updatedAt"]
 
@@ -53,7 +55,6 @@ const EditorBody = ({ readOnly }: { readonly readOnly: boolean }) => {
       ? {
           body: bodyRows,
           citations: citations,
-          contentId: content,
           editionId: id,
           entities: entities,
           modifiedAt: updatedAt,
@@ -64,7 +65,6 @@ const EditorBody = ({ readOnly }: { readonly readOnly: boolean }) => {
       : {
           body: selectedVersion.snapshot.body,
           citations: selectedVersion.snapshot.citations,
-          contentId: content,
           editionId: id,
           entities: selectedVersion.snapshot.entities,
           modifiedAt: selectedVersion.updatedAt,

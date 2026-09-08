@@ -3,7 +3,7 @@
  * 与旧 Payload 服务（services/edition-workflow.ts，内部调用方仍在用）保持
  * 相同的物理写入语义：
  * - draft 泳道目标只写 _content_editions_v（新 latest 版本行）；
- * - published/archived 额外把 draft 内容发布到 live 根表（含 texts/rels）；
+ * - published/archived 额外把 draft 内容发布到 live 根表；
  * - 审计、outbox 与业务写入同事务。
  */
 
@@ -29,14 +29,9 @@ import { and, eq, inArray, sql } from "drizzle-orm"
 
 import { buildSiteRegistry, toUrlRecordRow } from "../../services/url-registry-snapshot"
 import type { ServerDb } from "../db/client"
-import {
-  contentEditions,
-  editionVersionRels,
-  editionVersions,
-  editionVersionTexts,
-} from "../db/edition-schema"
+import { contentEditions, editionVersions } from "../db/edition-schema"
 import { sites } from "../db/entity-schema"
-import { editionRootRels, editionRootTexts, urlRecords } from "../db/workflow-schema"
+import { urlRecords } from "../db/workflow-schema"
 import { outboxEvents } from "../db/ledger-schema"
 import type { EntityScope } from "./entities"
 
@@ -84,8 +79,7 @@ export const workflowActorOf = (claims: WorkflowClaims): WorkflowActor => {
       >[0]["role"],
       userId: userId.value,
     }),
-    tenantOf: (editionTenantId) =>
-      claims.tenantId === null ? editionTenantId : claims.tenantId,
+    tenantOf: (editionTenantId) => (claims.tenantId === null ? editionTenantId : claims.tenantId),
   }
 }
 
@@ -121,7 +115,9 @@ export const loadCurrentVersion = async (
   scope: EntityScope,
   editionId: number,
 ): Promise<{ root: typeof contentEditions.$inferSelect; version: VersionRow }> => {
-  await tx.execute(sql`SELECT id FROM ${contentEditions} WHERE ${contentEditions.id} = ${editionId} FOR UPDATE`)
+  await tx.execute(
+    sql`SELECT id FROM ${contentEditions} WHERE ${contentEditions.id} = ${editionId} FOR UPDATE`,
+  )
   const rows = await tx
     .select({ root: contentEditions, version: editionVersions })
     .from(contentEditions)
@@ -142,7 +138,7 @@ export const loadCurrentVersion = async (
 
 const aggregateOf = (root: typeof contentEditions.$inferSelect, version: VersionRow) => {
   const editionId = parseEditionId(String(root.id))
-  const contentId = parseContentId(String(version.contentId ?? -1))
+  const contentId = parseContentId(String(root.id))
   const siteId = parseSiteId(String(version.siteId ?? -1))
   const tenantId = parseTenantId(String(version.tenantId ?? -1))
   if (!editionId.ok || !contentId.ok || !siteId.ok || !tenantId.ok) {
@@ -180,56 +176,10 @@ const appendAudit = (
     actor: ReturnType<typeof serializedActor>
   },
   tenantId: number,
-): AuditEntry[] => [...(Array.isArray(current) ? current : []), { ...entry, at: new Date().toISOString(), tenantId }]
-
-export const copyVersionChildren = async (
-  tx: Tx,
-  sourceVersionId: number,
-  targetVersionId: number,
-): Promise<void> => {
-  const topics = await tx
-    .select({ text: editionVersionTexts.text })
-    .from(editionVersionTexts)
-    .where(
-      and(
-        eq(editionVersionTexts.parentId, sourceVersionId),
-        eq(editionVersionTexts.path, "version.secondaryTopics"),
-      ),
-    )
-    .orderBy(editionVersionTexts.order)
-  const texts = topics.map((row) => row.text).filter((value): value is string => value !== null)
-  if (texts.length > 0) {
-    await tx.insert(editionVersionTexts).values(
-      texts.map((text, index) => ({
-        order: index + 1,
-        parentId: targetVersionId,
-        path: "version.secondaryTopics",
-        text,
-      })),
-    )
-  }
-  const rels = await tx
-    .select({ siteId: editionVersionRels.siteId })
-    .from(editionVersionRels)
-    .where(
-      and(
-        eq(editionVersionRels.parentId, sourceVersionId),
-        eq(editionVersionRels.path, "version.sites"),
-      ),
-    )
-    .orderBy(editionVersionRels.order)
-  const siteIds = rels.map((row) => row.siteId).filter((value): value is number => value !== null)
-  if (siteIds.length > 0) {
-    await tx.insert(editionVersionRels).values(
-      siteIds.map((siteId, index) => ({
-        order: index + 1,
-        parentId: targetVersionId,
-        path: "version.sites",
-        siteId,
-      })),
-    )
-  }
-}
+): AuditEntry[] => [
+  ...(Array.isArray(current) ? current : []),
+  { ...entry, at: new Date().toISOString(), tenantId },
+]
 
 export const insertLatestVersion = async (
   tx: Tx,
@@ -246,7 +196,6 @@ export const insertLatestVersion = async (
       bodyMarkdown: current.bodyMarkdown,
       citations: current.citations,
       compiledRelease: values.compiledRelease,
-      contentId: current.contentId,
       contentModifiedAt: current.contentModifiedAt,
       createdAt: now,
       creationOrigin: current.creationOrigin,
@@ -258,7 +207,9 @@ export const insertLatestVersion = async (
       parentId: current.parentId,
       primaryTopic: current.primaryTopic,
       priority: current.priority,
+      secondaryTopics: current.secondaryTopics,
       siteId: current.siteId,
+      sites: current.sites,
       status: current.status,
       summary: current.summary,
       tenantId: current.tenantId,
@@ -284,7 +235,7 @@ const publishVersionToRoot = async (
 ): Promise<void> => {
   const now = new Date()
   // update set 的类型不接受 null；显式 sql`null` 保留"发布时清空根表可空列"的语义。
-  const nn = <T,>(value: T | null): T | ReturnType<typeof sql> =>
+  const nn = <T>(value: T | null): T | ReturnType<typeof sql> =>
     value === null ? sql`null` : value
   await tx
     .update(contentEditions)
@@ -294,7 +245,6 @@ const publishVersionToRoot = async (
       bodyMarkdown: nn(version.bodyMarkdown),
       citations: nn(version.citations),
       compiledRelease: nn(values.compiledRelease),
-      contentId: nn(version.contentId),
       contentModifiedAt: nn(version.contentModifiedAt),
       creationOrigin: nn(version.creationOrigin),
       dueAt: nn(version.dueAt),
@@ -303,7 +253,9 @@ const publishVersionToRoot = async (
       ownerId: nn(version.ownerId),
       primaryTopic: nn(version.primaryTopic),
       priority: nn(version.priority),
+      secondaryTopics: version.secondaryTopics,
       siteId: nn(version.siteId),
+      sites: version.sites,
       status: version.status ?? "draft",
       summary: nn(version.summary),
       tenantId: nn(version.tenantId),
@@ -313,50 +265,6 @@ const publishVersionToRoot = async (
       workflowStatus: values.workflowStatus,
     })
     .where(eq(contentEditions.id, editionId))
-  await tx.delete(editionRootTexts).where(eq(editionRootTexts.parentId, editionId))
-  await tx.delete(editionRootRels).where(eq(editionRootRels.parentId, editionId))
-  const topics = await tx
-    .select({ text: editionVersionTexts.text })
-    .from(editionVersionTexts)
-    .where(
-      and(
-        eq(editionVersionTexts.parentId, version.id),
-        eq(editionVersionTexts.path, "version.secondaryTopics"),
-      ),
-    )
-    .orderBy(editionVersionTexts.order)
-  const texts = topics.map((row) => row.text).filter((value): value is string => value !== null)
-  if (texts.length > 0) {
-    await tx.insert(editionRootTexts).values(
-      texts.map((text, index) => ({
-        order: index + 1,
-        parentId: editionId,
-        path: "secondaryTopics",
-        text,
-      })),
-    )
-  }
-  const rels = await tx
-    .select({ siteId: editionVersionRels.siteId })
-    .from(editionVersionRels)
-    .where(
-      and(
-        eq(editionVersionRels.parentId, version.id),
-        eq(editionVersionRels.path, "version.sites"),
-      ),
-    )
-    .orderBy(editionVersionRels.order)
-  const siteIds = rels.map((row) => row.siteId).filter((value): value is number => value !== null)
-  if (siteIds.length > 0) {
-    await tx.insert(editionRootRels).values(
-      siteIds.map((siteId, index) => ({
-        order: index + 1,
-        parentId: editionId,
-        path: "sites",
-        siteId,
-      })),
-    )
-  }
 }
 
 const slugify = (value: string): string =>
@@ -366,13 +274,13 @@ const slugify = (value: string): string =>
     .replace(/^-+|-+$/g, "")
 
 /**
- * URL 预留：同 content+site 已有 active/reserved 则复用；否则在事务内用
+ * URL 预留：同 edition+site 已有 active/reserved 则复用；否则在事务内用
  * 领域 registry 校验后写入 reserved 行，unique 索引仲裁并发。
  */
 export const reserveEditionUrlWithinTx = async (
   tx: Tx,
   input: Readonly<{
-    contentId: number
+    editionId: number
     siteId: number
     tenantId: number
     title: string
@@ -383,7 +291,7 @@ export const reserveEditionUrlWithinTx = async (
     .from(urlRecords)
     .where(
       and(
-        eq(urlRecords.contentId, input.contentId),
+        eq(urlRecords.editionId, input.editionId),
         eq(urlRecords.siteId, input.siteId),
         inArray(urlRecords.state, ["active", "reserved"]),
       ),
@@ -401,14 +309,14 @@ export const reserveEditionUrlWithinTx = async (
       ? siteRows[0].locale
       : "en-US"
   const slug = slugify(input.title)
-  const pathname = `/articles/${slug.length > 0 ? slug : `content-${input.contentId}`}`
+  const pathname = `/articles/${slug.length > 0 ? slug : `edition-${input.editionId}`}`
 
   const rows = await tx.select().from(urlRecords).where(eq(urlRecords.siteId, input.siteId))
   const registry = buildSiteRegistry(
     rows.map((row) =>
       toUrlRecordRow({
         canonicalUrl: row.canonicalUrl,
-        content: row.contentId,
+        content: row.editionId,
         id: row.id,
         locale: row.locale,
         pathname: row.pathname,
@@ -424,12 +332,12 @@ export const reserveEditionUrlWithinTx = async (
   const parsedUrlId = parseUrlId(randomUUID())
   const siteId = parseSiteId(String(input.siteId))
   const tenantId = parseTenantId(String(input.tenantId))
-  const contentId = parseContentId(String(input.contentId))
-  if (!parsedUrlId.ok || !siteId.ok || !tenantId.ok || !contentId.ok) {
+  const editionContentId = parseContentId(String(input.editionId))
+  if (!parsedUrlId.ok || !siteId.ok || !tenantId.ok || !editionContentId.ok) {
     throw fail("URL_REGISTRY_INPUT_INVALID")
   }
   const result = reserveUrl(registry, {
-    contentId: contentId.value,
+    contentId: editionContentId.value,
     expectedRevision: registry.revision,
     locale,
     ownership: { scope: "site", siteId: siteId.value, tenantId: tenantId.value },
@@ -444,7 +352,7 @@ export const reserveEditionUrlWithinTx = async (
   const inserted = await tx
     .insert(urlRecords)
     .values({
-      contentId: input.contentId,
+      editionId: input.editionId,
       locale: result.value.reserved.locale.value,
       pathname: result.value.reserved.pathname.value,
       revision: "0",
@@ -489,7 +397,7 @@ export const transitionEditionWithinTx = async (
   const editionTenantId = current.tenantId ?? -1
   if (input.target === "approved") {
     await reserveEditionUrlWithinTx(tx, {
-      contentId: current.contentId ?? -1,
+      editionId: input.editionId,
       siteId: current.siteId ?? -1,
       tenantId: editionTenantId,
       title: current.title ?? "",
@@ -517,7 +425,9 @@ export const transitionEditionWithinTx = async (
   const nextRevision = aggregate.revision + 1
   const detail = {
     ...(input.decisionId === undefined ? {} : { decisionId: input.decisionId }),
-    ...(input.idempotencyKeyHash === undefined ? {} : { idempotencyKeyHash: input.idempotencyKeyHash }),
+    ...(input.idempotencyKeyHash === undefined
+      ? {}
+      : { idempotencyKeyHash: input.idempotencyKeyHash }),
     ...(input.requestId === undefined ? {} : { requestId: input.requestId }),
   }
   const existingAudit: unknown[] = Array.isArray(current.auditLog) ? current.auditLog : []
@@ -544,7 +454,6 @@ export const transitionEditionWithinTx = async (
     workflowStatus: input.target,
   }
   const newVersionId = await insertLatestVersion(tx, current, versionValues)
-  await copyVersionChildren(tx, current.id, newVersionId)
   if (input.target === "published" || input.target === "archived") {
     // live 根表发布语义：外部可见的终态必须落到根行，否则 API 读者仍看到旧状态。
     const fresh = await tx
@@ -616,13 +525,12 @@ export const createDraftFromPublishedWithinTx = async (
     },
     editionTenantId,
   )
-  const newVersionId = await insertLatestVersion(tx, current, {
+  await insertLatestVersion(tx, current, {
     auditLog,
     compiledRelease: null,
     workflowRevision: "0",
     workflowStatus: "draft",
   })
-  await copyVersionChildren(tx, current.id, newVersionId)
   await tx.insert(outboxEvents).values({
     aggregateId: String(input.editionId),
     aggregateType: "edition",
@@ -638,7 +546,10 @@ export const createDraftFromPublishedWithinTx = async (
 export class WorkflowRepository {
   constructor(private readonly db: ServerDb) {}
 
-  async transition(scope: EntityScope, input: Omit<TransitionTxInput, "scope">): Promise<ContentEditionState> {
+  async transition(
+    scope: EntityScope,
+    input: Omit<TransitionTxInput, "scope">,
+  ): Promise<ContentEditionState> {
     return this.db.transaction((tx) => transitionEditionWithinTx(tx, { ...input, scope }))
   }
 

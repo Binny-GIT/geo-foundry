@@ -17,7 +17,7 @@ import type { SessionClaims } from "../../access/session"
 import { validateUserTenantInvariant } from "../../access/user-tenant-invariant"
 import { generatePasswordCredentialsCompat } from "../auth/compat"
 import type { ServerDb } from "../db/client"
-import { sites, sitesTexts } from "../db/entity-schema"
+import { sites } from "../db/entity-schema"
 import { tenants, users } from "../db/schema"
 import { domains } from "../db/session-schema"
 import { findConsoleRecord } from "./console-collections"
@@ -244,14 +244,6 @@ const siteSchema = z
   })
   .strict()
 
-const TEXT_PATHS = [
-  "contentAngles",
-  "expertise",
-  "preferredTopics",
-  "prohibitedTopics",
-  "targetAudience",
-] as const
-
 type SiteInput = z.infer<typeof siteSchema>
 type SitePatch = { readonly [K in keyof SiteInput]?: SiteInput[K] | undefined }
 
@@ -275,10 +267,15 @@ const siteColumnsOf = (data: SitePatch) => {
     ...(strategy === undefined
       ? {}
       : {
+          contentStrategyContentAngles: strategy.contentAngles,
           contentStrategyCta: strategy.cta ?? null,
+          contentStrategyExpertise: strategy.expertise,
           contentStrategyLanguage: strategy.language ?? null,
           contentStrategyPositioning: strategy.positioning ?? null,
+          contentStrategyPreferredTopics: strategy.preferredTopics,
           contentStrategyProhibitedExpressions: strategy.prohibitedExpressions,
+          contentStrategyProhibitedTopics: strategy.prohibitedTopics,
+          contentStrategyTargetAudience: strategy.targetAudience,
           contentStrategyTone: strategy.tone ?? null,
         }),
     ...(thresholds === undefined
@@ -297,23 +294,6 @@ const siteColumnsOf = (data: SitePatch) => {
           seoDefaultsTitleSuffix: seo.titleSuffix ?? null,
         }),
   }
-}
-
-const writeSiteTexts = async (
-  tx: Tx,
-  siteId: number,
-  strategy: NonNullable<z.infer<typeof siteSchema>["contentStrategy"]>,
-): Promise<void> => {
-  await tx.delete(sitesTexts).where(eq(sitesTexts.parentId, siteId))
-  const rows = TEXT_PATHS.flatMap((path) =>
-    strategy[path].map((text, index) => ({
-      order: index + 1,
-      parentId: siteId,
-      path: `contentStrategy.${path}`,
-      text,
-    })),
-  )
-  if (rows.length > 0) await tx.insert(sitesTexts).values(rows)
 }
 
 export const createSite = async (
@@ -341,9 +321,6 @@ export const createSite = async (
       .returning({ id: sites.id })
     const row = rows[0]
     if (row === undefined) throw fail("CMS_SITE_CREATE_FAILED", 500)
-    if (parsed.data.contentStrategy !== undefined) {
-      await writeSiteTexts(tx, row.id, parsed.data.contentStrategy)
-    }
     return row.id
   })
   return (await findConsoleRecord(db, scope, "sites", id)) ?? { id }
@@ -368,9 +345,6 @@ export const updateSite = async (
       .update(sites)
       .set({ ...columns, updatedAt: new Date() })
       .where(eq(sites.id, id))
-    if (parsed.data.contentStrategy !== undefined) {
-      await writeSiteTexts(tx, id, parsed.data.contentStrategy)
-    }
   })
   return (await findConsoleRecord(db, scope, "sites", id)) ?? { id }
 }

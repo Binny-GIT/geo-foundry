@@ -31,7 +31,10 @@ const positiveInt = (value: string | null, fallback: number, max: number): numbe
 
 const idsOf = (value: string | null): readonly number[] | null => {
   if (value === null) return []
-  const parts = value.split(",").map((part) => part.trim()).filter(Boolean)
+  const parts = value
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean)
   if (parts.length === 0 || parts.some((part) => !/^\d+$/.test(part))) return null
   return parts.map(Number)
 }
@@ -60,10 +63,14 @@ export const parseEditionListQuery = (url: URL): EditionListInput | null => {
   if (limit === null || page === null) return null
   const sort = url.searchParams.get("sort") ?? "-updatedAt"
   if (
-    sort !== "createdAt" && sort !== "-createdAt" &&
-    sort !== "updatedAt" && sort !== "-updatedAt" &&
-    sort !== "title" && sort !== "-title"
-  ) return null
+    sort !== "createdAt" &&
+    sort !== "-createdAt" &&
+    sort !== "updatedAt" &&
+    sort !== "-updatedAt" &&
+    sort !== "title" &&
+    sort !== "-title"
+  )
+    return null
   const ids = idsOf(url.searchParams.get("where[id][in]"))
   if (ids === null) return null
   const siteRaw = url.searchParams.get("where[site][equals]")
@@ -89,7 +96,9 @@ const authorize = async (request: Request) => {
   const auth = await authenticateRequest(request.headers)
   if (auth === null) return { response: json(401, { errors: [{ message: "Unauthorized" }] }) }
   if (!decideAccess(auth.claims, CMS_RESOURCE.EDITIONS, CMS_ACTION.READ)) {
-    return { response: json(403, { errors: [{ message: "You are not allowed to perform this action." }] }) }
+    return {
+      response: json(403, { errors: [{ message: "You are not allowed to perform this action." }] }),
+    }
   }
   const scope = entityScopeOf(auth)
   return scope === null

@@ -4,26 +4,12 @@ import { readFile } from "node:fs/promises"
 import test from "node:test"
 
 const packageJsonUrl = new URL("../package.json", import.meta.url)
-const rootPackageJsonUrl = new URL("../../../package.json", import.meta.url)
-const turboConfigUrl = new URL("../../../turbo.json", import.meta.url)
 const rootTsconfigUrl = new URL("../../../tsconfig.base.json", import.meta.url)
 const cmsTsconfigUrl = new URL("../tsconfig.json", import.meta.url)
 const typecheckExceptionUrl = new URL("../third-party-typecheck-exception.json", import.meta.url)
-const migrationIndexUrl = new URL("../src/migrations/index.ts", import.meta.url)
-const migrationSourceUrl = new URL(
-  "../src/migrations/20260818_023834_task9_bootstrap.ts",
-  import.meta.url,
-)
-const migrationSnapshotUrl = new URL(
-  "../src/migrations/20260818_023834_task9_bootstrap.json",
-  import.meta.url,
-)
+const migrationJournalUrl = new URL("../drizzle/meta/_journal.json", import.meta.url)
 const readinessUrl = new URL("../src/readiness/check-readiness.ts", import.meta.url)
-const payloadConfigUrl = new URL("../src/config/database.ts", import.meta.url)
 const secureRunUrl = new URL("../scripts/secure-run.mjs", import.meta.url)
-const integrationRunnerUrl = new URL("../scripts/run-integration.mjs", import.meta.url)
-const integrationResetUrl = new URL("../scripts/reset-integration-database.mjs", import.meta.url)
-const createMigrationUrl = new URL("../scripts/create-migration.mjs", import.meta.url)
 
 const payloadPackages = [
   "payload",
@@ -32,67 +18,28 @@ const payloadPackages = [
   "@payloadcms/richtext-lexical",
   "@payloadcms/storage-s3",
   "@payloadcms/next",
+  "@payloadcms/ui",
 ]
 
-test("Given Todo 9 package config, when inspected, then Payload packages are exactly 3.88.0", async () => {
+test("Given the de-Payload backend, when the manifest is inspected, then no Payload package remains", async () => {
   const manifest = JSON.parse(await readFile(packageJsonUrl, "utf8"))
+  const declared = { ...manifest.dependencies, ...manifest.devDependencies }
 
   for (const packageName of payloadPackages) {
-    assert.equal(manifest.dependencies?.[packageName], "3.88.0")
+    assert.equal(Object.hasOwn(declared, packageName), false, packageName)
   }
+  assert.equal(typeof declared["drizzle-orm"], "string")
+  assert.equal(typeof declared["drizzle-kit"], "string")
 })
 
-test("Given Todo 9 migration workflow, when inspected, then a checked-in migration index exists", async () => {
-  const migrationIndex = await readFile(migrationIndexUrl, "utf8")
+test("Given the Drizzle migration workflow, when inspected, then a checked-in journal lists every migration", async () => {
+  const journal = JSON.parse(await readFile(migrationJournalUrl, "utf8"))
 
-  assert.match(migrationIndex, /export const migrations/)
-})
-
-test("Given real integration tasks, when Turbo is inspected, then cache replay is disabled and a fresh root command exists", async () => {
-  const [rootManifest, turbo] = await Promise.all([
-    readFile(rootPackageJsonUrl, "utf8").then(JSON.parse),
-    readFile(turboConfigUrl, "utf8").then(JSON.parse),
-  ])
-
-  assert.equal(turbo.tasks?.["test:integration"]?.cache, false)
-  assert.equal(
-    rootManifest.scripts?.["test:integration:fresh"],
-    "turbo run test:integration --force --output-logs=full",
-  )
-})
-
-test("Given the Todo 9 migration, when its snapshot and SQL are inspected, then exactly nine schema-qualified tables exist", async () => {
-  const [migrationSource, snapshot] = await Promise.all([
-    readFile(migrationSourceUrl, "utf8"),
-    readFile(migrationSnapshotUrl, "utf8").then(JSON.parse),
-  ])
-  const tableNames = Object.values(snapshot.tables)
-    .map((table) => table.name)
-    .sort()
-
-  assert.deepEqual(tableNames, [
-    "bootstrap_admins",
-    "bootstrap_admins_sessions",
-    "bootstrap_media",
-    "payload_kv",
-    "payload_locked_documents",
-    "payload_locked_documents_rels",
-    "payload_migrations",
-    "payload_preferences",
-    "payload_preferences_rels",
-  ])
-  assert.equal(
-    Object.values(snapshot.tables).every((table) => table.schema === "geo_foundry"),
-    true,
-  )
-  assert.equal(
-    [
-      ...migrationSource.matchAll(
-        /(?:CREATE TABLE|ALTER TABLE|REFERENCES|ON|DROP TABLE)\s+("[^"]+"\."[^"]+")/g,
-      ),
-    ].every(([, target]) => target.startsWith('"geo_foundry".')),
-    true,
-  )
+  assert.equal(journal.dialect, "postgresql")
+  assert.ok(Array.isArray(journal.entries) && journal.entries.length >= 2)
+  for (const entry of journal.entries) {
+    await readFile(new URL(`../drizzle/${entry.tag}.sql`, import.meta.url), "utf8")
+  }
 })
 
 test("Given strict TypeScript policy, when configs are inspected, then only the documented CMS dependency exception remains", async () => {
@@ -112,56 +59,21 @@ test("Given strict TypeScript policy, when configs are inspected, then only the 
     },
     { compilerOption: "skipLibCheck", enabled: true, scope: "@geo/cms" },
   )
-  assert.deepEqual(exception.versions, {
-    "@payloadcms/db-postgres": "3.88.0",
-    next: "16.3.0",
-    payload: "3.88.0",
-    typescript: "5.9.3",
-  })
 })
 
-test("Given Todo 9 readiness contract, when inspected, then dependency readiness is implemented", async () => {
+test("Given the readiness contract, when inspected, then dependency readiness is implemented", async () => {
   const readiness = await readFile(readinessUrl, "utf8")
 
   assert.match(readiness, /checkReadiness/)
 })
 
-test("Given migration policy, when inspected, then database push is disabled", async () => {
-  const adapterConfig = await readFile(payloadConfigUrl, "utf8")
-
-  assert.match(adapterConfig, /push: false/)
-})
-
-test("Given CMS integration execution, when its scripts are inspected, then only the fixed isolated database is reset", async () => {
-  const [runner, reset] = await Promise.all([
-    readFile(integrationRunnerUrl, "utf8"),
-    readFile(integrationResetUrl, "utf8"),
-  ])
-
-  assert.match(runner, /GEO_FOUNDRY_CMS_CONFIG_MODE: "integration-test"/)
-  assert.match(runner, /scripts\/reset-integration-database\.mjs/)
-  assert.match(reset, /const INTEGRATION_DATABASE = "geo_foundry_cms_integration"/)
-  assert.match(reset, /CMS_INTEGRATION_MODE_REQUIRED/)
-  assert.doesNotMatch(reset, /process\.env\.GEO_FOUNDRY_PG_DATABASE/)
-})
-
-test("Given secure command runner, when db push is requested, then it is refused before credentials", () => {
-  const result = spawnSync(process.execPath, [secureRunUrl.pathname, "payload", "push"], {
+test("Given the secure command runner, when an unknown command is requested, then it is refused before credentials", () => {
+  const result = spawnSync(process.execPath, [secureRunUrl.pathname, "drizzle-kit", "push"], {
     encoding: "utf8",
   })
 
   assert.notEqual(result.status, 0)
   assert.match(result.stderr, /CMS_COMMAND_NOT_PERMITTED/)
-})
-
-test("Given CI, when migration generation is requested, then schema generation is refused", () => {
-  const result = spawnSync(process.execPath, [createMigrationUrl.pathname, "new-migration"], {
-    encoding: "utf8",
-    env: { ...process.env, CI: "true" },
-  })
-
-  assert.notEqual(result.status, 0)
-  assert.match(result.stderr, /CMS_MIGRATION_GENERATION_FORBIDDEN/)
 })
 
 test("Given missing credential files, when secure startup fails, then secret values are not emitted", () => {

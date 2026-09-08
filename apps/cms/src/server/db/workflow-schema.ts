@@ -25,10 +25,7 @@ export const urlRecordState = pgEnum("enum_url_records_state", [
   "gone",
 ])
 
-export const reviewCommentKind = pgEnum("enum_review_comments_kind", [
-  "comment",
-  "request-changes",
-])
+export const reviewCommentKind = pgEnum("enum_review_comments_kind", ["comment", "request-changes"])
 
 export const urlRecords = geo.table(
   "url_records",
@@ -36,7 +33,7 @@ export const urlRecords = geo.table(
     id: serial("id").primaryKey(),
     siteId: integer("site_id").notNull(),
     tenantId: integer("tenant_id").notNull(),
-    contentId: integer("content_id").notNull(),
+    editionId: integer("edition_id").notNull(),
     locale: varchar("locale").notNull(),
     pathname: varchar("pathname").notNull(),
     uniqueKey: varchar("unique_key").notNull(),
@@ -53,7 +50,7 @@ export const urlRecords = geo.table(
     uniqueIndex("url_records_unique_key_idx").on(table.uniqueKey),
     index("url_records_site_idx").on(table.siteId),
     index("url_records_tenant_idx").on(table.tenantId),
-    index("url_records_content_idx").on(table.contentId),
+    index("url_records_edition_idx").on(table.editionId),
     index("url_records_target_url_idx").on(table.targetUrlId),
     index("site_state_idx").on(table.siteId, table.state),
   ],
@@ -106,33 +103,5 @@ export const reviewerDecisionIdempotency = geo.table(
     index("reviewer_edition_decision_idempotency_idempotency_key_idx").on(table.idempotencyKey),
     index("reviewer_edition_decision_idempotency_edition_idx").on(table.editionId),
     index("reviewer_edition_decision_idempotency_decision_id_idx").on(table.decisionId),
-  ],
-)
-
-export const editionRootTexts = geo.table(
-  "content_editions_texts",
-  {
-    id: serial("id").primaryKey(),
-    order: integer("order").notNull(),
-    parentId: integer("parent_id").notNull(),
-    path: varchar("path").notNull(),
-    text: varchar("text"),
-  },
-  (table) => [index("content_editions_texts_order_parent").on(table.order, table.parentId)],
-)
-
-export const editionRootRels = geo.table(
-  "content_editions_rels",
-  {
-    id: serial("id").primaryKey(),
-    order: integer("order"),
-    parentId: integer("parent_id").notNull(),
-    path: varchar("path").notNull(),
-    siteId: integer("sites_id"),
-  },
-  (table) => [
-    index("content_editions_rels_parent_idx").on(table.parentId),
-    index("content_editions_rels_path_idx").on(table.path),
-    index("content_editions_rels_sites_id_idx").on(table.siteId),
   ],
 )

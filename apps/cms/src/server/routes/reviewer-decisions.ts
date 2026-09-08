@@ -48,7 +48,12 @@ export type ReviewerDecisionRoute = "approve" | "request-changes"
 export const reviewerDecisionRouteOf = (
   slug: readonly string[] | undefined,
 ): ReviewerDecisionRoute | null => {
-  if (slug?.length !== 5 || slug[0] !== "workspaces" || slug[1] !== "reviewer" || slug[2] !== "editions") {
+  if (
+    slug?.length !== 5 ||
+    slug[0] !== "workspaces" ||
+    slug[1] !== "reviewer" ||
+    slug[2] !== "editions"
+  ) {
     return null
   }
   if (slug[4] === "approve") return "approve"
@@ -56,7 +61,9 @@ export const reviewerDecisionRouteOf = (
   return null
 }
 
-const MASKED_NOT_FOUND = { error: { code: "REVIEWER_EDITION_NOT_FOUND", message: "edition not found" } }
+const MASKED_NOT_FOUND = {
+  error: { code: "REVIEWER_EDITION_NOT_FOUND", message: "edition not found" },
+}
 const CONFLICT_CODES = new Set([
   "EDITION_WORKFLOW_REVISION_CONFLICT",
   "EDITION_WORKFLOW_SOURCE_REQUIRED",
@@ -68,12 +75,17 @@ const CONFLICT_CODES = new Set([
 
 const errorResponseOf = (error: unknown, requestId: string): Response => {
   if (error instanceof ReviewerDecisionRepositoryError) {
-    if (error.code === "IDEMPOTENCY_KEY_REUSED") return json(409, { error: { code: error.code } }, requestId)
-    if (error.code === "REVIEWER_EDITION_REVIEWER_REQUIRED") return json(403, { error: { code: error.code } }, requestId)
+    if (error.code === "IDEMPOTENCY_KEY_REUSED")
+      return json(409, { error: { code: error.code } }, requestId)
+    if (error.code === "REVIEWER_EDITION_REVIEWER_REQUIRED")
+      return json(403, { error: { code: error.code } }, requestId)
     return json(400, { error: { code: error.code } }, requestId)
   }
   if (error instanceof WorkflowRepositoryError) {
-    if (error.code === "EDITION_WORKFLOW_NOT_FOUND" || error.code === "EDITION_WORKFLOW_TENANT_MISMATCH") {
+    if (
+      error.code === "EDITION_WORKFLOW_NOT_FOUND" ||
+      error.code === "EDITION_WORKFLOW_TENANT_MISMATCH"
+    ) {
       return json(404, MASKED_NOT_FOUND, requestId)
     }
     if (CONFLICT_CODES.has(error.code)) return json(409, { error: { code: error.code } }, requestId)
@@ -100,11 +112,17 @@ export const handleReviewerDecisionPost = async (
   if (auth === null) {
     return json(401, { error: { code: "REVIEWER_EDITION_UNAUTHENTICATED" } }, requestId)
   }
-  if (auth.claims.kind !== "user" || (auth.claims.role !== "reviewer" && auth.claims.role !== "super-admin")) {
+  if (
+    auth.claims.kind !== "user" ||
+    (auth.claims.role !== "reviewer" && auth.claims.role !== "super-admin")
+  ) {
     return json(403, { error: { code: "REVIEWER_EDITION_REVIEWER_REQUIRED" } }, requestId)
   }
   const tenantId = auth.claims.tenantId === null ? null : Number(auth.claims.tenantId)
-  if (auth.claims.role === "reviewer" && (tenantId === null || !Number.isInteger(tenantId) || tenantId <= 0)) {
+  if (
+    auth.claims.role === "reviewer" &&
+    (tenantId === null || !Number.isInteger(tenantId) || tenantId <= 0)
+  ) {
     return json(403, { error: { code: "REVIEWER_EDITION_ACTOR_INVALID" } }, requestId)
   }
   const scope = entityScopeOf(auth)

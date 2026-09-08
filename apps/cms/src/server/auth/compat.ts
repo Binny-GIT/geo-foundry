@@ -76,9 +76,7 @@ export const verifyPasswordCompat = async (
     })
   })
   const storedHash = Buffer.from(stored.hash, "hex")
-  return (
-    derived.length === storedHash.length && crypto.timingSafeEqual(derived, storedHash)
-  )
+  return derived.length === storedHash.length && crypto.timingSafeEqual(derived, storedHash)
 }
 
 export type SessionClaims = Readonly<{
@@ -96,14 +94,14 @@ export const verifySessionTokenCompat = async (
   configSecret: string,
 ): Promise<SessionClaims | null> => {
   try {
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(payloadSigningKeyOf(configSecret)), {
-      algorithms: ["HS256"],
-    })
-    if (
-      typeof payload !== "object" ||
-      payload === null ||
-      typeof payload["exp"] !== "number"
-    ) {
+    const { payload } = await jwtVerify(
+      token,
+      new TextEncoder().encode(payloadSigningKeyOf(configSecret)),
+      {
+        algorithms: ["HS256"],
+      },
+    )
+    if (typeof payload !== "object" || payload === null || typeof payload["exp"] !== "number") {
       return null
     }
     return payload as unknown as SessionClaims

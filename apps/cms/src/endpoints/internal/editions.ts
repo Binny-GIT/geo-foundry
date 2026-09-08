@@ -1,4 +1,3 @@
-import type { PayloadRequest } from "payload"
 import {
   readEditionInput,
   recordAssessment,
@@ -21,10 +20,10 @@ import {
   type SimilarityQueryBody,
   similarityQueryBodySchema,
 } from "./contracts"
-import { internalJsonResponse, withInternalGuards } from "./guards"
+import { type InternalRequest, internalJsonResponse, withInternalGuards } from "./guards"
 
-const editionIdOf = (req: PayloadRequest): number => {
-  const raw = req.routeParams?.["id"]
+const editionIdOf = (req: InternalRequest): number => {
+  const raw = req.routeParams["id"]
   const parsed = Number(raw)
   if (!Number.isInteger(parsed) || parsed <= 0) {
     throw new EditionWorkflowError("EDITION_WORKFLOW_ROW_INVALID", `route id ${String(raw)}`)

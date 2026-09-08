@@ -22,7 +22,7 @@ import {
 } from "../db/session-schema"
 import { urlRecords } from "../db/workflow-schema"
 import { editionCountsBySite, latestReleaseBySite } from "./console-reads"
-import type { EntityScope } from "./entities"
+import { type EntityScope, stringList } from "./entities"
 
 type Row = Record<string, unknown>
 
@@ -179,17 +179,15 @@ export const siteDoc = (row: {
   tenantName: string | null
 }): Row => ({
   contentStrategy: {
-    contentAngles: [],
+    contentAngles: stringList(row.site.contentStrategyContentAngles),
     cta: row.site.contentStrategyCta,
-    expertise: [],
+    expertise: stringList(row.site.contentStrategyExpertise),
     language: row.site.contentStrategyLanguage,
     positioning: row.site.contentStrategyPositioning,
-    preferredTopics: [],
-    prohibitedExpressions: Array.isArray(row.site.contentStrategyProhibitedExpressions)
-      ? row.site.contentStrategyProhibitedExpressions
-      : [],
-    prohibitedTopics: [],
-    targetAudience: [],
+    preferredTopics: stringList(row.site.contentStrategyPreferredTopics),
+    prohibitedExpressions: stringList(row.site.contentStrategyProhibitedExpressions),
+    prohibitedTopics: stringList(row.site.contentStrategyProhibitedTopics),
+    targetAudience: stringList(row.site.contentStrategyTargetAudience),
     tone: row.site.contentStrategyTone,
   },
   createdAt: iso(row.site.createdAt),
@@ -326,7 +324,6 @@ const editionsBase = (db: ServerDb) =>
 const editionDoc = (
   row: Awaited<ReturnType<ReturnType<typeof editionsBase>["execute"]>>[number],
 ): Row => ({
-  content: row.version.contentId,
   createdAt: iso(row.version.versionCreatedAt ?? row.version.createdAt),
   creationOrigin: row.version.creationOrigin,
   id: row.editionId,
@@ -440,7 +437,7 @@ const urlDoc = (row: {
   targetPathname: string | null
 }): Row => ({
   canonicalUrl: row.record.canonicalUrl,
-  content: row.record.contentId,
+  edition: row.record.editionId,
   createdAt: iso(row.record.createdAt),
   id: row.record.id,
   locale: row.record.locale,

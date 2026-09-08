@@ -1,4 +1,3 @@
-import { withPayload } from "@payloadcms/next/withPayload"
 import type { NextConfig } from "next"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
@@ -19,4 +18,4 @@ const nextConfig = {
   },
 } satisfies NextConfig
 
-export default withPayload(nextConfig, { devBundleServerPackages: false })
+export default nextConfig

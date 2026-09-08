@@ -1,5 +1,3 @@
-import type { PayloadRequest } from "payload"
-
 import {
   claimIntakeFetch,
   completeIntakeFetch,
@@ -17,10 +15,10 @@ import {
   intakeFetchFailedBodySchema,
   intakeRssEntriesBodySchema,
 } from "./contracts"
-import { internalJsonResponse, withInternalGuards } from "./guards"
+import { type InternalRequest, internalJsonResponse, withInternalGuards } from "./guards"
 
-const intakeItemIdOf = (req: PayloadRequest): number => {
-  const id = Number(req.routeParams?.["id"])
+const intakeItemIdOf = (req: InternalRequest): number => {
+  const id = Number(req.routeParams["id"])
   if (!Number.isInteger(id) || id <= 0) throw new Error("INTAKE_ITEM_ID_INVALID")
   return id
 }

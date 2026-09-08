@@ -4,14 +4,14 @@
  * 异步落库且绝不阻断交付（单篇接口补上真实租户，修复旧 tenantId=0 缺陷）。
  */
 
-import { and, count, desc, eq, exists, ilike, inArray, or, sql } from "drizzle-orm"
+import { and, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm"
 
 import { markdownToBlocks } from "../../editor/block-markdown"
 import type { ServerDb } from "../db/client"
 import { contentEditions } from "../db/edition-schema"
 import { sites } from "../db/entity-schema"
 import { apiUsageDailies, domains } from "../db/session-schema"
-import { editionRootRels, urlRecords } from "../db/workflow-schema"
+import { urlRecords } from "../db/workflow-schema"
 import { loggerOf } from "../observability/logger"
 import { serverRuntime } from "../runtime"
 
@@ -74,10 +74,7 @@ const recordUsage = (
 
 type SiteRow = { siteId: number; tenantId: number | null }
 
-const activeCanonicalSite = async (
-  db: ServerDb,
-  domain: string,
-): Promise<SiteRow | null> => {
+const activeCanonicalSite = async (db: ServerDb, domain: string): Promise<SiteRow | null> => {
   const normalized = domain.toLowerCase().trim()
   if (normalized.length === 0 || !/^[a-z0-9.-]+$/.test(normalized)) return null
   const rows = await db
@@ -103,19 +100,19 @@ const activeCanonicalSite = async (
   return { siteId, tenantId: site.tenantId ?? null }
 }
 
-const activePathnameByContent = async (
+const activePathnameByEdition = async (
   db: ServerDb,
   siteId: number,
 ): Promise<Map<number, string>> => {
   const map = new Map<number, string>()
   const records = await db
-    .select({ contentId: urlRecords.contentId, pathname: urlRecords.pathname })
+    .select({ editionId: urlRecords.editionId, pathname: urlRecords.pathname })
     .from(urlRecords)
     .where(and(eq(urlRecords.siteId, siteId), eq(urlRecords.state, "active")))
     .limit(500)
   for (const record of records) {
-    if (record.pathname.length > 0 && !map.has(record.contentId)) {
-      map.set(record.contentId, record.pathname)
+    if (record.pathname.length > 0 && !map.has(record.editionId)) {
+      map.set(record.editionId, record.pathname)
     }
   }
   return map
@@ -162,18 +159,7 @@ export const handleDeliveryGet = async (
     const limit = Number.isSafeInteger(limitRaw) ? Math.min(Math.max(limitRaw, 1), 50) : 20
     const q = (url.searchParams.get("q") ?? "").trim().slice(0, 100)
 
-    const assigned = exists(
-      db
-        .select({ one: sql`1` })
-        .from(editionRootRels)
-        .where(
-          and(
-            eq(editionRootRels.parentId, contentEditions.id),
-            eq(editionRootRels.path, "sites"),
-            eq(editionRootRels.siteId, site.siteId),
-          ),
-        ),
-    )
+    const assigned = sql`${contentEditions.sites} @> ARRAY[${site.siteId}]::integer[]`
     const where = and(
       eq(contentEditions.workflowStatus, "published"),
       or(eq(contentEditions.siteId, site.siteId), assigned),
@@ -188,14 +174,14 @@ export const handleDeliveryGet = async (
         .limit(limit)
         .offset((page - 1) * limit),
       db.select({ value: count() }).from(contentEditions).where(where),
-      activePathnameByContent(db, site.siteId),
+      activePathnameByEdition(db, site.siteId),
     ])
     recordUsage(db, "articles", site.siteId, site.tenantId)
     const totalDocs = totals[0]?.value ?? 0
     return json(
       200,
       {
-        docs: rows.map((row) => publicEdition(row, pathnames.get(row.contentId ?? -1))),
+        docs: rows.map((row) => publicEdition(row, pathnames.get(row.id))),
         page,
         totalDocs,
         totalPages: Math.max(Math.ceil(totalDocs / limit), 1),
@@ -213,13 +199,9 @@ export const handleDeliveryGet = async (
   if (edition === undefined || edition.workflowStatus !== "published") {
     return json(404, { error: { code: "DELIVERY_ARTICLE_NOT_FOUND" } }, 60)
   }
-  const assigned = await db
-    .select({ siteId: editionRootRels.siteId })
-    .from(editionRootRels)
-    .where(and(eq(editionRootRels.parentId, id), eq(editionRootRels.path, "sites")))
   const assignedIds = [
-    ...(edition.siteId !== null ? [edition.siteId] : []),
-    ...assigned.map((row) => row.siteId).filter((value): value is number => value !== null),
+    ...(edition.siteId === null ? [] : [edition.siteId]),
+    ...edition.sites,
   ].filter((value, index, all) => all.indexOf(value) === index)
   const activeRows =
     assignedIds.length === 0
@@ -232,13 +214,13 @@ export const handleDeliveryGet = async (
   if (activeSite === undefined) {
     return json(404, { error: { code: "DELIVERY_ARTICLE_NOT_FOUND" } }, 60)
   }
-  const pathnames = await activePathnameByContent(db, activeSite.id)
+  const pathnames = await activePathnameByEdition(db, activeSite.id)
   recordUsage(db, "article", activeSite.id, activeSite.tenantId ?? null)
   const markdown = edition.bodyMarkdown ?? ""
   return json(
     200,
     {
-      ...publicEdition(edition, pathnames.get(edition.contentId ?? -1)),
+      ...publicEdition(edition, pathnames.get(edition.id)),
       body: markdown.length > 0 ? markdownToBlocks(markdown) : [],
       locale: activeSite.locale ?? "en-US",
     },

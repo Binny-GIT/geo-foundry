@@ -1,21 +1,17 @@
 /*
  * 文章运营操作路由：assignment（改派负责人/站点）与 duplicate（复制为新草稿）。
  * 契约与旧 Payload endpoint 一致；写入走 latest 版本语义
- * （assignment 仅版本行；duplicate 建新根 + 新版本，允许同 content+site 共存，
+ * （assignment 仅版本行；duplicate 建新根 + 新版本，允许同站点文章并存，
  * 与旧行为相同，不做唯一性拦截）。
  */
 
-import { and, eq, inArray } from "drizzle-orm"
+import { eq, inArray } from "drizzle-orm"
 import { z } from "zod"
 
 import { authenticateRequest } from "../auth/session"
-import {
-  copyVersionChildren,
-  insertLatestVersion,
-  loadCurrentVersion,
-} from "../repositories/edition-workflow"
+import { insertLatestVersion, loadCurrentVersion } from "../repositories/edition-workflow"
 import { entityScopeOf } from "../repositories/entities"
-import { contentEditions, editionVersionRels, editionVersions, editionVersionTexts } from "../db/edition-schema"
+import { contentEditions, editionVersions } from "../db/edition-schema"
 import { sites } from "../db/entity-schema"
 import { users } from "../db/schema"
 import { serverRuntime } from "../runtime"
@@ -36,35 +32,6 @@ const json = (status: number, body: unknown): Response =>
 const idOf = (slug: readonly string[] | undefined): number | null => {
   const id = slug?.[1]
   return id !== undefined && /^\d+$/.test(id) && Number(id) > 0 ? Number(id) : null
-}
-
-const siteIdsOfVersion = async (
-  tx: Parameters<Parameters<ReturnType<typeof serverRuntime>["db"]["transaction"]>[0]>[0],
-  versionId: number,
-): Promise<number[]> => {
-  const rows = await tx
-    .select({ siteId: editionVersionRels.siteId })
-    .from(editionVersionRels)
-    .where(and(eq(editionVersionRels.parentId, versionId), eq(editionVersionRels.path, "version.sites")))
-  return rows.map((row) => row.siteId).filter((value): value is number => value !== null)
-}
-
-const setVersionSites = async (
-  tx: Parameters<Parameters<ReturnType<typeof serverRuntime>["db"]["transaction"]>[0]>[0],
-  toVersionId: number,
-  nextSites: readonly number[],
-): Promise<void> => {
-  await tx.delete(editionVersionRels).where(eq(editionVersionRels.parentId, toVersionId))
-  if (nextSites.length > 0) {
-    await tx.insert(editionVersionRels).values(
-      nextSites.map((siteId, index) => ({
-        order: index + 1,
-        parentId: toVersionId,
-        path: "version.sites",
-        siteId,
-      })),
-    )
-  }
 }
 
 const assignmentSchema = z
@@ -123,7 +90,6 @@ export const handleEditionOpsPost = async (
             bodyMarkdown: version.bodyMarkdown,
             citations: version.citations,
             compiledRelease: null,
-            contentId: version.contentId,
             contentModifiedAt: now,
             creationOrigin: version.creationOrigin ?? "human",
             dueAt: version.dueAt,
@@ -131,8 +97,10 @@ export const handleEditionOpsPost = async (
             entities: version.entities,
             ownerId: null,
             primaryTopic: version.primaryTopic,
+            secondaryTopics: version.secondaryTopics,
             priority: "normal",
             siteId: version.siteId,
+            sites: version.sites,
             status: "draft",
             summary: version.summary,
             tenantId: version.tenantId,
@@ -151,7 +119,6 @@ export const handleEditionOpsPost = async (
             bodyMarkdown: version.bodyMarkdown,
             citations: version.citations,
             compiledRelease: null,
-            contentId: version.contentId,
             contentModifiedAt: now,
             creationOrigin: version.creationOrigin ?? "human",
             dueAt: version.dueAt,
@@ -161,8 +128,10 @@ export const handleEditionOpsPost = async (
             ownerId: null,
             parentId: newId,
             primaryTopic: version.primaryTopic,
+            secondaryTopics: version.secondaryTopics,
             priority: "normal",
             siteId: version.siteId,
+            sites: version.sites,
             status: "draft",
             summary: version.summary,
             tenantId: version.tenantId,
@@ -175,40 +144,6 @@ export const handleEditionOpsPost = async (
           .returning({ id: editionVersions.id })
         const newVersionId = versionRows[0]?.id
         if (newVersionId === undefined) throw new EditionOpsError("EDITION_DUPLICATE_FAILED")
-        const sourceTopics = await tx
-          .select({ text: editionVersionTexts.text })
-          .from(editionVersionTexts)
-          .where(
-            and(
-              eq(editionVersionTexts.parentId, version.id),
-              eq(editionVersionTexts.path, "version.secondaryTopics"),
-            ),
-          )
-          .orderBy(editionVersionTexts.order)
-        const topics = sourceTopics
-          .map((row) => row.text)
-          .filter((value): value is string => value !== null)
-        if (topics.length > 0) {
-          await tx.insert(editionVersionTexts).values(
-            topics.map((text, index) => ({
-              order: index + 1,
-              parentId: newVersionId,
-              path: "version.secondaryTopics",
-              text,
-            })),
-          )
-        }
-        const assigned = await siteIdsOfVersion(tx, version.id)
-        if (assigned.length > 0) {
-          await tx.insert(editionVersionRels).values(
-            assigned.map((siteId, index) => ({
-              order: index + 1,
-              parentId: newVersionId,
-              path: "version.sites",
-              siteId,
-            })),
-          )
-        }
         return newId
       })
       return json(201, { editionId: newEditionId })
@@ -320,13 +255,12 @@ export const handleEditionOpsPost = async (
       // 显式回写 owner/site：insertLatestVersion 复制 current，需要覆盖这两列语义。
       await tx
         .update(editionVersions)
-        .set({ ownerId, siteId })
+        .set({
+          ownerId,
+          siteId,
+          ...(nextSites === undefined ? {} : { sites: [...nextSites] }),
+        })
         .where(eq(editionVersions.id, newVersionId))
-      if (nextSites === undefined) {
-        await copyVersionChildren(tx, version.id, newVersionId)
-      } else {
-        await setVersionSites(tx, newVersionId, nextSites)
-      }
       return response
     })
     return json(200, result)

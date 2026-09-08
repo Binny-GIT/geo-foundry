@@ -58,7 +58,6 @@ type EditionEditorState = Readonly<{
 const EDITABLE_KEYS: readonly string[] = [
   "angle",
   "citations",
-  "content",
   "dueAt",
   "editorialStatus",
   "entities",
@@ -73,7 +72,7 @@ const EDITABLE_KEYS: readonly string[] = [
   "title",
 ]
 
-const RELATION_KEYS: readonly string[] = ["content", "owner", "site", "tenant"]
+const RELATION_KEYS: readonly string[] = ["owner", "site", "tenant"]
 
 const idOf = (value: unknown): number | null => {
   if (typeof value === "number" && Number.isInteger(value)) return value
@@ -101,7 +100,6 @@ const initialValuesOf = (
   const base: Record<string, unknown> = {
     angle: "",
     citations: [],
-    content: null,
     dueAt: null,
     editorialStatus: null,
     entities: [],

@@ -7,7 +7,7 @@
 import { randomUUID } from "node:crypto"
 
 import type { ContentEditionState } from "@geo/domain"
-import { and, eq } from "drizzle-orm"
+import { eq } from "drizzle-orm"
 
 import { markdownToBlocks, blocksToMarkdown } from "../../editor/block-markdown"
 import { validateEditionBody } from "../../editor/validate-body"
@@ -15,11 +15,10 @@ import { resolveSessionClaims } from "../../access/session"
 import { hashEditionContent } from "../../services/edition-input-hash"
 import { EditionWorkflowError } from "../../services/edition-workflow"
 import type { ServerDb } from "../db/client"
-import { editionVersions, editionVersionTexts } from "../db/edition-schema"
+import { editionVersions } from "../db/edition-schema"
 import { qualityAssessments } from "../db/session-schema"
 import { outboxEvents } from "../db/ledger-schema"
 import {
-  copyVersionChildren,
   insertLatestVersion,
   loadCurrentVersion,
   transitionEditionWithinTx,
@@ -30,8 +29,6 @@ import type { EntityScope } from "./entities"
 
 /* guards 的错误映射已覆盖 EditionWorkflowError；沿用保证状态码契约不变。 */
 const fail = (code: string): EditionWorkflowError => new EditionWorkflowError(code)
-
-type Tx = Parameters<Parameters<ServerDb["transaction"]>[0]>[0]
 
 /** internal 调用方是租户绑定的 content-service；scope 即其租户。 */
 export const serviceScopeOf = (user: unknown): EntityScope => {
@@ -55,24 +52,11 @@ const claimsOfActor = (user: unknown): WorkflowClaims => {
   }
 }
 
-const topicsOf = async (tx: Tx, versionId: number): Promise<string[]> => {
-  const rows = await tx
-    .select({ text: editionVersionTexts.text })
-    .from(editionVersionTexts)
-    .where(
-      and(
-        eq(editionVersionTexts.parentId, versionId),
-        eq(editionVersionTexts.path, "version.secondaryTopics"),
-      ),
-    )
-    .orderBy(editionVersionTexts.order)
-  return rows.map((row) => row.text).filter((value): value is string => value !== null)
-}
+const topicsOf = (version: typeof editionVersions.$inferSelect): string[] => version.secondaryTopics
 
 export type EditionInputSnapshot = {
   readonly body: unknown
   readonly compiledRelease: string | null
-  readonly contentId: number
   readonly editionId: number
   readonly inputHash: string
   readonly modifiedAt: string
@@ -95,14 +79,13 @@ export const readEditionInput = async (
   return db.transaction(async (tx) => {
     const { version } = await loadCurrentVersion(tx, scope, options.editionId)
     const body = markdownToBlocks(version.bodyMarkdown ?? "")
-    const secondaryTopics = await topicsOf(tx, version.id)
+    const secondaryTopics = topicsOf(version)
     const title = version.title ?? ""
     const summary = version.summary ?? ""
     const primaryTopic = version.primaryTopic ?? ""
     return {
       body,
       compiledRelease: version.compiledRelease ?? null,
-      contentId: version.contentId ?? -1,
       editionId: options.editionId,
       inputHash: hashEditionContent({ body, primaryTopic, secondaryTopics, summary, title }),
       // Payload draft:true 返回的是 version_* 副本列，publishedAt 对应 version_created_at。
@@ -176,7 +159,7 @@ export const writeGeneratedDraft = async (
     const nextPrimaryTopic = options.patch.primaryTopic ?? version.primaryTopic ?? ""
     const nextTopics =
       options.patch.secondaryTopics === undefined
-        ? await topicsOf(tx, version.id)
+        ? topicsOf(version)
         : [...options.patch.secondaryTopics]
     const inputHash = hashEditionContent({
       body: markdownToBlocks(nextMarkdown),
@@ -201,22 +184,9 @@ export const writeGeneratedDraft = async (
           : { primaryTopic: options.patch.primaryTopic }),
         ...(options.patch.summary === undefined ? {} : { summary: options.patch.summary }),
         ...(options.patch.title === undefined ? {} : { title: options.patch.title }),
+        secondaryTopics: nextTopics,
       })
       .where(eq(editionVersions.id, newVersionId))
-    await copyVersionChildren(tx, version.id, newVersionId)
-    if (options.patch.secondaryTopics !== undefined) {
-      await tx.delete(editionVersionTexts).where(eq(editionVersionTexts.parentId, newVersionId))
-      if (nextTopics.length > 0) {
-        await tx.insert(editionVersionTexts).values(
-          nextTopics.map((text, index) => ({
-            order: index + 1,
-            parentId: newVersionId,
-            path: "version.secondaryTopics",
-            text,
-          })),
-        )
-      }
-    }
     await tx.insert(outboxEvents).values({
       aggregateId: String(options.editionId),
       aggregateType: "edition",
@@ -301,13 +271,12 @@ export const recordCompileResult = async (
       to: "compiled",
     }
     // 与旧实现同构：先落证据版本行，再由转移追加 approved→compiled 版本行。
-    const evidenceVersionId = await insertLatestVersion(tx, version, {
+    await insertLatestVersion(tx, version, {
       auditLog: [...existingAudit, auditEntry],
       compiledRelease: version.compiledRelease,
       workflowRevision: version.workflowRevision ?? "0",
       workflowStatus: version.workflowStatus ?? "draft",
     })
-    await copyVersionChildren(tx, version.id, evidenceVersionId)
     await transitionEditionWithinTx(tx, {
       actor: workflowActorOf(actor),
       compiledReleaseId: input.releaseId,

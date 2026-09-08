@@ -23,20 +23,12 @@ describe("admin navigation contract", () => {
     expect(registry).toContain('{ kind: "resource", slug: "sites" }')
   })
 
-  it("keeps the Payload config free of custom admin UI registrations after the frontend de-Payload migration", async () => {
-    const [config, importMap] = await Promise.all([
-      sourceOf("src/payload.config.ts"),
-      sourceOf("src/app/(payload)/admin/importMap.ts"),
-    ])
+  it("serves every API route from the self-built gateway with no Payload runtime left", async () => {
+    const gateway = await sourceOf("src/app/(api)/api/[...slug]/route.ts")
 
-    // 前端已去 Payload：config 不得再注册自定义组件视图/导航/图形。
-    expect(config).not.toContain("beforeLogin")
-    expect(config).not.toContain("Nav:")
-    expect(config).not.toContain("dashboard")
-    expect(config).not.toContain("workQueue")
-    // importMap 只允许 Payload 自身必需的客户端组件（S3 上传、集合卡片）。
-    expect(importMap).not.toContain("../../../components/")
-    expect(importMap).not.toContain("/components/nav")
-    expect(importMap).not.toContain("/components/views")
+    expect(gateway).not.toContain("@payloadcms")
+    expect(gateway).not.toContain("@payload-config")
+    expect(gateway).toContain("handleInternalRequest")
+    expect(gateway).toContain("return handled ?? notFound()")
   })
 })

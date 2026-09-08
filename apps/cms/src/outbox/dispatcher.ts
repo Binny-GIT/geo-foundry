@@ -1,8 +1,10 @@
 import { DEFAULT_QUEUE_PREFIX, parseQueuePrefix } from "@geo/domain"
 import { Queue } from "bullmq"
-import type { Payload } from "payload"
+import { asc, eq, sql } from "drizzle-orm"
 
 import { optionalCmsCredential } from "../config/credentials"
+import type { ServerDb } from "../server/db/client"
+import { outboxEvents } from "../server/db/ledger-schema"
 
 export const OUTBOX_QUEUE_NAME = "outbox"
 export const OUTBOX_REDIS_PREFIX = DEFAULT_QUEUE_PREFIX
@@ -60,23 +62,21 @@ const OUTBOX_REMOVAL_AGE_SECONDS = 86_400
  * lastError recorded, so the next run fully recovers.
  */
 export const dispatchPendingOutbox = async (
-  payload: Payload,
+  db: ServerDb,
   queue: Queue,
   options: { readonly batchSize?: number } = {},
 ): Promise<OutboxDispatchResult> => {
   const batchSize = options.batchSize ?? 50
-  const pending = await payload.find({
-    collection: "outbox-events",
-    where: { status: { equals: "pending" } },
-    sort: "createdAt",
-    limit: batchSize,
-    depth: 0,
-    overrideAccess: true,
-  })
+  const pending = await db
+    .select()
+    .from(outboxEvents)
+    .where(eq(outboxEvents.status, "pending"))
+    .orderBy(asc(outboxEvents.createdAt))
+    .limit(batchSize)
   const jobIds: string[] = []
   let dispatched = 0
   let failed = 0
-  for (const row of pending.docs) {
+  for (const row of pending) {
     const jobId = outboxJobIdOf(row.eventId)
     try {
       await queue.add(
@@ -86,7 +86,7 @@ export const dispatchPendingOutbox = async (
           eventId: row.eventId,
           eventPayload: row.eventPayload,
           operationId: row.operationId,
-          tenantId: row.tenant,
+          tenantId: row.tenantId,
         },
         {
           attempts: OUTBOX_JOB_ATTEMPTS,
@@ -95,31 +95,23 @@ export const dispatchPendingOutbox = async (
           removeOnFail: { age: OUTBOX_REMOVAL_AGE_SECONDS },
         },
       )
-      await payload.update({
-        collection: "outbox-events",
-        id: row.id,
-        data: {
-          dispatchedAt: new Date().toISOString(),
-          status: "dispatched",
-        },
-        overrideAccess: true,
-        depth: 0,
-      })
+      await db
+        .update(outboxEvents)
+        .set({ dispatchedAt: new Date(), status: "dispatched", updatedAt: new Date() })
+        .where(eq(outboxEvents.id, row.id))
       jobIds.push(jobId)
       dispatched += 1
     } catch (error) {
-      await payload.update({
-        collection: "outbox-events",
-        id: row.id,
-        data: {
-          attempts: (row.attempts ?? 0) + 1,
+      await db
+        .update(outboxEvents)
+        .set({
+          attempts: sql`COALESCE(${outboxEvents.attempts}, 0) + 1`,
           lastError: String(error instanceof Error ? error.message : error).slice(0, 480),
-        },
-        overrideAccess: true,
-        depth: 0,
-      })
+          updatedAt: new Date(),
+        })
+        .where(eq(outboxEvents.id, row.id))
       failed += 1
     }
   }
-  return { dispatched, examined: pending.docs.length, failed, jobIds }
+  return { dispatched, examined: pending.length, failed, jobIds }
 }

@@ -51,7 +51,8 @@ const clock: Clock = {
 
 const snapshotOf = (row: OperationRow): OperationSnapshot => ({
   attempt: Number(row.attempt ?? 1),
-  currentStage: typeof row.currentStage === "string" && row.currentStage.length > 0 ? row.currentStage : null,
+  currentStage:
+    typeof row.currentStage === "string" && row.currentStage.length > 0 ? row.currentStage : null,
   endpoint: String(row.endpoint),
   error: (row.error as Record<string, unknown> | null) ?? null,
   operationId: row.operationId,
@@ -70,11 +71,12 @@ const serviceClaimsOf = (user: unknown) => {
   return claims
 }
 
-const loadByOperationId = async (
-  db: ServerDb,
-  operationId: string,
-): Promise<OperationRow> => {
-  const rows = await db.select().from(operations).where(eq(operations.operationId, operationId)).limit(1)
+const loadByOperationId = async (db: ServerDb, operationId: string): Promise<OperationRow> => {
+  const rows = await db
+    .select()
+    .from(operations)
+    .where(eq(operations.operationId, operationId))
+    .limit(1)
   const row = rows[0]
   if (row === undefined) throw fail("OPERATION_NOT_FOUND")
   return row
@@ -161,7 +163,9 @@ export const listNonTerminalOperations = async (
     .where(
       and(
         inArray(operations.state, ["queued", "running"]),
-        ...(claims.role === "super-admin" ? [] : [eq(operations.tenantId, Number(claims.tenantId ?? -1))]),
+        ...(claims.role === "super-admin"
+          ? []
+          : [eq(operations.tenantId, Number(claims.tenantId ?? -1))]),
       ),
     )
     .orderBy(asc(operations.createdAt))
@@ -198,7 +202,13 @@ const appendAudit = async (
   tx: Parameters<Parameters<ServerDb["transaction"]>[0]>[0],
   row: OperationRow,
   entry: Record<string, unknown>,
-  data: Partial<{ currentStage: string | null; error: unknown; lastStageAt: Date; result: unknown; state: OperationState }>,
+  data: Partial<{
+    currentStage: string | null
+    error: unknown
+    lastStageAt: Date
+    result: unknown
+    state: OperationState
+  }>,
 ): Promise<void> => {
   const existingAudit = Array.isArray(row.auditLog) ? row.auditLog : []
   const revision = Number(row.revision ?? 0)
@@ -217,7 +227,12 @@ const appendAudit = async (
 
 export const startOperationStage = async (
   db: ServerDb,
-  input: { readonly attempt: number; readonly operationId: string; readonly stage: string; readonly user: unknown },
+  input: {
+    readonly attempt: number
+    readonly operationId: string
+    readonly stage: string
+    readonly user: unknown
+  },
 ): Promise<OperationSnapshot> => {
   if (!STAGE_PATTERN.test(input.stage)) throw fail("OPERATION_STAGE_INVALID")
   return db.transaction(async (tx) => {

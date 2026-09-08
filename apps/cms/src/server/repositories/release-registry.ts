@@ -212,14 +212,12 @@ const activatePublishedEditionUrl = async (
   editionId: number,
   siteId: number,
 ): Promise<void> => {
-  const { version } = await loadCurrentVersion(tx, { kind: "global" }, editionId)
-  if (version.contentId === null) return
   const reserved = await tx
     .select({ id: urlRecords.id, revision: urlRecords.revision })
     .from(urlRecords)
     .where(
       and(
-        eq(urlRecords.contentId, version.contentId),
+        eq(urlRecords.editionId, editionId),
         eq(urlRecords.siteId, siteId),
         eq(urlRecords.state, "reserved"),
       ),
@@ -241,7 +239,7 @@ const activatePublishedEditionUrl = async (
     rows.map((row) =>
       toUrlRecordRow({
         canonicalUrl: row.canonicalUrl,
-        content: row.contentId,
+        content: row.editionId,
         id: row.id,
         locale: row.locale,
         pathname: row.pathname,

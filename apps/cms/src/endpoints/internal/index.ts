@@ -1,6 +1,5 @@
-import type { Endpoint } from "payload"
-
 import { editionHandlerByOperation } from "./editions"
+import type { InternalHandler } from "./guards"
 import { intakeHandlerByOperation } from "./intake"
 import { INTERNAL_OPERATIONS } from "./openapi"
 import { operationHandlerByOperation } from "./operations"
@@ -9,7 +8,7 @@ import { releaseHandlerByOperation } from "./releases"
 import { rollbackIntentHandlerByOperation } from "./rollback-intents"
 import { handleGetCompileSnapshot } from "./sites"
 
-const handlerByOperation: Record<string, (typeof allInternalEndpoints)[number]["handler"]> = {
+const handlerByOperation: Record<string, InternalHandler> = {
   ...editionHandlerByOperation,
   ...intakeHandlerByOperation,
   ...operationHandlerByOperation,
@@ -19,14 +18,24 @@ const handlerByOperation: Record<string, (typeof allInternalEndpoints)[number]["
   getCompileSnapshot: handleGetCompileSnapshot,
 }
 
-export const allInternalEndpoints: readonly Endpoint[] = INTERNAL_OPERATIONS.map((operation) => {
-  const handler = handlerByOperation[operation.operationId]
-  if (handler === undefined) {
-    throw new Error(`missing internal handler for ${operation.operationId}`)
-  }
-  return {
-    handler,
-    method: operation.method,
-    path: operation.path,
-  }
-})
+export type InternalEndpoint = Readonly<{
+  handler: InternalHandler
+  method: "get" | "post"
+  operationId: string
+  path: string
+}>
+
+export const allInternalEndpoints: readonly InternalEndpoint[] = INTERNAL_OPERATIONS.map(
+  (operation) => {
+    const handler = handlerByOperation[operation.operationId]
+    if (handler === undefined) {
+      throw new Error(`missing internal handler for ${operation.operationId}`)
+    }
+    return {
+      handler,
+      method: operation.method,
+      operationId: operation.operationId,
+      path: operation.path,
+    }
+  },
+)

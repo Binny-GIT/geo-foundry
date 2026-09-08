@@ -54,7 +54,12 @@ const answer = 42
   it("round-trips plain images through standard Markdown image syntax", () => {
     const blocks = [
       { alt: "架构图", blockType: "image", src: "https://example.com/a.png" },
-      { alt: "Julian Laxman", blockType: "image", caption: "作者照片", src: "https://example.com/p.jpg?w=64&h=64&fit=cover" },
+      {
+        alt: "Julian Laxman",
+        blockType: "image",
+        caption: "作者照片",
+        src: "https://example.com/p.jpg?w=64&h=64&fit=cover",
+      },
       { alt: "", blockType: "image", src: "https://example.com/b.png" },
     ]
     const markdown = blocksToMarkdown(blocks)
@@ -90,9 +95,20 @@ const answer = 42
 
   it("keeps images with dimensions or hostile text as protected blocks", () => {
     const blocks = [
-      { alt: "带尺寸", blockType: "image", height: 400, src: "https://example.com/s.png", width: 640 },
+      {
+        alt: "带尺寸",
+        blockType: "image",
+        height: 400,
+        src: "https://example.com/s.png",
+        width: 640,
+      },
       { alt: "空格URL", blockType: "image", src: "https://example.com/a b.png" },
-      { alt: '引号caption', blockType: "image", caption: '他说 "hi"', src: "https://example.com/q.png" },
+      {
+        alt: "引号caption",
+        blockType: "image",
+        caption: '他说 "hi"',
+        src: "https://example.com/q.png",
+      },
     ]
     const markdown = blocksToMarkdown(blocks)
     expect(markdown).toContain(":::gf-block")
@@ -101,7 +117,7 @@ const answer = 42
 
   it("parses a handwritten image line between paragraphs", () => {
     expect(
-      markdownToBlocks("开头段落。\n\n![示意图](https://example.com/d.png \"图一\")\n\n结尾段落。"),
+      markdownToBlocks('开头段落。\n\n![示意图](https://example.com/d.png "图一")\n\n结尾段落。'),
     ).toEqual([
       { blockType: "paragraph", text: "开头段落。" },
       { alt: "示意图", blockType: "image", caption: "图一", src: "https://example.com/d.png" },
@@ -289,9 +305,7 @@ const incomplete = true`),
   })
 
   it("parses a handwritten four-backtick fence and keeps inner fences as content", () => {
-    expect(
-      markdownToBlocks("````js\nconst a = 1\n```\nstill code\n````"),
-    ).toEqual([
+    expect(markdownToBlocks("````js\nconst a = 1\n```\nstill code\n````")).toEqual([
       { blockType: "code", code: "const a = 1\n```\nstill code", language: "js" },
     ])
   })

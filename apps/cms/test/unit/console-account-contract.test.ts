@@ -93,10 +93,9 @@ describe("console tenant nav and account settings contract", () => {
   })
 
   it("changes the password through compat auth without invalidating the current session", async () => {
-    const [authRoute, gateway, config] = await Promise.all([
+    const [authRoute, gateway] = await Promise.all([
       sourceOf("src/server/routes/auth.ts"),
-      sourceOf("src/app/(payload)/api/[...slug]/route.ts"),
-      sourceOf("src/payload.config.ts"),
+      sourceOf("src/app/(api)/api/[...slug]/route.ts"),
     ])
 
     expect(gateway).toContain("handleAccountAuthPost")
@@ -109,6 +108,5 @@ describe("console tenant nav and account settings contract", () => {
     expect(authRoute).toContain("ACCOUNT_PASSWORD_ROLE_FORBIDDEN")
     expect(authRoute).toContain("newPassword: z.string().min(8)")
     expect(authRoute).not.toContain("req.payload.login")
-    expect(config).not.toContain("changeOwnPasswordEndpoint")
   })
 })

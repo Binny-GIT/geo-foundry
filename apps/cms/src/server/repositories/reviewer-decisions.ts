@@ -49,8 +49,7 @@ export class ReviewerDecisionRepositoryError extends Error {
 const fail = (code: string): ReviewerDecisionRepositoryError =>
   new ReviewerDecisionRepositoryError(code)
 
-const idempotencyKeyHashOf = (key: string): string =>
-  createHash("sha256").update(key).digest("hex")
+const idempotencyKeyHashOf = (key: string): string => createHash("sha256").update(key).digest("hex")
 
 const endpointOf = (input: ReviewerDecisionInput): string =>
   `/workspaces/reviewer/editions/${input.editionId}/${

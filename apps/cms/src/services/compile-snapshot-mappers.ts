@@ -96,8 +96,7 @@ export type EditionMappingInput = {
 export const mapEdition = (input: EditionMappingInput): CompileEdition | null => {
   const edition = input.edition
   const editionId = idOf(edition["id"])
-  const contentId = idOf(edition["content"])
-  if (editionId === null || contentId === null) {
+  if (editionId === null) {
     return null
   }
   const primaryTopic = textOf(edition["primaryTopic"])
@@ -131,7 +130,7 @@ export const mapEdition = (input: EditionMappingInput): CompileEdition | null =>
     body: Array.isArray(edition["body"]) ? (edition["body"] as unknown[]) : [],
     categories: primaryTopic.length === 0 ? [] : [slugify(primaryTopic)],
     citations: citationsOf(edition["citations"], editionId),
-    contentId,
+    contentId: editionId,
     editionId,
     entities: Array.isArray(edition["entities"]) ? (edition["entities"] as unknown[]) : [],
     media: [],

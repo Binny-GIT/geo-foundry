@@ -1,12 +1,11 @@
-import { getPayload } from "payload"
 import {
   createOutboxQueue,
   dispatchPendingOutbox,
   parseOutboxRedisOptions,
 } from "./outbox/dispatcher"
-import config from "./payload.config"
-import { pollDueRssConnectors } from "./services/connector-polling"
 import { loggerOf } from "./server/observability/logger"
+import { pollDueRssConnectors } from "./server/repositories/connector-polling"
+import { serverRuntime } from "./server/runtime"
 
 const OUTBOX_INTERVAL_MS = 1_000
 const RSS_POLL_TIMER_MS = 60_000
@@ -33,7 +32,7 @@ export const register = async (): Promise<void> => {
   const globalRuntime = globalThis as GlobalWithRuntime
   if (globalRuntime[RUNTIME] !== undefined) return
 
-  const payload = await getPayload({ config })
+  const db = serverRuntime().db
 
   let drainingOutbox = false
   const queue = createOutboxQueue(parseOutboxRedisOptions(process.env))
@@ -41,7 +40,7 @@ export const register = async (): Promise<void> => {
     if (drainingOutbox) return
     drainingOutbox = true
     try {
-      const result = await dispatchPendingOutbox(payload, queue)
+      const result = await dispatchPendingOutbox(db, queue)
       if (result.failed > 0) {
         emit("cms.outbox.dispatch-failed", { examined: result.examined, failed: result.failed })
       }
@@ -59,7 +58,7 @@ export const register = async (): Promise<void> => {
     if (pollingRss) return
     pollingRss = true
     try {
-      const report = await pollDueRssConnectors(payload)
+      const report = await pollDueRssConnectors(db)
       if (report.polled.length > 0) {
         emit("cms.rss.polled", { connectors: report.polled.length })
       }

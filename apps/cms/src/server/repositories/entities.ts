@@ -9,7 +9,7 @@ import { and, asc, desc, eq, inArray, type SQL } from "drizzle-orm"
 import { CMS_ROLE } from "../../access/roles"
 import type { AuthenticatedRequest } from "../auth/session"
 import type { ServerDb } from "../db/client"
-import { contents, sites, sitesTexts } from "../db/entity-schema"
+import { sites } from "../db/entity-schema"
 import { tenants } from "../db/schema"
 
 export type EntityScope =
@@ -90,6 +90,9 @@ const pageOf = <T>(docs: readonly T[], totalDocs: number, input: ListInput): Pay
   }
 }
 
+export const stringList = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []
+
 const effectiveTenant = (scope: EntityScope, requested?: number): number | null => {
   if (scope.kind === "global") return requested ?? null
   if (requested !== undefined && requested !== scope.tenantId) return -1
@@ -98,9 +101,7 @@ const effectiveTenant = (scope: EntityScope, requested?: number): number | null 
 
 const sortOf = (
   input: ListInput,
-  columns: Readonly<
-    Record<"createdAt" | "name" | "updatedAt", Parameters<typeof asc>[0]>
-  >,
+  columns: Readonly<Record<"createdAt" | "name" | "updatedAt", Parameters<typeof asc>[0]>>,
 ): SQL => {
   const descending = input.sort.startsWith("-")
   const name = input.sort.replace("-", "") as "createdAt" | "name" | "updatedAt"
@@ -119,7 +120,10 @@ export class EntitiesRepository {
     return rows[0]?.name ?? null
   }
 
-  async listTenants(scope: EntityScope, input: ListInput): Promise<PayloadPage<Record<string, unknown>>> {
+  async listTenants(
+    scope: EntityScope,
+    input: ListInput,
+  ): Promise<PayloadPage<Record<string, unknown>>> {
     const where =
       scope.kind === "global"
         ? input.ids === undefined
@@ -132,7 +136,13 @@ export class EntitiesRepository {
       .select()
       .from(tenants)
       .where(where)
-      .orderBy(sortOf(input, { createdAt: tenants.createdAt, name: tenants.name, updatedAt: tenants.updatedAt }))
+      .orderBy(
+        sortOf(input, {
+          createdAt: tenants.createdAt,
+          name: tenants.name,
+          updatedAt: tenants.updatedAt,
+        }),
+      )
       .limit(input.limit)
       .offset((input.page - 1) * input.limit)
     const all = await this.db.select({ id: tenants.id }).from(tenants).where(where)
@@ -148,37 +158,10 @@ export class EntitiesRepository {
     )
   }
 
-  async listContents(scope: EntityScope, input: ListInput): Promise<PayloadPage<Record<string, unknown>>> {
-    const tenantId = effectiveTenant(scope, input.tenantId)
-    const predicates = [
-      ...(tenantId === null ? [] : [eq(contents.tenantId, tenantId)]),
-      ...(input.ids === undefined ? [] : [inArray(contents.id, [...input.ids])]),
-    ]
-    const where = predicates.length === 0 ? undefined : and(...predicates)
-    const docs = await this.db
-      .select()
-      .from(contents)
-      .where(where)
-      .orderBy(sortOf(input, { createdAt: contents.createdAt, name: contents.topic, updatedAt: contents.updatedAt }))
-      .limit(input.limit)
-      .offset((input.page - 1) * input.limit)
-    const all = await this.db.select({ id: contents.id }).from(contents).where(where)
-    return pageOf(
-      docs.map((row) => ({
-        createdAt: row.createdAt.toISOString(),
-        createdBy: row.createdBy,
-        id: row.id,
-        intent: row.intent,
-        tenant: row.tenantId,
-        topic: row.topic,
-        updatedAt: row.updatedAt.toISOString(),
-      })),
-      all.length,
-      input,
-    )
-  }
-
-  async listSites(scope: EntityScope, input: ListInput): Promise<PayloadPage<Record<string, unknown>>> {
+  async listSites(
+    scope: EntityScope,
+    input: ListInput,
+  ): Promise<PayloadPage<Record<string, unknown>>> {
     const tenantId = effectiveTenant(scope, input.tenantId)
     const predicates = [
       ...(tenantId === null ? [] : [eq(sites.tenantId, tenantId)]),
@@ -190,44 +173,25 @@ export class EntitiesRepository {
       .select()
       .from(sites)
       .where(where)
-      .orderBy(sortOf(input, { createdAt: sites.createdAt, name: sites.name, updatedAt: sites.updatedAt }))
+      .orderBy(
+        sortOf(input, { createdAt: sites.createdAt, name: sites.name, updatedAt: sites.updatedAt }),
+      )
       .limit(input.limit)
       .offset((input.page - 1) * input.limit)
-    const ids = docs.map((row) => row.id)
-    const textRows =
-      ids.length === 0
-        ? []
-        : await this.db
-            .select()
-            .from(sitesTexts)
-            .where(inArray(sitesTexts.parentId, ids))
-            .orderBy(sitesTexts.order)
-    const texts = new Map<number, Map<string, string[]>>()
-    for (const row of textRows) {
-      if (row.text === null) continue
-      const byPath = texts.get(row.parentId) ?? new Map<string, string[]>()
-      const values = byPath.get(row.path) ?? []
-      values.push(row.text)
-      byPath.set(row.path, values)
-      texts.set(row.parentId, byPath)
-    }
     const all = await this.db.select({ id: sites.id }).from(sites).where(where)
     return pageOf(
       docs.map((row) => {
-        const byPath = texts.get(row.id)
         return {
           contentStrategy: {
-            contentAngles: byPath?.get("contentStrategy.contentAngles") ?? [],
+            contentAngles: stringList(row.contentStrategyContentAngles),
             cta: row.contentStrategyCta,
-            expertise: byPath?.get("contentStrategy.expertise") ?? [],
+            expertise: stringList(row.contentStrategyExpertise),
             language: row.contentStrategyLanguage,
             positioning: row.contentStrategyPositioning,
-            preferredTopics: byPath?.get("contentStrategy.preferredTopics") ?? [],
-            prohibitedExpressions: Array.isArray(row.contentStrategyProhibitedExpressions)
-              ? row.contentStrategyProhibitedExpressions
-              : [],
-            prohibitedTopics: byPath?.get("contentStrategy.prohibitedTopics") ?? [],
-            targetAudience: byPath?.get("contentStrategy.targetAudience") ?? [],
+            preferredTopics: stringList(row.contentStrategyPreferredTopics),
+            prohibitedExpressions: stringList(row.contentStrategyProhibitedExpressions),
+            prohibitedTopics: stringList(row.contentStrategyProhibitedTopics),
+            targetAudience: stringList(row.contentStrategyTargetAudience),
             tone: row.contentStrategyTone,
           },
           createdAt: row.createdAt.toISOString(),

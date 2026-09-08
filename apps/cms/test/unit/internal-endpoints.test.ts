@@ -1,4 +1,3 @@
-import type { PayloadRequest } from "payload"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { SessionClaims } from "../../src/access/session"
@@ -7,6 +6,7 @@ import {
   configureInternalGuards,
   currentInternalEndpointConfig,
   INTERNAL_ERROR_CODE,
+  type InternalRequest,
   internalJsonResponse,
   resetInternalGuardsForTests,
   withInternalGuards,
@@ -16,20 +16,20 @@ type FakeRequestOptions = {
   body?: unknown
   headers?: Record<string, string>
   method?: string
-  routeParams?: Record<string, unknown>
+  routeParams?: Record<string, string>
   user?: unknown
 }
 
-const fakeRequest = (options: FakeRequestOptions = {}): PayloadRequest => {
+const fakeRequest = (options: FakeRequestOptions = {}): InternalRequest => {
   const bodyText = options.body === undefined ? "" : JSON.stringify(options.body)
   return {
     headers: new Headers(options.headers ?? {}),
-    json: async () => (bodyText.length === 0 ? {} : JSON.parse(bodyText)),
     method: options.method ?? "GET",
     routeParams: options.routeParams ?? {},
     text: async () => bodyText,
+    url: "http://local/api/internal/test",
     user: options.user ?? null,
-  } as unknown as PayloadRequest
+  }
 }
 
 const serviceUser = (overrides: Partial<SessionClaims> = {}): SessionClaims =>
@@ -129,7 +129,7 @@ describe("internal endpoint guards", () => {
     const response = await endpoint({
       ...broken,
       text: async () => "not-json{",
-    } as PayloadRequest)
+    })
     expect(response.status).toBe(400)
     expect(await errorCodeOf(response)).toBe(INTERNAL_ERROR_CODE.BODY_INVALID)
   })

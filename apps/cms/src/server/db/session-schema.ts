@@ -1,7 +1,7 @@
 /*
  * 会话端点批次所需的物理表声明（表均已存在，无新迁移）：
  * intake、article-sources、quality-assessments、domains、publication-plans、
- * performance-snapshots、api-usage-dailies、releases、rollback-intents。
+ * api-usage-dailies、releases、rollback-intents。
  */
 
 import {
@@ -92,7 +92,9 @@ export const intakeItems = geo.table(
     mergedIntoId: integer("merged_into_id"),
     suggestedSiteId: integer("suggested_site_id"),
     assignedToId: integer("assigned_to_id"),
-    receivedAt: timestamp("received_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
+    receivedAt: timestamp("received_at", { withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
     adoptedEditionId: integer("adopted_edition_id"),
     failureCode: varchar("failure_code"),
     failureReason: varchar("failure_reason"),
@@ -192,30 +194,6 @@ export const publicationPlans = geo.table(
     uniqueIndex("publication_plans_plan_id_idx").on(table.planId),
     index("publication_plans_edition_idx").on(table.editionId),
     index("publication_plans_status_idx").on(table.status),
-  ],
-)
-
-export const performanceSnapshots = geo.table(
-  "performance_snapshots",
-  {
-    id: serial("id").primaryKey(),
-    importHash: varchar("import_hash").notNull(),
-    tenantId: integer("tenant_id").notNull(),
-    siteId: integer("site_id").notNull(),
-    editionId: integer("edition_id"),
-    url: varchar("url").notNull(),
-    source: varchar("source").notNull(),
-    observedAt: timestamp("observed_at", { withTimezone: true, precision: 3 }).notNull(),
-    visits: numeric("visits"),
-    engagement: numeric("engagement"),
-    conversions: numeric("conversions"),
-    city: varchar("city"),
-    ...timestamps,
-  },
-  (table) => [
-    uniqueIndex("performance_snapshots_import_hash_idx").on(table.importHash),
-    index("performance_snapshots_site_idx").on(table.siteId),
-    index("performance_snapshots_edition_idx").on(table.editionId),
   ],
 )
 

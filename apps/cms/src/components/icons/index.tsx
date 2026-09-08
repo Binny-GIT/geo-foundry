@@ -367,7 +367,6 @@ export const BuildingIcon = ({ size = 20, strokeWidth = 1.5 }: IconProps) => (
  */
 export const NAV_ICON_BY_SLUG: Readonly<Record<string, ComponentType<IconProps>>> = {
   "content-editions": CopyIcon,
-  contents: PencilIcon,
   domains: GlobeIcon,
   media: ImageIcon,
   operations: LayersIcon,
@@ -387,7 +386,6 @@ export const NAV_ICON_BY_SLUG: Readonly<Record<string, ComponentType<IconProps>>
   // Release and analytics collections.
   "api-usage-dailies": ChartBarIcon,
   "outbox-events": SendIcon,
-  "performance-snapshots": ChartLineIcon,
   "publication-plans": CalendarClockIcon,
   // Internal bookkeeping tables — hidden from most roles, one glyph for all.
   "edition-draft-restore-idempotency": KeyRoundIcon,

@@ -7,15 +7,10 @@
 
 import { CMS_ACTION, CMS_RESOURCE, decideAccess, type CmsResource } from "../../access/policy"
 import { authenticateRequest } from "../auth/session"
-import {
-  EntitiesRepository,
-  entityScopeOf,
-  type ListInput,
-} from "../repositories/entities"
+import { EntitiesRepository, entityScopeOf, type ListInput } from "../repositories/entities"
 import { serverRuntime } from "../runtime"
 
 const SUPPORTED = {
-  contents: CMS_RESOURCE.CONTENTS,
   sites: CMS_RESOURCE.SITES,
   tenants: CMS_RESOURCE.TENANTS,
 } as const
@@ -108,8 +103,6 @@ export const handleEntityListGet = async (
 
   const repository = new EntitiesRepository(serverRuntime().db)
   switch (collection) {
-    case "contents":
-      return json(200, await repository.listContents(scope, input))
     case "sites":
       return json(200, await repository.listSites(scope, input))
     case "tenants":

@@ -1,20 +1,18 @@
 /*
  * Markdown-first 文章版本仓储：历史读取与恢复完全绕过 Payload versions API。
- * 旧版本 Markdown 已经数据回填，因此这里只读取 version root + topics/sites 附表。
+ * 旧版本 Markdown 已经数据回填，因此这里只读取版本行及其数组列。
  */
 
 import { randomUUID } from "node:crypto"
 
-import { and, desc, eq, inArray, sql } from "drizzle-orm"
+import { and, desc, eq, sql } from "drizzle-orm"
 
 import { markdownToBlocks } from "../../editor/block-markdown"
 import type { ServerDb } from "../db/client"
 import {
   contentEditions,
   editionDraftRestoreIdempotency,
-  editionVersionRels,
   editionVersions,
-  editionVersionTexts,
 } from "../db/edition-schema"
 import { outboxEvents } from "../db/ledger-schema"
 import type { EntityScope } from "./entities"
@@ -77,19 +75,6 @@ export class EditionVersionRepositoryError extends Error {
 const tenantOfScope = (scope: EntityScope): number | null =>
   scope.kind === "global" ? null : scope.tenantId
 
-const stringsByParent = (
-  rows: readonly Readonly<{ parentId: number; text: string | null }>[],
-): Map<number, string[]> => {
-  const grouped = new Map<number, string[]>()
-  for (const row of rows) {
-    if (row.text === null) continue
-    const values = grouped.get(row.parentId) ?? []
-    values.push(row.text)
-    grouped.set(row.parentId, values)
-  }
-  return grouped
-}
-
 export const editionHistoryItemOf = (
   row: typeof editionVersions.$inferSelect,
   secondaryTopics: readonly string[],
@@ -137,7 +122,11 @@ const responseOf = (value: unknown): RestoreVersionResponse => {
 export class EditionVersionsRepository {
   constructor(private readonly db: ServerDb) {}
 
-  async list(scope: EntityScope, editionId: number, limit = 20): Promise<readonly EditionHistoryItem[]> {
+  async list(
+    scope: EntityScope,
+    editionId: number,
+    limit = 20,
+  ): Promise<readonly EditionHistoryItem[]> {
     const tenantId = tenantOfScope(scope)
     const roots = await this.db
       .select()
@@ -151,23 +140,13 @@ export class EditionVersionsRepository {
       .orderBy(desc(editionVersions.createdAt))
       .limit(limit)
     if (roots.length === 0) return []
-    const ids = roots.map((row) => row.id)
-    const topics = stringsByParent(
-      await this.db
-        .select({ parentId: editionVersionTexts.parentId, text: editionVersionTexts.text })
-        .from(editionVersionTexts)
-        .where(
-          and(
-            inArray(editionVersionTexts.parentId, ids),
-            eq(editionVersionTexts.path, "version.secondaryTopics"),
-          ),
-        )
-        .orderBy(editionVersionTexts.order),
-    )
-    return roots.map((row) => editionHistoryItemOf(row, topics.get(row.id) ?? []))
+    return roots.map((row) => editionHistoryItemOf(row, row.secondaryTopics))
   }
 
-  async restore(scope: EntityScope, input: RestoreVersionInput): Promise<{
+  async restore(
+    scope: EntityScope,
+    input: RestoreVersionInput,
+  ): Promise<{
     created: boolean
     response: RestoreVersionResponse
   }> {
@@ -244,34 +223,8 @@ export class EditionVersionsRepository {
         throw new EditionVersionRepositoryError("EDITION_DRAFT_RESTORE_VERSION_NOT_FOUND", 404)
       }
 
-      const [sourceTopicsRows, currentSitesRows] = await Promise.all([
-        tx
-          .select({ text: editionVersionTexts.text })
-          .from(editionVersionTexts)
-          .where(
-            and(
-              eq(editionVersionTexts.parentId, source.id),
-              eq(editionVersionTexts.path, "version.secondaryTopics"),
-            ),
-          )
-          .orderBy(editionVersionTexts.order),
-        tx
-          .select({ siteId: editionVersionRels.siteId })
-          .from(editionVersionRels)
-          .where(
-            and(
-              eq(editionVersionRels.parentId, current.id),
-              eq(editionVersionRels.path, "version.sites"),
-            ),
-          )
-          .orderBy(editionVersionRels.order),
-      ])
-      const sourceTopics = sourceTopicsRows
-        .map((row) => row.text)
-        .filter((value): value is string => value !== null)
-      const currentSites = currentSitesRows
-        .map((row) => row.siteId)
-        .filter((value): value is number => value !== null)
+      const sourceTopics = source.secondaryTopics
+      const currentSites = current.sites
 
       const now = new Date()
       const audit = [
@@ -287,7 +240,10 @@ export class EditionVersionsRepository {
           to: "draft",
         },
       ]
-      await tx.update(editionVersions).set({ latest: false }).where(eq(editionVersions.id, current.id))
+      await tx
+        .update(editionVersions)
+        .set({ latest: false })
+        .where(eq(editionVersions.id, current.id))
       const newRows = await tx
         .insert(editionVersions)
         .values({
@@ -296,7 +252,6 @@ export class EditionVersionsRepository {
           bodyMarkdown: source.bodyMarkdown,
           citations: source.citations,
           compiledRelease: null,
-          contentId: current.contentId,
           contentModifiedAt: now,
           createdAt: now,
           creationOrigin: source.creationOrigin,
@@ -308,7 +263,9 @@ export class EditionVersionsRepository {
           parentId: current.parentId,
           primaryTopic: source.primaryTopic,
           priority: current.priority,
+          secondaryTopics: sourceTopics,
           siteId: current.siteId,
+          sites: currentSites,
           status: current.status,
           summary: source.summary,
           tenantId: current.tenantId,
@@ -323,26 +280,6 @@ export class EditionVersionsRepository {
       const newVersionId = newRows[0]?.id
       if (newVersionId === undefined) {
         throw new EditionVersionRepositoryError("EDITION_DRAFT_WRITE_FAILED", 500)
-      }
-      if (sourceTopics.length > 0) {
-        await tx.insert(editionVersionTexts).values(
-          sourceTopics.map((text, index) => ({
-            order: index + 1,
-            parentId: newVersionId,
-            path: "version.secondaryTopics",
-            text,
-          })),
-        )
-      }
-      if (currentSites.length > 0) {
-        await tx.insert(editionVersionRels).values(
-          currentSites.map((siteId, index) => ({
-            order: index + 1,
-            parentId: newVersionId,
-            path: "version.sites",
-            siteId,
-          })),
-        )
       }
       const response: RestoreVersionResponse = {
         editionId: input.editionId,

@@ -58,12 +58,16 @@ describe("Payload-compatible entity list query", () => {
   it("parses the current Console query shapes", () => {
     expect(
       parseEntityListQuery(
-        new URL("https://example.test/api/sites?depth=0&limit=100&sort=name&where[tenant][equals]=413"),
+        new URL(
+          "https://example.test/api/sites?depth=0&limit=100&sort=name&where[tenant][equals]=413",
+        ),
       ),
     ).toEqual({ limit: 100, page: 1, sort: "name", tenantId: 413 })
     expect(
       parseEntityListQuery(
-        new URL("https://example.test/api/contents?limit=20&page=2&sort=-updatedAt&where[id][in]=1,2"),
+        new URL(
+          "https://example.test/api/contents?limit=20&page=2&sort=-updatedAt&where[id][in]=1,2",
+        ),
       ),
     ).toEqual({ ids: [1, 2], limit: 20, page: 2, sort: "-updatedAt" })
   })

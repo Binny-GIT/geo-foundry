@@ -85,7 +85,7 @@ const handleRename = async (request: Request, slug: readonly string[]): Promise<
         siteRows.map((candidate) =>
           toUrlRecordRow({
             canonicalUrl: candidate.canonicalUrl,
-            content: candidate.contentId,
+            content: candidate.editionId,
             id: candidate.id,
             locale: candidate.locale,
             pathname: candidate.pathname,
@@ -102,8 +102,8 @@ const handleRename = async (request: Request, slug: readonly string[]): Promise<
       const targetUrlId = parseUrlId(randomUUID())
       const siteId = parseSiteId(String(row.siteId))
       const rowTenantId = parseTenantId(String(row.tenantId))
-      const contentId = parseContentId(String(row.contentId))
-      if (!sourceUrlId.ok || !targetUrlId.ok || !siteId.ok || !rowTenantId.ok || !contentId.ok) {
+      const editionId = parseContentId(String(row.editionId))
+      if (!sourceUrlId.ok || !targetUrlId.ok || !siteId.ok || !rowTenantId.ok || !editionId.ok) {
         throw new UrlOpsError("URL_REGISTRY_INPUT_INVALID")
       }
       const result = renameUrl(registry, {
@@ -124,7 +124,7 @@ const handleRename = async (request: Request, slug: readonly string[]): Promise<
         .insert(urlRecords)
         .values({
           canonicalUrl: result.value.active.canonicalUrl.value,
-          contentId: row.contentId,
+          editionId: row.editionId,
           locale: result.value.active.locale.value,
           pathname: result.value.active.pathname.value,
           revision: "0",

@@ -19,7 +19,6 @@ const patchSchema = z
     angle: z.string().max(2_000).optional(),
     bodyMarkdown: z.string().max(2_000_000).optional(),
     citations: z.unknown().optional(),
-    content: z.number().int().positive().optional(),
     dueAt: z.string().datetime().nullable().optional(),
     editorialStatus: z.enum(["unassigned", "assigned", "in-progress", "blocked"]).optional(),
     entities: z.unknown().optional(),
@@ -73,8 +72,16 @@ const parseWriteBody = async (request: Request): Promise<EditionDraftPatch | Res
 const writeContext = async (request: Request, action: "create" | "update") => {
   const auth = await authenticateRequest(request.headers)
   if (auth === null) return { response: json(401, { errors: [{ message: "Unauthorized" }] }) }
-  if (!decideAccess(auth.claims, CMS_RESOURCE.EDITIONS, action === "create" ? CMS_ACTION.CREATE : CMS_ACTION.UPDATE)) {
-    return { response: json(403, { errors: [{ message: "You are not allowed to perform this action." }] }) }
+  if (
+    !decideAccess(
+      auth.claims,
+      CMS_RESOURCE.EDITIONS,
+      action === "create" ? CMS_ACTION.CREATE : CMS_ACTION.UPDATE,
+    )
+  ) {
+    return {
+      response: json(403, { errors: [{ message: "You are not allowed to perform this action." }] }),
+    }
   }
   const scope = entityScopeOf(auth)
   return scope === null

@@ -8,10 +8,7 @@ import { randomBytes, randomUUID } from "node:crypto"
 
 import { z } from "zod"
 
-import {
-  generatePasswordCredentialsCompat,
-  verifyPasswordCompat,
-} from "../auth/compat"
+import { generatePasswordCredentialsCompat, verifyPasswordCompat } from "../auth/compat"
 import { authenticateRequest } from "../auth/session"
 import { UsersRepository, type UserAuthRecord } from "../repositories/users"
 import { serverRuntime } from "../runtime"
@@ -31,9 +28,7 @@ const passwordChangeSchema = z
   })
   .strict()
 
-const forgotPasswordSchema = z
-  .object({ email: z.string().trim().email().max(254) })
-  .passthrough()
+const forgotPasswordSchema = z.object({ email: z.string().trim().email().max(254) }).passthrough()
 
 const resetPasswordSchema = z
   .object({
@@ -324,8 +319,7 @@ export const compatAuthRouteOf = (
 export const handleUsersAuthGet = async (
   request: Request,
   slug: readonly string[] | undefined,
-): Promise<Response | null> =>
-  compatAuthRouteOf("GET", slug) === "me" ? handleMe(request) : null
+): Promise<Response | null> => (compatAuthRouteOf("GET", slug) === "me" ? handleMe(request) : null)
 
 export const handleUsersAuthPost = async (
   request: Request,
@@ -351,8 +345,6 @@ export const handleAccountAuthPost = async (
   request: Request,
   slug: readonly string[] | undefined,
 ): Promise<Response | null> =>
-  compatAuthRouteOf("POST", slug) === "account-password"
-    ? handlePasswordChange(request)
-    : null
+  compatAuthRouteOf("POST", slug) === "account-password" ? handlePasswordChange(request) : null
 
 export const authCookie = { cookieOf, expiredCookie }

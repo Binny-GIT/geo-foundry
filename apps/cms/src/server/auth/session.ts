@@ -40,7 +40,9 @@ const authenticatedOf = async (
   return { claims, session, siteIds: await repo.siteIds(user.id), user }
 }
 
-export const authenticateRequest = async (headers: Headers): Promise<AuthenticatedRequest | null> => {
+export const authenticateRequest = async (
+  headers: Headers,
+): Promise<AuthenticatedRequest | null> => {
   const { configSecret, db } = serverRuntime()
   const repo = new UsersRepository(db)
 

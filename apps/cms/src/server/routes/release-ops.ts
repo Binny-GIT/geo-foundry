@@ -9,10 +9,7 @@ import { createHash, randomUUID } from "node:crypto"
 import { eq, sql } from "drizzle-orm"
 import { z } from "zod"
 
-import {
-  operationRequestHashOf,
-  operationUniqueKeyOf,
-} from "../../services/operations-ledger"
+import { operationRequestHashOf, operationUniqueKeyOf } from "../../services/operations-ledger"
 import { authenticateRequest } from "../auth/session"
 import { operations, idempotencyRecords, outboxEvents } from "../db/ledger-schema"
 import { sites } from "../db/entity-schema"
@@ -239,7 +236,11 @@ export const handleEvaluationPost = async (
   }
   const idempotencyKey = request.headers.get("idempotency-key")
   if (idempotencyKey === null || !/^[A-Za-z0-9._-]{8,128}$/.test(idempotencyKey)) {
-    return json(400, { error: { code: "EDITION_EVALUATION_IDEMPOTENCY_KEY_INVALID" } }, resolvedRequestId)
+    return json(
+      400,
+      { error: { code: "EDITION_EVALUATION_IDEMPOTENCY_KEY_INVALID" } },
+      resolvedRequestId,
+    )
   }
   const auth = await authenticateRequest(request.headers)
   if (auth === null) {
@@ -247,7 +248,7 @@ export const handleEvaluationPost = async (
   }
   const role = auth.claims.role
   const scope = entityScopeOf(auth)
-  if (scope === null || role !== "editor" && role !== "super-admin") {
+  if (scope === null || (role !== "editor" && role !== "super-admin")) {
     return json(403, { error: { code: "EDITION_WORKFLOW_EDITOR_REQUIRED" } }, resolvedRequestId)
   }
   let raw: unknown
@@ -260,8 +261,7 @@ export const handleEvaluationPost = async (
   if (!parsed.success) {
     return json(400, { error: { code: "EDITION_EVALUATION_BODY_INVALID" } }, resolvedRequestId)
   }
-  const thresholds =
-    parsed.data.thresholds === undefined ? undefined : parsed.data.thresholds
+  const thresholds = parsed.data.thresholds === undefined ? undefined : parsed.data.thresholds
   const db = serverRuntime().db
   const { EditionsRepository } = await import("../repositories/editions")
   const document = await new EditionsRepository(db).findDraft(scope, editionId)
@@ -269,8 +269,16 @@ export const handleEvaluationPost = async (
     return json(404, { error: { code: "EDITION_EVALUATION_NOT_FOUND" } }, resolvedRequestId)
   }
   const workflowStatus = String(document["workflowStatus"] ?? "")
-  if (workflowStatus !== "draft" && workflowStatus !== "generating" && workflowStatus !== "review") {
-    return json(409, { error: { code: "EDITION_WORKFLOW_EVALUATION_NOT_ALLOWED" } }, resolvedRequestId)
+  if (
+    workflowStatus !== "draft" &&
+    workflowStatus !== "generating" &&
+    workflowStatus !== "review"
+  ) {
+    return json(
+      409,
+      { error: { code: "EDITION_WORKFLOW_EVALUATION_NOT_ALLOWED" } },
+      resolvedRequestId,
+    )
   }
   const tenantId = scope.kind === "global" ? Number(document["tenant"] ?? -1) : scope.tenantId
   const siteIdRaw = document["site"]

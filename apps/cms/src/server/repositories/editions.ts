@@ -3,20 +3,15 @@
  *
  * Payload drafts 的物理真相不是 content_editions 根表，而是
  * _content_editions_v.latest=true。正文只读取 version_body_markdown 并实时派生
- * body，secondaryTopics/sites 从版本附表聚合；不读取 20+ 张 version block 表。
+ * body，secondaryTopics/sites 直接读取版本数组列；不读取 20+ 张 version block 表。
  */
 
-import { and, asc, desc, eq, ilike, inArray, ne, sql, type SQL } from "drizzle-orm"
+import { and, asc, desc, eq, ilike, inArray, sql, type SQL } from "drizzle-orm"
 
 import { markdownToBlocks } from "../../editor/block-markdown"
 import type { ServerDb } from "../db/client"
-import {
-  contentEditions,
-  editionVersionRels,
-  editionVersions,
-  editionVersionTexts,
-} from "../db/edition-schema"
-import { contents, sites } from "../db/entity-schema"
+import { contentEditions, editionVersions } from "../db/edition-schema"
+import { sites } from "../db/entity-schema"
 import { users } from "../db/schema"
 import type { EntityScope, PayloadPage } from "./entities"
 
@@ -38,7 +33,6 @@ export type EditionDraftPatch = Readonly<{
   angle?: string
   bodyMarkdown?: string
   citations?: unknown
-  content?: number
   dueAt?: string | null
   editorialStatus?: "assigned" | "blocked" | "in-progress" | "unassigned"
   entities?: unknown
@@ -66,7 +60,11 @@ export class EditionWriteError extends Error {
 
 const asDate = (value: Date | null, fallback: Date): string => (value ?? fallback).toISOString()
 
-const pageOf = <T>(docs: readonly T[], totalDocs: number, input: EditionListInput): PayloadPage<T> => {
+const pageOf = <T>(
+  docs: readonly T[],
+  totalDocs: number,
+  input: EditionListInput,
+): PayloadPage<T> => {
   const totalPages = Math.max(1, Math.ceil(totalDocs / input.limit))
   return {
     docs,
@@ -114,38 +112,7 @@ const rootPredicates = (scope: EntityScope, input: EditionListInput): SQL[] => {
   ]
 }
 
-const groupStrings = (
-  rows: readonly Readonly<{ parentId: number; text: string | null }>[],
-): Map<number, string[]> => {
-  const grouped = new Map<number, string[]>()
-  for (const row of rows) {
-    if (row.text === null) continue
-    const values = grouped.get(row.parentId) ?? []
-    values.push(row.text)
-    grouped.set(row.parentId, values)
-  }
-  return grouped
-}
-
-const groupIds = (
-  rows: readonly Readonly<{ parentId: number; siteId: number | null }>[],
-): Map<number, number[]> => {
-  const grouped = new Map<number, number[]>()
-  for (const row of rows) {
-    if (row.siteId === null) continue
-    const values = grouped.get(row.parentId) ?? []
-    values.push(row.siteId)
-    grouped.set(row.parentId, values)
-  }
-  return grouped
-}
-
-const dtoOf = (
-  editionId: number,
-  row: EditionRoot,
-  secondaryTopics: readonly string[],
-  sites: readonly number[],
-): Record<string, unknown> => {
+const dtoOf = (editionId: number, row: EditionRoot): Record<string, unknown> => {
   const markdown = row.bodyMarkdown ?? ""
   return {
     _status: row.status ?? "draft",
@@ -155,7 +122,6 @@ const dtoOf = (
     bodyMarkdown: markdown,
     citations: row.citations ?? null,
     compiledRelease: row.compiledRelease ?? null,
-    content: row.contentId,
     contentModifiedAt: asDate(row.contentModifiedAt, row.updatedAt),
     createdAt: asDate(row.versionCreatedAt, row.createdAt),
     creationOrigin: row.creationOrigin ?? "human",
@@ -166,9 +132,9 @@ const dtoOf = (
     owner: row.ownerId,
     primaryTopic: row.primaryTopic ?? "",
     priority: row.priority ?? "normal",
-    secondaryTopics: [...secondaryTopics],
+    secondaryTopics: [...row.secondaryTopics],
     site: row.siteId,
-    sites: [...sites],
+    sites: [...row.sites],
     summary: row.summary ?? "",
     tenant: row.tenantId,
     title: row.title ?? "",
@@ -197,47 +163,16 @@ export class EditionsRepository {
       .orderBy(sortOf(input))
       .limit(input.limit)
       .offset((input.page - 1) * input.limit)
-    const versionIds = roots.map((row) => row.version.id)
-    const [topicRows, siteRows, countRows] = await Promise.all([
-      versionIds.length === 0
-        ? []
-        : this.db
-            .select({ parentId: editionVersionTexts.parentId, text: editionVersionTexts.text })
-            .from(editionVersionTexts)
-            .where(
-              and(
-                inArray(editionVersionTexts.parentId, versionIds),
-                eq(editionVersionTexts.path, "version.secondaryTopics"),
-              ),
-            )
-            .orderBy(editionVersionTexts.order),
-      versionIds.length === 0
-        ? []
-        : this.db
-            .select({ parentId: editionVersionRels.parentId, siteId: editionVersionRels.siteId })
-            .from(editionVersionRels)
-            .where(
-              and(
-                inArray(editionVersionRels.parentId, versionIds),
-                eq(editionVersionRels.path, "version.sites"),
-              ),
-            )
-            .orderBy(editionVersionRels.order),
-      this.db
-        .select({ editionId: contentEditions.id })
-        .from(contentEditions)
-        .innerJoin(
-          editionVersions,
-          and(eq(editionVersions.parentId, contentEditions.id), eq(editionVersions.latest, true)),
-        )
-        .where(where),
-    ])
-    const topics = groupStrings(topicRows)
-    const siteIds = groupIds(siteRows)
+    const countRows = await this.db
+      .select({ editionId: contentEditions.id })
+      .from(contentEditions)
+      .innerJoin(
+        editionVersions,
+        and(eq(editionVersions.parentId, contentEditions.id), eq(editionVersions.latest, true)),
+      )
+      .where(where)
     return pageOf(
-      roots.map(({ editionId, version }) =>
-        dtoOf(editionId, version, topics.get(version.id) ?? [], siteIds.get(version.id) ?? []),
-      ),
+      roots.map(({ editionId, version }) => dtoOf(editionId, version)),
       countRows.length,
       input,
     )
@@ -291,7 +226,8 @@ export class EditionsRepository {
         throw new EditionWriteError("CMS_EDITION_TENANT_MISMATCH", 400)
       }
       const tenantId = site.tenantId
-      const assignedSites = patch.sites ?? []
+      const assignedSites = [...(patch.sites ?? [])]
+      const secondaryTopics = [...(patch.secondaryTopics ?? [])]
       if (assignedSites.length > 0) {
         const assignedRows = await tx
           .select({ id: sites.id, tenantId: sites.tenantId })
@@ -316,46 +252,6 @@ export class EditionsRepository {
         }
       }
 
-      let contentId = patch.content ?? null
-      if (contentId === null) {
-        const createdContent = await tx
-          .insert(contents)
-          .values({
-            createdBy: "human",
-            intent: patch.angle?.trim() || patch.summary?.trim() || "draft",
-            tenantId,
-            topic: patch.title?.trim() || "未命名文章",
-          })
-          .returning({ id: contents.id })
-        contentId = createdContent[0]?.id ?? null
-      } else {
-        const contentRows = await tx
-          .select({ tenantId: contents.tenantId })
-          .from(contents)
-          .where(eq(contents.id, contentId))
-          .limit(1)
-        if (contentRows[0]?.tenantId !== tenantId) {
-          throw new EditionWriteError("CMS_EDITION_TENANT_MISMATCH", 400)
-        }
-        await tx.execute(sql`SELECT pg_advisory_xact_lock(${contentId}, ${requestedSiteId})`)
-        const duplicate = await tx
-          .select({ id: contentEditions.id })
-          .from(contentEditions)
-          .innerJoin(
-            editionVersions,
-            and(eq(editionVersions.parentId, contentEditions.id), eq(editionVersions.latest, true)),
-          )
-          .where(
-            and(
-              eq(editionVersions.contentId, contentId),
-              eq(editionVersions.siteId, requestedSiteId),
-            ),
-          )
-          .limit(1)
-        if (duplicate.length > 0) throw new EditionWriteError("CMS_EDITION_SITE_DUPLICATE", 409)
-      }
-      if (contentId === null) throw new EditionWriteError("EDITION_CONTENT_CREATE_FAILED", 500)
-
       const now = new Date()
       const markdown = patch.bodyMarkdown ?? ""
       const rootRows = await tx
@@ -366,7 +262,6 @@ export class EditionsRepository {
           bodyMarkdown: markdown,
           citations: patch.citations ?? [],
           compiledRelease: null,
-          contentId,
           contentModifiedAt: now,
           creationOrigin: "human",
           dueAt: patch.dueAt === undefined || patch.dueAt === null ? null : new Date(patch.dueAt),
@@ -375,7 +270,9 @@ export class EditionsRepository {
           ownerId,
           primaryTopic: patch.primaryTopic ?? "",
           priority: patch.priority ?? "normal",
+          secondaryTopics,
           siteId: requestedSiteId,
+          sites: assignedSites,
           status: "draft",
           summary: patch.summary ?? "",
           tenantId,
@@ -395,7 +292,6 @@ export class EditionsRepository {
           bodyMarkdown: markdown,
           citations: patch.citations ?? [],
           compiledRelease: null,
-          contentId,
           contentModifiedAt: now,
           creationOrigin: "human",
           dueAt: patch.dueAt === undefined || patch.dueAt === null ? null : new Date(patch.dueAt),
@@ -406,7 +302,9 @@ export class EditionsRepository {
           parentId: editionId,
           primaryTopic: patch.primaryTopic ?? "",
           priority: patch.priority ?? "normal",
+          secondaryTopics,
           siteId: requestedSiteId,
+          sites: assignedSites,
           status: "draft",
           summary: patch.summary ?? "",
           tenantId,
@@ -419,27 +317,6 @@ export class EditionsRepository {
         .returning({ id: editionVersions.id })
       const versionId = versionRows[0]?.id
       if (versionId === undefined) throw new EditionWriteError("EDITION_DRAFT_WRITE_FAILED", 500)
-      const secondaryTopics = patch.secondaryTopics ?? []
-      if (secondaryTopics.length > 0) {
-        await tx.insert(editionVersionTexts).values(
-          secondaryTopics.map((text, index) => ({
-            order: index + 1,
-            parentId: versionId,
-            path: "version.secondaryTopics",
-            text,
-          })),
-        )
-      }
-      if (assignedSites.length > 0) {
-        await tx.insert(editionVersionRels).values(
-          assignedSites.map((assignedSiteId, index) => ({
-            order: index + 1,
-            parentId: versionId,
-            path: "version.sites",
-            siteId: assignedSiteId,
-          })),
-        )
-      }
     })
     if (editionId === null) throw new EditionWriteError("EDITION_DRAFT_WRITE_FAILED", 500)
     const created = await this.findDraft(scope, editionId)
@@ -480,56 +357,34 @@ export class EditionsRepository {
       }
 
       const tenantId = patch.tenant ?? current.tenantId
-      const contentId = patch.content ?? current.contentId
       const siteId = patch.site === undefined ? current.siteId : patch.site
       const ownerId = patch.owner === undefined ? current.ownerId : patch.owner
-      if (tenantId === null || contentId === null || siteId === null) {
+      if (tenantId === null || siteId === null) {
         throw new EditionWriteError("EDITION_RELATION_REQUIRED", 400)
       }
       if (scopedTenant !== null && tenantId !== scopedTenant) {
         throw new EditionWriteError("TENANT_SCOPE_DENIED", 403)
       }
 
-      const [contentRows, siteRows, ownerRows] = await Promise.all([
-        tx.select({ tenantId: contents.tenantId }).from(contents).where(eq(contents.id, contentId)).limit(1),
+      const [siteRows, ownerRows] = await Promise.all([
         tx.select({ tenantId: sites.tenantId }).from(sites).where(eq(sites.id, siteId)).limit(1),
         ownerId === null
           ? Promise.resolve([])
-          : tx.select({ tenantId: users.tenantId }).from(users).where(eq(users.id, ownerId)).limit(1),
+          : tx
+              .select({ tenantId: users.tenantId })
+              .from(users)
+              .where(eq(users.id, ownerId))
+              .limit(1),
       ])
-      if (contentRows[0]?.tenantId !== tenantId || siteRows[0]?.tenantId !== tenantId) {
+      if (siteRows[0]?.tenantId !== tenantId) {
         throw new EditionWriteError("CMS_EDITION_TENANT_MISMATCH", 400)
       }
       if (ownerId !== null && ownerRows[0]?.tenantId !== tenantId) {
         throw new EditionWriteError("CMS_EDITION_OWNER_TENANT_MISMATCH", 400)
       }
 
-      const currentTopics = await tx
-        .select({ text: editionVersionTexts.text })
-        .from(editionVersionTexts)
-        .where(
-          and(
-            eq(editionVersionTexts.parentId, current.id),
-            eq(editionVersionTexts.path, "version.secondaryTopics"),
-          ),
-        )
-        .orderBy(editionVersionTexts.order)
-      const currentSites = await tx
-        .select({ siteId: editionVersionRels.siteId })
-        .from(editionVersionRels)
-        .where(
-          and(
-            eq(editionVersionRels.parentId, current.id),
-            eq(editionVersionRels.path, "version.sites"),
-          ),
-        )
-        .orderBy(editionVersionRels.order)
-      const secondaryTopics =
-        patch.secondaryTopics ??
-        currentTopics.map((row) => row.text).filter((value): value is string => value !== null)
-      const assignedSites =
-        patch.sites ??
-        currentSites.map((row) => row.siteId).filter((value): value is number => value !== null)
+      const secondaryTopics = [...(patch.secondaryTopics ?? current.secondaryTopics)]
+      const assignedSites = [...(patch.sites ?? current.sites)]
       if (assignedSites.length > 0) {
         const assignedRows = await tx
           .select({ id: sites.id, tenantId: sites.tenantId })
@@ -543,23 +398,6 @@ export class EditionsRepository {
         }
       }
 
-      const duplicate = await tx
-        .select({ id: contentEditions.id })
-        .from(contentEditions)
-        .innerJoin(
-          editionVersions,
-          and(eq(editionVersions.parentId, contentEditions.id), eq(editionVersions.latest, true)),
-        )
-        .where(
-          and(
-            ne(contentEditions.id, editionId),
-            eq(editionVersions.contentId, contentId),
-            eq(editionVersions.siteId, siteId),
-          ),
-        )
-        .limit(1)
-      if (duplicate.length > 0) throw new EditionWriteError("CMS_EDITION_SITE_DUPLICATE", 409)
-
       const now = new Date()
       const same = (left: unknown, right: unknown): boolean =>
         JSON.stringify(left) === JSON.stringify(right)
@@ -569,14 +407,14 @@ export class EditionsRepository {
         (patch.entities !== undefined && !same(patch.entities, current.entities)) ||
         (patch.primaryTopic !== undefined && patch.primaryTopic !== current.primaryTopic) ||
         (patch.secondaryTopics !== undefined &&
-          !same(
-            patch.secondaryTopics,
-            currentTopics.map((row) => row.text).filter((value): value is string => value !== null),
-          )) ||
+          !same(patch.secondaryTopics, current.secondaryTopics)) ||
         (patch.summary !== undefined && patch.summary !== current.summary) ||
         (patch.title !== undefined && patch.title !== current.title)
 
-      await tx.update(editionVersions).set({ latest: false }).where(eq(editionVersions.id, current.id))
+      await tx
+        .update(editionVersions)
+        .set({ latest: false })
+        .where(eq(editionVersions.id, current.id))
       const inserted = await tx
         .insert(editionVersions)
         .values({
@@ -585,10 +423,14 @@ export class EditionsRepository {
           bodyMarkdown: patch.bodyMarkdown ?? current.bodyMarkdown,
           citations: patch.citations === undefined ? current.citations : patch.citations,
           compiledRelease: current.compiledRelease,
-          contentId,
           contentModifiedAt: contentChanged ? now : current.contentModifiedAt,
           creationOrigin: current.creationOrigin,
-          dueAt: patch.dueAt === undefined ? current.dueAt : patch.dueAt === null ? null : new Date(patch.dueAt),
+          dueAt:
+            patch.dueAt === undefined
+              ? current.dueAt
+              : patch.dueAt === null
+                ? null
+                : new Date(patch.dueAt),
           editorialStatus: patch.editorialStatus ?? current.editorialStatus,
           entities: patch.entities === undefined ? current.entities : patch.entities,
           latest: true,
@@ -596,7 +438,9 @@ export class EditionsRepository {
           parentId: editionId,
           primaryTopic: patch.primaryTopic ?? current.primaryTopic,
           priority: patch.priority ?? current.priority,
+          secondaryTopics,
           siteId,
+          sites: assignedSites,
           status: current.status,
           summary: patch.summary ?? current.summary,
           tenantId,
@@ -609,27 +453,6 @@ export class EditionsRepository {
         .returning({ id: editionVersions.id })
       const versionId = inserted[0]?.id
       if (versionId === undefined) throw new EditionWriteError("EDITION_DRAFT_WRITE_FAILED", 500)
-
-      if (secondaryTopics.length > 0) {
-        await tx.insert(editionVersionTexts).values(
-          secondaryTopics.map((text, index) => ({
-            order: index + 1,
-            parentId: versionId,
-            path: "version.secondaryTopics",
-            text,
-          })),
-        )
-      }
-      if (assignedSites.length > 0) {
-        await tx.insert(editionVersionRels).values(
-          assignedSites.map((assignedSiteId, index) => ({
-            order: index + 1,
-            parentId: versionId,
-            path: "version.sites",
-            siteId: assignedSiteId,
-          })),
-        )
-      }
     })
 
     const saved = await this.findDraft(scope, editionId)

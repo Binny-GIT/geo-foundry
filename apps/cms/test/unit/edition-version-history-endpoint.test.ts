@@ -16,19 +16,18 @@ describe("edition version Drizzle routes", () => {
     expect(editionVersionRouteOf("POST", ["workspaces", "editions", "101", "restore-draft"])).toBe(
       "restore",
     )
-    expect(editionVersionRouteOf("POST", ["workspaces", "editions", "101", "version-history"])).toBeNull()
-    expect(editionVersionRouteOf("GET", ["workspaces", "editions", "101", "restore-draft"])).toBeNull()
+    expect(
+      editionVersionRouteOf("POST", ["workspaces", "editions", "101", "version-history"]),
+    ).toBeNull()
+    expect(
+      editionVersionRouteOf("GET", ["workspaces", "editions", "101", "restore-draft"]),
+    ).toBeNull()
     expect(editionVersionRouteOf("GET", ["content-editions", "101"])).toBeNull()
     expect(editionVersionRouteOf("GET", undefined)).toBeNull()
   })
 
-  it("removes the Payload version endpoint and service registrations", async () => {
-    const [config, gateway] = await Promise.all([
-      sourceOf("src/payload.config.ts"),
-      sourceOf("src/app/(payload)/api/[...slug]/route.ts"),
-    ])
-    expect(config).not.toContain("editionVersionHistoryEndpoint")
-    expect(config).not.toContain("restoreEditionDraftEndpoint")
+  it("routes version history and restore through the self-built gateway", async () => {
+    const gateway = await sourceOf("src/app/(api)/api/[...slug]/route.ts")
     expect(gateway).toContain("handleEditionVersionGet")
     expect(gateway).toContain("handleEditionVersionPost")
   })

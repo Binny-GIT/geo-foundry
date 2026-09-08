@@ -46,7 +46,9 @@ const editionIdOf = (slug: readonly string[] | undefined): number | null => {
 }
 
 const requestHashOf = (value: unknown): string =>
-  createHash("sha256").update(JSON.stringify(canonicalize(value))).digest("hex")
+  createHash("sha256")
+    .update(JSON.stringify(canonicalize(value)))
+    .digest("hex")
 
 const uniqueKeyOf = (tenantId: number, endpoint: string, key: string): string =>
   createHash("sha256").update(`${tenantId}\n${endpoint}\n${key}`).digest("hex")
@@ -58,11 +60,7 @@ const errorResponse = (error: unknown, requestId: string): Response => {
   return json(500, { error: { code: "EDITION_VERSION_INTERNAL_ERROR" } }, requestId)
 }
 
-const contextOf = async (
-  request: Request,
-  action: "history" | "restore",
-  requestId: string,
-) => {
+const contextOf = async (request: Request, action: "history" | "restore", requestId: string) => {
   const auth = await authenticateRequest(request.headers)
   if (auth === null) {
     return {
@@ -84,7 +82,9 @@ const contextOf = async (
     return { response: json(403, { error: { code: "EDITION_VERSION_FORBIDDEN" } }, requestId) }
   }
   if (action === "restore" && (auth.claims.kind !== "user" || auth.claims.role !== "editor")) {
-    return { response: json(403, { error: { code: "EDITION_DRAFT_RESTORE_EDITOR_REQUIRED" } }, requestId) }
+    return {
+      response: json(403, { error: { code: "EDITION_DRAFT_RESTORE_EDITOR_REQUIRED" } }, requestId),
+    }
   }
   const scope = entityScopeOf(auth)
   if (scope === null) {
@@ -115,14 +115,19 @@ export const handleEditionVersionGet = async (
     return json(400, { error: { code: "EDITION_VERSION_REQUEST_ID_INVALID" } }, randomUUID())
   }
   const editionId = editionIdOf(slug)
-  if (editionId === null) return json(400, { error: { code: "EDITION_VERSION_ID_INVALID" } }, requestId)
+  if (editionId === null)
+    return json(400, { error: { code: "EDITION_VERSION_ID_INVALID" } }, requestId)
   const context = await contextOf(request, "history", requestId)
   if ("response" in context) return context.response
 
   const runtime = serverRuntime()
   const document = await new EditionsRepository(runtime.db).findDraft(context.scope, editionId)
   if (document === null) {
-    return json(404, { error: { code: "EDITION_VERSION_NOT_FOUND", message: "edition not found" } }, requestId)
+    return json(
+      404,
+      { error: { code: "EDITION_VERSION_NOT_FOUND", message: "edition not found" } },
+      requestId,
+    )
   }
   try {
     const versions = await new EditionVersionsRepository(runtime.db).list(context.scope, editionId)
@@ -147,7 +152,11 @@ export const handleEditionVersionPost = async (
   }
   const idempotencyKey = request.headers.get("idempotency-key")
   if (idempotencyKey === null || !IDEMPOTENCY_KEY_PATTERN.test(idempotencyKey)) {
-    return json(400, { error: { code: "EDITION_DRAFT_RESTORE_IDEMPOTENCY_KEY_INVALID" } }, requestId)
+    return json(
+      400,
+      { error: { code: "EDITION_DRAFT_RESTORE_IDEMPOTENCY_KEY_INVALID" } },
+      requestId,
+    )
   }
   let raw: unknown
   try {

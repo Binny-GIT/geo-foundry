@@ -6,7 +6,6 @@ export const CMS_RESOURCE = {
   USERS: "users",
   SITES: "sites",
   DOMAINS: "domains",
-  CONTENTS: "contents",
   EDITIONS: "editions",
   MEDIA: "media",
   URL_RECORDS: "url-records",
@@ -19,7 +18,6 @@ export const CMS_RESOURCE = {
   ARTICLE_SOURCES: "article-sources",
   REVIEW_COMMENTS: "review-comments",
   PUBLICATION_PLANS: "publication-plans",
-  PERFORMANCE_SNAPSHOTS: "performance-snapshots",
 } as const
 
 export type CmsResource = (typeof CMS_RESOURCE)[keyof typeof CMS_RESOURCE]
@@ -55,7 +53,6 @@ const POLICY: Readonly<Record<CmsRole, Readonly<Record<CmsResource, ActionMatrix
     users: { create: true, read: true, update: true, delete: false },
     sites: { create: false, read: true, update: false, delete: false },
     domains: { create: false, read: true, update: false, delete: false },
-    contents: { create: true, read: true, update: true, delete: false },
     /* The content hub is operated by one small team: admins edit editions in
      * the same workspace as editors instead of switching accounts. */
     editions: { create: true, read: true, update: true, delete: false },
@@ -70,14 +67,12 @@ const POLICY: Readonly<Record<CmsRole, Readonly<Record<CmsResource, ActionMatrix
     "article-sources": { create: true, read: true, update: false, delete: false },
     "review-comments": { create: true, read: true, update: false, delete: false },
     "publication-plans": { create: false, read: true, update: false, delete: false },
-    "performance-snapshots": { create: false, read: true, update: false, delete: false },
   },
   [CMS_ROLE.TENANT_ADMIN]: {
     tenants: { create: false, read: true, update: false, delete: false },
     users: { create: true, read: true, update: true, delete: false },
     sites: { create: true, read: true, update: true, delete: false },
     domains: { create: true, read: true, update: true, delete: false },
-    contents: { create: true, read: true, update: true, delete: false },
     editions: { create: true, read: true, update: true, delete: false },
     media: { create: false, read: true, update: false, delete: false },
     "url-records": { create: false, read: true, update: false, delete: false },
@@ -90,14 +85,12 @@ const POLICY: Readonly<Record<CmsRole, Readonly<Record<CmsResource, ActionMatrix
     "article-sources": { create: true, read: true, update: false, delete: false },
     "review-comments": { create: true, read: true, update: false, delete: false },
     "publication-plans": { create: false, read: true, update: false, delete: false },
-    "performance-snapshots": { create: false, read: true, update: false, delete: false },
   },
   [CMS_ROLE.EDITOR]: {
     tenants: { create: false, read: false, update: false, delete: false },
     users: { create: false, read: false, update: false, delete: false },
     sites: { create: false, read: true, update: false, delete: false },
     domains: { create: false, read: true, update: false, delete: false },
-    contents: { create: true, read: true, update: true, delete: false },
     editions: { create: true, read: true, update: true, delete: false },
     media: { create: true, read: true, update: true, delete: false },
     "url-records": { create: false, read: true, update: false, delete: false },
@@ -110,14 +103,12 @@ const POLICY: Readonly<Record<CmsRole, Readonly<Record<CmsResource, ActionMatrix
     "article-sources": { create: true, read: true, update: false, delete: false },
     "review-comments": { create: true, read: true, update: false, delete: false },
     "publication-plans": { create: false, read: true, update: false, delete: false },
-    "performance-snapshots": { create: false, read: true, update: false, delete: false },
   },
   [CMS_ROLE.REVIEWER]: {
     tenants: { create: false, read: false, update: false, delete: false },
     users: { create: false, read: false, update: false, delete: false },
     sites: { create: false, read: true, update: false, delete: false },
     domains: { create: false, read: true, update: false, delete: false },
-    contents: { create: false, read: true, update: false, delete: false },
     editions: { create: false, read: true, update: false, delete: false },
     media: { create: false, read: true, update: false, delete: false },
     "url-records": { create: false, read: false, update: false, delete: false },
@@ -130,14 +121,12 @@ const POLICY: Readonly<Record<CmsRole, Readonly<Record<CmsResource, ActionMatrix
     "article-sources": { create: false, read: true, update: false, delete: false },
     "review-comments": { create: true, read: true, update: false, delete: false },
     "publication-plans": { create: false, read: true, update: false, delete: false },
-    "performance-snapshots": { create: false, read: true, update: false, delete: false },
   },
   [CMS_ROLE.PUBLISHER]: {
     tenants: { create: false, read: false, update: false, delete: false },
     users: { create: false, read: false, update: false, delete: false },
     sites: { create: false, read: true, update: false, delete: false },
     domains: { create: false, read: true, update: false, delete: false },
-    contents: { create: false, read: true, update: false, delete: false },
     editions: { create: false, read: true, update: false, delete: false },
     media: { create: false, read: true, update: false, delete: false },
     "url-records": { create: false, read: true, update: false, delete: false },
@@ -150,14 +139,12 @@ const POLICY: Readonly<Record<CmsRole, Readonly<Record<CmsResource, ActionMatrix
     "article-sources": { create: false, read: true, update: false, delete: false },
     "review-comments": { create: false, read: true, update: false, delete: false },
     "publication-plans": { create: false, read: true, update: false, delete: false },
-    "performance-snapshots": { create: false, read: true, update: false, delete: false },
   },
   [CMS_ROLE.CONTENT_SERVICE]: {
     tenants: { create: false, read: false, update: false, delete: false },
     users: { create: false, read: false, update: false, delete: false },
     sites: { create: false, read: true, update: false, delete: false },
     domains: { create: false, read: false, update: false, delete: false },
-    contents: { create: false, read: true, update: false, delete: false },
     editions: { create: true, read: true, update: true, delete: false },
     media: { create: false, read: false, update: false, delete: false },
     "url-records": { create: false, read: false, update: false, delete: false },
@@ -170,7 +157,6 @@ const POLICY: Readonly<Record<CmsRole, Readonly<Record<CmsResource, ActionMatrix
     "article-sources": { create: false, read: true, update: false, delete: false },
     "review-comments": { create: false, read: false, update: false, delete: false },
     "publication-plans": { create: false, read: false, update: false, delete: false },
-    "performance-snapshots": { create: false, read: false, update: false, delete: false },
   },
 }
 

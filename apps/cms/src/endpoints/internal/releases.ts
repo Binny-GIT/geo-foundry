@@ -1,15 +1,13 @@
-import type { PayloadRequest } from "payload"
-
 import {
   recordPublishedRelease,
   recordRollbackReceipt,
 } from "../../server/repositories/release-registry"
 import { serverRuntime } from "../../server/runtime"
 import { type ReleaseReceiptBody, releaseReceiptBodySchema } from "./contracts"
-import { internalJsonResponse, withInternalGuards } from "./guards"
+import { type InternalRequest, internalJsonResponse, withInternalGuards } from "./guards"
 
-const siteIdOf = (req: PayloadRequest): number => {
-  const raw = req.routeParams?.["id"]
+const siteIdOf = (req: InternalRequest): number => {
+  const raw = req.routeParams["id"]
   const siteId = Number(raw)
   if (!Number.isInteger(siteId) || siteId <= 0) {
     throw new Error(`RELEASE_SITE_INVALID: ${String(raw)}`)

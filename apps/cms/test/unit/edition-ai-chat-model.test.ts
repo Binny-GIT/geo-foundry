@@ -11,7 +11,11 @@ vi.mock("../../src/config/credentials", () => ({
   },
 }))
 
-import { outlineOf, providerConfigOf, systemPromptOf } from "../../src/services/edition-ai-chat-model"
+import {
+  outlineOf,
+  providerConfigOf,
+  systemPromptOf,
+} from "../../src/services/edition-ai-chat-model"
 
 describe("AI chat provider config", () => {
   it("Given no explicit provider switch, when resolving, then the assistant stays unconfigured", () => {

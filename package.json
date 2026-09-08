@@ -33,9 +33,7 @@
     "dev": "turbo run dev --parallel",
     "verify:toolchain": "node --test tooling/toolchain.test.mjs",
     "shared:check": "node scripts/shared-services/secure-run.mjs check",
-    "shared:cleanup": "node scripts/shared-services/secure-run.mjs cleanup",
-    "mvp:seed": "cd apps/cms && node scripts/secure-run.mjs node --import tsx scripts/mvp-seed.mjs",
-    "mvp:run": "node scripts/mvp-scenario.mjs run"
+    "shared:cleanup": "node scripts/shared-services/secure-run.mjs cleanup"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",

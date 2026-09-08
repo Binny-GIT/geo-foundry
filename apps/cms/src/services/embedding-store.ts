@@ -46,7 +46,10 @@ export const anchorOf = async (
 ): Promise<EmbeddingEditionAnchor> => {
   const claims = resolveSessionClaims(user)
   if (claims === null || claims.kind !== "service" || claims.role !== "content-service") {
-    throw new EmbeddingStoreError(EMBEDDING_STORE_ERROR.EDITION_NOT_FOUND, "service identity required")
+    throw new EmbeddingStoreError(
+      EMBEDDING_STORE_ERROR.EDITION_NOT_FOUND,
+      "service identity required",
+    )
   }
   const tenantId = Number(claims.tenantId)
   const rows = await db
@@ -56,7 +59,9 @@ export const anchorOf = async (
       and(
         eq(editionVersions.parentId, editionId),
         eq(editionVersions.latest, true),
-        ...(Number.isInteger(tenantId) && tenantId > 0 ? [eq(editionVersions.tenantId, tenantId)] : []),
+        ...(Number.isInteger(tenantId) && tenantId > 0
+          ? [eq(editionVersions.tenantId, tenantId)]
+          : []),
       ),
     )
     .limit(1)

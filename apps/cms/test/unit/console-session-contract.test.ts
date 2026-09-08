@@ -7,11 +7,14 @@ const root = resolve(import.meta.dirname, "../..")
 const sourceOf = (path: string): Promise<string> => readFile(resolve(root, path), "utf8")
 
 describe("Console human session contract", () => {
-  it("sets Payload human JWT and HTTP-only browser sessions to seven days without disabling API keys", async () => {
-    const users = await sourceOf("src/collections/Users.ts")
+  it("sets human browser sessions to seven days and keeps the users API-Key strategy", async () => {
+    const [authRoute, users] = await Promise.all([
+      sourceOf("src/server/routes/auth.ts"),
+      sourceOf("src/server/repositories/users.ts"),
+    ])
 
-    expect(users).toContain("tokenExpiration: 7 * 24 * 60 * 60")
-    expect(users).toContain("useAPIKey: true")
+    expect(authRoute).toContain("7 * 24 * 60 * 60")
+    expect(users).toContain("findAuthByApiKey")
   })
 
   it("uses compat-verified active sessions for human Console guards and normalizes invalid return locations", async () => {

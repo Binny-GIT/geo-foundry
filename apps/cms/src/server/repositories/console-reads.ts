@@ -8,7 +8,7 @@
 import { and, asc, count, desc, eq, gte, ilike, inArray, lt, or, type SQL, sql } from "drizzle-orm"
 
 import type { ServerDb } from "../db/client"
-import { contentEditions, editionVersionRels, editionVersions } from "../db/edition-schema"
+import { contentEditions, editionVersions } from "../db/edition-schema"
 import { sites } from "../db/entity-schema"
 import { operations } from "../db/ledger-schema"
 import { tenants, users } from "../db/schema"
@@ -29,6 +29,17 @@ const latestVersionJoin = and(
   eq(editionVersions.parentId, contentEditions.id),
   eq(editionVersions.latest, true),
 )
+
+const matchesAnySite = (siteIds: readonly number[]): SQL =>
+  siteIds.length === 0
+    ? sql`false`
+    : (or(
+        inArray(editionVersions.siteId, [...siteIds]),
+        sql`${editionVersions.sites} && ARRAY[${sql.join(
+          siteIds.map((siteId) => sql`${siteId}`),
+          sql`, `,
+        )}]::integer[]`,
+      ) ?? sql`false`)
 
 export type NamedOption = Readonly<{ id: number; name: string }>
 
@@ -252,23 +263,10 @@ export const workBoardEditions = async (
   if (filter.q !== null) predicates.push(ilike(editionVersions.title, `%${filter.q}%`))
   if (filter.owner.length > 0) predicates.push(inArray(editionVersions.ownerId, [...filter.owner]))
   if (filter.siteScope !== null) {
-    predicates.push(inArray(editionVersions.siteId, [...filter.siteScope]))
+    predicates.push(matchesAnySite(filter.siteScope))
   }
   if (filter.site.length > 0) {
-    const assigned = db
-      .select({ parentId: editionVersionRels.parentId })
-      .from(editionVersionRels)
-      .where(
-        and(
-          eq(editionVersionRels.path, "version.sites"),
-          inArray(editionVersionRels.siteId, [...filter.site]),
-        ),
-      )
-    const siteMatch = or(
-      inArray(editionVersions.siteId, [...filter.site]),
-      inArray(editionVersions.id, assigned),
-    )
-    if (siteMatch !== undefined) predicates.push(siteMatch)
+    predicates.push(matchesAnySite(filter.site))
   }
   const where = and(...predicates)
   const [rows, totalRows] = await Promise.all([

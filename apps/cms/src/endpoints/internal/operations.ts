@@ -1,5 +1,3 @@
-import type { PayloadRequest } from "payload"
-
 import {
   completeOperationStage,
   getOperation,
@@ -14,10 +12,10 @@ import {
   type StartOperationStageBody,
   startOperationStageBodySchema,
 } from "./contracts"
-import { internalJsonResponse, withInternalGuards } from "./guards"
+import { type InternalRequest, internalJsonResponse, withInternalGuards } from "./guards"
 
-const publicOperationIdOf = (req: PayloadRequest): string => {
-  const raw = req.routeParams?.["operationId"]
+const publicOperationIdOf = (req: InternalRequest): string => {
+  const raw = req.routeParams["operationId"]
   if (typeof raw !== "string" || raw.length === 0 || raw.length > 128) {
     throw new OperationsLedgerError("OPERATIONS_INPUT_INVALID", `route operationId ${String(raw)}`)
   }

@@ -45,7 +45,10 @@ export const users = geo.table(
     apiKeyIndex: varchar("api_key_index"),
     email: varchar("email").notNull(),
     resetPasswordToken: varchar("reset_password_token"),
-    resetPasswordExpiration: timestamp("reset_password_expiration", { withTimezone: true, precision: 3 }),
+    resetPasswordExpiration: timestamp("reset_password_expiration", {
+      withTimezone: true,
+      precision: 3,
+    }),
     salt: varchar("salt"),
     hash: varchar("hash"),
     loginAttempts: numeric("login_attempts").default("0"),

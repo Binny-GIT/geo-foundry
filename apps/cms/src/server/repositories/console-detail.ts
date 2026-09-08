@@ -8,7 +8,7 @@ import { and, asc, count, desc, eq, inArray, ne } from "drizzle-orm"
 
 import { markdownToBlocks } from "../../editor/block-markdown"
 import type { ServerDb } from "../db/client"
-import { contentEditions, editionVersionRels, editionVersions } from "../db/edition-schema"
+import { contentEditions, editionVersions } from "../db/edition-schema"
 import { sites } from "../db/entity-schema"
 import { operations } from "../db/ledger-schema"
 import { tenants, users } from "../db/schema"
@@ -60,25 +60,14 @@ export const loadArticleDetail = async (
   const row = rows[0]
   if (row === undefined) return null
   const { version } = row
-  const assignedSites = await db
-    .select({ siteId: editionVersionRels.siteId })
-    .from(editionVersionRels)
-    .where(
-      and(
-        eq(editionVersionRels.parentId, version.id),
-        eq(editionVersionRels.path, "version.sites"),
-      ),
-    )
-    .orderBy(asc(editionVersionRels.order))
+  const assignedSites = version.sites
   const editionTenantId = version.tenantId
   const [urlRow, domainRow, comments, userOptions, siteOptions] = await Promise.all([
-    version.contentId === null
-      ? []
-      : db
-          .select({ pathname: urlRecords.pathname })
-          .from(urlRecords)
-          .where(and(eq(urlRecords.contentId, version.contentId), eq(urlRecords.state, "active")))
-          .limit(1),
+    db
+      .select({ pathname: urlRecords.pathname })
+      .from(urlRecords)
+      .where(and(eq(urlRecords.editionId, editionId), eq(urlRecords.state, "active")))
+      .limit(1),
     version.siteId === null
       ? []
       : db
@@ -157,7 +146,6 @@ export const loadArticleDetail = async (
       auditLog: audit,
       body: markdownToBlocks(markdown),
       bodyMarkdown: markdown,
-      content: version.contentId,
       creationOrigin: version.creationOrigin ?? "human",
       id: row.editionId,
       owner: version.ownerId,
@@ -165,7 +153,7 @@ export const loadArticleDetail = async (
         version.siteId === null
           ? null
           : { id: version.siteId, name: row.siteName, timezone: row.siteTimezone },
-      sites: assignedSites.flatMap((entry) => (entry.siteId === null ? [] : [entry.siteId])),
+      sites: assignedSites,
       summary: version.summary ?? "",
       tenant: version.tenantId === null ? null : { id: version.tenantId, name: row.tenantName },
       title: version.title ?? "",

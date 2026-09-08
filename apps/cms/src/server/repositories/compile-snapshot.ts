@@ -17,7 +17,7 @@ import {
 } from "../../services/compile-snapshot-mappers"
 import { EditionWorkflowError } from "../../services/edition-workflow"
 import type { ServerDb } from "../db/client"
-import { contentEditions, editionVersions, editionVersionTexts } from "../db/edition-schema"
+import { contentEditions, editionVersions } from "../db/edition-schema"
 import { sites } from "../db/entity-schema"
 import { domains, qualityAssessments } from "../db/session-schema"
 import { urlRecords } from "../db/workflow-schema"
@@ -90,9 +90,7 @@ export const buildCompileSnapshot = async (
     .limit(500)
 
   const editionIds = versionRows.map((row) => row.editionId)
-  const versionIds = versionRows.map((row) => row.version.id)
   const latestAssessment = new Map<number, { state: string; inputHash: string }>()
-  const topicsByVersion = new Map<number, string[]>()
   if (editionIds.length > 0) {
     const assessments = await db
       .select({
@@ -109,32 +107,12 @@ export const buildCompileSnapshot = async (
         latestAssessment.set(row.editionId, { inputHash: row.inputHash, state: row.state })
       }
     }
-    const topicRows = await db
-      .select({
-        order: editionVersionTexts.order,
-        parentId: editionVersionTexts.parentId,
-        text: editionVersionTexts.text,
-      })
-      .from(editionVersionTexts)
-      .where(
-        and(
-          inArray(editionVersionTexts.parentId, versionIds),
-          eq(editionVersionTexts.path, "version.secondaryTopics"),
-        ),
-      )
-      .orderBy(editionVersionTexts.parentId, editionVersionTexts.order)
-    for (const row of topicRows) {
-      if (row.text === null) continue
-      const list = topicsByVersion.get(row.parentId) ?? []
-      list.push(row.text)
-      topicsByVersion.set(row.parentId, list)
-    }
   }
 
   const target = alias(urlRecords, "target")
   const urlRows = await db
     .select({
-      contentId: urlRecords.contentId,
+      editionId: urlRecords.editionId,
       pathname: urlRecords.pathname,
       state: urlRecords.state,
       targetPathname: target.pathname,
@@ -145,7 +123,7 @@ export const buildCompileSnapshot = async (
     .limit(1000)
   const { activeUrlByContent, redirects } = deriveRoutes(
     urlRows.map((row) => ({
-      content: row.contentId,
+      content: row.editionId,
       pathname: row.pathname,
       state: row.state,
       targetUrl: row.targetPathname === null ? null : { pathname: row.targetPathname },
@@ -155,8 +133,7 @@ export const buildCompileSnapshot = async (
   const topics: { categories: string[]; tags: string[] }[] = []
   const compileEditions = []
   for (const { editionId, version } of versionRows) {
-    if (version.contentId === null) continue
-    const urlPathname = activeUrlByContent.get(version.contentId)
+    const urlPathname = activeUrlByContent.get(editionId)
     if (urlPathname === undefined) continue
     const mapped = mapEdition({
       assessment: latestAssessment.get(editionId),
@@ -166,13 +143,13 @@ export const buildCompileSnapshot = async (
       edition: {
         body: markdownToBlocks(version.bodyMarkdown ?? ""),
         citations: version.citations,
-        content: version.contentId,
+        content: editionId,
         contentModifiedAt: isoOf(version.contentModifiedAt),
         createdAt: isoOf(version.versionCreatedAt ?? version.createdAt),
         entities: version.entities,
         id: editionId,
         primaryTopic: version.primaryTopic,
-        secondaryTopics: topicsByVersion.get(version.id) ?? [],
+        secondaryTopics: version.secondaryTopics,
         summary: version.summary,
         title: version.title,
         updatedAt: isoOf(version.versionUpdatedAt ?? version.updatedAt),

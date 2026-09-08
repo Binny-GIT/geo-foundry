@@ -1,4 +1,3 @@
-import type { PayloadHandler, PayloadRequest } from "payload"
 import type { ZodType } from "zod"
 
 import { resolveSessionClaims, type SessionClaims } from "../../access/session"
@@ -9,6 +8,19 @@ import { EmbeddingStoreError } from "../../services/embedding-store"
 import { IntakeError } from "../../services/intake"
 import { OperationsLedgerError } from "../../services/operations-ledger"
 import { IDEMPOTENCY_KEY_PATTERN, OPERATION_ID_PATTERN, REQUEST_ID_PATTERN } from "./contracts"
+
+/** 自建网关传入的最小请求形状（原 PayloadRequest 子集）。 */
+export type InternalRequest = Readonly<{
+  headers: Headers
+  method: string
+  routeParams: Readonly<Record<string, string>>
+  text: () => Promise<string>
+  url: string
+  /** 已认证身份（{id, role, tenant}），未认证为 null。 */
+  user: unknown
+}>
+
+export type InternalHandler = (req: InternalRequest) => Promise<Response>
 
 export const INTERNAL_ERROR_CODE = {
   BODY_INVALID: "INTERNAL_BODY_INVALID",
@@ -81,8 +93,8 @@ const consumeRateLimit = (key: string, limit: number): boolean => {
   return true
 }
 
-const corsAllowOriginOf = (config: InternalEndpointConfig, req: PayloadRequest): string | null => {
-  const origin = req.headers?.get("origin")
+const corsAllowOriginOf = (config: InternalEndpointConfig, req: InternalRequest): string | null => {
+  const origin = req.headers.get("origin")
   if (origin === null || origin === undefined || origin.length === 0) {
     return null
   }
@@ -330,15 +342,7 @@ const embeddingErrorToResponse = (
   )
 }
 
-const readRawBody = async (req: PayloadRequest): Promise<string> => {
-  if (typeof req.text === "function") {
-    return await req.text()
-  }
-  if (typeof req.json === "function") {
-    return JSON.stringify(await req.json())
-  }
-  return ""
-}
+const readRawBody = async (req: InternalRequest): Promise<string> => req.text()
 
 export type InternalHandlerContext = {
   readonly claims: SessionClaims
@@ -348,7 +352,7 @@ export type InternalHandlerContext = {
 }
 
 export type GuardedHandler<TBody> = (
-  req: PayloadRequest,
+  req: InternalRequest,
   ctx: InternalHandlerContext,
   body: TBody,
 ) => Promise<Response> | Response
@@ -367,12 +371,12 @@ export type GuardOptions<TBody> = {
  * Responses never leak stack traces, environment values, or internal errors.
  */
 export const withInternalGuards =
-  <TBody>(options: GuardOptions<TBody>, handler: GuardedHandler<TBody>): PayloadHandler =>
+  <TBody>(options: GuardOptions<TBody>, handler: GuardedHandler<TBody>): InternalHandler =>
   async (req) => {
     const config = currentInternalEndpointConfig()
     const allowOrigin = corsAllowOriginOf(config, req)
-    const method = (req.method ?? "GET").toUpperCase()
-    const headerRequestId = req.headers?.get("x-request-id") ?? null
+    const method = req.method.toUpperCase()
+    const headerRequestId = req.headers.get("x-request-id") ?? null
     const requestId =
       headerRequestId === null
         ? crypto.randomUUID()
@@ -427,7 +431,7 @@ export const withInternalGuards =
     }
 
     if (options.requiresIdempotencyKey) {
-      const idempotencyKey = req.headers?.get("idempotency-key") ?? null
+      const idempotencyKey = req.headers.get("idempotency-key") ?? null
       if (idempotencyKey === null || idempotencyKey.length === 0) {
         return internalErrorResponse(
           400,
@@ -448,7 +452,7 @@ export const withInternalGuards =
       }
     }
 
-    const headerOperationId = req.headers?.get("x-operation-id") ?? null
+    const headerOperationId = req.headers.get("x-operation-id") ?? null
     if (headerOperationId !== null && !OPERATION_ID_PATTERN.test(headerOperationId)) {
       return internalErrorResponse(
         400,
@@ -463,7 +467,7 @@ export const withInternalGuards =
     if (options.bodySchema === null) {
       body = undefined as TBody
     } else {
-      const declaredLength = Number(req.headers?.get("content-length") ?? "0")
+      const declaredLength = Number(req.headers.get("content-length") ?? "0")
       if (Number.isFinite(declaredLength) && declaredLength > config.maxBodyBytes) {
         return internalErrorResponse(
           413,

@@ -14,7 +14,6 @@ import {
 import { geo } from "./schema"
 
 export const siteStatus = pgEnum("enum_sites_status", ["active", "disabled"])
-export const contentCreatedBy = pgEnum("enum_contents_created_by", ["ai", "human", "hybrid"])
 export const connectorType = pgEnum("enum_connectors_type", ["manual", "url", "webhook", "rss"])
 export const connectorStatus = pgEnum("enum_connectors_status", ["active", "disabled"])
 export const sourceSnapshotKind = pgEnum("enum_source_snapshots_kind", [
@@ -35,7 +34,18 @@ export const sites = geo.table(
     contentStrategyTone: varchar("content_strategy_tone"),
     contentStrategyLanguage: varchar("content_strategy_language"),
     contentStrategyCta: varchar("content_strategy_cta"),
-    contentStrategyProhibitedExpressions: jsonb("content_strategy_prohibited_expressions"),
+    contentStrategyTargetAudience: jsonb("content_strategy_target_audience").notNull().default([]),
+    contentStrategyExpertise: jsonb("content_strategy_expertise").notNull().default([]),
+    contentStrategyPreferredTopics: jsonb("content_strategy_preferred_topics")
+      .notNull()
+      .default([]),
+    contentStrategyProhibitedTopics: jsonb("content_strategy_prohibited_topics")
+      .notNull()
+      .default([]),
+    contentStrategyProhibitedExpressions: jsonb("content_strategy_prohibited_expressions")
+      .notNull()
+      .default([]),
+    contentStrategyContentAngles: jsonb("content_strategy_content_angles").notNull().default([]),
     qualityThresholdsCrossDomainBlock: numeric("quality_thresholds_cross_domain_block").default(
       "0.92",
     ),
@@ -55,33 +65,6 @@ export const sites = geo.table(
     createdAt: timestamp("created_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
   },
   (table) => [index("sites_tenant_idx").on(table.tenantId)],
-)
-
-/** Payload hasMany text storage, grouped by path such as contentStrategy.targetAudience. */
-export const sitesTexts = geo.table(
-  "sites_texts",
-  {
-    id: serial("id").primaryKey(),
-    order: integer("order").notNull(),
-    parentId: integer("parent_id").notNull(),
-    path: varchar("path").notNull(),
-    text: varchar("text"),
-  },
-  (table) => [index("sites_texts_order_parent").on(table.order, table.parentId)],
-)
-
-export const contents = geo.table(
-  "contents",
-  {
-    id: serial("id").primaryKey(),
-    topic: varchar("topic").notNull(),
-    intent: varchar("intent").notNull(),
-    tenantId: integer("tenant_id").notNull(),
-    createdBy: contentCreatedBy("created_by").default("human").notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
-  },
-  (table) => [index("contents_tenant_idx").on(table.tenantId)],
 )
 
 export const connectors = geo.table(
@@ -151,21 +134,4 @@ export const media = geo.table(
     createdAt: timestamp("created_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
   },
   (table) => [index("media_tenant_idx").on(table.tenantId)],
-)
-
-/** users.sites hasMany relationship storage. */
-export const usersRels = geo.table(
-  "users_rels",
-  {
-    id: serial("id").primaryKey(),
-    order: integer("order"),
-    parentId: integer("parent_id").notNull(),
-    path: varchar("path").notNull(),
-    siteId: integer("sites_id"),
-  },
-  (table) => [
-    index("users_rels_parent_idx").on(table.parentId),
-    index("users_rels_path_idx").on(table.path),
-    index("users_rels_sites_id_idx").on(table.siteId),
-  ],
 )

@@ -11,7 +11,6 @@ import { and, eq, gt, inArray, sql } from "drizzle-orm"
 
 import { payloadApiKeyIndexesOf } from "../auth/compat"
 import type { ServerDb } from "../db/client"
-import { usersRels } from "../db/entity-schema"
 import { users, usersSessions, type usersRole } from "../db/schema"
 
 export type UserAuthRecord = Readonly<{
@@ -103,10 +102,7 @@ export class UsersRepository {
   }
 
   async resetLoginFailures(id: number): Promise<void> {
-    await this.db
-      .update(users)
-      .set({ loginAttempts: "0", lockUntil: null })
-      .where(eq(users.id, id))
+    await this.db.update(users).set({ loginAttempts: "0", lockUntil: null }).where(eq(users.id, id))
   }
 
   /**
@@ -183,7 +179,10 @@ export class UsersRepository {
     })
   }
 
-  async updatePasswordHash(userId: number, credentials: Readonly<{ hash: string; salt: string }>): Promise<boolean> {
+  async updatePasswordHash(
+    userId: number,
+    credentials: Readonly<{ hash: string; salt: string }>,
+  ): Promise<boolean> {
     const rows = await this.db
       .update(users)
       .set({
@@ -212,12 +211,14 @@ export class UsersRepository {
   }
 
   /** reset token 单次消费 + password + 新 sid 同一事务提交。 */
-  async consumeResetToken(input: Readonly<{
-    credentials: Readonly<{ hash: string; salt: string }>
-    expiresAt: Date
-    sid: string
-    token: string
-  }>): Promise<UserAuthRecord | null> {
+  async consumeResetToken(
+    input: Readonly<{
+      credentials: Readonly<{ hash: string; salt: string }>
+      expiresAt: Date
+      sid: string
+      token: string
+    }>,
+  ): Promise<UserAuthRecord | null> {
     return this.db.transaction(async (tx) => {
       const candidates = await tx
         .select()
@@ -269,9 +270,9 @@ export class UsersRepository {
     })
   }
 
-  async activeSessions(userId: number): Promise<
-    readonly Readonly<{ createdAt: Date | null; expiresAt: Date; id: string }>[]
-  > {
+  async activeSessions(
+    userId: number,
+  ): Promise<readonly Readonly<{ createdAt: Date | null; expiresAt: Date; id: string }>[]> {
     return this.db
       .select({
         createdAt: usersSessions.createdAt,
@@ -287,14 +288,8 @@ export class UsersRepository {
     return (await this.activeSessions(userId)).map((session) => session.id)
   }
 
-  async siteIds(userId: number): Promise<readonly number[]> {
-    const rows = await this.db
-      .select({ siteId: usersRels.siteId })
-      .from(usersRels)
-      .where(and(eq(usersRels.parentId, userId), eq(usersRels.path, "sites")))
-      .orderBy(usersRels.order)
-    return rows
-      .map((row) => row.siteId)
-      .filter((siteId): siteId is number => siteId !== null)
+  /** 用户站点范围功能已下线（users_rels 表已删除）：始终为空。 */
+  async siteIds(_userId: number): Promise<readonly number[]> {
+    return []
   }
 }

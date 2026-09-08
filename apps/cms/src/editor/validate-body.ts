@@ -1,6 +1,6 @@
 import { ContentBlockSchema } from "@geo/schema"
 
-import { localizedValidationMessage } from "../collections/shared/localized-labels"
+import { localizedValidationMessage } from "../lib/localized-labels"
 
 type Row = Record<string, unknown>
 

@@ -39,7 +39,7 @@ read -r table_count migration_count core_tables_present < <(
     psql -U "$POSTGRES_USER" -d "$1" -At -F " " -c "
       SELECT
         (SELECT count(*) FROM information_schema.tables WHERE table_schema = '\''geo_foundry'\''),
-        (SELECT count(*) FROM geo_foundry.payload_migrations),
+        (SELECT count(*) FROM geo_foundry.drizzle_migrations),
         (SELECT count(*) FROM information_schema.tables
          WHERE table_schema = '\''geo_foundry'\''
            AND table_name IN ('\''users'\'', '\''sites'\'', '\''content_editions'\'', '\''releases'\'', '\''operations'\''));

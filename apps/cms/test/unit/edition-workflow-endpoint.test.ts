@@ -43,7 +43,10 @@ vi.mock("../../src/server/repositories/operations", () => ({
   },
 }))
 
-import { editionWorkflowRouteOf, handleEditionWorkflowPost } from "../../src/server/routes/edition-workflow"
+import {
+  editionWorkflowRouteOf,
+  handleEditionWorkflowPost,
+} from "../../src/server/routes/edition-workflow"
 import { WorkflowRepositoryError } from "../../src/server/repositories/edition-workflow"
 
 const versionRow = (workflowStatus: string) => ({
@@ -117,7 +120,9 @@ describe("edition workflow Drizzle routes", () => {
   })
 
   it("maps tenant mismatches to 403 and revision conflicts to 409", async () => {
-    transition.mockRejectedValueOnce(new WorkflowRepositoryError("EDITION_WORKFLOW_TENANT_MISMATCH"))
+    transition.mockRejectedValueOnce(
+      new WorkflowRepositoryError("EDITION_WORKFLOW_TENANT_MISMATCH"),
+    )
     const forbidden = await post(["editions", "586", "workflow-transitions"], {
       target: "review",
     })

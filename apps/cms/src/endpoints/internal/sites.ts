@@ -1,12 +1,10 @@
-import type { PayloadRequest } from "payload"
-
 import { buildCompileSnapshot } from "../../server/repositories/compile-snapshot"
 import { serverRuntime } from "../../server/runtime"
 import { EditionWorkflowError } from "../../services/edition-workflow"
-import { internalJsonResponse, withInternalGuards } from "./guards"
+import { type InternalRequest, internalJsonResponse, withInternalGuards } from "./guards"
 
-const siteIdOf = (req: PayloadRequest): number => {
-  const raw = req.routeParams?.["id"]
+const siteIdOf = (req: InternalRequest): number => {
+  const raw = req.routeParams["id"]
   const parsed = Number(raw)
   if (!Number.isInteger(parsed) || parsed <= 0) {
     throw new EditionWorkflowError("COMPILE_SNAPSHOT_SITE_INVALID", `route id ${String(raw)}`)
