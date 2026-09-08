@@ -34,11 +34,6 @@ import { createPostgresAdapterOptions } from "./config/database"
 import { parseCmsEnvironment } from "./config/environment"
 import { editionAiChatDraftEndpoint, editionAiChatEndpoint } from "./endpoints/edition-ai-chat"
 import { allInternalEndpoints } from "./endpoints/internal/index"
-import {
-  importPerformanceSnapshotsEndpoint,
-  performanceSuggestionsEndpoint,
-} from "./endpoints/performance-snapshots"
-import { createSiteVariantEndpoint } from "./endpoints/site-variants"
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
 const environment = parseCmsEnvironment(process.env)
@@ -126,9 +121,6 @@ export default buildConfig({
   endpoints: [
     editionAiChatDraftEndpoint,
     editionAiChatEndpoint,
-    createSiteVariantEndpoint,
-    importPerformanceSnapshotsEndpoint,
-    performanceSuggestionsEndpoint,
     ...allInternalEndpoints,
   ],
   db: postgresAdapter(

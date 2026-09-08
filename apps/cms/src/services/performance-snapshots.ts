@@ -34,70 +34,6 @@ export type PerformanceImportRow = Readonly<{
   conversions?: number
 }>
 
-export const importPerformanceSnapshots = async (
-  payload: Payload,
-  input: {
-    readonly rows: readonly PerformanceImportRow[]
-    readonly siteId: number
-    readonly user: unknown
-  },
-): Promise<{ readonly created: number; readonly replayed: number }> => {
-  const claims = resolveSessionClaims(input.user)
-  if (claims === null || (claims.role !== "tenant-admin" && claims.role !== "super-admin"))
-    throw fail("PERFORMANCE_SNAPSHOT_IMPORTER_REQUIRED")
-  const site = await payload
-    .findByID({ collection: "sites", depth: 0, id: input.siteId, overrideAccess: true })
-    .catch(() => null)
-  const tenantId = site === null ? null : idOf(site.tenant)
-  if (
-    tenantId === null ||
-    (claims.role !== "super-admin" && String(claims.tenantId) !== String(tenantId))
-  )
-    throw fail("PERFORMANCE_SNAPSHOT_SITE_NOT_FOUND")
-  let created = 0
-  let replayed = 0
-  for (const row of input.rows.slice(0, 1000)) {
-    const observedAt = instant(row.observedAt)
-    if (row.source.trim().length === 0 || row.url.trim().length === 0)
-      throw fail("PERFORMANCE_SNAPSHOT_ROW_INVALID")
-    const importHash = createHash("sha256")
-      .update(JSON.stringify({ ...row, observedAt, siteId: input.siteId }))
-      .digest("hex")
-    const existing = await payload.find({
-      collection: "performance-snapshots",
-      depth: 0,
-      limit: 1,
-      overrideAccess: true,
-      where: { importHash: { equals: importHash } },
-    })
-    if (existing.docs.length > 0) {
-      replayed += 1
-      continue
-    }
-    await payload.create({
-      collection: "performance-snapshots",
-      data: {
-        ...(row.city === undefined || row.city.trim().length === 0
-          ? {}
-          : { city: row.city.trim() }),
-        ...(row.conversions === undefined ? {} : { conversions: row.conversions }),
-        ...(row.editionId === undefined ? {} : { edition: row.editionId }),
-        ...(row.engagement === undefined ? {} : { engagement: row.engagement }),
-        importHash,
-        observedAt,
-        site: input.siteId,
-        source: row.source.trim(),
-        tenant: tenantId,
-        url: row.url.trim(),
-        ...(row.visits === undefined ? {} : { visits: row.visits }),
-      },
-      depth: 0,
-      overrideAccess: true,
-    })
-    created += 1
-  }
-  return { created, replayed }
-}
 
 export const performanceSuggestions = async (payload: Payload, user: unknown) => {
   const claims = resolveSessionClaims(user)
@@ -147,15 +83,3 @@ export const performanceSuggestions = async (payload: Payload, user: unknown) =>
   return suggestions
 }
 
-export const acceptPerformanceSuggestion = async (
-  payload: Payload,
-  input: { readonly editionId: number; readonly user: unknown },
-) => {
-  await createDraftFromPublished(
-    payload,
-    input.editionId,
-    input.user,
-    "performance refresh suggestion",
-  )
-  return { editionId: input.editionId, createdDraft: true }
-}
