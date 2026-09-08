@@ -49,6 +49,8 @@ export type SessionClaims = Readonly<{
   email?: unknown
   exp: number
   id?: unknown
+  /** 会话撤销用的 session id（users_sessions 行）。 */
+  sid?: unknown
 }>
 
 /** 校验 payload-token 的 JWT 签名与有效期；解析失败/过期/篡改一律 null。 */

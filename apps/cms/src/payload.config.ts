@@ -33,6 +33,10 @@ import { Users } from "./collections/Users"
 import { createPostgresAdapterOptions } from "./config/database"
 import { parseCmsEnvironment } from "./config/environment"
 import { changeOwnPasswordEndpoint } from "./endpoints/account-password"
+import {
+  authCompatSessionGetEndpoint,
+  authCompatSessionPostEndpoint,
+} from "./endpoints/auth-compat-probe"
 import { addArticleSourceEndpoint } from "./endpoints/article-sources"
 import { deliveryArticleEndpoint, deliveryArticlesEndpoint } from "./endpoints/delivery"
 import { editionAiChatDraftEndpoint, editionAiChatEndpoint } from "./endpoints/edition-ai-chat"
@@ -160,6 +164,8 @@ export default buildConfig({
   },
   endpoints: [
     changeOwnPasswordEndpoint,
+    authCompatSessionGetEndpoint,
+    authCompatSessionPostEndpoint,
     createRollbackIntentEndpoint,
     createDraftFromPublishedEndpoint,
     submitPublishOperationEndpoint,
