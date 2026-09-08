@@ -220,6 +220,30 @@ const answer = 42
     ])
   })
 
+  it("treats undefined Payload helper fields as storage noise during beforeChange", () => {
+    // Payload 在 beforeChange 合并 blocks 时可能把辅助键保留为 undefined；
+    // JSON 入库后该键消失，所以历史快照看不出它，但转换时不能因此保护整块。
+    const markdown = blocksToMarkdown([
+      {
+        blockName: undefined,
+        blockType: "heading",
+        extensions: undefined,
+        id: "payload-row-1",
+        level: "2",
+        text: "Legacy 内部写入验证",
+      },
+      {
+        blockName: undefined,
+        blockType: "paragraph",
+        extensions: undefined,
+        id: "payload-row-2",
+        text: "GF-BODY-ONLY-INTERNAL-20260908",
+      },
+    ])
+    expect(markdown).toBe("## Legacy 内部写入验证\n\nGF-BODY-ONLY-INTERNAL-20260908")
+    expect(markdown).not.toContain(":::gf-block")
+  })
+
   it("parses handwritten Markdown despite blank lines, trailing spaces, and CRLF", () => {
     expect(
       markdownToBlocks(

@@ -18,7 +18,9 @@ const isRow = (value: unknown): value is Row =>
  * 因此可读映射允许丢弃；带有真实值的 extensions/blockName 仍走保护块保真。
  */
 const isStorageNoise = (row: Row, key: string): boolean =>
-  key === "id" || ((key === "blockName" || key === "extensions") && row[key] === null)
+  key === "id" ||
+  ((key === "blockName" || key === "extensions") &&
+    (row[key] === null || row[key] === undefined))
 
 const hasOnlyKeys = (row: Row, allowed: readonly string[]): boolean =>
   Object.keys(row).every((key) => allowed.includes(key) || isStorageNoise(row, key))
