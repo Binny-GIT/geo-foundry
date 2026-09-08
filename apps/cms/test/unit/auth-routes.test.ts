@@ -15,14 +15,14 @@ describe("compat auth route surface", () => {
     expect(expired).toContain("SameSite=Lax")
   })
 
-  it("claims only the migrated auth routes and leaves forgot/reset/users CRUD to Payload fallback", () => {
+  it("claims the migrated auth routes and leaves users CRUD to Payload fallback", () => {
     expect(compatAuthRouteOf("GET", ["users", "me"])).toBe("me")
+    expect(compatAuthRouteOf("POST", ["users", "forgot-password"])).toBe("forgot-password")
     expect(compatAuthRouteOf("POST", ["users", "login"])).toBe("login")
     expect(compatAuthRouteOf("POST", ["users", "logout"])).toBe("logout")
     expect(compatAuthRouteOf("POST", ["users", "refresh-token"])).toBe("refresh")
+    expect(compatAuthRouteOf("POST", ["users", "reset-password"])).toBe("reset-password")
     expect(compatAuthRouteOf("POST", ["account", "password"])).toBe("account-password")
-    expect(compatAuthRouteOf("POST", ["users", "forgot-password"])).toBeNull()
-    expect(compatAuthRouteOf("POST", ["users", "reset-password"])).toBeNull()
     expect(compatAuthRouteOf("GET", ["users"])).toBeNull()
     expect(compatAuthRouteOf("GET", ["users", "123"])).toBeNull()
   })

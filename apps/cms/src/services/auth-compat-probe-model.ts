@@ -15,11 +15,13 @@ export type CompatSessionToken = Readonly<{ expiresAt: number; token: string }>
 export const issueCompatSessionToken = async (input: {
   readonly configSecret: string
   readonly email: string
+  /** 复用已确定的数据库 session 到期秒值（reset 场景），默认 now + 7d。 */
+  readonly expiresAt?: number
   readonly sid: string
   readonly userId: number
 }): Promise<CompatSessionToken> => {
   const issuedAt = Math.floor(Date.now() / 1000)
-  const exp = issuedAt + SESSION_TOKEN_EXPIRATION_SECONDS
+  const exp = input.expiresAt ?? issuedAt + SESSION_TOKEN_EXPIRATION_SECONDS
   const token = await new SignJWT({
     collection: "users",
     email: input.email,

@@ -4,7 +4,7 @@
  * Drizzle + compat auth。未迁出的 refresh/forgot/reset 继续由 catch-all 回退。
  */
 
-import { randomUUID } from "node:crypto"
+import { randomBytes, randomUUID } from "node:crypto"
 
 import { z } from "zod"
 
@@ -30,6 +30,17 @@ const passwordChangeSchema = z
     newPassword: z.string().min(8).max(200),
   })
   .strict()
+
+const forgotPasswordSchema = z
+  .object({ email: z.string().trim().email().max(254) })
+  .passthrough()
+
+const resetPasswordSchema = z
+  .object({
+    password: z.string().min(8).max(200),
+    token: z.string().regex(/^[a-f0-9]{40}$/),
+  })
+  .passthrough()
 
 const json = (status: number, body: unknown, headers?: Headers): Response => {
   const resultHeaders = headers ?? new Headers()
@@ -188,6 +199,69 @@ const handleRefresh = async (request: Request): Promise<Response> => {
   )
 }
 
+const handleForgotPassword = async (request: Request): Promise<Response> => {
+  let raw: unknown
+  try {
+    raw = await request.json()
+  } catch {
+    return json(400, { errors: [{ message: "请求正文无效。" }] })
+  }
+  const parsed = forgotPasswordSchema.safeParse(raw)
+  if (!parsed.success) return json(400, { errors: [{ message: "请求正文无效。" }] })
+
+  const token = randomBytes(20).toString("hex")
+  await new UsersRepository(serverRuntime().db).writeResetToken(
+    parsed.data.email.toLowerCase(),
+    token,
+    new Date(Date.now() + 60 * 60 * 1000),
+  )
+  // 未配置邮件 adapter 时与 Payload 一样不向响应暴露 token；未知邮箱同样 200。
+  return json(200, { message: "成功" })
+}
+
+const handleResetPassword = async (request: Request): Promise<Response> => {
+  let raw: unknown
+  try {
+    raw = await request.json()
+  } catch {
+    return json(400, { errors: [{ message: "请求正文无效。" }] })
+  }
+  const parsed = resetPasswordSchema.safeParse(raw)
+  if (!parsed.success) return json(400, { errors: [{ message: "请求正文无效。" }] })
+
+  const { configSecret, db } = serverRuntime()
+  const repository = new UsersRepository(db)
+  const credentials = await generatePasswordCredentialsCompat(parsed.data.password)
+  const sid = randomUUID()
+  const expiresAt = Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60
+  const user = await repository.consumeResetToken({
+    credentials,
+    expiresAt: new Date(expiresAt * 1000),
+    sid,
+    token: parsed.data.token,
+  })
+  if (user === null) {
+    return json(403, { errors: [{ message: "Token is either invalid or has expired." }] })
+  }
+  const session = await issueCompatSessionToken({
+    configSecret,
+    email: user.email,
+    expiresAt,
+    sid,
+    userId: user.id,
+  })
+  const headers = new Headers({ "set-cookie": cookieOf(session.token, session.expiresAt) })
+  return json(
+    200,
+    {
+      message: "密码重置成功。",
+      token: session.token,
+      user: await publicUser(repository, user),
+    },
+    headers,
+  )
+}
+
 const handlePasswordChange = async (request: Request): Promise<Response> => {
   const auth = await authenticateRequest(request.headers)
   if (auth === null || auth.session === null) {
@@ -221,7 +295,14 @@ const handlePasswordChange = async (request: Request): Promise<Response> => {
     : json(500, { error: { code: "ACCOUNT_PASSWORD_UPDATE_FAILED" } })
 }
 
-export type CompatAuthRoute = "account-password" | "login" | "logout" | "me" | "refresh"
+export type CompatAuthRoute =
+  | "account-password"
+  | "forgot-password"
+  | "login"
+  | "logout"
+  | "me"
+  | "refresh"
+  | "reset-password"
 
 export const compatAuthRouteOf = (
   method: "GET" | "POST",
@@ -232,9 +313,11 @@ export const compatAuthRouteOf = (
   if (method !== "POST") return null
   if (slug[0] === "account" && slug[1] === "password") return "account-password"
   if (slug[0] !== "users") return null
+  if (slug[1] === "forgot-password") return "forgot-password"
   if (slug[1] === "login") return "login"
   if (slug[1] === "logout") return "logout"
   if (slug[1] === "refresh-token") return "refresh"
+  if (slug[1] === "reset-password") return "reset-password"
   return null
 }
 
@@ -249,12 +332,16 @@ export const handleUsersAuthPost = async (
   slug: readonly string[] | undefined,
 ): Promise<Response | null> => {
   switch (compatAuthRouteOf("POST", slug)) {
+    case "forgot-password":
+      return handleForgotPassword(request)
     case "login":
       return handleLogin(request)
     case "logout":
       return handleLogout(request)
     case "refresh":
       return handleRefresh(request)
+    case "reset-password":
+      return handleResetPassword(request)
     default:
       return null
   }

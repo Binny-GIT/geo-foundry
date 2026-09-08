@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest"
 
 import {
   apiKeyFromAuthorization,
+  generatePasswordCredentialsCompat,
   type StoredCredentials,
   payloadApiKeyIndexesOf,
   payloadSigningKeyOf,
@@ -37,6 +38,14 @@ describe("auth compat: password", () => {
 
   it("Given empty stored fields, when verifying, then it refuses instead of hashing", async () => {
     await expect(verifyPasswordCompat("x", { hash: "", salt: "" })).resolves.toBe(false)
+  })
+
+  it("generates Payload-shaped credentials that verify the new password", async () => {
+    const credentials = await generatePasswordCredentialsCompat("new-password-123")
+    expect(credentials.salt).toMatch(/^[a-f0-9]{64}$/)
+    expect(credentials.hash).toMatch(/^[a-f0-9]{1024}$/)
+    await expect(verifyPasswordCompat("new-password-123", credentials)).resolves.toBe(true)
+    await expect(verifyPasswordCompat("wrong", credentials)).resolves.toBe(false)
   })
 })
 

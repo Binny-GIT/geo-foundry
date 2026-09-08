@@ -198,6 +198,77 @@ export class UsersRepository {
     return rows.length === 1
   }
 
+  async writeResetToken(email: string, token: string, expiresAt: Date): Promise<boolean> {
+    const rows = await this.db
+      .update(users)
+      .set({
+        resetPasswordExpiration: expiresAt,
+        resetPasswordToken: token,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.email, email))
+      .returning({ id: users.id })
+    return rows.length === 1
+  }
+
+  /** reset token 单次消费 + password + 新 sid 同一事务提交。 */
+  async consumeResetToken(input: Readonly<{
+    credentials: Readonly<{ hash: string; salt: string }>
+    expiresAt: Date
+    sid: string
+    token: string
+  }>): Promise<UserAuthRecord | null> {
+    return this.db.transaction(async (tx) => {
+      const candidates = await tx
+        .select()
+        .from(users)
+        .where(
+          and(
+            eq(users.resetPasswordToken, input.token),
+            gt(users.resetPasswordExpiration, new Date()),
+          ),
+        )
+        .limit(1)
+      const user = candidates[0]
+      if (user === undefined) return null
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(${user.id})`)
+      const updatedRows = await tx
+        .update(users)
+        .set({
+          hash: input.credentials.hash,
+          resetPasswordExpiration: new Date(),
+          resetPasswordToken: null,
+          salt: input.credentials.salt,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(users.id, user.id),
+            eq(users.resetPasswordToken, input.token),
+            gt(users.resetPasswordExpiration, new Date()),
+          ),
+        )
+        .returning()
+      const updated = updatedRows[0]
+      if (updated === undefined) return null
+      await tx
+        .delete(usersSessions)
+        .where(and(eq(usersSessions.parentId, user.id), sql`${usersSessions.expiresAt} <= NOW()`))
+      const orders = await tx
+        .select({ order: sql<number>`COALESCE(MAX(${usersSessions.order}), -1)` })
+        .from(usersSessions)
+        .where(eq(usersSessions.parentId, user.id))
+      await tx.insert(usersSessions).values({
+        createdAt: new Date(),
+        expiresAt: input.expiresAt,
+        id: input.sid,
+        order: Number(orders[0]?.order ?? -1) + 1,
+        parentId: user.id,
+      })
+      return authRecordOf(updated)
+    })
+  }
+
   async activeSessions(userId: number): Promise<
     readonly Readonly<{ createdAt: Date | null; expiresAt: Date; id: string }>[]
   > {
