@@ -371,7 +371,7 @@ export const handleIntakeOpsPost = async (
           summary,
           tenantId: item.tenantId,
           title,
-          workflowRevision: "0",
+          workflowRevision: 0,
           workflowStatus: "draft",
         })
         .returning({ id: contentEditions.id })
@@ -403,7 +403,7 @@ export const handleIntakeOpsPost = async (
           title,
           versionCreatedAt: now,
           versionUpdatedAt: now,
-          workflowRevision: "0",
+          workflowRevision: 0,
           workflowStatus: "draft",
         })
         .returning({ id: editionVersions.id })

@@ -355,7 +355,7 @@ export const reserveEditionUrlWithinTx = async (
       editionId: input.editionId,
       locale: result.value.reserved.locale.value,
       pathname: result.value.reserved.pathname.value,
-      revision: "0",
+      revision: 0,
       siteId: input.siteId,
       state: "reserved",
       tenantId: input.tenantId,
@@ -450,7 +450,7 @@ export const transitionEditionWithinTx = async (
   const versionValues = {
     auditLog,
     compiledRelease: nextCompiledRelease,
-    workflowRevision: String(nextRevision),
+    workflowRevision: nextRevision,
     workflowStatus: input.target,
   }
   const newVersionId = await insertLatestVersion(tx, current, versionValues)
@@ -528,7 +528,7 @@ export const createDraftFromPublishedWithinTx = async (
   await insertLatestVersion(tx, current, {
     auditLog,
     compiledRelease: null,
-    workflowRevision: "0",
+    workflowRevision: 0,
     workflowStatus: "draft",
   })
   await tx.insert(outboxEvents).values({

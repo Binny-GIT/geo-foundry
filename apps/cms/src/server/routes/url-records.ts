@@ -89,10 +89,10 @@ const handleRename = async (request: Request, slug: readonly string[]): Promise<
             id: candidate.id,
             locale: candidate.locale,
             pathname: candidate.pathname,
-            revision: Number(candidate.revision ?? 0),
+            revision: candidate.revision ?? 0,
             site: candidate.siteId,
             state: candidate.state,
-            statusCode: candidate.statusCode === null ? null : Number(candidate.statusCode),
+            statusCode: candidate.statusCode,
             targetUrl: candidate.targetUrlId,
             tenant: candidate.tenantId,
           }),
@@ -127,7 +127,7 @@ const handleRename = async (request: Request, slug: readonly string[]): Promise<
           editionId: row.editionId,
           locale: result.value.active.locale.value,
           pathname: result.value.active.pathname.value,
-          revision: "0",
+          revision: 0,
           siteId: row.siteId,
           state: "active",
           tenantId: row.tenantId,
@@ -139,9 +139,9 @@ const handleRename = async (request: Request, slug: readonly string[]): Promise<
       await tx
         .update(urlRecords)
         .set({
-          revision: String(Number(row.revision ?? 0) + 1),
+          revision: (row.revision ?? 0) + 1,
           state: "redirected",
-          statusCode: "301",
+          statusCode: 301,
           targetUrlId: activeId,
           updatedAt: new Date(),
         })

@@ -35,7 +35,7 @@ const authRecordOf = (row: UserRow): UserAuthRecord => ({
   enableAPIToken: row.enableAPIToken,
   hash: row.hash,
   id: row.id,
-  loginAttempts: row.loginAttempts === null ? 0 : Number(row.loginAttempts),
+  loginAttempts: row.loginAttempts === null ? 0 : row.loginAttempts,
   lockUntil: row.lockUntil,
   role: row.role,
   salt: row.salt,
@@ -98,11 +98,11 @@ export class UsersRepository {
       .returning({ attempts: users.loginAttempts, lockUntil: users.lockUntil })
     const row = rows[0]
     if (row === undefined) throw new Error(`users row missing: ${String(id)}`)
-    return { attempts: Number(row.attempts ?? 0), lockUntil: row.lockUntil }
+    return { attempts: row.attempts ?? 0, lockUntil: row.lockUntil }
   }
 
   async resetLoginFailures(id: number): Promise<void> {
-    await this.db.update(users).set({ loginAttempts: "0", lockUntil: null }).where(eq(users.id, id))
+    await this.db.update(users).set({ loginAttempts: 0, lockUntil: null }).where(eq(users.id, id))
   }
 
   /**
@@ -128,7 +128,7 @@ export class UsersRepository {
       })
       await tx
         .update(users)
-        .set({ loginAttempts: "0", lockUntil: null })
+        .set({ loginAttempts: 0, lockUntil: null })
         .where(eq(users.id, userId))
     })
   }

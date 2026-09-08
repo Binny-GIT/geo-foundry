@@ -54,7 +54,7 @@ const OUTBOX_REMOVAL_AGE_SECONDS = 86_400
 
 /**
  * Transactional-outbox dispatcher. Reads pending rows (oldest first) and
- * enqueues one BullMQ job per row using the stable `outbox:<eventId>` jobId.
+ * enqueues one BullMQ job per row using the stable `outbox-<eventId>` jobId.
  *
  * Crash-safety: a row is marked dispatched only after the enqueue succeeded,
  * and re-dispatching the same row re-adds the same jobId, which BullMQ

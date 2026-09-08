@@ -152,7 +152,7 @@ export class ReviewerDecisionsRepository {
           editionId: input.editionId,
           kind: "request-changes",
           tenantId,
-          workflowRevision: String(input.expectedRevision + 1),
+          workflowRevision: input.expectedRevision + 1,
         })
       }
       const response: ReviewerDecisionResponse = {

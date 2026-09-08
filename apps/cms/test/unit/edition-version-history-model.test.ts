@@ -33,7 +33,7 @@ const versionRow = (
   updatedAt: new Date("2026-09-08T00:01:00.000Z"),
   versionCreatedAt: new Date("2026-09-01T00:00:00.000Z"),
   versionUpdatedAt: new Date("2026-09-08T00:01:00.000Z"),
-  workflowRevision: "2",
+  workflowRevision: 2,
   workflowStatus: "draft",
   ...overrides,
 })

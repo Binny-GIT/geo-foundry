@@ -76,7 +76,7 @@ export const createReviewCommentWithDb = async (
         tenantId,
         ...(input.workflowRevision === undefined
           ? {}
-          : { workflowRevision: String(input.workflowRevision) }),
+          : { workflowRevision: input.workflowRevision }),
       })
       .returning({ id: reviewComments.id })
     const id = inserted[0]?.id

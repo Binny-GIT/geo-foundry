@@ -98,7 +98,7 @@ export const sourceSnapshots = geo.table(
     storageKey: varchar("storage_key").notNull(),
     contentHash: varchar("content_hash").notNull(),
     contentType: varchar("content_type"),
-    contentLength: numeric("content_length"),
+    contentLength: integer("content_length"),
     capturedAt: timestamp("captured_at", { withTimezone: true, precision: 3 })
       .defaultNow()
       .notNull(),
@@ -124,9 +124,9 @@ export const media = geo.table(
     thumbnailUrl: varchar("thumbnail_u_r_l"),
     filename: varchar("filename"),
     mimeType: varchar("mime_type"),
-    filesize: numeric("filesize"),
-    width: numeric("width"),
-    height: numeric("height"),
+    filesize: integer("filesize"),
+    width: integer("width"),
+    height: integer("height"),
     focalX: numeric("focal_x"),
     focalY: numeric("focal_y"),
     mediaPath: varchar("media_path"),

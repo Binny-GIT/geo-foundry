@@ -172,7 +172,7 @@ export const writeGeneratedDraft = async (
     const newVersionId = await insertLatestVersion(tx, version, {
       auditLog: version.auditLog ?? [],
       compiledRelease: version.compiledRelease,
-      workflowRevision: version.workflowRevision ?? "0",
+      workflowRevision: version.workflowRevision ?? 0,
       workflowStatus: version.workflowStatus ?? "draft",
     })
     await tx
@@ -274,7 +274,7 @@ export const recordCompileResult = async (
     await insertLatestVersion(tx, version, {
       auditLog: [...existingAudit, auditEntry],
       compiledRelease: version.compiledRelease,
-      workflowRevision: version.workflowRevision ?? "0",
+      workflowRevision: version.workflowRevision ?? 0,
       workflowStatus: version.workflowStatus ?? "draft",
     })
     await transitionEditionWithinTx(tx, {

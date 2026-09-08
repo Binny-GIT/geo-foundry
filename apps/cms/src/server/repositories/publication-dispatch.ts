@@ -49,14 +49,14 @@ const updatePlan = async (
   >,
   expectedStatus: "pending" | "running",
 ): Promise<boolean> => {
-  const revision = Number(plan.revision ?? 0)
+  const revision = plan.revision ?? 0
   const updated = await db
     .update(publicationPlans)
-    .set({ ...data, revision: String(revision + 1), updatedAt: new Date() })
+    .set({ ...data, revision: revision + 1, updatedAt: new Date() })
     .where(
       and(
         eq(publicationPlans.id, plan.id),
-        eq(publicationPlans.revision, String(revision)),
+        eq(publicationPlans.revision, revision),
         eq(publicationPlans.status, expectedStatus),
       ),
     )
@@ -70,21 +70,21 @@ const claimPlan = async (
   input: { readonly incrementAttempts: boolean; readonly now: string; readonly workerId: string },
 ): Promise<boolean> => {
   if (plan.status !== "pending" && plan.status !== "running") return false
-  const revision = Number(plan.revision ?? 0)
+  const revision = plan.revision ?? 0
   const claimed = await db
     .update(publicationPlans)
     .set({
       attempts: sql`${publicationPlans.attempts} + ${input.incrementAttempts ? 1 : 0}`,
       claimedAt: new Date(input.now),
       claimedBy: input.workerId,
-      revision: String(revision + 1),
+      revision: revision + 1,
       status: "running",
       updatedAt: new Date(),
     })
     .where(
       and(
         eq(publicationPlans.id, plan.id),
-        eq(publicationPlans.revision, String(revision)),
+        eq(publicationPlans.revision, revision),
         eq(publicationPlans.status, plan.status),
       ),
     )

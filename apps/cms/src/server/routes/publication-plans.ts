@@ -156,14 +156,14 @@ export const handlePublicationPlanPost = async (
       const updated = await tx
         .update(publicationPlans)
         .set({
-          revision: String(Number(plan.revision ?? 0) + 1),
+          revision: (plan.revision ?? 0) + 1,
           status: "cancelled",
           updatedAt: new Date(),
         })
         .where(
           and(
             eq(publicationPlans.id, plan.id),
-            eq(publicationPlans.revision, plan.revision ?? "0"),
+            eq(publicationPlans.revision, plan.revision ?? 0),
             eq(publicationPlans.status, "pending"),
           ),
         )

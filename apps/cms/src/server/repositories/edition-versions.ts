@@ -273,7 +273,7 @@ export class EditionVersionsRepository {
           updatedAt: now,
           versionCreatedAt: current.versionCreatedAt,
           versionUpdatedAt: now,
-          workflowRevision: String(input.expectedRevision + 1),
+          workflowRevision: input.expectedRevision + 1,
           workflowStatus: "draft",
         })
         .returning({ id: editionVersions.id })
@@ -308,7 +308,7 @@ export class EditionVersionsRepository {
         editionId: input.editionId,
         endpoint: `/workspaces/editions/${input.editionId}/restore-draft`,
         idempotencyKey: input.idempotencyKey,
-        replayCount: "0",
+        replayCount: 0,
         requestHash: input.requestHash,
         requestId: input.requestId,
         responsePayload: response,

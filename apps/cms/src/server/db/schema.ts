@@ -51,7 +51,7 @@ export const users = geo.table(
     }),
     salt: varchar("salt"),
     hash: varchar("hash"),
-    loginAttempts: numeric("login_attempts").default("0"),
+    loginAttempts: integer("login_attempts").default(0),
     lockUntil: timestamp("lock_until", { withTimezone: true, precision: 3 }),
   },
   (table) => [

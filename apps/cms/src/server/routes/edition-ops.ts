@@ -105,7 +105,7 @@ export const handleEditionOpsPost = async (
             summary: version.summary,
             tenantId: version.tenantId,
             title: version.title,
-            workflowRevision: "0",
+            workflowRevision: 0,
             workflowStatus: "draft",
           })
           .returning({ id: contentEditions.id })
@@ -138,7 +138,7 @@ export const handleEditionOpsPost = async (
             title: version.title,
             versionCreatedAt: now,
             versionUpdatedAt: now,
-            workflowRevision: "0",
+            workflowRevision: 0,
             workflowStatus: "draft",
           })
           .returning({ id: editionVersions.id })
@@ -249,7 +249,7 @@ export const handleEditionOpsPost = async (
       const newVersionId = await insertLatestVersion(tx, version, {
         auditLog: version.auditLog ?? [],
         compiledRelease: version.compiledRelease,
-        workflowRevision: version.workflowRevision ?? "0",
+        workflowRevision: version.workflowRevision ?? 0,
         workflowStatus: version.workflowStatus ?? "draft",
       })
       // 显式回写 owner/site：insertLatestVersion 复制 current，需要覆盖这两列语义。

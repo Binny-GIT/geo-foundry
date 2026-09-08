@@ -98,7 +98,7 @@ const updateRelease = async (
   audit: Record<string, unknown>,
   data: { readonly operationId: string; readonly receipt: PublishReceipt | RollbackReceipt },
 ): Promise<void> => {
-  const revision = Number(row.revision ?? 0)
+  const revision = row.revision ?? 0
   const existingAudit = Array.isArray(row.auditLog) ? row.auditLog : []
   const updated = await tx
     .update(releases)
@@ -106,11 +106,11 @@ const updateRelease = async (
       auditLog: [...existingAudit, audit],
       operationId: data.operationId,
       receipt: data.receipt,
-      revision: String(revision + 1),
+      revision: revision + 1,
       state,
       updatedAt: new Date(),
     })
-    .where(and(eq(releases.id, row.id), eq(releases.revision, String(revision))))
+    .where(and(eq(releases.id, row.id), eq(releases.revision, revision)))
     .returning({ id: releases.id })
   if (updated.length !== 1) {
     throw new ReleaseRegistryError("RELEASE_REVISION_CONFLICT", String(row.id))
@@ -243,10 +243,10 @@ const activatePublishedEditionUrl = async (
         id: row.id,
         locale: row.locale,
         pathname: row.pathname,
-        revision: Number(row.revision ?? 0),
+        revision: row.revision ?? 0,
         site: row.siteId,
         state: row.state,
-        statusCode: row.statusCode === null ? null : Number(row.statusCode),
+        statusCode: row.statusCode,
         targetUrl: row.targetUrlId,
         tenant: row.tenantId,
       }),
@@ -319,7 +319,7 @@ export const recordPublishedRelease = async (
         operationId: input.operationId,
         receipt,
         releaseId: receipt.releaseId,
-        revision: "0",
+        revision: 0,
         runtimeSiteId,
         siteId: site.id,
         state: "current",

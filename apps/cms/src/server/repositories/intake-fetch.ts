@@ -82,7 +82,7 @@ const snapshotIdFor = async (tx: Tx, input: SnapshotInput): Promise<number> => {
     .values({
       capturedAt: new Date(),
       contentHash: input.contentHash,
-      contentLength: String(input.contentLength),
+      contentLength: input.contentLength,
       contentType: input.contentType,
       intakeItemId: input.intakeItemId,
       kind: input.kind,

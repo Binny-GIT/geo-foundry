@@ -277,7 +277,7 @@ export class EditionsRepository {
           summary: patch.summary ?? "",
           tenantId,
           title: patch.title ?? "",
-          workflowRevision: "0",
+          workflowRevision: 0,
           workflowStatus: "draft",
         })
         .returning({ id: contentEditions.id })
@@ -311,7 +311,7 @@ export class EditionsRepository {
           title: patch.title ?? "",
           versionCreatedAt: now,
           versionUpdatedAt: now,
-          workflowRevision: "0",
+          workflowRevision: 0,
           workflowStatus: "draft",
         })
         .returning({ id: editionVersions.id })

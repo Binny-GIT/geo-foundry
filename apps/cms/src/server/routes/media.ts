@@ -83,7 +83,7 @@ export const handleMediaUploadPost = async (
       alt,
       caption,
       filename,
-      filesize: String(body.byteLength),
+      filesize: body.byteLength,
       mediaPath: `/media/tenants/${tenantId}/${filename}`,
       mimeType: file.type,
       prefix: `tenants/${tenantId}`,

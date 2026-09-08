@@ -50,7 +50,7 @@ const clock: Clock = {
 }
 
 const snapshotOf = (row: OperationRow): OperationSnapshot => ({
-  attempt: Number(row.attempt ?? 1),
+  attempt: row.attempt ?? 1,
   currentStage:
     typeof row.currentStage === "string" && row.currentStage.length > 0 ? row.currentStage : null,
   endpoint: String(row.endpoint),
@@ -108,12 +108,12 @@ const aggregateOf = (row: OperationRow) => {
           tenantId: tenantId.value,
         })
   return Object.freeze({
-    attempt: Number(row.attempt ?? 1),
+    attempt: row.attempt ?? 1,
     audit: [],
     id: parsedId.value,
     idempotencyKeyHash: parsedKeyHash.value,
     ownership: ownership as never,
-    revision: Number(row.revision ?? 0),
+    revision: row.revision ?? 0,
     retryOf: null,
     state: row.state,
   })
@@ -191,7 +191,7 @@ const loadForStage = async (
   const row = rows[0]
   if (row === undefined) throw fail("OPERATION_NOT_FOUND")
   assertTenantScope(claims, row)
-  const currentAttempt = Number(row.attempt ?? 1)
+  const currentAttempt = row.attempt ?? 1
   if (!Number.isInteger(input.attempt) || input.attempt < 1 || input.attempt !== currentAttempt) {
     throw fail("OPERATION_ATTEMPT_STALE")
   }
@@ -211,16 +211,16 @@ const appendAudit = async (
   }>,
 ): Promise<void> => {
   const existingAudit = Array.isArray(row.auditLog) ? row.auditLog : []
-  const revision = Number(row.revision ?? 0)
+  const revision = row.revision ?? 0
   const updated = await tx
     .update(operations)
     .set({
       auditLog: [...existingAudit, entry],
-      revision: String(revision + 1),
+      revision: revision + 1,
       ...data,
       updatedAt: new Date(),
     })
-    .where(and(eq(operations.id, row.id), eq(operations.revision, row.revision ?? "0")))
+    .where(and(eq(operations.id, row.id), eq(operations.revision, row.revision ?? 0)))
     .returning({ id: operations.id })
   if (updated.length === 0) throw fail("OPERATION_REVISION_CONFLICT")
 }
