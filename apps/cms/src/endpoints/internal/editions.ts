@@ -1,12 +1,14 @@
 import type { PayloadRequest } from "payload"
 import {
   readEditionInput,
+  recordAssessment,
   recordCompileResult,
   writeGeneratedDraft,
-} from "../../services/edition-integration"
-import { EditionWorkflowError, recordAssessment } from "../../services/edition-workflow"
+} from "../../server/repositories/edition-integration"
+import { EditionWorkflowError } from "../../services/edition-workflow"
 import { findSimilarEditions } from "../../services/embedding-similarity"
 import { storeEditionEmbedding } from "../../services/embedding-store"
+import { serverRuntime } from "../../server/runtime"
 import {
   type AssessmentBody,
   assessmentBodySchema,
@@ -33,7 +35,7 @@ const editionIdOf = (req: PayloadRequest): number => {
 const handleGetEditionInput = withInternalGuards(
   { bodySchema: null, operation: "getEditionInput" },
   async (req, ctx) => {
-    const snapshot = await readEditionInput(req.payload, {
+    const snapshot = await readEditionInput(serverRuntime().db, {
       editionId: editionIdOf(req),
       user: req.user,
     })
@@ -44,7 +46,7 @@ const handleGetEditionInput = withInternalGuards(
 const handleWriteDraftVersion = withInternalGuards(
   { bodySchema: draftVersionBodySchema, operation: "writeDraftVersion" },
   async (req, ctx, body: DraftVersionBody) => {
-    const receipt = await writeGeneratedDraft(req.payload, {
+    const receipt = await writeGeneratedDraft(serverRuntime().db, {
       editionId: editionIdOf(req),
       ...(ctx.operationId === null ? {} : { operationId: ctx.operationId }),
       patch: {
@@ -64,7 +66,7 @@ const handleWriteDraftVersion = withInternalGuards(
 const handleRecordAssessment = withInternalGuards(
   { bodySchema: assessmentBodySchema, operation: "recordAssessment" },
   async (req, ctx, body: AssessmentBody) => {
-    const assessmentId = await recordAssessment(req.payload, {
+    const assessmentId = await recordAssessment(serverRuntime().db, {
       editionId: editionIdOf(req),
       inputHash: body.inputHash,
       issues: body.issues,
@@ -84,7 +86,7 @@ const handleRecordAssessment = withInternalGuards(
 const handleRecordCompileResult = withInternalGuards(
   { bodySchema: compileResultBodySchema, operation: "recordCompileResult" },
   async (req, ctx, body: CompileResultBody) => {
-    const receipt = await recordCompileResult(req.payload, {
+    const receipt = await recordCompileResult(serverRuntime().db, {
       editionId: editionIdOf(req),
       manifestSha256: body.manifestSha256,
       objectCount: body.objectCount,
@@ -101,7 +103,7 @@ const handleRecordCompileResult = withInternalGuards(
 const handleStoreEmbedding = withInternalGuards(
   { bodySchema: embeddingStoreBodySchema, operation: "storeEmbedding" },
   async (req, ctx, body: EmbeddingStoreBody) => {
-    const receipt = await storeEditionEmbedding(req.payload, {
+    const receipt = await storeEditionEmbedding(serverRuntime().db, {
       dimension: body.dimension,
       editionId: editionIdOf(req),
       inputHash: body.inputHash,
@@ -117,7 +119,7 @@ const handleStoreEmbedding = withInternalGuards(
 const handleFindSimilarEditions = withInternalGuards(
   { bodySchema: similarityQueryBodySchema, operation: "findSimilarEditions" },
   async (req, ctx, body: SimilarityQueryBody) => {
-    const matches = await findSimilarEditions(req.payload, {
+    const matches = await findSimilarEditions(serverRuntime().db, {
       comparison: body.comparison,
       dimension: body.dimension,
       editionId: editionIdOf(req),

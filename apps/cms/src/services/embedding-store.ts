@@ -1,13 +1,9 @@
 import { createHash } from "node:crypto"
-import { sql } from "@payloadcms/db-postgres"
-import type { Payload } from "payload"
+import { eq, and, sql } from "drizzle-orm"
 
-import {
-  assertEditionTenantScope,
-  loadWorkflowEdition,
-  numberFieldOf,
-  requireServiceIdentity,
-} from "./edition-workflow"
+import { editionVersions } from "../server/db/edition-schema"
+import type { ServerDb } from "../server/db/client"
+import { resolveSessionClaims } from "../access/session"
 
 /** The single pgvector column dimension pinned by the task20 migration. */
 export const EMBEDDING_DIMENSION = 1536
@@ -44,18 +40,31 @@ export type EmbeddingEditionAnchor = {
 }
 
 export const anchorOf = async (
-  payload: Payload,
+  db: ServerDb,
   editionId: number,
   user: unknown,
 ): Promise<EmbeddingEditionAnchor> => {
-  requireServiceIdentity(user)
-  const doc = await loadWorkflowEdition(payload, editionId, {}, true)
-  assertEditionTenantScope(user, doc)
-  return {
-    editionId: doc.id,
-    siteId: numberFieldOf(doc.site) ?? -1,
-    tenantId: numberFieldOf(doc.tenant) ?? -1,
+  const claims = resolveSessionClaims(user)
+  if (claims === null || claims.kind !== "service" || claims.role !== "content-service") {
+    throw new EmbeddingStoreError(EMBEDDING_STORE_ERROR.EDITION_NOT_FOUND, "service identity required")
   }
+  const tenantId = Number(claims.tenantId)
+  const rows = await db
+    .select({ siteId: editionVersions.siteId, tenantId: editionVersions.tenantId })
+    .from(editionVersions)
+    .where(
+      and(
+        eq(editionVersions.parentId, editionId),
+        eq(editionVersions.latest, true),
+        ...(Number.isInteger(tenantId) && tenantId > 0 ? [eq(editionVersions.tenantId, tenantId)] : []),
+      ),
+    )
+    .limit(1)
+  const row = rows[0]
+  if (row === undefined) {
+    throw new EmbeddingStoreError(EMBEDDING_STORE_ERROR.EDITION_NOT_FOUND, `edition ${editionId}`)
+  }
+  return { editionId, siteId: row.siteId ?? -1, tenantId: row.tenantId ?? -1 }
 }
 
 const vectorLiteralOf = (vector: readonly number[]): string => `[${vector.join(",")}]`
@@ -127,10 +136,10 @@ export type EmbeddingReceipt = {
 type IdRow = { id: number | string }
 
 export async function storeEditionEmbedding(
-  payload: Payload,
+  db: ServerDb,
   input: StoreEmbeddingInput,
 ): Promise<EmbeddingReceipt> {
-  const anchor = await anchorOf(payload, input.editionId, input.user)
+  const anchor = await anchorOf(db, input.editionId, input.user)
   const vectorLiteral = validateVector(input.vector, input.dimension)
   const embeddingKey = embeddingKeyOf({
     dimension: input.dimension,
@@ -143,7 +152,7 @@ export async function storeEditionEmbedding(
     vectorLiteral,
   })
   try {
-    const inserted = await payload.db.drizzle.execute(sql`
+    const inserted = await db.execute(sql`
       INSERT INTO "geo_foundry"."embeddings"
         ("embedding_key", "tenant_id", "site_id", "edition_id", "scope", "model_id", "dimension", "input_hash", "embedding")
       VALUES (${embeddingKey}, ${anchor.tenantId}, ${anchor.siteId}, ${anchor.editionId}, ${input.scope}, ${input.modelId}, ${input.dimension}, ${input.inputHash}, ${vectorLiteral}::public.vector)
@@ -157,7 +166,7 @@ export async function storeEditionEmbedding(
         embeddingKey,
       }
     }
-    const existing = await payload.db.drizzle.execute(sql`
+    const existing = await db.execute(sql`
       SELECT "id" FROM "geo_foundry"."embeddings" WHERE "embedding_key" = ${embeddingKey}`)
     const existingRows = existing.rows as unknown as IdRow[]
     const row = existingRows[0]

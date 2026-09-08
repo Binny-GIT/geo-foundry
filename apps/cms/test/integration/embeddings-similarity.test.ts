@@ -139,7 +139,7 @@ describe("pgvector semantic similarity gate", () => {
     await world.payload.db.drizzle.execute(sql`ANALYZE geo_foundry.embeddings`)
     await world.payload.db.drizzle.execute(sql`SET enable_seqscan = off`)
     try {
-      const plan = await explainSimilarityQuery(world.payload, {
+      const plan = await explainSimilarityQuery(world.payload.db.drizzle as never, {
         comparison: "cross-domain",
         dimension: DIM,
         editionId: world.queryEdition,

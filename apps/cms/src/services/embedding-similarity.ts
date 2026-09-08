@@ -1,5 +1,6 @@
-import { sql } from "@payloadcms/db-postgres"
-import type { Payload } from "payload"
+import { sql } from "drizzle-orm"
+
+import type { ServerDb } from "../server/db/client"
 
 import {
   anchorOf,
@@ -67,13 +68,13 @@ const similarityQuery = (input: {
 }
 
 export async function findSimilarEditions(
-  payload: Payload,
+  db: ServerDb,
   input: SimilarityQueryInput,
 ): Promise<readonly SimilarityMatchRow[]> {
-  const anchor = await anchorOf(payload, input.editionId, input.user)
+  const anchor = await anchorOf(db, input.editionId, input.user)
   const vectorLiteral = validateVector(input.vector, input.dimension)
   try {
-    const result = await payload.db.drizzle.execute(
+    const result = await db.execute(
       similarityQuery({
         anchor,
         comparison: input.comparison,
@@ -115,12 +116,12 @@ export async function findSimilarEditions(
  * threshold. Read-only; never mutates planner settings.
  */
 export async function explainSimilarityQuery(
-  payload: Payload,
+  db: ServerDb,
   input: SimilarityQueryInput,
 ): Promise<readonly unknown[]> {
-  const anchor = await anchorOf(payload, input.editionId, input.user)
+  const anchor = await anchorOf(db, input.editionId, input.user)
   const vectorLiteral = validateVector(input.vector, input.dimension)
-  const result = await payload.db.drizzle.execute(sql`
+  const result = await db.execute(sql`
     EXPLAIN (FORMAT JSON) ${similarityQuery({
       anchor,
       comparison: input.comparison,
