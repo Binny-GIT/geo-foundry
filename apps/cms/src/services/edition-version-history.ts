@@ -1,4 +1,4 @@
-import { createLocalReq, type Payload, type PayloadRequest } from "payload"
+import type { Payload } from "payload"
 
 import { resolveSessionClaims } from "../access/session"
 import { blocksToMarkdown, markdownToBlocks } from "../editor/block-markdown"
@@ -204,17 +204,14 @@ export const editionVersionHistory = async (
   payload: Payload,
   input: { readonly editionId: number; readonly user: unknown },
 ): Promise<readonly EditionVersionHistoryItem[]> => {
+  // 先执行 document-level access；通过后只按已验证的 parent id 查询版本。
+  // readVersions 的额外 tenant where 在 Payload 3.88 会把版本结果错误过滤为空。
   await ensureReadableEdition(payload, input.editionId, input.user)
-  const req = await createLocalReq(
-    { req: { user: input.user as PayloadRequest["user"] } },
-    payload,
-  )
   const versions = await versionStore(payload).findVersions({
     collection: "content-editions",
     depth: 0,
     limit: 20,
-    overrideAccess: false,
-    req,
+    overrideAccess: true,
     sort: "-createdAt",
     where: { parent: { equals: input.editionId } },
   })
