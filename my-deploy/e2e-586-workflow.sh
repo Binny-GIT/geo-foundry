@@ -31,7 +31,7 @@ D0=$(draft); R0=$(rev_of "$D0")
 V0=$(Q "count(*) FROM geo_foundry._content_editions_v WHERE parent_id=$ED")
 O0=$(Q "count(*) FROM geo_foundry.outbox_events WHERE aggregate_id='$ED'")
 U0=$(Q "count(*) FROM geo_foundry.url_records WHERE content_id=619")
-C0=$(Q "count(*) FROM geo_foundry.review_comments WHERE edition_id=$ED")
+C0=$(Q "count(*) FROM geo_foundry.review_comments WHERE edition_id=$ED AND kind='request-changes'")
 I0=$(Q "count(*) FROM geo_foundry.reviewer_edition_decision_idempotency WHERE edition_id=$ED")
 echo "pre: rev=$R0 versions=$V0 outbox=$O0 urls=$U0 comments=$C0 idem=$I0"
 
