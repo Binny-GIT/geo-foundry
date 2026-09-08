@@ -36,11 +36,8 @@ PY=$(Q "id||'|'||status FROM geo_foundry.intake_items WHERE connector_id=$CID_Y 
 PID=${PY%%|*}; PST=${PY##*|}
 # 75s 等待窗口内常驻 worker 可能已消费并把不可达 feed 置为 failed，两者都算链路打通。
 [ -n "$PID" ] && { [ "$PST" = "fetching" ] || [ "$PST" = "failed" ]; }   && ok "parent intake created (id=$PID status=$PST)" || bad "parent=$PY"
-RPW=$(sudo cat /opt/geo-foundry/credentials/redis-password 2>/dev/null || echo "")
-if [ -n "$RPW" ]; then
-  JOB=$(sudo docker exec redis-server redis-cli --no-auth-warning -a "$RPW" EXISTS "geo-foundry:content-intake:intake-$PID" 2>/dev/null || echo na)
-  [ "$JOB" = "1" ] && ok "intake job enqueued (jobId intake-$PID)" || echo "note: intake job key not found ($JOB), continuing"
-fi
+JOB=$(Q "count(*) FROM pgboss.job WHERE singleton_key='intake-$PID'")
+[ "$JOB" -ge 1 ] && ok "intake job enqueued in pgboss (intake-$PID)" || echo "note: pgboss intake job not found yet (worker may have completed+pruned), continuing"
 
 # ---------- 2. tick2：parent fetching 中不重复 ----------
 # ---------- 2. 常驻 worker 真实消费：拉取不可达 feed → failed ----------

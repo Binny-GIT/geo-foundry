@@ -12,7 +12,7 @@ fi
 sudo -n docker exec -w /worker -i "$WORKER_CONTAINER" node --input-type=module <<'NODE'
 import { readFileSync } from "node:fs"
 
-import { createClient } from "redis"
+import pg from "pg"
 
 const requiredFile = (name) => {
   const path = process.env[name]
@@ -38,21 +38,15 @@ if (
   throw new Error("WORKER_SMOKE_KEYRING_INVALID")
 }
 
-const redis = createClient({
-  database: Number(process.env.GEO_FOUNDRY_REDIS_DATABASE ?? "0"),
-  password: requiredFile("GEO_FOUNDRY_REDIS_PASSWORD_FILE"),
-  socket: {
-    host: process.env.GEO_FOUNDRY_REDIS_HOST,
-    port: Number(process.env.GEO_FOUNDRY_REDIS_PORT ?? "6379"),
-  },
-})
+const connectionString = requiredFile("GEO_FOUNDRY_WORKER_PG_URL_FILE")
+const pool = new pg.Pool({ connectionString, max: 1 })
 try {
-  await redis.connect()
-  if ((await redis.ping()) !== "PONG") {
-    throw new Error("WORKER_SMOKE_REDIS_PING_FAILED")
+  const probe = await pool.query("SELECT count(*)::int AS n FROM pgboss.queue")
+  if (probe.rows[0].n < 1) {
+    throw new Error("WORKER_SMOKE_PGBOSS_QUEUES_MISSING")
   }
 } finally {
-  await redis.quit().catch(() => undefined)
+  await pool.end().catch(() => undefined)
 }
 
 const cmsBaseUrl = process.env.CMS_BASE_URL

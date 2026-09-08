@@ -34,6 +34,18 @@ export type ProcessorOutcome =
   | { readonly kind: "failed"; readonly reason: string }
   | { readonly kind: "succeeded"; readonly result: Record<string, unknown> }
 
+/**
+ * 队列任务的最小形状（pg-boss work handler 适配层构造）：
+ * name 是阶段名（evaluation/publish-gate/...），queueName 是队列名，
+ * 与旧 BullMQ Job 的业务语义一一对应。
+ */
+export type WorkJob<TData = WorkJobData> = {
+  readonly data: TData
+  readonly id: string
+  readonly name: string
+  readonly queueName: string
+}
+
 export type WorkJobData = {
   readonly operationId: string
   readonly payload?: Record<string, unknown>

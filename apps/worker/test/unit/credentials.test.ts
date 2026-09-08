@@ -4,7 +4,6 @@ import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 
 import { optionalWorkerCredential, workerCredentialOf } from "../../src/config/credentials.js"
-import { parseWorkerRedisOptions } from "../../src/config/redis.js"
 import { parseWorkerS3Options } from "../../src/processors/release-pipeline.js"
 
 const fixtureOf = async (): Promise<{
@@ -14,7 +13,7 @@ const fixtureOf = async (): Promise<{
   const directory = await mkdtemp(join(tmpdir(), "geo-foundry-worker-credentials-"))
   const values = {
     "content-service-api-key": "content-service-test-key",
-    "redis-password": "redis-test-password",
+    "worker-pg-url": "postgres://geo_worker:test@127.0.0.1:5432/geo_foundry",
     "s3-access-key": "s3-test-access-key",
     "s3-secret-key": "s3-test-secret-key",
   } as const
@@ -31,7 +30,7 @@ const fixtureOf = async (): Promise<{
       CONTENT_SERVICE_API_KEY_FILE: join(directory, "content-service-api-key"),
       GEO_FOUNDRY_CREDENTIAL_MODE: "file",
       GEO_FOUNDRY_REDIS_HOST: "127.0.0.1",
-      GEO_FOUNDRY_REDIS_PASSWORD_FILE: join(directory, "redis-password"),
+      GEO_FOUNDRY_WORKER_PG_URL_FILE: join(directory, "worker-pg-url"),
       GEO_FOUNDRY_S3_ACCESS_KEY_FILE: join(directory, "s3-access-key"),
       GEO_FOUNDRY_S3_SECRET_KEY_FILE: join(directory, "s3-secret-key"),
     },
@@ -39,16 +38,15 @@ const fixtureOf = async (): Promise<{
 }
 
 describe("Worker owner-only credentials", () => {
-  it("loads content-service, Redis, and S3 credentials from FILE references", async () => {
+  it("loads content-service, PostgreSQL, and S3 credentials from FILE references", async () => {
     const fixture = await fixtureOf()
     try {
       expect(workerCredentialOf(fixture.environment, "CONTENT_SERVICE_API_KEY")).toBe(
         "content-service-test-key",
       )
-      expect(parseWorkerRedisOptions(fixture.environment)).toMatchObject({
-        host: "127.0.0.1",
-        password: "redis-test-password",
-      })
+      expect(workerCredentialOf(fixture.environment, "GEO_FOUNDRY_WORKER_PG_URL")).toBe(
+        "postgres://geo_worker:test@127.0.0.1:5432/geo_foundry",
+      )
       expect(
         parseWorkerS3Options(fixture.environment, (name) =>
           workerCredentialOf(fixture.environment, name),

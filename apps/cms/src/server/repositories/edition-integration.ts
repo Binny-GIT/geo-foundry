@@ -4,7 +4,6 @@
  * services/edition-integration.ts + recordAssessment 保持一致。
  */
 
-import { randomUUID } from "node:crypto"
 
 import type { ContentEditionState } from "@geo/domain"
 import { eq } from "drizzle-orm"
@@ -15,9 +14,9 @@ import { resolveSessionClaims } from "../../access/session"
 import { hashEditionContent } from "../../services/edition-input-hash"
 import { EditionWorkflowError } from "../../services/edition-workflow"
 import type { ServerDb } from "../db/client"
+import { sendEditionEmbeddingJobWithin } from "../jobs/pgboss"
 import { editionVersions } from "../db/edition-schema"
 import { qualityAssessments } from "../db/session-schema"
-import { outboxEvents } from "../db/ledger-schema"
 import {
   insertLatestVersion,
   loadCurrentVersion,
@@ -187,22 +186,9 @@ export const writeGeneratedDraft = async (
         secondaryTopics: nextTopics,
       })
       .where(eq(editionVersions.id, newVersionId))
-    await tx.insert(outboxEvents).values({
-      aggregateId: String(options.editionId),
-      aggregateType: "edition",
-      attempts: "0",
-      eventId: randomUUID(),
-      eventPayload: {
-        fields,
-        inputHash,
-        workflowRevision,
-        workflowStatus: status as ContentEditionState,
-      },
-      ...(options.operationId === undefined ? {} : { operationId: options.operationId }),
-      ...(options.requestId === undefined ? {} : { requestId: options.requestId }),
-      status: "pending",
+    await sendEditionEmbeddingJobWithin(tx, {
+      editionId: options.editionId,
       tenantId: version.tenantId ?? -1,
-      type: "edition.draft-written",
     })
     return { fields, inputHash, workflowRevision, workflowStatus: status as ContentEditionState }
   })
@@ -286,24 +272,6 @@ export const recordCompileResult = async (
       scope,
       target: "compiled",
     })
-    await tx.insert(outboxEvents).values({
-      aggregateId: String(input.editionId),
-      aggregateType: "edition",
-      attempts: "0",
-      eventId: randomUUID(),
-      eventPayload: {
-        manifestSha256: input.manifestSha256,
-        objectCount: input.objectCount,
-        releaseId: input.releaseId,
-        totalBytes: input.totalBytes,
-        workflowStatus: "compiled",
-      },
-      ...(input.operationId === undefined ? {} : { operationId: input.operationId }),
-      ...(input.requestId === undefined ? {} : { requestId: input.requestId }),
-      status: "pending",
-      tenantId: version.tenantId ?? -1,
-      type: "edition.compile-recorded",
-    })
     return { releaseId: input.releaseId, workflowStatus: "compiled" as const }
   })
 }
@@ -347,22 +315,6 @@ export const recordAssessment = async (
       .returning({ id: qualityAssessments.id })
     const assessmentId = inserted[0]?.id
     if (assessmentId === undefined) throw fail("ASSESSMENT_WRITE_FAILED")
-    await tx.insert(outboxEvents).values({
-      aggregateId: String(input.editionId),
-      aggregateType: "edition",
-      attempts: "0",
-      eventId: randomUUID(),
-      eventPayload: {
-        assessmentId,
-        inputHash: input.inputHash,
-        state: input.state,
-      },
-      ...(input.operationId === undefined ? {} : { operationId: input.operationId }),
-      ...(input.requestId === undefined ? {} : { requestId: input.requestId }),
-      status: "pending",
-      tenantId: version.tenantId ?? -1,
-      type: "assessment.recorded",
-    })
     return assessmentId
   })
 }

@@ -102,8 +102,8 @@ RL=$(Q "state FROM geo_foundry.releases WHERE release_id='$REL'")
 [ "$RL" = "current" ] && ok "release $REL current" || bad "release state=$RL"
 URL=$(Q "state FROM geo_foundry.url_records WHERE edition_id=$ED AND site_id=$SITE ORDER BY id DESC LIMIT 1")
 [ "$URL" = "active" ] && ok "url reserved -> active" || bad "url state=$URL"
-OB=$(Q "count(*) FROM geo_foundry.outbox_events WHERE type='publish.requested' AND aggregate_id='$ED'")
-[ "$OB" -ge 1 ] && ok "publish.requested outbox written" || bad "outbox=$OB"
+JOB=$(Q "count(*) FROM pgboss.job WHERE singleton_key='$OP'")
+[ "$JOB" -ge 1 ] && ok "publish operation job in pgboss" || bad "pgboss job=$JOB"
 
 # ---------- 6. 幂等：重复 dispatch 不重复建 operation ----------
 D3=$(curl -s -X POST "$BASE/api/internal/publication-plans/dispatch-due" \

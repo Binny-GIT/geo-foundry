@@ -6,8 +6,6 @@
  * 都整体回滚。进程内 Map 只能减流，不能成为正确性边界。
  */
 
-import { randomUUID } from "node:crypto"
-
 import { and, eq, sql } from "drizzle-orm"
 
 import type { ServerDb } from "../db/client"
@@ -16,14 +14,12 @@ import {
   operations,
   type operationState,
   type operationType,
-  outboxEvents,
-  type outboxEventType,
 } from "../db/ledger-schema"
+import { sendOperationJobWithin } from "../jobs/pgboss"
 import { IdempotencyConflictError } from "../errors"
 
 type OperationType = (typeof operationType.enumValues)[number]
 type OperationState = (typeof operationState.enumValues)[number]
-type OutboxEventType = (typeof outboxEventType.enumValues)[number]
 
 export type SubmitOperationRecordInput = Readonly<{
   auditLog: readonly Record<string, unknown>[]
@@ -44,7 +40,7 @@ export type SubmitOperationRecordInput = Readonly<{
     aggregateType?: "edition" | "site"
     eventPayload: Record<string, unknown>
     requestId?: string
-    type: OutboxEventType
+    type: string
   }>
 }>
 
@@ -118,18 +114,13 @@ export class OperationsRepository {
         uniqueKey: input.uniqueKey,
       })
       if (input.outbox !== undefined) {
-        await tx.insert(outboxEvents).values({
-          aggregateId: String(input.outbox.aggregateId),
-          aggregateType: input.outbox.aggregateType ?? "edition",
-          attempts: "0",
-          eventId: randomUUID(),
-          eventPayload: input.outbox.eventPayload,
-          lastError: null,
+        // 同事务入队：operation 与任务原子提交，outbox/dispatcher/reconcile 不复存在。
+        await sendOperationJobWithin(tx, {
+          kind: "operation",
           operationId: input.operationId,
-          ...(input.outbox.requestId === undefined ? {} : { requestId: input.outbox.requestId }),
-          status: "pending",
+          operationType: input.operationType,
+          payload: (input.outbox.eventPayload ?? {}) as Record<string, unknown>,
           tenantId: input.tenantId,
-          type: input.outbox.type,
         })
       }
       return { created: true, operationId: input.operationId, state: "queued" }

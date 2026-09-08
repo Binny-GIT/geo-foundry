@@ -66,10 +66,10 @@ OP=$(echo "$BODY" | python3 -c 'import json,sys;print(json.load(sys.stdin)["oper
 [ "$CODE" = "201" ] && [ -n "$INTENT" ] && ok "intent created (op=$OP)" || { bad "intent $I1"; exit 1; }
 ROW=$(Q "consumed_at IS NULL FROM geo_foundry.rollback_intents WHERE intent_id='$INTENT'")
 OPT=$(Q "state FROM geo_foundry.operations WHERE operation_id='$OP'")
-OBT=$(Q "count(*) FROM geo_foundry.outbox_events WHERE type='rollback.requested' AND operation_id='$OP'")
-# 常驻 worker 会经 outbox 真实认领该 operation（queued→running），E2E 与其竞争属预期。
+OBT=$(Q "count(*) FROM pgboss.job WHERE singleton_key='$OP'")
+# 常驻 worker 会真实认领该 operation（queued→running），E2E 与其竞争属预期。
 [ "$ROW" = "t" ] && { [ "$OPT" = "queued" ] || [ "$OPT" = "running" ]; } && [ "$OBT" -ge 1 ] \
-  && ok "intent+operation ($OPT) + rollback.requested outbox" || bad "intent row=$ROW op=$OPT outbox=$OBT"
+  && ok "intent+operation ($OPT) + pgboss job" || bad "intent row=$ROW op=$OPT job=$OBT"
 
 # ---------- 4. consume：mismatch 拒绝 → 正确 → 重放幂等 ----------
 MISM="{\"expectedCurrentManifestSha256\":\"$SHA_B\",\"expectedCurrentReleaseId\":\"rel-wrong-$TS\",\"expectedManifestSha256\":\"$SHA_A\",\"operationId\":\"$OP\",\"rollbackIntentId\":\"$INTENT\",\"runtimeSiteId\":\"site-$SITE\",\"targetReleaseId\":\"$REL_A\"}"

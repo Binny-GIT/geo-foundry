@@ -24,7 +24,12 @@ const contextOf = () => {
   }
 }
 
-const job = { data: { operationId }, id: "fault-job", queueName: "content-publish" } as never
+const job = {
+  data: { operationId },
+  id: "fault-job",
+  name: "publish-gate",
+  queueName: "operation-publish",
+} as never
 
 describe("operation processor fault handling", () => {
   it("records stale pointer conflicts as one terminal ledger failure", async () => {
@@ -61,7 +66,7 @@ describe("operation processor fault handling", () => {
     expect(fixture.logs).not.toContain("worker.job.retryable-failure")
   })
 
-  it("keeps ordinary storage failures retryable", async () => {
+  it("retries ordinary failures in-process and terminalizes after exhausting attempts", async () => {
     const fixture = contextOf()
     const processor = operationProcessor(
       { context: fixture.context },
@@ -73,31 +78,8 @@ describe("operation processor fault handling", () => {
       },
     )
 
-    await expect(processor(job)).rejects.toThrow("temporary storage outage")
-    expect(fixture.completions).toEqual([])
-    expect(fixture.logs).toContain("worker.job.retryable-failure")
-  })
-
-  it("terminalizes the ledger when BullMQ exhausts retryable attempts", async () => {
-    const fixture = contextOf()
-    const processor = operationProcessor(
-      { context: fixture.context },
-      {
-        stage: "publish-gate",
-        work: async () => {
-          throw new Error("site lacks canonical domain")
-        },
-      },
-    )
-    const finalAttemptJob = {
-      attemptsMade: 2,
-      data: { operationId },
-      id: "fault-job-final",
-      opts: { attempts: 3 },
-      queueName: "content-publish",
-    } as never
-
-    await expect(processor(finalAttemptJob)).resolves.toEqual({
+    // 重试内部化（pg-boss 队列不再重试）：三次尝试耗尽后写回台账终态并返回 failed。
+    await expect(processor(job)).resolves.toEqual({
       kind: "failed",
       reason: "WORKER_RETRY_EXHAUSTED",
     })
@@ -106,12 +88,37 @@ describe("operation processor fault handling", () => {
         attempt: 1,
         error: {
           code: "WORKER_RETRY_EXHAUSTED",
-          message: "site lacks canonical domain",
+          message: "temporary storage outage",
         },
         outcome: "failed",
         stage: "publish-gate",
       },
     ])
+    expect(fixture.logs).toContain("worker.job.retryable-failure")
     expect(fixture.logs).toContain("worker.job.retry-exhausted")
+  })
+
+  it("succeeds on a later in-process attempt after a transient failure", async () => {
+    const fixture = contextOf()
+    let attempts = 0
+    const processor = operationProcessor(
+      { context: fixture.context },
+      {
+        stage: "publish-gate",
+        work: async () => {
+          attempts += 1
+          if (attempts === 1) throw new Error("temporary storage outage")
+          return { kind: "succeeded" as const, result: { attempts } }
+        },
+      },
+    )
+
+    await expect(processor(job)).resolves.toEqual({
+      kind: "succeeded",
+      result: { attempts: 2 },
+    })
+    expect(fixture.completions).toHaveLength(1)
+    expect(fixture.logs).toContain("worker.job.retryable-failure")
+    expect(fixture.logs).toContain("worker.job.succeeded")
   })
 })

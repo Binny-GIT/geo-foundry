@@ -49,12 +49,20 @@ write_credential s3-access-key "$GEO_FOUNDRY_S3_ACCESS_KEY"
 write_credential s3-secret-key "$GEO_FOUNDRY_S3_SECRET_KEY"
 write_credential cms-secret "$PAYLOAD_SECRET"
 
-redis_password="$(sed -n 's/^requirepass[[:space:]]\+//p' /home/ubuntu/my-docker-service/redis/redis.conf)"
-if [[ -z "$redis_password" ]]; then
-  printf '%s\n' 'MK_DEV_REDIS_PASSWORD_SOURCE_MISSING' >&2
-  exit 1
-fi
-write_credential redis-password "$redis_password"
+# geo_worker：worker 的受限队列角色，仅授权 pgboss schema（队列授权由
+# cms pgboss:provision 执行）；业务读写仍走 internal HTTP API。
+geo_worker_password="$(head -c 32 /dev/urandom | base64 | tr -d '=+/' | head -c 32)"
+sudo docker exec pg-server psql -U gpucloud -d postgres -q <<SQL
+DO \$\$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'geo_worker') THEN
+    CREATE ROLE geo_worker LOGIN PASSWORD '${geo_worker_password}';
+  ELSE
+    ALTER ROLE geo_worker LOGIN PASSWORD '${geo_worker_password}';
+  END IF;
+END \$\$
+SQL
+write_credential worker-pg-url "postgres://geo_worker:${geo_worker_password}@${GEO_FOUNDRY_PG_HOST:-127.0.0.1}:${GEO_FOUNDRY_PG_PORT:-5432}/${GEO_FOUNDRY_PG_DATABASE:-geo_foundry}"
 
 export GEO_FOUNDRY_CREDENTIALS_DIR="$CREDENTIALS_DIR"
 export GEO_FOUNDRY_PG_HOST="127.0.0.1"

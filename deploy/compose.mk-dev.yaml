@@ -10,7 +10,6 @@ services:
       - "127.0.0.1:3090:3090"
     environment:
       GEO_FOUNDRY_PG_HOST: pg-server
-      GEO_FOUNDRY_REDIS_HOST: host.docker.internal
       GEO_FOUNDRY_S3_ENDPOINT: rustfs-server
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -33,7 +32,6 @@ services:
     profiles: !override []
     container_name: geo-foundry-worker-mk-dev
     environment:
-      GEO_FOUNDRY_REDIS_HOST: host.docker.internal
       GEO_FOUNDRY_S3_ENDPOINT: rustfs-server
     extra_hosts:
       - "host.docker.internal:host-gateway"

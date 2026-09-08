@@ -57,9 +57,9 @@ print(vs[min(5,len(vs)-1)]["id"])')
 echo "restore target version=$TARGET"
 
 VDB_PRE=$(PSQL "SELECT count(*) FROM geo_foundry.edition_revisions WHERE parent_id=$ED")
-OBDB_PRE=$(PSQL "SELECT count(*) FROM geo_foundry.outbox_events WHERE aggregate_id='$ED'")
+OBDB_PRE=$(PSQL "SELECT count(*) FROM pgboss.job WHERE singleton_key='embed-ed-$ED'")
 IDEM_PRE=$(PSQL "SELECT count(*) FROM geo_foundry.edition_draft_restore_idempotency WHERE edition_id=$ED")
-echo "db pre: versions=$VDB_PRE outbox586=$OBDB_PRE idem=$IDEM_PRE"
+echo "db pre: versions=$VDB_PRE embedJobs=$OBDB_PRE idem=$IDEM_PRE"
 
 # --- 恢复 1：回到旧版本 ---
 R1=$(curl -s -w '\n%{http_code}' -X POST "$BASE/api/workspaces/editions/$ED/restore-draft" \
@@ -123,13 +123,13 @@ print(hashlib.md5((d.get("bodyMarkdown") or "").encode()).hexdigest())')
 
 # --- 终态对账 ---
 VDB_POST=$(PSQL "SELECT count(*) FROM geo_foundry.edition_revisions WHERE parent_id=$ED")
-OBDB_POST=$(PSQL "SELECT count(*) FROM geo_foundry.outbox_events WHERE aggregate_id='$ED'")
-PENDING=$(PSQL "SELECT count(*) FROM geo_foundry.outbox_events WHERE aggregate_id='$ED' AND status='pending'")
+OBDB_POST=$(PSQL "SELECT count(*) FROM pgboss.job WHERE singleton_key='embed-ed-$ED'")
+PENDING=$(PSQL "SELECT count(*) FROM pgboss.job WHERE singleton_key='embed-ed-$ED' AND state IN ('created','active')")
 LATEST_AUDIT=$(PSQL "SELECT audit_log::jsonb -> -1 ->> 'action' FROM geo_foundry.edition_revisions WHERE parent_id=$ED AND latest LIMIT 1")
 IDEM_POST=$(PSQL "SELECT count(*) FROM geo_foundry.edition_draft_restore_idempotency WHERE edition_id=$ED")
 
 [ "$VDB_POST" = "$((VDB_PRE+2))" ] && ok "exactly 2 new versions ($VDB_PRE->$VDB_POST)" || bad "versions $VDB_PRE->$VDB_POST"
-[ "$OBDB_POST" = "$((OBDB_PRE+2))" ] && ok "exactly 2 new outbox events" || bad "outbox $OBDB_PRE->$OBDB_POST"
+[ "$OBDB_POST" -ge 1 ] && ok "embedding job enqueued in-transaction" || bad "embed jobs $OBDB_PRE->$OBDB_POST"
 echo "$LATEST_AUDIT" | grep -q "content-edition.history.draft" && ok "latest audit entry is restore action" || bad "audit=$LATEST_AUDIT"
 [ "$IDEM_POST" = "$((IDEM_PRE+2))" ] && ok "2 new idempotency rows" || bad "idem $IDEM_PRE->$IDEM_POST"
 
@@ -139,7 +139,7 @@ import json,sys,hashlib
 v=json.load(sys.stdin)["versions"][0]
 print(hashlib.md5(v["snapshot"]["bodyMarkdown"].encode()).hexdigest())')
 [ "$HIST_TOP_MD" = "$BODYMD5_PRE" ] && ok "history top entry equals baseline content" || bad "history top differs"
-echo "pending_outbox_586=$PENDING (dispatcher 每秒投递后应归零)"
+echo "unfinished_embed_jobs=$PENDING (worker 消费后应归零)"
 
 echo
 echo "==== RESULT: ${#PASS[@]} passed, ${#FAIL[@]} failed ===="

@@ -21,6 +21,8 @@ const payloadPackages = [
   "@payloadcms/ui",
 ]
 
+const queuePackages = ["bullmq", "ioredis"]
+
 test("Given the de-Payload backend, when the manifest is inspected, then no Payload package remains", async () => {
   const manifest = JSON.parse(await readFile(packageJsonUrl, "utf8"))
   const declared = { ...manifest.dependencies, ...manifest.devDependencies }
@@ -28,8 +30,12 @@ test("Given the de-Payload backend, when the manifest is inspected, then no Payl
   for (const packageName of payloadPackages) {
     assert.equal(Object.hasOwn(declared, packageName), false, packageName)
   }
+  for (const packageName of queuePackages) {
+    assert.equal(Object.hasOwn(declared, packageName), false, packageName)
+  }
   assert.equal(typeof declared["drizzle-orm"], "string")
   assert.equal(typeof declared["drizzle-kit"], "string")
+  assert.equal(typeof declared["pg-boss"], "string")
 })
 
 test("Given the Drizzle migration workflow, when inspected, then a checked-in journal lists every migration", async () => {

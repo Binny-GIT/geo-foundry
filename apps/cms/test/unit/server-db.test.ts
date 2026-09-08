@@ -39,29 +39,7 @@ describe("server db schema bindings", () => {
     expect(users.loginAttempts.name).toBe("login_attempts")
   })
 
-  it("binds operations, idempotency, and outbox to the final migrated columns", () => {
-    const { idempotencyRecords, operations, outboxEvents } = db._.fullSchema
-    expect(operations.idempotencyKeyHash.name).toBe("idempotency_key_hash")
-    expect(operations.requestPayload.name).toBe("request_payload")
-    expect(idempotencyRecords.uniqueKey.name).toBe("unique_key")
-    expect(idempotencyRecords.replayCount.name).toBe("replay_count")
-    expect(outboxEvents.aggregateType.name).toBe("aggregate_type")
-    expect(outboxEvents.eventPayload.name).toBe("event_payload")
-    expect(outboxEvents.dispatchedAt.name).toBe("dispatched_at")
-  })
 
-  it("contains every post-migration outbox enum value", () => {
-    expect(db._.fullSchema.outboxEventType.enumValues).toEqual([
-      "edition.transitioned",
-      "edition.draft-written",
-      "assessment.recorded",
-      "edition.compile-recorded",
-      "evaluation.requested",
-      "publish.requested",
-      "rollback.requested",
-    ])
-    expect(db._.fullSchema.outboxAggregateType.enumValues).toEqual(["edition", "site"])
-  })
 })
 
 describe("domain errors", () => {

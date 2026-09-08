@@ -11,7 +11,8 @@ import { z } from "zod"
 
 import { operationRequestHashOf, operationUniqueKeyOf } from "../../services/operations-ledger"
 import { authenticateRequest } from "../auth/session"
-import { operations, idempotencyRecords, outboxEvents } from "../db/ledger-schema"
+import { operations, idempotencyRecords } from "../db/ledger-schema"
+import { sendOperationJobWithin } from "../jobs/pgboss"
 import { sites } from "../db/entity-schema"
 import { releases, rollbackIntents } from "../db/session-schema"
 import { entityScopeOf } from "../repositories/entities"
@@ -200,16 +201,12 @@ export const handleRollbackIntentPost = async (
         tenantId,
         uniqueKey,
       })
-      await tx.insert(outboxEvents).values({
-        aggregateId: String(site.id),
-        aggregateType: "site",
-        attempts: "0",
-        eventId: randomUUID(),
-        eventPayload: requestPayload,
+      await sendOperationJobWithin(tx, {
+        kind: "operation",
         operationId,
-        status: "pending",
+        operationType: "rollback",
+        payload: (requestPayload["body"] ?? {}) as Record<string, unknown>,
         tenantId,
-        type: "rollback.requested",
       })
       return { intentId, operationId, runtimeSiteId }
     })

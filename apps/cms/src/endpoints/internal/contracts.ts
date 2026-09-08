@@ -11,6 +11,7 @@ export const INTERNAL_PATHS = {
   intakeFetchStart: "/internal/intake-items/:id/fetch-start",
   intakeRssEntries: "/internal/intake-items/:id/rss-entries",
   publicationPlansDispatchDue: "/internal/publication-plans/dispatch-due",
+  pollDueConnectors: "/internal/connectors/poll-due",
   consumeRollbackIntent: "/internal/rollback-intents/consume",
   recordPublishedRelease: "/internal/sites/:id/releases/published",
   recordRollbackReceipt: "/internal/releases/rollback-receipt",

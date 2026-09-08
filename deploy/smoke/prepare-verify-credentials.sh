@@ -18,7 +18,7 @@ if [[ "$command" == "cleanup" ]]; then
 fi
 
 sudo -n install -d -m 700 -o 1001 -g 1001 "$directory"
-for name in cms-secret content-service-keyring.json pg-password pg-user redis-password s3-access-key s3-secret-key; do
+for name in cms-secret content-service-keyring.json pg-password pg-user worker-pg-url s3-access-key s3-secret-key; do
   printf 'verify-placeholder-credential-value-%s-0123456789\n' "$name" |
     sudo -n tee "$directory/$name" >/dev/null
   sudo -n chown 1001:1001 "$directory/$name"

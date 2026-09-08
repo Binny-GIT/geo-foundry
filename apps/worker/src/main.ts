@@ -1,32 +1,58 @@
 import { ContentServiceClient } from "@geo/content-client"
-import { intakeJobIdOf, parseQueuePrefix } from "@geo/domain"
-import { FlowProducer, Queue } from "bullmq"
 
 import { createWorkerAiProvider } from "./config/ai-provider.js"
 import { workerCredentialOf } from "./config/credentials.js"
 import { loadTenantKeyring, runForTenant, tenantClientProxy } from "./config/tenant-keyring.js"
-import { parseWorkerRedisOptions } from "./config/redis.js"
 import { createSnapshotStore } from "./intake/snapshot-store.js"
 import { createIntakeProcessor } from "./processors/intake.js"
-import { createOutboxProcessor } from "./processors/outbox.js"
 import {
   createEvaluationProcessor,
   createGenerationProcessor,
 } from "./processors/pipeline-processors.js"
 import {
-  createCompileTriggerProcessor,
   createEmbeddingProcessor,
   createPublishGateProcessor,
   createRollbackGateProcessor,
 } from "./processors/triggers.js"
 import { parseWorkerS3Options } from "./processors/release-pipeline.js"
-import type { WorkerLogEvent } from "./processors/types.js"
-import { dispatchDuePublicationPlansToQueue } from "./publication-plans-dispatch.js"
-import { QUEUE_NAME, workJobOptions } from "./queues/flows.js"
-import { reconcileNonTerminalOperations } from "./reconcile/reconcile.js"
-import { createWorkerRuntime } from "./runtime/worker-runtime.js"
+import type { WorkJob, WorkerLogEvent } from "./processors/types.js"
+import {
+  createWorkerBoss,
+  CRON_SCHEDULES,
+  JOB_QUEUE,
+  QUEUE_CONCURRENCY,
+  workerPgConnectionString,
+} from "./queues/pgboss.js"
 
-const RECONCILIATION_INTERVAL_MS = 5 * 60 * 1_000
+type PgBossJob = { readonly id: string; readonly name: string; readonly data: unknown }
+
+/** v12 的 work handler 按批收到 Job 数组；逐个分派到旧处理器形状。 */
+type ShapedJob = {
+  readonly data: Record<string, unknown>
+  readonly id: string
+  readonly name: string
+  readonly queueName: string
+}
+
+const handleJobs = (processor: (job: ShapedJob) => Promise<unknown>) =>
+  async (jobs: readonly PgBossJob[]): Promise<void> => {
+    for (const job of jobs) {
+      const data = (job.data ?? {}) as Record<string, unknown>
+      const stage = typeof data["stage"] === "string" ? data["stage"] : "fetch"
+      await runForTenant(
+        typeof data["tenantId"] === "number" && Number.isInteger(data["tenantId"])
+          ? data["tenantId"]
+          : undefined,
+        async () =>
+          processor({
+            data: data as never,
+            id: job.id,
+            name: stage,
+            queueName: job.name,
+          }),
+      )
+    }
+  }
 
 /** Worker daemon entry for deterministic queues and explicitly configured AI providers. */
 export const main = async (): Promise<void> => {
@@ -51,115 +77,86 @@ export const main = async (): Promise<void> => {
         status: event.status,
       },
       jobId: null,
-      queue: QUEUE_NAME.generation,
+      queue: JOB_QUEUE.generation,
     }),
   )
   const context = { client, logger }
   const publish = createPublishGateProcessor(context)
   const rollback = createRollbackGateProcessor(context)
-  const connection = parseWorkerRedisOptions(process.env)
-  const queuePrefix = parseQueuePrefix(process.env["GEO_FOUNDRY_WORKER_QUEUE_PREFIX"])
-  const intakeQueue = new Queue(QUEUE_NAME.intake, {
-    connection,
-    defaultJobOptions: workJobOptions(),
-    prefix: queuePrefix,
-  })
   const snapshots = createSnapshotStore(parseWorkerS3Options(process.env, credential))
-  const processors = {
-    compile: createCompileTriggerProcessor(context),
-    embedding: createEmbeddingProcessor(context, provider),
-    evaluation: createEvaluationProcessor(context, provider),
-    generation: createGenerationProcessor(context, provider),
-    intake: createIntakeProcessor({
+  const sendIntakeJob = async (input: { intakeItemId: number; tenantId: number }) => {
+    // 子项入队经 CMS internal API 之外的直达路径已不存在；复用 dispatch 侧的
+    // pg-boss 直连（受限 role 只能 INSERT pgboss.job，与 CMS 同队列同去重键）。
+    await bossSend(JOB_QUEUE.intake, {
+      intakeItemId: input.intakeItemId,
+      kind: "intake",
+      tenantId: input.tenantId,
+    }, `intake-${input.intakeItemId}`)
+  }
+  // 处理器各自的 data 形状由运行时 data.stage/kind 分派，这里只保留统一外壳；
+  // never 参数位让各具体处理器形状都能落入同一张表。
+  const processors: Readonly<Record<string, (job: never) => Promise<unknown>>> = {
+    [JOB_QUEUE.embedding]: createEmbeddingProcessor(context, provider),
+    [JOB_QUEUE.evaluation]: createEvaluationProcessor(context, provider),
+    [JOB_QUEUE.generation]: createGenerationProcessor(context, provider),
+    [JOB_QUEUE.intake]: createIntakeProcessor({
       client,
-      enqueue: async ({ intakeItemId, tenantId }) => {
-        await intakeQueue.add(
-          "fetch",
-          { intakeItemId, tenantId },
-          { ...workJobOptions(), jobId: intakeJobIdOf(intakeItemId) },
-        )
-      },
+      enqueue: sendIntakeJob,
       logger,
       snapshots,
     }),
-    publish: async (job: Parameters<typeof publish>[0]) =>
-      job.name === "rollback-gate" ? rollback(job) : publish(job),
+    [JOB_QUEUE.publish]: (job: Parameters<typeof publish>[0]) =>
+      ((job.data as Record<string, unknown>)["stage"] === "rollback-gate"
+        ? rollback(job)
+        : publish(job)) as Promise<unknown>,
   }
-  const runtime = createWorkerRuntime({
-    connection,
-    context,
-    logger,
-    outboxProcessor: (queues) =>
-      createOutboxProcessor({
-        embeddingQueue: queues.embedding,
-        evaluationQueue: queues.evaluation,
-        logger,
-        publishQueue: queues.publish,
-      }),
-    processors,
-    prefix: queuePrefix,
-  })
-  const producer = new FlowProducer({ connection, prefix: queuePrefix })
-  let reconciling = false
-  let dispatchingPublicationPlans = false
-  const dispatchPublicationPlans = async () => {
-    if (dispatchingPublicationPlans) return
-    dispatchingPublicationPlans = true
-    try {
-      for (const tenantId of tenantKeyring.keys()) {
-        await runForTenant(tenantId, async () =>
-          dispatchDuePublicationPlansToQueue({
-            client,
-            logger,
-            now: new Date().toISOString(),
-            producer,
-            workerId: `worker-${process.pid}`,
-          }),
-        )
+
+  const boss = createWorkerBoss({ connectionString: workerPgConnectionString() })
+  const bossSend = async (
+    queue: string,
+    data: Record<string, unknown>,
+    singletonKey: string,
+  ): Promise<string | null> => boss.send(queue, data, { singletonKey })
+
+  await boss.start()
+  for (const [queue, processor] of Object.entries(processors)) {
+    await boss.work(
+      queue,
+      { batchSize: QUEUE_CONCURRENCY[queue] ?? 1 },
+      handleJobs(processor as (job: ShapedJob) => Promise<unknown>),
+    )
+  }
+
+  // 定时面：每分钟驱动 CMS 的 dispatch-due / poll-due（幂等，多实例单触发）。
+  await boss.createQueue(JOB_QUEUE.maintenance, { policy: "short" }).catch(() => undefined)
+  await boss.work(JOB_QUEUE.maintenance, { batchSize: 1 }, async (jobs: readonly PgBossJob[]) => {
+    for (const job of jobs) {
+      const kind = (job.data as Record<string, unknown>)["kind"]
+      if (kind === "publication-dispatch-due") {
+        for (const tenantId of tenantKeyring.keys()) {
+          await runForTenant(tenantId, async () =>
+            client.dispatchDuePublicationPlans({
+              now: new Date().toISOString(),
+              workerId: `worker-${process.pid}`,
+            }),
+          )
+        }
+        continue
       }
-    } finally {
-      dispatchingPublicationPlans = false
-    }
-  }
-  const reconcile = async () => {
-    if (reconciling) {
-      return
-    }
-    reconciling = true
-    try {
-      for (const tenantId of tenantKeyring.keys()) {
-        const report = await runForTenant(tenantId, async () =>
-          reconcileNonTerminalOperations(client, producer),
-        )
-        if (report.enqueued.length > 0 || report.failures.length > 0) {
-          logger({
-            code: "worker.reconciled",
-            detail: { enqueued: report.enqueued.length, failures: report.failures.length, tenantId },
-            jobId: null,
-            queue: QUEUE_NAME.generation,
-          })
+      if (kind === "rss-poll-due") {
+        for (const tenantId of tenantKeyring.keys()) {
+          await runForTenant(tenantId, async () => client.pollDueConnectors())
         }
       }
-    } finally {
-      reconciling = false
     }
+  })
+  for (const schedule of CRON_SCHEDULES) {
+    await boss.schedule(schedule.name, schedule.cron, { kind: schedule.name }, { tz: "UTC" })
   }
-  await reconcile()
-  await dispatchPublicationPlans()
-  await runtime.start()
-  const reconciliationTimer = setInterval(() => {
-    void reconcile()
-  }, RECONCILIATION_INTERVAL_MS)
-  const publicationPlanTimer = setInterval(() => {
-    void dispatchPublicationPlans()
-  }, 1_000)
+
   const shutdown = async () => {
-    clearInterval(reconciliationTimer)
-    clearInterval(publicationPlanTimer)
-    await runtime.close()
-    await intakeQueue.close()
+    await boss.stop()
     snapshots.close()
-    await producer.close()
     process.exit(0)
   }
   process.once("SIGTERM", shutdown)

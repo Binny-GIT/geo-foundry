@@ -65,6 +65,12 @@ export const recordReleaseReceiptRequestSchema = z.object({
 
 export const recordReleaseReceiptSchema = z.object({ recorded: z.literal(true) })
 
+export const pollDueConnectorsResponseSchema = z.object({
+  errors: z.array(z.object({ connectorId: z.number().int(), reason: z.string() })),
+  polled: z.array(z.number().int()),
+  skipped: z.array(z.object({ connectorId: z.number().int(), reason: z.string() })),
+})
+
 export const dispatchDuePublicationPlansRequestSchema = z.object({
   now: z.string().datetime({ offset: true }),
   workerId: z.string().min(1).max(128),

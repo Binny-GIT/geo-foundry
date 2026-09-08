@@ -62,8 +62,8 @@ if [[ "$cms_image" != "$worker_image" ]]; then
   exit 1
 fi
 
-outbox_pending="$(query_scalar "SELECT count(*) FROM geo_foundry.outbox_events WHERE status = 'pending';")"
-outbox_oldest_age_minutes="$(query_scalar "SELECT coalesce(floor(extract(epoch FROM now() - min(created_at)) / 60)::int, 0) FROM geo_foundry.outbox_events WHERE status = 'pending';")"
+pgboss_created_backlog="$(query_scalar "SELECT count(*) FROM pgboss.job WHERE state = 'created';")"
+pgboss_created_age_minutes="$(query_scalar "SELECT coalesce(floor(extract(epoch FROM now() - min(created_on)) / 60)::int, 0) FROM pgboss.job WHERE state = 'created';")"
 operation_nonterminal="$(query_scalar "SELECT count(*) FROM geo_foundry.operations WHERE state IN ('queued', 'running');")"
 operation_oldest_age_minutes="$(query_scalar "SELECT coalesce(floor(extract(epoch FROM now() - min(created_at)) / 60)::int, 0) FROM geo_foundry.operations WHERE state IN ('queued', 'running');")"
 publication_failed="$(query_scalar "
@@ -87,8 +87,8 @@ publication_failed_recent="$(query_scalar "
     AND updated_at >= now() - interval '${RECENT_PUBLICATION_FAILURE_MINUTES} minutes';
 ")"
 rss_stale="$(query_scalar "SELECT count(*) FROM geo_foundry.connectors WHERE type = 'rss' AND status = 'active' AND (last_polled_at IS NULL OR last_polled_at < now() - interval '${RSS_MAX_AGE_HOURS} hours');")"
-printf 'OUTBOX_PENDING=%s\n' "$outbox_pending"
-printf 'OUTBOX_OLDEST_AGE_MINUTES=%s\n' "$outbox_oldest_age_minutes"
+printf 'PGBOSS_CREATED_BACKLOG=%s\n' "$pgboss_created_backlog"
+printf 'PGBOSS_CREATED_AGE_MINUTES=%s\n' "$pgboss_created_age_minutes"
 printf 'OPERATIONS_NONTERMINAL=%s\n' "$operation_nonterminal"
 printf 'OPERATIONS_OLDEST_AGE_MINUTES=%s\n' "$operation_oldest_age_minutes"
 printf 'PUBLICATION_PLANS_FAILED=%s\n' "$publication_failed"
@@ -118,12 +118,12 @@ if (( backup_age_hours > BACKUP_MAX_AGE_HOURS )); then
   exit 1
 fi
 
-if (( outbox_oldest_age_minutes > MAX_OUTBOX_AGE_MINUTES || operation_oldest_age_minutes > MAX_OPERATION_AGE_MINUTES )); then
+if (( pgboss_created_age_minutes > MAX_OUTBOX_AGE_MINUTES || operation_oldest_age_minutes > MAX_OPERATION_AGE_MINUTES )); then
   printf 'RUNTIME_WORK_AGE_ATTENTION_REQUIRED\n' >&2
   exit 1
 fi
 
-if [[ "$outbox_pending" != "0" || "$publication_failed_recent" != "0" || "$rss_stale" != "0" ]]; then
+if [[ "$pgboss_created_backlog" != "0" || "$publication_failed_recent" != "0" || "$rss_stale" != "0" ]]; then
   printf 'RUNTIME_STATUS_ATTENTION_REQUIRED\n' >&2
   exit 1
 fi

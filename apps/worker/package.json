@@ -25,9 +25,9 @@
     "@geo/publisher": "workspace:*",
     "@geo/quality-rules": "workspace:*",
     "@geo/schema": "workspace:*",
-    "bullmq": "6.1.2",
     "fast-xml-parser": "5.11.1",
     "parse5": "8.0.1",
+    "pg-boss": "12.30.0",
     "zod": "4.4.3"
   },
   "devDependencies": {

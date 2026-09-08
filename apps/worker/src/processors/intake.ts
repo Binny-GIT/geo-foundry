@@ -1,12 +1,10 @@
 import { TextDecoder, TextEncoder } from "node:util"
 
 import { ContentClientError, type ContentServiceClient } from "@geo/content-client"
-import type { Job } from "bullmq"
-
 import { extractRssEntries, extractStructuredArticle } from "../intake/extract.js"
 import { fetchPublicUrl, IntakeFetchError } from "../intake/safe-fetch.js"
 import type { StoredSnapshot } from "../intake/snapshot-store.js"
-import type { WorkerLogger } from "./types.js"
+import type { WorkJob, WorkerLogger } from "./types.js"
 
 export type IntakeJobData = Readonly<{
   intakeItemId: number
@@ -74,14 +72,31 @@ const assertion = (value: unknown): value is IntakeJobData => {
  * Fetches source material outside the control plane, stores raw/extracted bytes
  * immutably, then asks CMS to persist tenant-checked metadata.
  */
-export const createIntakeProcessor = (options: {
+export type IntakeProcessorOptions = {
   readonly client: IntakeClient
   readonly enqueue: IntakeEnqueuer
   readonly logger: WorkerLogger
   readonly snapshots: SnapshotStore
-}) =>
-  async (job: Job<IntakeJobData>): Promise<{ readonly intakeItemId: number; readonly state: string }> => {
+}
+
+export const createIntakeProcessor = (options: IntakeProcessorOptions) =>
+  async (job: WorkJob<IntakeJobData>): Promise<{ readonly intakeItemId: number; readonly state: string }> => {
     if (!assertion(job.data)) throw new IntakeFetchError("INTAKE_JOB_INVALID", false)
+    // 与旧 BullMQ attempts:3 + 指数退避等价的进程内重试；重试耗尽把父稿标记 failed。
+    const MAX_ATTEMPTS = 3
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+      const outcome = await runOnce(job, attempt, MAX_ATTEMPTS, options)
+      if (outcome !== null) return outcome
+    }
+    return { intakeItemId: job.data.intakeItemId, state: "failed" }
+  }
+
+const runOnce = async (
+  job: WorkJob<IntakeJobData>,
+  attempt: number,
+  maxAttempts: number,
+  options: IntakeProcessorOptions,
+): Promise<{ readonly intakeItemId: number; readonly state: string } | null> => {
     const { client, enqueue, logger, snapshots } = options
     const log = (code: string, detail?: Record<string, unknown>) =>
       logger({
@@ -115,7 +130,7 @@ export const createIntakeProcessor = (options: {
           })),
         })
         await Promise.all(
-          intakeItemIds.map(async (intakeItemId) => enqueue({ intakeItemId, tenantId: input.tenantId })),
+          intakeItemIds.map(async (intakeItemId: number) => enqueue({ intakeItemId, tenantId: input.tenantId })),
         )
         const extractedBody = new TextEncoder().encode(entries.map((entry) => `${entry.title}\n${entry.sourceUrl}`).join("\n\n"))
         const extracted = await snapshots.put({
@@ -163,14 +178,15 @@ export const createIntakeProcessor = (options: {
         return { intakeItemId: job.data.intakeItemId, state: "skipped" }
       }
       const permanentCode = permanentCodeOf(error)
-      const finalAttempt = job.attemptsMade + 1 >= (job.opts.attempts ?? 1)
+      const finalAttempt = attempt >= maxAttempts
       if (permanentCode !== null || finalAttempt) {
         const code = permanentCode ?? "INTAKE_FETCH_RETRY_EXHAUSTED"
         await client.failIntakeFetch(job.data.intakeItemId, { code, reason: messageOf(error) })
         log("worker.intake.failed", { code, intakeItemId: job.data.intakeItemId })
         return { intakeItemId: job.data.intakeItemId, state: "failed" }
       }
-      log("worker.intake.retryable-failure", { intakeItemId: job.data.intakeItemId, message: messageOf(error) })
-      throw error
+      log("worker.intake.retryable-failure", { attempt, intakeItemId: job.data.intakeItemId, message: messageOf(error) })
+      await new Promise((resolve) => setTimeout(resolve, 2_000 * 2 ** (attempt - 1)))
+      return null
     }
   }

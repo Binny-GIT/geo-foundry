@@ -1,3 +1,4 @@
+import { connectorHandlerByOperation } from "./connectors"
 import { editionHandlerByOperation } from "./editions"
 import type { InternalHandler } from "./guards"
 import { intakeHandlerByOperation } from "./intake"
@@ -9,6 +10,7 @@ import { rollbackIntentHandlerByOperation } from "./rollback-intents"
 import { handleGetCompileSnapshot } from "./sites"
 
 const handlerByOperation: Record<string, InternalHandler> = {
+  ...connectorHandlerByOperation,
   ...editionHandlerByOperation,
   ...intakeHandlerByOperation,
   ...operationHandlerByOperation,

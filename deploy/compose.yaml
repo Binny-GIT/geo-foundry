@@ -37,10 +37,6 @@ services:
       GEO_FOUNDRY_S3_FORCE_PATH_STYLE: "true"
       GEO_FOUNDRY_S3_SECRET_REF: rustfs-geo-foundry-svc
       GEO_FOUNDRY_CMS_SECRET_FILE: /run/geo-foundry/credentials/cms-secret
-      GEO_FOUNDRY_REDIS_HOST: ${GEO_FOUNDRY_REDIS_HOST:-127.0.0.1}
-      GEO_FOUNDRY_REDIS_PORT: ${GEO_FOUNDRY_REDIS_PORT:-6379}
-      GEO_FOUNDRY_REDIS_DATABASE: ${GEO_FOUNDRY_REDIS_DATABASE:-0}
-      GEO_FOUNDRY_REDIS_PASSWORD_FILE: /run/geo-foundry/credentials/redis-password
       # The workspace writing assistant calls the same provider contract as
       # the worker, but switches independently: the worker additionally needs
       # an embedding model and refuses to boot without one, so enabling chat
@@ -73,11 +69,8 @@ services:
       CMS_BASE_URL: http://cms:3090
       GEO_FOUNDRY_CREDENTIAL_MODE: file
       CONTENT_SERVICE_KEYRING_FILE: /run/geo-foundry/credentials/content-service-keyring.json
-      GEO_FOUNDRY_REDIS_HOST: ${GEO_FOUNDRY_REDIS_HOST:-127.0.0.1}
-      GEO_FOUNDRY_REDIS_PORT: ${GEO_FOUNDRY_REDIS_PORT:-6379}
-      GEO_FOUNDRY_REDIS_DATABASE: ${GEO_FOUNDRY_REDIS_DATABASE:-0}
-      GEO_FOUNDRY_REDIS_PASSWORD_FILE: /run/geo-foundry/credentials/redis-password
       GEO_FOUNDRY_WORKER_QUEUE_PREFIX: ${GEO_FOUNDRY_WORKER_QUEUE_PREFIX:-geo-foundry}
+      GEO_FOUNDRY_WORKER_PG_URL_FILE: /run/geo-foundry/credentials/worker-pg-url
       GEO_FOUNDRY_S3_ENDPOINT: ${GEO_FOUNDRY_S3_ENDPOINT:?GEO_FOUNDRY_S3_ENDPOINT is required}
       GEO_FOUNDRY_S3_PORT: ${GEO_FOUNDRY_S3_PORT:-9000}
       GEO_FOUNDRY_S3_USE_SSL: "false"

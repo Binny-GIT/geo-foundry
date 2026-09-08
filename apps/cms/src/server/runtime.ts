@@ -17,6 +17,8 @@ export type ServerRuntime = Readonly<{
   configSecret: string
   db: ServerDb
   media: MediaStorage
+  /** 底层 pg 池：pg-boss 适配器与迁移期工具直接复用同一连接来源。 */
+  pool: Pool
 }>
 
 let runtime: ServerRuntime | null = null
@@ -28,6 +30,7 @@ export const serverRuntime = (): ServerRuntime => {
     return {
       configSecret: environment.payloadSecret,
       db: createServerDb(pool),
+      pool,
       media: {
         bucket: environment.rustfs.bucket,
         client: new S3Client({

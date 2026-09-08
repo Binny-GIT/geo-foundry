@@ -6,11 +6,10 @@ import {
   type LLMProvider,
 } from "@geo/content-pipeline"
 
-import type { Job } from "bullmq"
 import { operationProcessor } from "./operation-processor.js"
-import { TerminalJobError, type ProcessorContext, type WorkJobData } from "./types.js"
+import { TerminalJobError, type ProcessorContext, type WorkJob, type WorkJobData } from "./types.js"
 
-const bodyOf = (job: Job<WorkJobData>): Record<string, unknown> => {
+const bodyOf = (job: WorkJob<WorkJobData>): Record<string, unknown> => {
   const payload = job.data.payload ?? {}
   return typeof payload["body"] === "object" && payload["body"] !== null
     ? (payload["body"] as Record<string, unknown>)

@@ -32,7 +32,6 @@ import type { ServerDb } from "../db/client"
 import { contentEditions, editionVersions } from "../db/edition-schema"
 import { sites } from "../db/entity-schema"
 import { urlRecords } from "../db/workflow-schema"
-import { outboxEvents } from "../db/ledger-schema"
 import type { EntityScope } from "./entities"
 
 export class WorkflowRepositoryError extends Error {
@@ -467,29 +466,8 @@ export const transitionEditionWithinTx = async (
       await publishVersionToRoot(tx, input.editionId, current, versionValues)
     }
   }
-  await tx.insert(outboxEvents).values({
-    aggregateId: String(input.editionId),
-    aggregateType: "edition",
-    attempts: "0",
-    eventId: randomUUID(),
-    eventPayload: {
-      from: aggregate.state,
-      to: input.target,
-      workflowRevision: nextRevision,
-      ...(input.target === "compiled" && input.compiledReleaseId !== undefined
-        ? { releaseId: input.compiledReleaseId }
-        : {}),
-      ...(reason === undefined || reason.length === 0 ? {} : { reason }),
-      ...(input.decisionId === undefined ? {} : { decisionId: input.decisionId }),
-      ...(input.requestId === undefined ? {} : { correlationId: input.requestId }),
-    },
-    ...(input.operationId === undefined ? {} : { operationId: input.operationId }),
-    ...(input.requestId === undefined ? {} : { requestId: input.requestId }),
-    status: "pending",
-    tenantId: input.actor.tenantOf(editionTenantId),
-    type: "edition.transitioned",
-  })
   return input.target
+
 }
 
 export const createDraftFromPublishedWithinTx = async (
@@ -530,16 +508,6 @@ export const createDraftFromPublishedWithinTx = async (
     compiledRelease: null,
     workflowRevision: 0,
     workflowStatus: "draft",
-  })
-  await tx.insert(outboxEvents).values({
-    aggregateId: String(input.editionId),
-    aggregateType: "edition",
-    attempts: "0",
-    eventId: randomUUID(),
-    eventPayload: { to: "draft", version: aggregate.version + 1 },
-    status: "pending",
-    tenantId: input.actor.tenantOf(editionTenantId),
-    type: "edition.transitioned",
   })
 }
 

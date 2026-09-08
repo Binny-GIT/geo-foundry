@@ -17,6 +17,7 @@ import {
   type DispatchDuePublicationPlansRequest,
   dispatchDuePublicationPlansRequestSchema,
   dispatchDuePublicationPlansResponseSchema,
+  pollDueConnectorsResponseSchema,
   type CompleteIntakeFetchRequest,
   completeIntakeFetchRequestSchema,
   type CreateRssEntriesRequest,
@@ -106,6 +107,22 @@ export class ContentServiceClient {
       options,
     )
     return response.plans
+  }
+
+  async pollDueConnectors(options: CallOptions = {}): Promise<{
+    readonly errors: readonly { readonly connectorId: number; readonly reason: string }[]
+    readonly polled: readonly number[]
+    readonly skipped: readonly { readonly connectorId: number; readonly reason: string }[]
+  }> {
+    const response = await this.#call(
+      "POST",
+      "/internal/connectors/poll-due",
+      null,
+      null,
+      pollDueConnectorsResponseSchema,
+      options,
+    )
+    return response
   }
 
   async claimIntakeFetch(intakeItemId: number, options: CallOptions = {}): Promise<void> {

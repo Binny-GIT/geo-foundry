@@ -3,18 +3,17 @@
  * 旧版本 Markdown 已经数据回填，因此这里只读取版本行及其数组列。
  */
 
-import { randomUUID } from "node:crypto"
 
 import { and, desc, eq, sql } from "drizzle-orm"
 
 import { markdownToBlocks } from "../../editor/block-markdown"
 import type { ServerDb } from "../db/client"
+import { sendEditionEmbeddingJobWithin } from "../jobs/pgboss"
 import {
   contentEditions,
   editionDraftRestoreIdempotency,
   editionVersions,
 } from "../db/edition-schema"
-import { outboxEvents } from "../db/ledger-schema"
 import type { EntityScope } from "./entities"
 
 export type EditionHistoryItem = Readonly<{
@@ -281,28 +280,15 @@ export class EditionVersionsRepository {
       if (newVersionId === undefined) {
         throw new EditionVersionRepositoryError("EDITION_DRAFT_WRITE_FAILED", 500)
       }
+      await sendEditionEmbeddingJobWithin(tx, {
+        editionId: input.editionId,
+        tenantId: input.actor.tenantId,
+      })
       const response: RestoreVersionResponse = {
         editionId: input.editionId,
         restoredVersionId: input.versionId,
         updatedAt: now.toISOString(),
       }
-      await tx.insert(outboxEvents).values({
-        aggregateId: String(input.editionId),
-        aggregateType: "edition",
-        attempts: "0",
-        eventId: randomUUID(),
-        eventPayload: {
-          from: "draft",
-          reason: input.reason,
-          restoredVersionId: input.versionId,
-          to: "draft",
-          workflowRevision: input.expectedRevision + 1,
-        },
-        requestId: input.requestId,
-        status: "pending",
-        tenantId: input.actor.tenantId,
-        type: "edition.draft-written",
-      })
       await tx.insert(editionDraftRestoreIdempotency).values({
         actorUserId: input.actor.userId,
         editionId: input.editionId,

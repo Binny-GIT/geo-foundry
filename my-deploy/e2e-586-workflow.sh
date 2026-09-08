@@ -29,11 +29,11 @@ rev_of() { echo "$1" | python3 -c 'import json,sys;print(json.load(sys.stdin)["w
 
 D0=$(draft); R0=$(rev_of "$D0")
 V0=$(Q "count(*) FROM geo_foundry.edition_revisions WHERE parent_id=$ED")
-O0=$(Q "count(*) FROM geo_foundry.outbox_events WHERE aggregate_id='$ED'")
+O0=$(Q "count(*) FROM pgboss.job WHERE data->>'tenantId'='413' AND (data->>'operationId' LIKE 'edition-$ED' OR data->>'editionId'='$ED')")
 U0=$(Q "count(*) FROM geo_foundry.url_records WHERE edition_id=586")
 C0=$(Q "count(*) FROM geo_foundry.review_comments WHERE edition_id=$ED AND kind='request-changes'")
 I0=$(Q "count(*) FROM geo_foundry.reviewer_edition_decision_idempotency WHERE edition_id=$ED")
-echo "pre: rev=$R0 versions=$V0 outbox=$O0 urls=$U0 comments=$C0 idem=$I0"
+echo "pre: rev=$R0 versions=$V0 pgboss586=$O0 urls=$U0 comments=$C0 idem=$I0"
 
 # 1. editor: draft -> review
 S=$(curl -s -w '\n%{http_code}' -X POST "$BASE/api/editions/$ED/workflow-transitions" -b /tmp/wf-e.jar \
@@ -107,8 +107,8 @@ curl -s -o /dev/null -X POST "$BASE/api/internal/operations/$OP/stages/complete"
   -d '{"attempt":1,"error":{"code":"E2E_WORKFLOW_BATCH_CANCELLED"},"outcome":"failed","stage":"publish-gate"}'
 OST=$(Q "state FROM geo_foundry.operations WHERE operation_id='$OP'")
 [ "$OST" = "failed" ] && ok "publish op terminated failed (E2E)" || bad "op state=$OST"
-POB=$(Q "count(*) FROM geo_foundry.outbox_events WHERE type='publish.requested' AND aggregate_id='$ED'")
-[ "$POB" -ge 1 ] && ok "publish.requested outbox written" || bad "publish outbox=$POB"
+POB=$(Q "count(*) FROM pgboss.job WHERE singleton_key='$OP'")
+[ "$POB" -ge 1 ] && ok "publish operation job in pgboss" || bad "pgboss job=$POB"
 
 # 6. approved -> draft (editor retreat), then review again
 curl -s -o /dev/null -X POST "$BASE/api/editions/$ED/workflow-transitions" -b /tmp/wf-e.jar \
@@ -166,9 +166,9 @@ FIN=$(rev_of "$(draft)"); [ "$FIN" -gt "$R4" ] && ok "final revision=$FIN (draft
 
 # 12. 总对账
 VF=$(Q "count(*) FROM geo_foundry.edition_revisions WHERE parent_id=$ED")
-OF=$(Q "count(*) FROM geo_foundry.outbox_events WHERE aggregate_id='$ED'")
+OF=$(Q "count(*) FROM pgboss.job WHERE data->>'operationId' LIKE 'edition-$ED' OR data->>'editionId'='$ED'")
 IF=$(Q "count(*) FROM geo_foundry.reviewer_edition_decision_idempotency WHERE edition_id=$ED")
-echo "final: versions=$V0->$VF outbox=$O0->$OF idem=$I0->$IF pending_outbox=$(Q "count(*) FROM geo_foundry.outbox_events WHERE aggregate_id='$ED' AND status='pending'")"
+echo "final: versions=$V0->$VF pgboss586=$O0->$OF idem=$I0->$IF"
 [ "$IF" = "$((I0+2))" ] && ok "2 reviewer idempotency rows" || bad "idem $I0->$IF"
 
 echo
