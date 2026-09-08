@@ -268,6 +268,185 @@ export class EditionsRepository {
     return rows.length
   }
 
+  async createDraft(
+    scope: EntityScope,
+    patch: EditionDraftPatch,
+  ): Promise<Record<string, unknown>> {
+    let editionId: number | null = null
+    await this.db.transaction(async (tx) => {
+      const requestedSiteId = patch.site ?? patch.sites?.[0] ?? null
+      if (requestedSiteId === null) throw new EditionWriteError("EDITION_SITE_REQUIRED", 400)
+      const siteRows = await tx
+        .select({ id: sites.id, tenantId: sites.tenantId })
+        .from(sites)
+        .where(eq(sites.id, requestedSiteId))
+        .limit(1)
+      const site = siteRows[0]
+      if (site === undefined) throw new EditionWriteError("EDITION_SITE_NOT_FOUND", 400)
+      const scopedTenant = effectiveTenant(scope)
+      if (scopedTenant !== null && site.tenantId !== scopedTenant) {
+        throw new EditionWriteError("TENANT_SCOPE_DENIED", 403)
+      }
+      if (patch.tenant !== undefined && patch.tenant !== site.tenantId) {
+        throw new EditionWriteError("CMS_EDITION_TENANT_MISMATCH", 400)
+      }
+      const tenantId = site.tenantId
+      const assignedSites = patch.sites ?? []
+      if (assignedSites.length > 0) {
+        const assignedRows = await tx
+          .select({ id: sites.id, tenantId: sites.tenantId })
+          .from(sites)
+          .where(inArray(sites.id, [...assignedSites]))
+        if (
+          assignedRows.length !== new Set(assignedSites).size ||
+          assignedRows.some((row) => row.tenantId !== tenantId)
+        ) {
+          throw new EditionWriteError("CMS_EDITION_TENANT_MISMATCH", 400)
+        }
+      }
+      const ownerId = patch.owner ?? null
+      if (ownerId !== null) {
+        const ownerRows = await tx
+          .select({ tenantId: users.tenantId })
+          .from(users)
+          .where(eq(users.id, ownerId))
+          .limit(1)
+        if (ownerRows[0]?.tenantId !== tenantId) {
+          throw new EditionWriteError("CMS_EDITION_OWNER_TENANT_MISMATCH", 400)
+        }
+      }
+
+      let contentId = patch.content ?? null
+      if (contentId === null) {
+        const createdContent = await tx
+          .insert(contents)
+          .values({
+            createdBy: "human",
+            intent: patch.angle?.trim() || patch.summary?.trim() || "draft",
+            tenantId,
+            topic: patch.title?.trim() || "未命名文章",
+          })
+          .returning({ id: contents.id })
+        contentId = createdContent[0]?.id ?? null
+      } else {
+        const contentRows = await tx
+          .select({ tenantId: contents.tenantId })
+          .from(contents)
+          .where(eq(contents.id, contentId))
+          .limit(1)
+        if (contentRows[0]?.tenantId !== tenantId) {
+          throw new EditionWriteError("CMS_EDITION_TENANT_MISMATCH", 400)
+        }
+        await tx.execute(sql`SELECT pg_advisory_xact_lock(${contentId}, ${requestedSiteId})`)
+        const duplicate = await tx
+          .select({ id: contentEditions.id })
+          .from(contentEditions)
+          .innerJoin(
+            editionVersions,
+            and(eq(editionVersions.parentId, contentEditions.id), eq(editionVersions.latest, true)),
+          )
+          .where(
+            and(
+              eq(editionVersions.contentId, contentId),
+              eq(editionVersions.siteId, requestedSiteId),
+            ),
+          )
+          .limit(1)
+        if (duplicate.length > 0) throw new EditionWriteError("CMS_EDITION_SITE_DUPLICATE", 409)
+      }
+      if (contentId === null) throw new EditionWriteError("EDITION_CONTENT_CREATE_FAILED", 500)
+
+      const now = new Date()
+      const markdown = patch.bodyMarkdown ?? ""
+      const rootRows = await tx
+        .insert(contentEditions)
+        .values({
+          angle: patch.angle ?? "",
+          auditLog: [],
+          bodyMarkdown: markdown,
+          citations: patch.citations ?? [],
+          compiledRelease: null,
+          contentId,
+          contentModifiedAt: now,
+          creationOrigin: "human",
+          dueAt: patch.dueAt === undefined || patch.dueAt === null ? null : new Date(patch.dueAt),
+          editorialStatus: patch.editorialStatus ?? "unassigned",
+          entities: patch.entities ?? [],
+          ownerId,
+          primaryTopic: patch.primaryTopic ?? "",
+          priority: patch.priority ?? "normal",
+          siteId: requestedSiteId,
+          status: "draft",
+          summary: patch.summary ?? "",
+          tenantId,
+          title: patch.title ?? "",
+          workflowRevision: "0",
+          workflowStatus: "draft",
+        })
+        .returning({ id: contentEditions.id })
+      editionId = rootRows[0]?.id ?? null
+      if (editionId === null) throw new EditionWriteError("EDITION_DRAFT_WRITE_FAILED", 500)
+
+      const versionRows = await tx
+        .insert(editionVersions)
+        .values({
+          angle: patch.angle ?? "",
+          auditLog: [],
+          bodyMarkdown: markdown,
+          citations: patch.citations ?? [],
+          compiledRelease: null,
+          contentId,
+          contentModifiedAt: now,
+          creationOrigin: "human",
+          dueAt: patch.dueAt === undefined || patch.dueAt === null ? null : new Date(patch.dueAt),
+          editorialStatus: patch.editorialStatus ?? "unassigned",
+          entities: patch.entities ?? [],
+          latest: true,
+          ownerId,
+          parentId: editionId,
+          primaryTopic: patch.primaryTopic ?? "",
+          priority: patch.priority ?? "normal",
+          siteId: requestedSiteId,
+          status: "draft",
+          summary: patch.summary ?? "",
+          tenantId,
+          title: patch.title ?? "",
+          versionCreatedAt: now,
+          versionUpdatedAt: now,
+          workflowRevision: "0",
+          workflowStatus: "draft",
+        })
+        .returning({ id: editionVersions.id })
+      const versionId = versionRows[0]?.id
+      if (versionId === undefined) throw new EditionWriteError("EDITION_DRAFT_WRITE_FAILED", 500)
+      const secondaryTopics = patch.secondaryTopics ?? []
+      if (secondaryTopics.length > 0) {
+        await tx.insert(editionVersionTexts).values(
+          secondaryTopics.map((text, index) => ({
+            order: index + 1,
+            parentId: versionId,
+            path: "version.secondaryTopics",
+            text,
+          })),
+        )
+      }
+      if (assignedSites.length > 0) {
+        await tx.insert(editionVersionRels).values(
+          assignedSites.map((assignedSiteId, index) => ({
+            order: index + 1,
+            parentId: versionId,
+            path: "version.sites",
+            siteId: assignedSiteId,
+          })),
+        )
+      }
+    })
+    if (editionId === null) throw new EditionWriteError("EDITION_DRAFT_WRITE_FAILED", 500)
+    const created = await this.findDraft(scope, editionId)
+    if (created === null) throw new EditionWriteError("EDITION_DRAFT_WRITE_FAILED", 500)
+    return created
+  }
+
   async saveDraft(
     scope: EntityScope,
     editionId: number,

@@ -14,7 +14,10 @@ import {
   handleUsersAuthPost,
 } from "@/server/routes/auth"
 import { handleEditionDraftGet } from "@/server/routes/edition-reads"
-import { handleEditionDraftPatch } from "@/server/routes/edition-writes"
+import {
+  handleEditionDraftPatch,
+  handleEditionDraftPost,
+} from "@/server/routes/edition-writes"
 import { handleEntityListGet } from "@/server/routes/entity-reads"
 
 const payloadGet = REST_GET(config)
@@ -42,7 +45,9 @@ export const POST = async (request: Request, context: RouteContext): Promise<Res
   const accountResponse = await handleAccountAuthPost(request, params.slug)
   if (accountResponse !== null) return accountResponse
   const authResponse = await handleUsersAuthPost(request, params.slug)
-  return authResponse ?? payloadPost(request, context)
+  if (authResponse !== null) return authResponse
+  const editionResponse = await handleEditionDraftPost(request, params.slug)
+  return editionResponse ?? payloadPost(request, context)
 }
 
 export const DELETE = REST_DELETE(config)

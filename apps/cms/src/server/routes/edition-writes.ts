@@ -52,6 +52,57 @@ const errorResponse = (error: unknown): Response => {
   })
 }
 
+const parseWriteBody = async (request: Request): Promise<EditionDraftPatch | Response> => {
+  let raw: unknown
+  try {
+    raw = await request.json()
+  } catch {
+    return json(400, { errors: [{ message: "EDITION_DRAFT_BODY_INVALID" }] })
+  }
+  const parsed = patchSchema.safeParse(raw)
+  if (!parsed.success) {
+    return json(400, { errors: [{ message: "EDITION_DRAFT_BODY_INVALID" }] })
+  }
+  if (parsed.data.bodyMarkdown !== undefined && parsed.data.bodyMarkdown.length > 0) {
+    const validation = validateEditionBody(markdownToBlocks(parsed.data.bodyMarkdown))
+    if (validation !== true) return json(400, { errors: [{ message: validation }] })
+  }
+  return parsed.data as EditionDraftPatch
+}
+
+const writeContext = async (request: Request, action: "create" | "update") => {
+  const auth = await authenticateRequest(request.headers)
+  if (auth === null) return { response: json(401, { errors: [{ message: "Unauthorized" }] }) }
+  if (!decideAccess(auth.claims, CMS_RESOURCE.EDITIONS, action === "create" ? CMS_ACTION.CREATE : CMS_ACTION.UPDATE)) {
+    return { response: json(403, { errors: [{ message: "You are not allowed to perform this action." }] }) }
+  }
+  const scope = entityScopeOf(auth)
+  return scope === null
+    ? { response: json(403, { errors: [{ message: "Forbidden" }] }) }
+    : { scope }
+}
+
+export const handleEditionDraftPost = async (
+  request: Request,
+  slug: readonly string[] | undefined,
+): Promise<Response | null> => {
+  if (slug?.length !== 1 || slug[0] !== "content-editions") return null
+  const url = new URL(request.url)
+  if (url.searchParams.get("draft") !== "true") return null
+  const depth = url.searchParams.get("depth")
+  if (depth !== null && depth !== "0") return null
+  const parsed = await parseWriteBody(request)
+  if (parsed instanceof Response) return parsed
+  const context = await writeContext(request, "create")
+  if ("response" in context) return context.response
+  try {
+    const doc = await new EditionsRepository(serverRuntime().db).createDraft(context.scope, parsed)
+    return json(201, { doc, message: "草稿成功保存。" })
+  } catch (error) {
+    return errorResponse(error)
+  }
+}
+
 export const handleEditionDraftPatch = async (
   request: Request,
   slug: readonly string[] | undefined,
@@ -64,36 +115,16 @@ export const handleEditionDraftPatch = async (
   const depth = url.searchParams.get("depth")
   if (depth !== null && depth !== "0") return null
 
-  let raw: unknown
-  try {
-    raw = await request.json()
-  } catch {
-    return json(400, { errors: [{ message: "EDITION_DRAFT_BODY_INVALID" }] })
-  }
-  const parsed = patchSchema.safeParse(raw)
-  if (!parsed.success) {
-    return json(400, { errors: [{ message: "EDITION_DRAFT_BODY_INVALID" }] })
-  }
-  if (parsed.data.bodyMarkdown !== undefined) {
-    const validation = validateEditionBody(markdownToBlocks(parsed.data.bodyMarkdown))
-    if (validation !== true) {
-      return json(400, { errors: [{ message: validation }] })
-    }
-  }
-
-  const auth = await authenticateRequest(request.headers)
-  if (auth === null) return json(401, { errors: [{ message: "Unauthorized" }] })
-  if (!decideAccess(auth.claims, CMS_RESOURCE.EDITIONS, CMS_ACTION.UPDATE)) {
-    return json(403, { errors: [{ message: "You are not allowed to perform this action." }] })
-  }
-  const scope = entityScopeOf(auth)
-  if (scope === null) return json(403, { errors: [{ message: "Forbidden" }] })
+  const parsed = await parseWriteBody(request)
+  if (parsed instanceof Response) return parsed
+  const context = await writeContext(request, "update")
+  if ("response" in context) return context.response
 
   try {
     const doc = await new EditionsRepository(serverRuntime().db).saveDraft(
-      scope,
+      context.scope,
       Number(id),
-      parsed.data as EditionDraftPatch,
+      parsed,
     )
     return json(200, { doc, message: "草稿成功保存。" })
   } catch (error) {

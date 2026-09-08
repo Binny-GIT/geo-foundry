@@ -41,6 +41,12 @@ describe("content edition unified workspace", () => {
     expect(createPage).not.toContain("requireConsolePayloadContext")
     expect(editPage).toContain("EditionEditor")
     expect(createPage).toContain("doc={null}")
+    const setup = await sourceOf(
+      "src/console/features/editions/components/ContentEditionSetupFields.tsx",
+    )
+    expect(setup).not.toContain("/api/contents")
+    expect(setup).not.toContain('path: "content"')
+    expect(setup).toContain("内部内容身份与租户由系统自动创建和关联")
     // Payload UI 已整体移除：无 emergency 兜底树，admin 路由指向 console 首页。
     expect(config).not.toContain("_emergency")
     expect(config).toContain('admin: "/admin"')
@@ -69,7 +75,7 @@ describe("content edition unified workspace", () => {
     // The assistant keeps its transcript and open state in the browser only.
     expect(chat).toContain("gf-ai-chat")
     expect(chat).toContain("localStorage")
-    expect(chat).toContain(["/api/editions/", "${editionId}", "/ai-chat"].join(""))
+    expect(chat).toContain(["/api/editions/", "$", "{editionId}", "/ai-chat"].join(""))
     expect(editor).toContain("StructuredRowsField")
     expect(editor).not.toContain("JsonField")
     // 正文编辑唯一入口是整篇 Markdown 编辑器；块编辑画布已退役。
