@@ -21,7 +21,6 @@ export const JOB_QUEUE = {
   evaluation: "operation-evaluation",
   generation: "operation-generation",
   intake: "content-intake",
-  maintenance: "worker-maintenance",
   publish: "operation-publish",
 } as const
 
@@ -31,7 +30,6 @@ export const QUEUE_CONCURRENCY: Readonly<Record<string, number>> = {
   evaluation: 4,
   generation: 2,
   intake: 2,
-  maintenance: 1,
   publish: 1,
 }
 

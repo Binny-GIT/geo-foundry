@@ -128,8 +128,8 @@ export const main = async (): Promise<void> => {
   }
 
   // 定时面：每分钟驱动 CMS 的 dispatch-due / poll-due（幂等，多实例单触发）。
-  await boss.createQueue(JOB_QUEUE.maintenance, { policy: "short" }).catch(() => undefined)
-  await boss.work(JOB_QUEUE.maintenance, { batchSize: 1 }, async (jobs: readonly PgBossJob[]) => {
+  // v12 的 schedule 名即目标队列名，每个 cron 一个队列；队列由 provision 预建。
+  const maintenanceHandler = async (jobs: readonly PgBossJob[]): Promise<void> => {
     for (const job of jobs) {
       const kind = (job.data as Record<string, unknown>)["kind"]
       if (kind === "publication-dispatch-due") {
@@ -149,8 +149,10 @@ export const main = async (): Promise<void> => {
         }
       }
     }
-  })
+  }
   for (const schedule of CRON_SCHEDULES) {
+    await boss.createQueue(schedule.name).catch(() => undefined)
+    await boss.work(schedule.name, { batchSize: 1 }, maintenanceHandler)
     await boss.schedule(schedule.name, schedule.cron, { kind: schedule.name }, { tz: "UTC" })
   }
 
