@@ -1,6 +1,7 @@
 import type { PayloadRequest } from "payload"
 
-import { buildCompileSnapshot } from "../../services/compile-snapshot"
+import { buildCompileSnapshot } from "../../server/repositories/compile-snapshot"
+import { serverRuntime } from "../../server/runtime"
 import { EditionWorkflowError } from "../../services/edition-workflow"
 import { internalJsonResponse, withInternalGuards } from "./guards"
 
@@ -16,7 +17,7 @@ const siteIdOf = (req: PayloadRequest): number => {
 export const handleGetCompileSnapshot = withInternalGuards(
   { bodySchema: null, operation: "getCompileSnapshot" },
   async (req, ctx) => {
-    const snapshot = await buildCompileSnapshot(req.payload, {
+    const snapshot = await buildCompileSnapshot(serverRuntime().db, {
       siteId: siteIdOf(req),
       user: req.user,
     })

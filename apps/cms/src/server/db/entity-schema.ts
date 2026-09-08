@@ -15,6 +15,12 @@ import { geo } from "./schema"
 
 export const siteStatus = pgEnum("enum_sites_status", ["active", "disabled"])
 export const contentCreatedBy = pgEnum("enum_contents_created_by", ["ai", "human", "hybrid"])
+export const connectorType = pgEnum("enum_connectors_type", ["manual", "url", "webhook", "rss"])
+export const connectorStatus = pgEnum("enum_connectors_status", ["active", "disabled"])
+export const sourceSnapshotKind = pgEnum("enum_source_snapshots_kind", [
+  "raw-response",
+  "extracted-content",
+])
 
 export const sites = geo.table(
   "sites",
@@ -76,6 +82,75 @@ export const contents = geo.table(
     createdAt: timestamp("created_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
   },
   (table) => [index("contents_tenant_idx").on(table.tenantId)],
+)
+
+export const connectors = geo.table(
+  "connectors",
+  {
+    id: serial("id").primaryKey(),
+    name: varchar("name").notNull(),
+    type: connectorType("type").notNull(),
+    status: connectorStatus("status").default("active").notNull(),
+    siteId: integer("site_id").notNull(),
+    tenantId: integer("tenant_id").notNull(),
+    sourceEndpoint: varchar("source_endpoint"),
+    secretReference: varchar("secret_reference"),
+    lastPolledAt: timestamp("last_polled_at", { withTimezone: true, precision: 3 }),
+    updatedAt: timestamp("updated_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("connectors_site_idx").on(table.siteId),
+    index("connectors_tenant_idx").on(table.tenantId),
+  ],
+)
+
+export const sourceSnapshots = geo.table(
+  "source_snapshots",
+  {
+    id: serial("id").primaryKey(),
+    intakeItemId: integer("intake_item_id").notNull(),
+    tenantId: integer("tenant_id").notNull(),
+    kind: sourceSnapshotKind("kind").notNull(),
+    storageKey: varchar("storage_key").notNull(),
+    contentHash: varchar("content_hash").notNull(),
+    contentType: varchar("content_type"),
+    contentLength: numeric("content_length"),
+    capturedAt: timestamp("captured_at", { withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("source_snapshots_intake_item_idx").on(table.intakeItemId),
+    index("source_snapshots_tenant_idx").on(table.tenantId),
+    index("source_snapshots_storage_key_idx").on(table.storageKey),
+  ],
+)
+
+export const media = geo.table(
+  "media",
+  {
+    id: serial("id").primaryKey(),
+    tenantId: integer("tenant_id").notNull(),
+    alt: varchar("alt").notNull(),
+    caption: varchar("caption"),
+    prefix: varchar("prefix").default(""),
+    url: varchar("url"),
+    thumbnailUrl: varchar("thumbnail_u_r_l"),
+    filename: varchar("filename"),
+    mimeType: varchar("mime_type"),
+    filesize: numeric("filesize"),
+    width: numeric("width"),
+    height: numeric("height"),
+    focalX: numeric("focal_x"),
+    focalY: numeric("focal_y"),
+    mediaPath: varchar("media_path"),
+    updatedAt: timestamp("updated_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
+  },
+  (table) => [index("media_tenant_idx").on(table.tenantId)],
 )
 
 /** users.sites hasMany relationship storage. */

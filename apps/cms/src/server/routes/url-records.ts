@@ -1,26 +1,17 @@
 /*
  * URL 记录路由：rename（active→redirected 301 + 新 active，领域 registry 校验，
- * 单事务）+ 性能建议接受（published→新 draft，复用工作流仓储）。
+ * 单事务）。
  */
 
 import { randomUUID } from "node:crypto"
 
-import {
-  parseContentId,
-  parseSiteId,
-  parseTenantId,
-  parseUrlId,
-  renameUrl,
-} from "@geo/domain"
-import { and, eq } from "drizzle-orm"
+import { parseContentId, parseSiteId, parseTenantId, parseUrlId, renameUrl } from "@geo/domain"
+import { eq } from "drizzle-orm"
 import { z } from "zod"
 
 import { buildSiteRegistry, toUrlRecordRow } from "../../services/url-registry-snapshot"
 import { authenticateRequest } from "../auth/session"
-import { editionVersions } from "../db/edition-schema"
 import { urlRecords } from "../db/workflow-schema"
-import { entityScopeOf } from "../repositories/entities"
-import { workflowActorOf, WorkflowRepository } from "../repositories/edition-workflow"
 import { serverRuntime } from "../runtime"
 
 export class UrlOpsError extends Error {
@@ -37,8 +28,6 @@ const renameSchema = z
   })
   .strict()
 
-const acceptSchema = z.object({ editionId: z.number().int().positive() }).strict()
-
 const json = (status: number, body: unknown): Response =>
   new Response(JSON.stringify(body), {
     headers: { "content-type": "application/json; charset=utf-8" },
@@ -48,19 +37,12 @@ const json = (status: number, body: unknown): Response =>
 export const urlRenameRouteOf = (slug: readonly string[] | undefined): boolean =>
   slug?.length === 3 && slug[0] === "url-record-operations" && slug[2] === "rename"
 
-export const perfAcceptRouteOf = (slug: readonly string[] | undefined): boolean =>
-  slug?.length === 3 &&
-  slug[0] === "performance-snapshots" &&
-  slug[1] === "suggestions" &&
-  slug[2] === "accept"
-
 export const handleUrlRecordsPost = async (
   request: Request,
   slug: readonly string[] | undefined,
 ): Promise<Response | null> => {
   if (slug === undefined) return null
   if (urlRenameRouteOf(slug)) return handleRename(request, slug)
-  if (perfAcceptRouteOf(slug)) return handlePerfAccept(request)
   return null
 }
 
@@ -178,48 +160,5 @@ const handleRename = async (request: Request, slug: readonly string[]): Promise<
             ? 400
             : 409
     return json(status, { error: { code } })
-  }
-}
-
-const handlePerfAccept = async (request: Request): Promise<Response> => {
-  const auth = await authenticateRequest(request.headers)
-  if (auth === null) return json(401, { error: { code: "PERF_ACCEPT_UNAUTHENTICATED" } })
-  const role = auth.claims.role
-  const scope = entityScopeOf(auth)
-  if (scope === null || auth.claims.kind !== "user" || (role !== "editor" && role !== "super-admin")) {
-    return json(403, { error: { code: "PERF_ACCEPT_FORBIDDEN" } })
-  }
-  let raw: unknown
-  try {
-    raw = await request.json()
-  } catch {
-    return json(400, { error: { code: "PERF_ACCEPT_BODY_INVALID" } })
-  }
-  const parsed = acceptSchema.safeParse(raw)
-  if (!parsed.success) return json(400, { error: { code: "PERF_ACCEPT_BODY_INVALID" } })
-  const db = serverRuntime().db
-  const rows = await db
-    .select({ status: editionVersions.workflowStatus })
-    .from(editionVersions)
-    .where(and(eq(editionVersions.parentId, parsed.data.editionId), eq(editionVersions.latest, true)))
-    .limit(1)
-  if (rows[0]?.status !== "published") {
-    return json(409, { error: { code: "PERF_ACCEPT_SOURCE_NOT_PUBLISHED" } })
-  }
-  try {
-    await new WorkflowRepository(db).createDraftFromPublished(scope, {
-      actor: workflowActorOf({
-        kind: "user",
-        role,
-        tenantId: auth.claims.tenantId === null ? null : Number(auth.claims.tenantId),
-        userId: auth.claims.userId,
-      }),
-      editionId: parsed.data.editionId,
-      reason: "traffic-decline refresh draft",
-    })
-    return json(200, { createdDraft: true, editionId: parsed.data.editionId })
-  } catch (error) {
-    const code = error instanceof Error ? error.message : "PERF_ACCEPT_FAILED"
-    return json(409, { error: { code } })
   }
 }

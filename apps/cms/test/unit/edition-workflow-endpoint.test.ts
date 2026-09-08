@@ -1,16 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const { transition, createDraftFromPublished, submitPublish, findDraft } = vi.hoisted(() => ({
+const { transition, createDraftFromPublished, submitPublish, loadVersion } = vi.hoisted(() => ({
   transition: vi.fn(),
   createDraftFromPublished: vi.fn(),
   submitPublish: vi.fn(),
-  findDraft: vi.fn(),
+  loadVersion: vi.fn(),
 }))
 
 const authState = { claims: { kind: "user", role: "editor", tenantId: 4, userId: "7" } }
 
 vi.mock("../../src/server/runtime", () => ({
-  serverRuntime: () => ({ db: {} }),
+  serverRuntime: () => ({
+    db: { transaction: async (run: (tx: unknown) => unknown) => run({}) },
+  }),
 }))
 
 vi.mock("../../src/server/auth/session", () => ({
@@ -32,12 +34,7 @@ vi.mock("../../src/server/repositories/edition-workflow", async (importOriginal)
     transition = transition
     createDraftFromPublished = createDraftFromPublished
   },
-}))
-
-vi.mock("../../src/server/repositories/editions", () => ({
-  EditionsRepository: class {
-    findDraft = findDraft
-  },
+  loadCurrentVersion: loadVersion,
 }))
 
 vi.mock("../../src/server/repositories/operations", () => ({
@@ -48,6 +45,17 @@ vi.mock("../../src/server/repositories/operations", () => ({
 
 import { editionWorkflowRouteOf, handleEditionWorkflowPost } from "../../src/server/routes/edition-workflow"
 import { WorkflowRepositoryError } from "../../src/server/repositories/edition-workflow"
+
+const versionRow = (workflowStatus: string) => ({
+  root: { id: 586 },
+  version: {
+    compiledRelease: null,
+    siteId: 374,
+    tenantId: 4,
+    workflowRevision: "3",
+    workflowStatus,
+  },
+})
 
 const post = async (slug: readonly string[], body: unknown): Promise<Response> => {
   const response = await handleEditionWorkflowPost(
@@ -67,7 +75,7 @@ describe("edition workflow Drizzle routes", () => {
     transition.mockReset()
     createDraftFromPublished.mockReset()
     submitPublish.mockReset()
-    findDraft.mockReset()
+    loadVersion.mockReset()
     authState.claims = { kind: "user", role: "editor", tenantId: 4, userId: "7" }
   })
 
@@ -137,13 +145,7 @@ describe("edition workflow Drizzle routes", () => {
   })
 
   it("gates publish operations on the publisher role and the approved state", async () => {
-    findDraft.mockResolvedValueOnce({
-      compiledRelease: null,
-      site: 374,
-      tenant: 4,
-      workflowRevision: 3,
-      workflowStatus: "approved",
-    })
+    loadVersion.mockResolvedValueOnce(versionRow("approved"))
     const forbidden = await post(["editions", "586", "publish-operations"], {})
 
     expect(forbidden.status).toBe(403)
@@ -152,13 +154,7 @@ describe("edition workflow Drizzle routes", () => {
     })
 
     authState.claims = { kind: "user", role: "publisher", tenantId: 4, userId: "9" }
-    findDraft.mockResolvedValueOnce({
-      compiledRelease: null,
-      site: 374,
-      tenant: 4,
-      workflowRevision: 3,
-      workflowStatus: "draft",
-    })
+    loadVersion.mockResolvedValueOnce(versionRow("draft"))
     const notApproved = await post(["editions", "586", "publish-operations"], {})
 
     expect(notApproved.status).toBe(409)
@@ -170,13 +166,7 @@ describe("edition workflow Drizzle routes", () => {
 
   it("returns 202 for created publish operations and 200 for replays", async () => {
     authState.claims = { kind: "user", role: "publisher", tenantId: 4, userId: "9" }
-    findDraft.mockResolvedValue({
-      compiledRelease: null,
-      site: 374,
-      tenant: 4,
-      workflowRevision: 3,
-      workflowStatus: "approved",
-    })
+    loadVersion.mockResolvedValue(versionRow("approved"))
     submitPublish.mockResolvedValueOnce({
       created: true,
       operationId: "op-1",

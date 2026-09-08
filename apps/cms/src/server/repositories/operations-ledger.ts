@@ -299,38 +299,3 @@ export const completeOperationStage = async (
     return snapshotOf(await loadByOperationId(db, input.operationId))
   })
 }
-
-export const cancelOperation = async (
-  db: ServerDb,
-  input: { readonly operationId: string; readonly reason: string; readonly user: unknown },
-): Promise<OperationSnapshot> => {
-  return db.transaction(async (tx) => {
-    const claims = serviceClaimsOf(input.user)
-    const rows = await tx
-      .select()
-      .from(operations)
-      .where(eq(operations.operationId, input.operationId))
-      .limit(1)
-      .for("update")
-    const row = rows[0]
-    if (row === undefined) throw fail("OPERATION_NOT_FOUND")
-    assertTenantScope(claims, row)
-    const aggregate = aggregateOf(row)
-    const actor = serializedActorOf(input.user)
-    if (actor === null) throw fail("OPERATIONS_INPUT_INVALID")
-    const entry = {
-      action: "operation.cancelled",
-      actor,
-      at: clock.now().value,
-      reason: input.reason,
-    }
-    const transitioned = transitionOperation(aggregate, "cancelled", {
-      actor: transitionActorOf(row),
-      clock,
-      expectedRevision: aggregate.revision,
-    })
-    if (!transitioned.ok) throw fail(transitioned.error.code)
-    await appendAudit(tx, row, entry, { state: "cancelled" })
-    return snapshotOf(await loadByOperationId(db, input.operationId))
-  })
-}

@@ -17,14 +17,9 @@ export const INTERNAL_PATHS = {
   assessments: "/internal/editions/:id/assessments",
   similarity: "/internal/editions/:id/similarity",
   versions: "/internal/editions/:id/versions",
-  operationCancel: "/internal/operations/:operationId/cancel",
-  operationEvaluate: "/internal/operations/evaluate",
-  operationGenerate: "/internal/operations/generate",
   operationGet: "/internal/operations/:operationId",
-  operationRollback: "/internal/operations/rollback",
   operationStageComplete: "/internal/operations/:operationId/stages/complete",
   operationStageStart: "/internal/operations/:operationId/stages/start",
-  operationSubmit: "/internal/operations/submit",
   operationsNonTerminal: "/internal/operations/non-terminal",
 } as const
 
@@ -162,94 +157,6 @@ export type DispatchDuePublicationPlansBody = z.infer<typeof dispatchDuePublicat
 export const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9._-]{8,128}$/
 export const OPERATION_STAGE_NAME_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/
 
-const siteStrategySchema = z
-  .object({
-    locale: z.string().min(2).max(35),
-    name: z.string().min(1).max(100),
-    tone: z.string().min(1).max(100).optional(),
-  })
-  .strict()
-
-const briefSourceSchema = z
-  .object({
-    id: z.string().min(1).max(100),
-    snippet: z.string().min(1).max(2000),
-    title: z.string().min(1).max(200),
-    url: z.string().url().max(2000).optional(),
-  })
-  .strict()
-
-/**
- * Content-operation submission bodies deliberately mirror the operator-facing
- * content-service contract. Keeping these at the CMS boundary lets the ledger
- * own validation, canonical request identity, and service-identity checks.
- */
-export const generateOperationBodySchema = z
-  .object({
-    brief: z
-      .object({
-        constraints: z.array(z.string().min(1).max(300)).max(20).optional(),
-        intent: z.string().min(1).max(500),
-        sources: z.array(briefSourceSchema).min(1).max(20),
-        topic: z.string().min(1).max(300),
-      })
-      .strict(),
-    contentId: z.number().int().positive(),
-    targets: z
-      .array(
-        z
-          .object({
-            angle: z.string().min(1).max(200),
-            editionId: z.number().int().positive(),
-            siteStrategy: siteStrategySchema,
-          })
-          .strict(),
-      )
-      .min(1)
-      .max(5),
-  })
-  .strict()
-
-export const evaluateOperationBodySchema = z
-  .object({
-    editionId: z.number().int().positive(),
-    thresholds: z
-      .object({
-        dimensionMin: z.number().min(0).max(100),
-        overallMin: z.number().min(0).max(100),
-      })
-      .strict()
-      .optional(),
-  })
-  .strict()
-
-export const rollbackOperationBodySchema = z
-  .object({
-    expectedCurrentManifestSha256: z.string().regex(SHA256_PATTERN),
-    expectedCurrentReleaseId: z.string().regex(RELEASE_ID_PATTERN),
-    expectedManifestSha256: z.string().regex(SHA256_PATTERN),
-    rollbackIntentId: z.string().uuid(),
-    reason: z.string().min(1).max(500).optional(),
-    siteId: z.string().regex(/^[a-z0-9]+(?:[-_][a-z0-9]+)*$/),
-    targetReleaseId: z.string().regex(RELEASE_ID_PATTERN),
-  })
-  .strict()
-
-export type GenerateOperationBody = z.infer<typeof generateOperationBodySchema>
-export type EvaluateOperationBody = z.infer<typeof evaluateOperationBodySchema>
-export type RollbackOperationBody = z.infer<typeof rollbackOperationBodySchema>
-
-export const submitOperationBodySchema = z
-  .object({
-    endpoint: z.string().min(1).max(200),
-    idempotencyKey: z.string().regex(IDEMPOTENCY_KEY_PATTERN),
-    operationType: z.enum(["generate", "evaluate", "publish", "rollback"]),
-    requestPayload: z.record(z.string(), z.unknown()),
-    siteId: z.number().int().positive().optional(),
-    targetIds: z.record(z.string().min(1).max(64), z.number().int().positive()).optional(),
-  })
-  .strict()
-
 export const startOperationStageBodySchema = z
   .object({
     attempt: z.number().int().min(1).max(1000),
@@ -267,16 +174,8 @@ export const completeOperationStageBodySchema = z
   })
   .strict()
 
-export const cancelOperationBodySchema = z
-  .object({
-    reason: z.string().min(1).max(500),
-  })
-  .strict()
-
-export type SubmitOperationBody = z.infer<typeof submitOperationBodySchema>
 export type StartOperationStageBody = z.infer<typeof startOperationStageBodySchema>
 export type CompleteOperationStageBody = z.infer<typeof completeOperationStageBodySchema>
-export type CancelOperationBody = z.infer<typeof cancelOperationBodySchema>
 
 const vectorSchema = z.array(z.number().finite()).min(1).max(4096)
 

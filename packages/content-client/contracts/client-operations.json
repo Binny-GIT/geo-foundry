@@ -81,26 +81,6 @@
       "path": "/internal/editions/{id}/similarity"
     },
     {
-      "method": "post",
-      "operationId": "generateOperation",
-      "path": "/internal/operations/generate"
-    },
-    {
-      "method": "post",
-      "operationId": "evaluateOperation",
-      "path": "/internal/operations/evaluate"
-    },
-    {
-      "method": "post",
-      "operationId": "rollbackOperation",
-      "path": "/internal/operations/rollback"
-    },
-    {
-      "method": "post",
-      "operationId": "submitOperation",
-      "path": "/internal/operations/submit"
-    },
-    {
       "method": "get",
       "operationId": "listNonTerminalOperations",
       "path": "/internal/operations/non-terminal"
@@ -119,11 +99,6 @@
       "method": "post",
       "operationId": "completeOperationStage",
       "path": "/internal/operations/:operationId/stages/complete"
-    },
-    {
-      "method": "post",
-      "operationId": "cancelOperation",
-      "path": "/internal/operations/:operationId/cancel"
     }
   ]
 }

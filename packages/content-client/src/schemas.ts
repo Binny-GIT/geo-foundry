@@ -129,7 +129,9 @@ export const createRssEntriesRequestSchema = z.object({
     .max(20),
 })
 
-export const rssEntriesReceiptSchema = z.object({ intakeItemIds: z.array(z.number().int().positive()) })
+export const rssEntriesReceiptSchema = z.object({
+  intakeItemIds: z.array(z.number().int().positive()),
+})
 
 export const editionInputSchema = z.object({
   compiledRelease: z.string().min(1).nullable(),
@@ -215,17 +217,6 @@ export const operationSnapshotSchema = z.object({
   tenantId: z.number().int(),
 })
 
-export const submitOperationRequestSchema = z
-  .object({
-    endpoint: z.string().min(1).max(200),
-    idempotencyKey: idempotencyKeySchema,
-    operationType: operationTypeSchema,
-    requestPayload: z.record(z.string(), z.unknown()),
-    siteId: z.number().int().positive().optional(),
-    targetIds: z.record(z.string().min(1).max(64), z.number().int().positive()).optional(),
-  })
-  .refine((value) => Object.keys(value).length > 0)
-
 export const startOperationStageRequestSchema = z.object({
   attempt: z.number().int().min(1).max(1000),
   stage: z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/),
@@ -241,15 +232,6 @@ export const completeOperationStageRequestSchema = z
   })
   .refine((value) => value.outcome !== "succeeded" || value.result !== undefined)
   .refine((value) => value.outcome !== "failed" || value.error !== undefined)
-
-export const cancelOperationRequestSchema = z.object({
-  reason: z.string().min(1).max(500),
-})
-
-export const submitOperationResponseSchema = z.object({
-  created: z.boolean(),
-  operation: operationSnapshotSchema,
-})
 
 export const operationResponseSchema = z.object({
   operation: operationSnapshotSchema,
@@ -313,7 +295,9 @@ export type RecordAssessmentRequest = z.input<typeof recordAssessmentRequestSche
 export type RecordCompileResultRequest = z.input<typeof recordCompileResultRequestSchema>
 export type ConsumeRollbackIntentRequest = z.input<typeof consumeRollbackIntentRequestSchema>
 export type RecordReleaseReceiptRequest = z.input<typeof recordReleaseReceiptRequestSchema>
-export type DispatchDuePublicationPlansRequest = z.input<typeof dispatchDuePublicationPlansRequestSchema>
+export type DispatchDuePublicationPlansRequest = z.input<
+  typeof dispatchDuePublicationPlansRequestSchema
+>
 export type IntakeFetchInput = z.infer<typeof intakeFetchInputSchema>
 export type CompleteIntakeFetchRequest = z.input<typeof completeIntakeFetchRequestSchema>
 export type FailIntakeFetchRequest = z.input<typeof failIntakeFetchRequestSchema>
@@ -327,10 +311,8 @@ export type RollbackRequest = z.input<typeof rollbackRequestSchema>
 export type OperationState = z.infer<typeof operationStateSchema>
 export type OperationType = z.infer<typeof operationTypeSchema>
 export type OperationSnapshot = z.infer<typeof operationSnapshotSchema>
-export type SubmitOperationRequest = z.input<typeof submitOperationRequestSchema>
 export type StartOperationStageRequest = z.input<typeof startOperationStageRequestSchema>
 export type CompleteOperationStageRequest = z.input<typeof completeOperationStageRequestSchema>
-export type CancelOperationRequest = z.input<typeof cancelOperationRequestSchema>
 export type EmbeddingScope = z.infer<typeof embeddingScopeSchema>
 export type SemanticComparison = z.infer<typeof semanticComparisonSchema>
 export type StoreEmbeddingRequest = z.input<typeof storeEmbeddingRequestSchema>

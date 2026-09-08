@@ -4,14 +4,8 @@
  * endpoint 逐项一致；publish 复用 OperationsRepository 的同事务台账。
  */
 
-import { createHash, randomUUID } from "node:crypto"
-
 import { z } from "zod"
 
-import {
-  operationRequestHashOf,
-  operationUniqueKeyOf,
-} from "../../services/operations-ledger"
 import { authenticateRequest } from "../auth/session"
 import { IdempotencyConflictError } from "../errors"
 import {
@@ -19,9 +13,8 @@ import {
   WorkflowRepository,
   WorkflowRepositoryError,
 } from "../repositories/edition-workflow"
-import { EditionsRepository } from "../repositories/editions"
 import { entityScopeOf } from "../repositories/entities"
-import { OperationsRepository } from "../repositories/operations"
+import { submitEditionPublishOperation } from "../repositories/publish-operations"
 import { serverRuntime } from "../runtime"
 
 const reasonSchema = z.string().trim().min(1).max(500)
@@ -44,14 +37,11 @@ const json = (status: number, body: unknown): Response =>
   })
 
 const errorStatusOf = (code: string): number =>
-  code.endsWith("ACTOR_INVALID") || code.endsWith("TENANT_MISMATCH") || code === "EDITION_WORKFLOW_PUBLISHER_REQUIRED"
+  code.endsWith("ACTOR_INVALID") ||
+  code.endsWith("TENANT_MISMATCH") ||
+  code === "EDITION_WORKFLOW_PUBLISHER_REQUIRED"
     ? 403
     : 409
-
-const sha256Text = (input: string): string => createHash("sha256").update(input).digest("hex")
-
-const releaseIdForOperation = (operationId: string): string =>
-  `rel-${createHash("sha256").update(operationId).digest("hex").slice(0, 24)}`
 
 const editionIdOf = (slug: readonly string[] | undefined): number | null => {
   const id = slug?.[1]
@@ -160,72 +150,17 @@ export const handleEditionWorkflowPost = async (
     return json(400, { error: { code: "EDITION_WORKFLOW_BODY_INVALID" } })
   }
   try {
-    const runtime = serverRuntime()
-    const document = await new EditionsRepository(runtime.db).findDraft(scope, editionId)
-    if (document === null) {
-      throw new WorkflowRepositoryError("EDITION_WORKFLOW_NOT_FOUND")
-    }
-    const status = String(document["workflowStatus"] ?? "")
-    const compiledReleaseRaw = document["compiledRelease"]
-    const compiledRelease =
-      typeof compiledReleaseRaw === "string" && compiledReleaseRaw.length > 0
-        ? compiledReleaseRaw
-        : null
-    if (claims.role !== "publisher" && claims.role !== "super-admin") {
-      throw new WorkflowRepositoryError("EDITION_WORKFLOW_PUBLISHER_REQUIRED")
-    }
-    if (status !== "approved" && (status !== "compiled" || compiledRelease === null)) {
-      throw new WorkflowRepositoryError("EDITION_WORKFLOW_NOT_APPROVED")
-    }
-    const tenantId = claims.tenantId ?? Number(document["tenant"] ?? -1)
-    const siteIdRaw = document["site"]
-    const siteId = typeof siteIdRaw === "number" ? siteIdRaw : null
-    const endpoint = `/editions/${editionId}/publish`
-    const idempotencyKey =
-      compiledRelease === null
-        ? `publish-edition-${editionId}-revision-${Number(document["workflowRevision"] ?? 0)}`
-        : `publish-edition-${editionId}-${compiledRelease}`
-    const requestPayload = { body: { editionId } }
-    const requestHash = operationRequestHashOf(requestPayload)
-    const operationId = randomUUID()
-    const outcome = await new OperationsRepository(runtime.db).submit({
-      auditLog: [
-        {
-          action: "operation.created",
-          actor: claims,
-          at: new Date().toISOString(),
-          detail: { endpoint, requestHash },
-          ...(parsed.data.reason === undefined ? {} : { reason: parsed.data.reason }),
-        },
-      ],
-      endpoint,
-      idempotencyKey,
-      idempotencyKeyHash: sha256Text(idempotencyKey),
-      operationId,
-      operationType: "publish",
-      requestHash,
-      requestPayload,
-      ...(siteId === null ? {} : { siteId }),
-      targetIds: { editionId },
-      tenantId,
-      uniqueKey: operationUniqueKeyOf(tenantId, endpoint, idempotencyKey),
-      outbox: {
-        aggregateId: editionId,
-        eventPayload: {
-          editionId,
-          operationType: "publish",
-          releaseId: compiledRelease ?? releaseIdForOperation(operationId),
-          ...(siteId === null ? {} : { siteId }),
-        },
-        type: "publish.requested",
-      },
+    const outcome = await submitEditionPublishOperation(serverRuntime().db, {
+      claims,
+      editionId,
+      ...(parsed.data.reason === undefined ? {} : { reason: parsed.data.reason }),
     })
     return json(outcome.created ? 202 : 200, {
       editionId,
       operation: {
         created: outcome.created,
         operationId: outcome.operationId,
-        releaseId: compiledRelease ?? releaseIdForOperation(outcome.operationId),
+        releaseId: outcome.releaseId,
         state: outcome.state,
       },
     })

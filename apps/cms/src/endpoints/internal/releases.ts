@@ -1,6 +1,10 @@
 import type { PayloadRequest } from "payload"
 
-import { recordPublishedRelease, recordRollbackReceipt } from "../../services/release-registry"
+import {
+  recordPublishedRelease,
+  recordRollbackReceipt,
+} from "../../server/repositories/release-registry"
+import { serverRuntime } from "../../server/runtime"
 import { type ReleaseReceiptBody, releaseReceiptBodySchema } from "./contracts"
 import { internalJsonResponse, withInternalGuards } from "./guards"
 
@@ -16,7 +20,7 @@ const siteIdOf = (req: PayloadRequest): number => {
 const handleRecordPublishedRelease = withInternalGuards(
   { bodySchema: releaseReceiptBodySchema, operation: "recordPublishedRelease" },
   async (req, ctx, body: ReleaseReceiptBody) => {
-    await recordPublishedRelease(req.payload, {
+    await recordPublishedRelease(serverRuntime().db, {
       ...(body.editionId === undefined ? {} : { editionId: body.editionId }),
       operationId: body.operationId,
       receipt: body.receipt,
@@ -30,7 +34,7 @@ const handleRecordPublishedRelease = withInternalGuards(
 const handleRecordRollbackReceipt = withInternalGuards(
   { bodySchema: releaseReceiptBodySchema, operation: "recordRollbackReceipt" },
   async (req, ctx, body: ReleaseReceiptBody) => {
-    await recordRollbackReceipt(req.payload, {
+    await recordRollbackReceipt(serverRuntime().db, {
       operationId: body.operationId,
       receipt: body.receipt,
       user: req.user,

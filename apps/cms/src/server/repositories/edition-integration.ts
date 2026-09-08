@@ -15,7 +15,7 @@ import { resolveSessionClaims } from "../../access/session"
 import { hashEditionContent } from "../../services/edition-input-hash"
 import { EditionWorkflowError } from "../../services/edition-workflow"
 import type { ServerDb } from "../db/client"
-import { editionVersionRels, editionVersions, editionVersionTexts } from "../db/edition-schema"
+import { editionVersions, editionVersionTexts } from "../db/edition-schema"
 import { qualityAssessments } from "../db/session-schema"
 import { outboxEvents } from "../db/ledger-schema"
 import {
@@ -105,8 +105,13 @@ export const readEditionInput = async (
       contentId: version.contentId ?? -1,
       editionId: options.editionId,
       inputHash: hashEditionContent({ body, primaryTopic, secondaryTopics, summary, title }),
-      modifiedAt: (version.contentModifiedAt ?? version.updatedAt).toISOString(),
-      publishedAt: version.createdAt.toISOString(),
+      // Payload draft:true 返回的是 version_* 副本列，publishedAt 对应 version_created_at。
+      modifiedAt: (
+        version.contentModifiedAt ??
+        version.versionUpdatedAt ??
+        version.updatedAt
+      ).toISOString(),
+      publishedAt: (version.versionCreatedAt ?? version.createdAt).toISOString(),
       primaryTopic,
       secondaryTopics,
       siteId: version.siteId ?? -1,
@@ -164,7 +169,7 @@ export const writeGeneratedDraft = async (
     }
     const nextMarkdown =
       options.patch.body === undefined
-        ? version.bodyMarkdown ?? ""
+        ? (version.bodyMarkdown ?? "")
         : blocksToMarkdown(options.patch.body as readonly Record<string, unknown>[])
     const nextTitle = options.patch.title ?? version.title ?? ""
     const nextSummary = options.patch.summary ?? version.summary ?? ""
@@ -258,8 +263,12 @@ export const recordCompileResult = async (
       const evidence = [...existingAudit]
         .reverse()
         .map((entry) =>
-          typeof entry === "object" && entry !== null && (entry as Record<string, unknown>)["action"] === "edition.compile.recorded"
-            ? ((entry as Record<string, unknown>)["detail"] as Record<string, unknown> | undefined) ?? null
+          typeof entry === "object" &&
+          entry !== null &&
+          (entry as Record<string, unknown>)["action"] === "edition.compile.recorded"
+            ? (((entry as Record<string, unknown>)["detail"] as
+                | Record<string, unknown>
+                | undefined) ?? null)
             : null,
         )
         .find((detail) => detail?.["releaseId"] === version.compiledRelease)

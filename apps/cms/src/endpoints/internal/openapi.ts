@@ -42,22 +42,6 @@ export const INTERNAL_OPERATIONS: readonly InternalOperationDescriptor[] = [
   { method: "post", operationId: "storeEmbedding", path: INTERNAL_PATHS.embeddings },
   { method: "post", operationId: "findSimilarEditions", path: INTERNAL_PATHS.similarity },
   {
-    method: "post",
-    operationId: "generateOperation",
-    path: INTERNAL_PATHS.operationGenerate,
-  },
-  {
-    method: "post",
-    operationId: "evaluateOperation",
-    path: INTERNAL_PATHS.operationEvaluate,
-  },
-  {
-    method: "post",
-    operationId: "rollbackOperation",
-    path: INTERNAL_PATHS.operationRollback,
-  },
-  { method: "post", operationId: "submitOperation", path: INTERNAL_PATHS.operationSubmit },
-  {
     method: "get",
     operationId: "listNonTerminalOperations",
     path: INTERNAL_PATHS.operationsNonTerminal,
@@ -73,7 +57,6 @@ export const INTERNAL_OPERATIONS: readonly InternalOperationDescriptor[] = [
     operationId: "completeOperationStage",
     path: INTERNAL_PATHS.operationStageComplete,
   },
-  { method: "post", operationId: "cancelOperation", path: INTERNAL_PATHS.operationCancel },
 ]
 
 const openApiPath = (routePath: string): string => routePath.replace(":id", "{id}")

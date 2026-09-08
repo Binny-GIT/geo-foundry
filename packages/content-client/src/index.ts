@@ -8,7 +8,6 @@ export type {
   AssessmentReceipt,
   CompleteIntakeFetchRequest,
   CreateRssEntriesRequest,
-  CancelOperationRequest,
   CompileResultReceipt,
   CompleteOperationStageRequest,
   ConsumeRollbackIntentRequest,
@@ -30,7 +29,6 @@ export type {
   SimilarityQueryRequest,
   StartOperationStageRequest,
   StoreEmbeddingRequest,
-  SubmitOperationRequest,
   WorkflowStatus,
   WriteDraftVersionRequest,
 } from "./schemas.js"

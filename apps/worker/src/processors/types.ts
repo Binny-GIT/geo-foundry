@@ -24,7 +24,6 @@ export type ProcessorContext = {
     | "recordRollbackReceipt"
     | "startOperationStage"
     | "storeEmbedding"
-    | "submitOperation"
     | "writeDraftVersion"
   >
   readonly logger: WorkerLogger

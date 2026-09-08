@@ -3,12 +3,10 @@ import type { z } from "zod"
 import {
   type AssessmentReceipt,
   assessmentReceiptSchema,
-  type CancelOperationRequest,
   type CompileResultReceipt,
   type CompileSnapshot,
   type CompleteOperationStageRequest,
   type ConsumeRollbackIntentRequest,
-  cancelOperationRequestSchema,
   compileResultReceiptSchema,
   compileSnapshotSchema,
   completeOperationStageRequestSchema,
@@ -35,10 +33,6 @@ import {
   rssEntriesReceiptSchema,
   editionInputSchema,
   embeddingReceiptSchema,
-  type EvaluateRequest,
-  evaluateRequestSchema,
-  type GenerateRequest,
-  generateRequestSchema,
   idempotencyKeySchema,
   internalErrorSchema,
   nonTerminalOperationsResponseSchema,
@@ -51,19 +45,14 @@ import {
   recordCompileResultRequestSchema,
   recordReleaseReceiptRequestSchema,
   recordReleaseReceiptSchema,
-  type RollbackRequest,
-  rollbackRequestSchema,
   type SimilarityMatch,
   type SimilarityQueryRequest,
   type StartOperationStageRequest,
   type StoreEmbeddingRequest,
-  type SubmitOperationRequest,
   similarityQueryRequestSchema,
   similarityResponseSchema,
   startOperationStageRequestSchema,
   storeEmbeddingRequestSchema,
-  submitOperationRequestSchema,
-  submitOperationResponseSchema,
   type WriteDraftVersionRequest,
   writeDraftVersionRequestSchema,
 } from "./schemas.js"
@@ -294,62 +283,6 @@ export class ContentServiceClient {
     )
   }
 
-  async generateOperation(
-    request: GenerateRequest,
-    options: IdempotentCallOptions,
-  ): Promise<{ created: boolean; operation: OperationSnapshot }> {
-    return this.#call(
-      "POST",
-      "/internal/operations/generate",
-      generateRequestSchema,
-      request,
-      submitOperationResponseSchema,
-      options,
-    )
-  }
-
-  async evaluateOperation(
-    request: EvaluateRequest,
-    options: IdempotentCallOptions,
-  ): Promise<{ created: boolean; operation: OperationSnapshot }> {
-    return this.#call(
-      "POST",
-      "/internal/operations/evaluate",
-      evaluateRequestSchema,
-      request,
-      submitOperationResponseSchema,
-      options,
-    )
-  }
-
-  async rollbackOperation(
-    request: RollbackRequest,
-    options: IdempotentCallOptions,
-  ): Promise<{ created: boolean; operation: OperationSnapshot }> {
-    return this.#call(
-      "POST",
-      "/internal/operations/rollback",
-      rollbackRequestSchema,
-      request,
-      submitOperationResponseSchema,
-      options,
-    )
-  }
-
-  async submitOperation(
-    request: SubmitOperationRequest,
-    options: CallOptions = {},
-  ): Promise<{ created: boolean; operation: OperationSnapshot }> {
-    return this.#call(
-      "POST",
-      "/internal/operations/submit",
-      submitOperationRequestSchema,
-      request,
-      submitOperationResponseSchema,
-      options,
-    )
-  }
-
   async getOperation(operationId: string): Promise<OperationSnapshot> {
     return (
       await this.#call(
@@ -389,23 +322,6 @@ export class ContentServiceClient {
         "POST",
         `/internal/operations/${encodeURIComponent(operationId)}/stages/complete`,
         completeOperationStageRequestSchema,
-        request,
-        operationResponseSchema,
-        options,
-      )
-    ).operation
-  }
-
-  async cancelOperation(
-    operationId: string,
-    request: CancelOperationRequest,
-    options: CallOptions = {},
-  ): Promise<OperationSnapshot> {
-    return (
-      await this.#call(
-        "POST",
-        `/internal/operations/${encodeURIComponent(operationId)}/cancel`,
-        cancelOperationRequestSchema,
         request,
         operationResponseSchema,
         options,

@@ -1,11 +1,12 @@
-import { consumeRollbackIntent } from "../../services/rollback-intents"
+import { consumeRollbackIntent } from "../../server/repositories/rollback-intents"
+import { serverRuntime } from "../../server/runtime"
 import { type ConsumeRollbackIntentBody, consumeRollbackIntentBodySchema } from "./contracts"
 import { internalJsonResponse, withInternalGuards } from "./guards"
 
 const handleConsumeRollbackIntent = withInternalGuards(
   { bodySchema: consumeRollbackIntentBodySchema, operation: "consumeRollbackIntent" },
   async (req, ctx, body: ConsumeRollbackIntentBody) => {
-    await consumeRollbackIntent(req.payload, { ...body, user: req.user })
+    await consumeRollbackIntent(serverRuntime().db, { ...body, user: req.user })
     return internalJsonResponse(200, { consumed: true }, ctx.requestId, null)
   },
 )
