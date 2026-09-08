@@ -16,7 +16,8 @@
     "test": "node --test test/bootstrap-contract.test.mjs && vitest run --configLoader runner test/unit",
     "test:e2e": "node --input-type=module --eval \"\"",
     "typecheck": "tsc --noEmit --project tsconfig.json",
-    "db:migrate:generate": "drizzle-kit generate"
+    "db:migrate:generate": "drizzle-kit generate",
+    "password-hash-report": "node scripts/secure-run.mjs node --import tsx scripts/password-hash-report.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1112.0",

@@ -15,7 +15,7 @@ import { resolveRoleAssignment } from "../../access/role-assignment"
 import { CMS_ROLE, CMS_ROLES } from "../../access/roles"
 import type { SessionClaims } from "../../access/session"
 import { validateUserTenantInvariant } from "../../access/user-tenant-invariant"
-import { generatePasswordCredentialsCompat } from "../auth/compat"
+import { hashPassword } from "../auth/password"
 import type { ServerDb } from "../db/client"
 import { sites } from "../db/entity-schema"
 import { tenants, users } from "../db/schema"
@@ -390,7 +390,7 @@ export const createUser = async (
     incomingTenant: tenantId,
   })
   if (invariant !== true) throw fail("CMS_USER_TENANT_REQUIRED")
-  const credentials = await generatePasswordCredentialsCompat(parsed.data.password)
+  const credentials = await hashPassword(parsed.data.password)
   try {
     const rows = await db
       .insert(users)
@@ -450,7 +450,7 @@ export const updateUser = async (
   const credentials =
     parsed.data.password === undefined
       ? null
-      : await generatePasswordCredentialsCompat(parsed.data.password)
+      : await hashPassword(parsed.data.password)
   try {
     await db
       .update(users)

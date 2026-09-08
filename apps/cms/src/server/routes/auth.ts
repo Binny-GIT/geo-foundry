@@ -8,7 +8,7 @@ import { randomBytes, randomUUID } from "node:crypto"
 
 import { z } from "zod"
 
-import { generatePasswordCredentialsCompat, verifyPasswordCompat } from "../auth/compat"
+import { hashPassword, verifyPassword } from "../auth/password"
 import { authenticateRequest } from "../auth/session"
 import { UsersRepository, type UserAuthRecord } from "../repositories/users"
 import { serverRuntime } from "../runtime"
@@ -100,14 +100,20 @@ const handleLogin = async (request: Request): Promise<Response> => {
   const repository = new UsersRepository(db)
   const user = await repository.findAuthByEmail(parsed.data.email.toLowerCase())
   const dummy = { hash: "0".repeat(1024), salt: "0".repeat(64) }
-  const valid = await verifyPasswordCompat(
+  const verification = await verifyPassword(
     parsed.data.password,
     user === null ? dummy : { hash: user.hash ?? "", salt: user.salt ?? "" },
   )
   const locked = user !== null && user.lockUntil !== null && user.lockUntil.getTime() > Date.now()
-  if (user === null || !valid || locked) {
+  if (user === null || !verification.valid || locked) {
     if (user !== null && !locked) await repository.recordLoginFailure(user.id)
     return json(401, LOGIN_ERROR)
+  }
+
+  // 旧 PBKDF2 哈希验证成功后，同一请求内升级为 scrypt 写回，用户无感知。
+  if (verification.needsRehash) {
+    const upgraded = await hashPassword(parsed.data.password)
+    await repository.updatePasswordHash(user.id, upgraded)
   }
 
   const sid = randomUUID()
@@ -226,7 +232,7 @@ const handleResetPassword = async (request: Request): Promise<Response> => {
 
   const { configSecret, db } = serverRuntime()
   const repository = new UsersRepository(db)
-  const credentials = await generatePasswordCredentialsCompat(parsed.data.password)
+  const credentials = await hashPassword(parsed.data.password)
   const sid = randomUUID()
   const expiresAt = Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60
   const user = await repository.consumeResetToken({
@@ -276,14 +282,14 @@ const handlePasswordChange = async (request: Request): Promise<Response> => {
     return json(400, { error: { code: "ACCOUNT_PASSWORD_BODY_INVALID" } })
   }
   const repository = new UsersRepository(serverRuntime().db)
-  const valid = await verifyPasswordCompat(parsed.data.currentPassword, {
+  const verification = await verifyPassword(parsed.data.currentPassword, {
     hash: auth.user.hash ?? "",
     salt: auth.user.salt ?? "",
   })
-  if (!valid) {
+  if (!verification.valid) {
     return json(400, { error: { code: "ACCOUNT_PASSWORD_CURRENT_INVALID" } })
   }
-  const credentials = await generatePasswordCredentialsCompat(parsed.data.newPassword)
+  const credentials = await hashPassword(parsed.data.newPassword)
   const updated = await repository.updatePasswordHash(auth.user.id, credentials)
   return updated
     ? json(200, { ok: true })

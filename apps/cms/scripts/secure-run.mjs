@@ -50,6 +50,10 @@ const permittedCommand = (argumentsList) => {
       action === "--import" &&
       argumentsList[2] === "tsx" &&
       argumentsList[3] === "scripts/migration-status.mjs") ||
+    (binary === "node" &&
+      action === "--import" &&
+      argumentsList[2] === "tsx" &&
+      argumentsList[3] === "scripts/password-hash-report.mjs") ||
     (binary === "vitest" && action === "run")
   )
 }
