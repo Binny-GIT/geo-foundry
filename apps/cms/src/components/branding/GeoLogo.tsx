@@ -4,7 +4,7 @@ export const GeoLogo = () => (
   <span
     style={{
       alignItems: "center",
-      color: "var(--theme-text, #10213e)",
+      color: "var(--gf-text, #10213e)",
       display: "inline-flex",
       fontFamily:
         'var(--gf-font-body, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif)',

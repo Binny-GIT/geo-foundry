@@ -5,7 +5,7 @@ import type { ReactNode } from "react"
 
 import { AlertTriangleIcon } from "@/components/icons"
 import { IconBadge } from "@/components/ui"
-import { type PreviewSource, previewDocumentOf } from "./page-document-preview-adapter"
+import { type PreviewSource, previewDocumentOf } from "../model/page-document-preview-adapter"
 
 export const ContentEditionPreview = ({
   historical,
@@ -23,11 +23,11 @@ export const ContentEditionPreview = ({
             <AlertTriangleIcon size={18} />
           </IconBadge>
           <div>
-            <h2 className="m-0 text-base font-bold text-[var(--theme-text)]">预览尚未就绪</h2>
-            <p className="m-0 mt-1 text-sm leading-6 text-[var(--theme-elevation-700)]">
+            <h2 className="m-0 text-base font-bold text-[var(--gf-text)]">预览尚未就绪</h2>
+            <p className="m-0 mt-1 text-sm leading-6 text-[var(--gf-elevation-700)]">
               请补全正文中标记的问题后再查看预览。
             </p>
-            <ul className="m-0 mt-3 list-disc pl-5 text-xs text-[var(--theme-elevation-700)]">
+            <ul className="m-0 mt-3 list-disc pl-5 text-xs text-[var(--gf-elevation-700)]">
               {result.issues.map((issue) => (
                 <li key={issue}>{issue}</li>
               ))}
@@ -54,11 +54,11 @@ export const ContentEditionPreview = ({
               borderColor: "var(--gf-border)",
               contentWidth: "48rem",
               fontFamily: "var(--gf-font-body)",
-              foregroundColor: "var(--theme-text)",
-              mutedForegroundColor: "var(--theme-elevation-600)",
+              foregroundColor: "var(--gf-text)",
+              mutedForegroundColor: "var(--gf-elevation-600)",
               radius: "12px",
               spacing: "1rem",
-              surfaceColor: "var(--theme-elevation-50)",
+              surfaceColor: "var(--gf-elevation-50)",
             },
           }}
         />

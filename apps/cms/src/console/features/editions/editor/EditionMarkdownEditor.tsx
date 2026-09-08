@@ -2,7 +2,7 @@
 
 import { useCallback, useRef } from "react"
 
-import { useEditionBody } from "./edition-editor-context"
+import { useEditionBody } from "../state/edition-editor-context"
 
 /**
  * 整篇 Markdown 正文编辑器：一整份连续文档，不再逐块编辑。
@@ -41,11 +41,11 @@ export const EditionMarkdownEditor = ({ readOnly }: { readonly readOnly: boolean
         <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
           正文（Markdown）
         </p>
-        <span className="text-xs text-[var(--theme-elevation-600)]">{chars} 字</span>
+        <span className="text-xs text-[var(--gf-elevation-600)]">{chars} 字</span>
       </div>
       <textarea
         aria-label="正文 Markdown"
-        className="gf-console-focus mt-3 w-full resize-y rounded-xl border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] p-4 font-mono text-sm leading-7 text-[var(--theme-text)] outline-none focus:border-[var(--gf-accent-400)] focus:ring-2 focus:ring-[var(--gf-accent-200)]"
+        className="gf-console-focus mt-3 w-full resize-y rounded-xl border border-[var(--gf-elevation-250)] bg-[var(--gf-elevation-50)] p-4 font-mono text-sm leading-7 text-[var(--gf-text)] outline-none focus:border-[var(--gf-accent-400)] focus:ring-2 focus:ring-[var(--gf-accent-200)]"
         disabled={readOnly}
         onChange={(event) => {
           replaceMarkdown(event.target.value)
@@ -58,7 +58,7 @@ export const EditionMarkdownEditor = ({ readOnly }: { readonly readOnly: boolean
         spellCheck={false}
         value={markdown}
       />
-      <p className="m-0 mt-2 text-xs leading-5 text-[var(--theme-elevation-600)]">
+      <p className="m-0 mt-2 text-xs leading-5 text-[var(--gf-elevation-600)]">
         支持标题、列表、引用、表格、代码块与图片；保存后发布链路自动渲染。
       </p>
     </section>

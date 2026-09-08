@@ -64,22 +64,22 @@ describe("scoped preflight contract", () => {
   })
 
   it("erases underlined links across the editor theme and console editor surfaces", async () => {
-    const [theme, editionTheme, rail, editor] = await Promise.all([
-      sourceOf("src/app/(payload)/admin-theme.css"),
-      sourceOf("src/console/components/editions/edition-theme.css"),
-      sourceOf("src/console/components/editions/ContentEditionControlRail.tsx"),
-      sourceOf("src/console/components/editions/EditionEditor.tsx"),
+    const [tokens, preview, rail, editor] = await Promise.all([
+      sourceOf("src/console/styles/tokens.css"),
+      sourceOf("src/console/styles/edition-preview.css"),
+      sourceOf("src/console/features/editions/components/ContentEditionControlRail.tsx"),
+      sourceOf("src/console/features/editions/components/EditionEditor.tsx"),
     ])
 
     // Body-preview links keep their accent color but drop the UA underline.
-    const previewLink = editionTheme.slice(
-      editionTheme.indexOf(".gf-edition-preview a {"),
-      editionTheme.indexOf(".gf-edition-preview a {") + 200,
+    const previewLink = preview.slice(
+      preview.indexOf(".gf-edition-preview a {"),
+      preview.indexOf(".gf-edition-preview a {") + 200,
     )
     expect(previewLink).toContain("text-decoration: none;")
 
-    // Hover feedback stays color-only on every custom admin surface.
-    for (const source of [theme, editionTheme, rail, editor]) {
+    // Hover feedback stays color-only on every console editor surface.
+    for (const source of [tokens, preview, rail, editor]) {
       expect(source).not.toContain("text-decoration: underline")
       expect(source).not.toContain("hover:underline")
     }

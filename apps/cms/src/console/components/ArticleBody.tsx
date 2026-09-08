@@ -1,4 +1,4 @@
-import { previewBlockOf } from "@/console/components/editions/page-document-preview-adapter"
+import { previewBlockOf } from "@/console/features/editions/model/page-document-preview-adapter"
 
 /**
  * Read-only server rendering of stored edition blocks for the article detail

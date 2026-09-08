@@ -7,7 +7,7 @@ const sourceOf = (path: string): Promise<string> => readFile(resolve(root, path)
 
 describe("content edition unified workspace", () => {
   it("uses one native console editor workspace with source, editor, and control panes", async () => {
-    const document = await sourceOf("src/console/components/editions/EditionEditor.tsx")
+    const document = await sourceOf("src/console/features/editions/components/EditionEditor.tsx")
 
     expect(document).toContain("ContentEditionAiChat")
     expect(document).toContain("ContentEditionControlRail")
@@ -43,10 +43,10 @@ describe("content edition unified workspace", () => {
 
   it("binds workspace metadata and review controls to the native field state layer", async () => {
     const [controls, chat, editor, context] = await Promise.all([
-      sourceOf("src/console/components/editions/ContentEditionControlRail.tsx"),
-      sourceOf("src/console/components/editions/ContentEditionAiChat.tsx"),
-      sourceOf("src/console/components/editions/ContentEditionEditorCanvas.tsx"),
-      sourceOf("src/console/components/editions/edition-editor-context.tsx"),
+      sourceOf("src/console/features/editions/components/ContentEditionControlRail.tsx"),
+      sourceOf("src/console/features/editions/ai/ContentEditionAiChat.tsx"),
+      sourceOf("src/console/features/editions/components/ContentEditionEditorCanvas.tsx"),
+      sourceOf("src/console/features/editions/state/edition-editor-context.tsx"),
     ])
 
     expect(controls).toContain('path: "owner"')
@@ -67,10 +67,16 @@ describe("content edition unified workspace", () => {
     expect(chat).toContain("/api/editions/${editionId}/ai-chat")
     expect(editor).toContain("StructuredRowsField")
     expect(editor).not.toContain("JsonField")
-    // Two body editors backed by the same block array.
-    expect(editor).toContain("blocksToMarkdown")
-    expect(editor).toContain("markdownToBlocks")
-    expect(editor).toContain("gf-editor-mode")
+    // 正文编辑唯一入口是整篇 Markdown 编辑器；块编辑画布已退役。
+    const markdownEditor = await sourceOf(
+      "src/console/features/editions/editor/EditionMarkdownEditor.tsx",
+    )
+    expect(editor).not.toContain("gf-editor-mode")
+    expect(editor).not.toContain("RichCanvas")
+    expect(markdownEditor).toContain("useEditionBody")
+    // 块视图只是派生数据：初始化兜底与派生都在原生状态层。
+    expect(context).toContain("blocksToMarkdown")
+    expect(context).toContain("markdownToBlocks")
     // The native state layer owns the save chain; no @payloadcms/ui import remains.
     for (const source of [controls, chat, editor, context]) {
       expect(source).not.toContain('from "@payloadcms/ui"')

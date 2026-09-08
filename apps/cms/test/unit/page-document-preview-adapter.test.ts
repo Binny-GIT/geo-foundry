@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest"
 import {
   previewBlockOf,
   previewDocumentOf,
-} from "../../src/console/components/editions/page-document-preview-adapter"
+} from "../../src/console/features/editions/model/page-document-preview-adapter"
 
 describe("content edition preview adapter", () => {
   it("normalizes stored Payload blocks into a strict preview document", () => {

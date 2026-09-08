@@ -1,9 +1,9 @@
 "use client"
 
-import { toast, useAuth, useDocumentInfo, useFormFields, useTranslation } from "./edition-editor-context"
+import { toast, useEditionEditor } from "../state/edition-editor-context"
 import { useEffect, useId, useState } from "react"
 import type { EditionVersionHistoryItem } from "@/services/edition-version-history"
-import { uiLangOf } from "@/components/i18n/ui-lang"
+import type { UiLang } from "@/components/i18n/ui-lang"
 import { CopyIcon, LayersIcon } from "@/components/icons"
 import { Badge, IconBadge } from "@/components/ui"
 import { Button } from "@/components/ui/button"
@@ -68,14 +68,16 @@ export const ContentEditionRail = ({
   readonly selectedVersion: VersionSelection
   readonly showWorkflow?: boolean
 }) => {
-  const { user } = useAuth()
-  const { data, id, versionCount } = useDocumentInfo()
-  const { i18n } = useTranslation()
-  const lang = uiLangOf(i18n.language)
+  const editor = useEditionEditor()
+  const id = editor?.id ?? null
+  const versionCount = editor?.versionCount ?? 0
+  const user = editor === null ? null : { id: editor.userId, role: editor.role }
+  // Console 是纯中文界面；语言判定收敛为常量，双语字典保留待后续清理。
+  const lang: UiLang = "zh"
   const t = TEXT[lang]
-  const workflowStatus = useFormFields(([fields]) => fields["workflowStatus"]?.value)
-  const workflowRevision = useFormFields(([fields]) => fields["workflowRevision"]?.value)
-  const updatedAt = typeof data?.["updatedAt"] === "string" ? data["updatedAt"] : null
+  const workflowStatus = editor?.values["workflowStatus"]
+  const workflowRevision = editor?.values["workflowRevision"]
+  const updatedAt = editor?.updatedAt ?? null
   const [versions, setVersions] = useState<readonly EditionVersionHistoryItem[]>([])
   const [loading, setLoading] = useState(false)
   const [restoreOpen, setRestoreOpen] = useState(false)
@@ -180,9 +182,9 @@ export const ContentEditionRail = ({
               <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
                 {t.status}
               </p>
-              <strong className="mt-1 block text-sm text-[var(--theme-text)]">
+              <strong className="mt-1 block text-sm text-[var(--gf-text)]">
                 {isWorkflowStatus(workflowStatus)
-                  ? workflowStatusLabel(workflowStatus, i18n.language)
+                  ? workflowStatusLabel(workflowStatus, lang)
                   : "—"}
               </strong>
             </div>
@@ -202,15 +204,15 @@ export const ContentEditionRail = ({
             <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
               {t.history}
             </p>
-            <strong className="mt-1 block text-sm text-[var(--theme-text)]">
+            <strong className="mt-1 block text-sm text-[var(--gf-text)]">
               {versionCount} {t.version}
             </strong>
           </div>
         </div>
         {loading ? (
-          <p className="m-0 mt-4 text-sm text-[var(--theme-elevation-600)]">{t.loading}</p>
+          <p className="m-0 mt-4 text-sm text-[var(--gf-elevation-600)]">{t.loading}</p>
         ) : versions.length === 0 ? (
-          <p className="m-0 mt-4 text-sm text-[var(--theme-elevation-600)]">{t.noVersions}</p>
+          <p className="m-0 mt-4 text-sm text-[var(--gf-elevation-600)]">{t.noVersions}</p>
         ) : (
           <ol className="m-0 mt-3 flex list-none flex-col gap-1 p-0">
             {versions.map((version, index) => {
@@ -219,7 +221,7 @@ export const ContentEditionRail = ({
                 ? WORKFLOW_TONE[version.workflowStatus]
                 : "neutral"
               const label = isWorkflowStatus(version.workflowStatus)
-                ? workflowStatusLabel(version.workflowStatus, i18n.language)
+                ? workflowStatusLabel(version.workflowStatus, lang)
                 : lang === "zh"
                   ? "已保存版本"
                   : "Saved version"
@@ -227,16 +229,16 @@ export const ContentEditionRail = ({
                 <li key={version.id}>
                   <button
                     aria-pressed={isSelected}
-                    className={`flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition-colors ${isSelected ? "border-[var(--gf-accent-300)] bg-[var(--gf-tone-accent-bg)]" : "border-transparent hover:bg-[var(--theme-elevation-50)]"}`}
+                    className={`flex w-full items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition-colors ${isSelected ? "border-[var(--gf-accent-300)] bg-[var(--gf-tone-accent-bg)]" : "border-transparent hover:bg-[var(--gf-elevation-50)]"}`}
                     onClick={() => onSelectVersion(isSelected ? null : version)}
                     type="button"
                   >
-                    <span className="text-xs font-bold tabular-nums text-[var(--theme-elevation-500)]">
+                    <span className="text-xs font-bold tabular-nums text-[var(--gf-elevation-500)]">
                       #{versions.length - index}
                     </span>
                     <Badge tone={tone}>{label}</Badge>
                     <span
-                      className="ml-auto text-xs tabular-nums text-[var(--theme-elevation-600)]"
+                      className="ml-auto text-xs tabular-nums text-[var(--gf-elevation-600)]"
                       title={new Date(version.updatedAt).toLocaleString(
                         lang === "zh" ? "zh-CN" : "en-US",
                         { timeZone: "UTC" },
@@ -283,21 +285,21 @@ export const ContentEditionRail = ({
               {t.history}
             </p>
             <h2
-              className="m-0 mt-1 text-xl font-bold tracking-tight text-[var(--theme-text)]"
+              className="m-0 mt-1 text-xl font-bold tracking-tight text-[var(--gf-text)]"
               id={`${reasonId}-title`}
             >
               {t.restoreConfirm}
             </h2>
-            <p className="m-0 mt-3 text-sm leading-6 text-[var(--theme-elevation-700)]">
+            <p className="m-0 mt-3 text-sm leading-6 text-[var(--gf-elevation-700)]">
               {t.restoreHint}
             </p>
             <label className="mt-5 block" htmlFor={reasonId}>
-              <span className="text-sm font-bold text-[var(--theme-text)]">
+              <span className="text-sm font-bold text-[var(--gf-text)]">
                 {t.restoreReason} *
               </span>
               <textarea
                 aria-invalid={reasonError !== null}
-                className="mt-2 min-h-24 w-full resize-y rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] p-3 text-sm text-[var(--theme-text)] outline-none focus:border-[var(--gf-accent-500)] focus:ring-2 focus:ring-[var(--gf-accent-200)]"
+                className="mt-2 min-h-24 w-full resize-y rounded-lg border border-[var(--gf-elevation-250)] bg-[var(--gf-elevation-50)] p-3 text-sm text-[var(--gf-text)] outline-none focus:border-[var(--gf-accent-500)] focus:ring-2 focus:ring-[var(--gf-accent-200)]"
                 id={reasonId}
                 maxLength={500}
                 onChange={(event) => {
@@ -307,7 +309,7 @@ export const ContentEditionRail = ({
                 value={reason}
               />
               {reasonError !== null && (
-                <span className="mt-1 block text-xs font-semibold text-[var(--theme-error-700)]">
+                <span className="mt-1 block text-xs font-semibold text-[var(--gf-error-700)]">
                   {reasonError}
                 </span>
               )}

@@ -1,10 +1,10 @@
 "use client"
 
-import { toast, useAuth, useDocumentInfo, useFormFields, useTranslation } from "./edition-editor-context"
+import { toast, useEditionEditor } from "../state/edition-editor-context"
 import { useRouter } from "next/navigation"
 import { useEffect, useId, useRef, useState } from "react"
 import { CheckCircleIcon, SendIcon } from "@/components/icons"
-import { uiLangOf } from "@/components/i18n/ui-lang"
+import type { UiLang } from "@/components/i18n/ui-lang"
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -90,18 +90,19 @@ const impactFor = (action: WorkflowAction, messages: (typeof MESSAGE)["zh"]): st
  * tenant scope, quality gates, and optimistic revision checks.
  */
 export const WorkflowActions = () => {
-  const { id } = useDocumentInfo()
-  const { user } = useAuth()
-  const { i18n } = useTranslation()
+  const editor = useEditionEditor()
+  const id = editor?.id ?? null
+  const user = editor === null ? null : { id: editor.userId, role: editor.role }
   const router = useRouter()
-  const statusValue = useFormFields(([fields]) => fields["workflowStatus"]?.value)
+  const statusValue = editor?.values["workflowStatus"]
   const [pending, setPending] = useState<string | null>(null)
   const [selectedAction, setSelectedAction] = useState<WorkflowAction | null>(null)
   const [reason, setReason] = useState("")
   const [reasonError, setReasonError] = useState<string | null>(null)
   const confirmButton = useRef<HTMLButtonElement>(null)
   const reasonId = useId()
-  const lang = uiLangOf(i18n.language)
+  // Console 是纯中文界面；语言判定收敛为常量。
+  const lang: UiLang = "zh"
   const M = MESSAGE[lang]
 
   useEffect(() => {
@@ -110,7 +111,7 @@ export const WorkflowActions = () => {
 
   if (id === undefined || id === null || !isWorkflowStatus(statusValue)) return null
 
-  const actions = workflowActionsFor(user?.["role"], statusValue, i18n.language)
+  const actions = workflowActionsFor(user?.["role"], statusValue, lang)
   if (actions.length === 0) return null
 
   const messageFor = (code: unknown): string => {
@@ -173,8 +174,8 @@ export const WorkflowActions = () => {
           ? M.publishSubmitted
           : M.transitioned(
               isWorkflowStatus(result.workflowStatus)
-                ? workflowStatusLabel(result.workflowStatus, i18n.language)
-                : workflowStatusLabel(action.target ?? statusValue, i18n.language),
+                ? workflowStatusLabel(result.workflowStatus, lang)
+                : workflowStatusLabel(action.target ?? statusValue, lang),
             ),
       )
       setSelectedAction(null)
@@ -207,9 +208,9 @@ export const WorkflowActions = () => {
             {M.workflow}
           </p>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm text-[var(--theme-elevation-600)]">{M.currentState}</span>
+            <span className="text-sm text-[var(--gf-elevation-600)]">{M.currentState}</span>
             <Badge tone={WORKFLOW_TONE[statusValue]}>
-              {workflowStatusLabel(statusValue, i18n.language)}
+              {workflowStatusLabel(statusValue, lang)}
             </Badge>
           </div>
         </div>
@@ -255,28 +256,28 @@ export const WorkflowActions = () => {
               {M.workflow}
             </p>
             <h2
-              className="m-0 mt-1 text-xl font-bold tracking-tight text-[var(--theme-text)]"
+              className="m-0 mt-1 text-xl font-bold tracking-tight text-[var(--gf-text)]"
               id={`${reasonId}-title`}
             >
               {selectedAction.label}
             </h2>
-            <p className="m-0 mt-3 text-sm leading-6 text-[var(--theme-elevation-700)]">
+            <p className="m-0 mt-3 text-sm leading-6 text-[var(--gf-elevation-700)]">
               {impactFor(selectedAction, M)}
             </p>
 
             {(requiresReason(selectedAction) || selectedAction.type === "publish-operation") && (
               <label className="mt-5 block" htmlFor={reasonId}>
-                <span className="block text-sm font-bold text-[var(--theme-text)]">
+                <span className="block text-sm font-bold text-[var(--gf-text)]">
                   {M.reason}
                   {requiresReason(selectedAction) ? " *" : ""}
                 </span>
-                <span className="mt-1 block text-xs text-[var(--theme-elevation-600)]">
+                <span className="mt-1 block text-xs text-[var(--gf-elevation-600)]">
                   {M.reasonHint}
                 </span>
                 <textarea
                   aria-describedby={reasonError === null ? undefined : `${reasonId}-error`}
                   aria-invalid={reasonError !== null}
-                  className="mt-2 min-h-24 w-full resize-y rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] p-3 text-sm text-[var(--theme-text)] outline-none transition focus:border-[var(--gf-accent-500)] focus:ring-2 focus:ring-[var(--gf-accent-200)]"
+                  className="mt-2 min-h-24 w-full resize-y rounded-lg border border-[var(--gf-elevation-250)] bg-[var(--gf-elevation-50)] p-3 text-sm text-[var(--gf-text)] outline-none transition focus:border-[var(--gf-accent-500)] focus:ring-2 focus:ring-[var(--gf-accent-200)]"
                   id={reasonId}
                   maxLength={500}
                   onChange={(event) => {
@@ -288,7 +289,7 @@ export const WorkflowActions = () => {
                 />
                 {reasonError !== null && (
                   <span
-                    className="mt-1 block text-xs font-semibold text-[var(--theme-error-700)]"
+                    className="mt-1 block text-xs font-semibold text-[var(--gf-error-700)]"
                     id={`${reasonId}-error`}
                   >
                     {reasonError}

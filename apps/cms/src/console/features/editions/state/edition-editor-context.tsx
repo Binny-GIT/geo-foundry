@@ -142,16 +142,15 @@ const initialValuesOf = (
 }
 
 /**
- * 编辑器状态层：替代 Payload 表单状态机的原生实现。
+ * 编辑器状态层：原生的文章编辑状态机（Payload 表单时代已结束）。
  *
- * Payload 的 blocks 字段永远进不了它的扁平表单状态（历史上因此丢过正文），
- * 所以正文 rows 与标量字段都在这里统一持有；保存时一次性 PATCH，彻底移除
- * 「表单先存、正文补丁」的双请求顺序。doc 由服务端页面以 draft 文档传入。
+ * 标量字段 values 与正文 Markdown 在这里统一持有；保存时一次性 PATCH。
+ * doc 由服务端页面以 draft 文档传入。
  *
- * 本文件同时导出 @payloadcms/ui 的兼容 shim（toast/useTranslation/useAuth/
- * useDocumentInfo/useField/useFormFields/useEditionBody）：迁移期间存量编辑器
- * 组件只需把 import 来源换成这里，调用点零改动。任务 2 视觉统一到 console
- * tokens 后，这些 shim 与各家组件一起逐步消失。
+ * 导出面：useEditionEditor（全局状态）、useEditionBody（正文+选区）、
+ * useEditionField（单字段的受控读写）、toast（编辑器通知）。历史上这里
+ * 还有 @payloadcms/ui 兼容 shim（useAuth/useDocumentInfo/useFormFields/
+ * useTranslation），前端去 Payload 后已删除。
  */
 const EditionEditorContext = createContext<EditionEditorState | null>(null)
 
@@ -445,42 +444,17 @@ export const EditionEditorProvider = ({
 let notifyBridge: ((kind: ToastKind, message: string) => void) | null = null
 
 /* ------------------------------------------------------------------ *
- * @payloadcms/ui 兼容 shim：签名保持一致，存量组件只换 import 来源。
+ * 编辑器对外接口：通知、单字段读写、正文与全局状态。
  * ------------------------------------------------------------------ */
 
+/** 编辑器内的轻量通知；Provider 未挂载时静默丢弃（如测试环境）。 */
 export const toast = {
   error: (message: string) => notifyBridge?.("error", message),
   success: (message: string) => notifyBridge?.("success", message),
 }
 
-export const useTranslation = (): { readonly i18n: { readonly language: string } } => {
-  // Console 是纯中文界面；固定 zh 让组件内的 uiLangOf 分支自然收敛。
-  return { i18n: { language: "zh" } }
-}
-
-export const useAuth = (): {
-  readonly user: { readonly id: number | null; readonly role: string } | null
-} => {
-  const context = useContext(EditionEditorContext)
-  if (context === null) return { user: null }
-  return { user: { id: context.userId, role: context.role } }
-}
-
-export const useDocumentInfo = (): {
-  readonly data: Readonly<Record<string, unknown>> | null
-  readonly id: number | null
-  readonly versionCount: number
-} => {
-  const context = useContext(EditionEditorContext)
-  if (context === null) return { data: null, id: null, versionCount: 0 }
-  return {
-    data: { updatedAt: context.updatedAt },
-    id: context.id,
-    versionCount: context.versionCount,
-  }
-}
-
-export const useField = <T,>({
+/** 单字段的受控读写：表单小组件只关心自己的 path 时用它。 */
+export const useEditionField = <T,>({
   path,
 }: {
   readonly path: string
@@ -497,18 +471,6 @@ export const useField = <T,>({
     [context, path],
   )
   return { setValue, value }
-}
-
-export const useFormFields = <T,>(
-  select: (fields: readonly [Readonly<Record<string, { readonly value?: unknown }>>]) => T,
-): T => {
-  const context = useContext(EditionEditorContext)
-  const fields: Record<string, { readonly value?: unknown }> = {}
-  for (const [key, value] of Object.entries(context?.values ?? {})) {
-    fields[key] = { value }
-  }
-  // Payload 的 selector 以 [fields] 解构为参；元组保证首元素非空（strict 下可用）。
-  return select([fields])
 }
 
 export const useEditionBody = (): EditionBody => {

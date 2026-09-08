@@ -91,8 +91,8 @@ describe("workbench server contract", () => {
 
   it("keeps the workspace three-pane responsive with container queries under the console shell", async () => {
     const [document, canvas] = await Promise.all([
-      sourceOf("src/console/components/editions/EditionEditor.tsx"),
-      sourceOf("src/console/components/editions/ContentEditionEditorCanvas.tsx"),
+      sourceOf("src/console/features/editions/components/EditionEditor.tsx"),
+      sourceOf("src/console/features/editions/components/ContentEditionEditorCanvas.tsx"),
     ])
 
     // The assistant owns a sticky full-height column; canvas and rail share

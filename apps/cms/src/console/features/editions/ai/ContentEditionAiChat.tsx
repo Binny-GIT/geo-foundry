@@ -7,8 +7,8 @@ import {
   CONTINUE_WRITING_PROMPT,
   selectionRewritePrompt,
   splitArticle,
-} from "@/console/lib/ai-chat-model"
-import { toast, useDocumentInfo, useEditionBody, useEditionEditor } from "./edition-editor-context"
+} from "../model/ai-chat-model"
+import { toast, useEditionBody, useEditionEditor } from "../state/edition-editor-context"
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
   CheckCircleIcon,
@@ -128,11 +128,11 @@ export const ContentEditionAiChat = ({
   readonly onCollapse: () => void
   readonly readOnly: boolean
 }) => {
-  const { id } = useDocumentInfo()
-  const saved = id !== undefined && id !== null
-  const editionId = saved ? String(id) : "new"
   const { markdown, replaceMarkdown, selection } = useEditionBody()
   const editor = useEditionEditor()
+  const id = editor?.id ?? null
+  const saved = id !== null
+  const editionId = saved ? String(id) : "new"
   const [autoApply, setAutoApply] = useState(false)
   const [undoSnapshot, setUndoSnapshot] = useState<string | null>(null)
   const [appliedId, setAppliedId] = useState<string | null>(null)
@@ -370,7 +370,7 @@ export const ContentEditionAiChat = ({
       aria-label="AI 写作助手"
       className="flex h-full min-h-0 min-w-0 flex-col rounded-2xl border border-[var(--gf-border)] bg-[var(--gf-surface)] shadow-[var(--gf-shadow-surface)]"
     >
-      <header className="flex shrink-0 items-center gap-3 border-b border-[var(--theme-elevation-150)] px-4 py-3">
+      <header className="flex shrink-0 items-center gap-3 border-b border-[var(--gf-elevation-150)] px-4 py-3">
         <IconBadge tone="accent">
           <SparklesIcon size={18} />
         </IconBadge>
@@ -378,7 +378,7 @@ export const ContentEditionAiChat = ({
           <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
             AI 助手
           </p>
-          <strong className="mt-0.5 block truncate text-sm text-[var(--theme-text)]">
+          <strong className="mt-0.5 block truncate text-sm text-[var(--gf-text)]">
             写作对话
           </strong>
         </div>
@@ -407,7 +407,7 @@ export const ContentEditionAiChat = ({
 
       <div className="flex min-h-40 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4" ref={scroller}>
         {messages.length === 0 ? (
-          <p className="m-0 text-sm leading-6 text-[var(--theme-elevation-600)]">
+          <p className="m-0 text-sm leading-6 text-[var(--gf-elevation-600)]">
             向助手描述你的写作意图，例如“帮我基于当前摘要写三段引言”。助手会读取未保存的标题与正文；对话记录只保存在本浏览器，可随时清空。
           </p>
         ) : (
@@ -417,19 +417,19 @@ export const ContentEditionAiChat = ({
               <article
                 className={
                   message.role === "user"
-                    ? "self-end rounded-2xl rounded-br-sm bg-[var(--gf-tone-accent-bg)] px-3 py-2 text-sm leading-6 text-[var(--theme-text)]"
+                    ? "self-end rounded-2xl rounded-br-sm bg-[var(--gf-tone-accent-bg)] px-3 py-2 text-sm leading-6 text-[var(--gf-text)]"
                     : message.role === "system"
                       ? "rounded-2xl border border-[var(--gf-tone-warning-fg)] bg-[var(--gf-tone-warning-bg)] px-3 py-2 text-sm leading-6 text-[var(--gf-tone-warning-fg)]"
-                      : "rounded-2xl rounded-bl-sm border border-[var(--theme-elevation-150)] bg-[var(--theme-elevation-50)] px-3 py-2 text-sm leading-6 text-[var(--theme-text)]"
+                      : "rounded-2xl rounded-bl-sm border border-[var(--gf-elevation-150)] bg-[var(--gf-elevation-50)] px-3 py-2 text-sm leading-6 text-[var(--gf-text)]"
                 }
                 key={message.id}
               >
                 {message.reasoning !== undefined && (
-                  <details className="mb-2 rounded-lg border border-[var(--theme-elevation-150)] bg-[var(--gf-surface)] px-2 py-1.5">
-                    <summary className="cursor-pointer list-none text-xs font-bold text-[var(--theme-elevation-600)]">
+                  <details className="mb-2 rounded-lg border border-[var(--gf-elevation-150)] bg-[var(--gf-surface)] px-2 py-1.5">
+                    <summary className="cursor-pointer list-none text-xs font-bold text-[var(--gf-elevation-600)]">
                       思考过程
                     </summary>
-                    <p className="m-0 mt-2 whitespace-pre-wrap break-words text-xs leading-5 text-[var(--theme-elevation-600)]">
+                    <p className="m-0 mt-2 whitespace-pre-wrap break-words text-xs leading-5 text-[var(--gf-elevation-600)]">
                       {message.reasoning}
                     </p>
                   </details>
@@ -441,7 +441,7 @@ export const ContentEditionAiChat = ({
                       <FileClockIcon size={13} /> 文章提案 · {message.article.length} 字
                       {messageSelection !== null ? " · 对准选区" : ""}
                     </p>
-                    <p className="m-0 mt-1.5 line-clamp-3 whitespace-pre-wrap break-words text-xs leading-5 text-[var(--theme-elevation-600)]">
+                    <p className="m-0 mt-1.5 line-clamp-3 whitespace-pre-wrap break-words text-xs leading-5 text-[var(--gf-elevation-600)]">
                       {message.article.slice(0, 160)}
                     </p>
                     {!readOnly && (
@@ -512,11 +512,11 @@ export const ContentEditionAiChat = ({
           })
         )}
         {sending && (
-          <p className="m-0 text-xs text-[var(--theme-elevation-600)]">助手正在生成回复…</p>
+          <p className="m-0 text-xs text-[var(--gf-elevation-600)]">助手正在生成回复…</p>
         )}
       </div>
 
-      <div className="shrink-0 border-t border-[var(--theme-elevation-150)] px-4 py-3">
+      <div className="shrink-0 border-t border-[var(--gf-elevation-150)] px-4 py-3">
         {!readOnly && (
           <div className="mb-2 flex flex-wrap gap-1.5">
             <Button
@@ -542,7 +542,7 @@ export const ContentEditionAiChat = ({
         )}
         <textarea
           aria-label="向 AI 助手提问"
-          className="min-h-20 w-full resize-y rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] p-3 text-sm leading-6 text-[var(--theme-text)] outline-none focus:border-[var(--gf-accent-400)] focus:ring-2 focus:ring-[var(--gf-accent-200)]"
+          className="min-h-20 w-full resize-y rounded-lg border border-[var(--gf-elevation-250)] bg-[var(--gf-elevation-50)] p-3 text-sm leading-6 text-[var(--gf-text)] outline-none focus:border-[var(--gf-accent-400)] focus:ring-2 focus:ring-[var(--gf-accent-200)]"
           maxLength={4000}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => {
@@ -554,7 +554,7 @@ export const ContentEditionAiChat = ({
           placeholder="描述你的写作需求，Enter 发送，Shift + Enter 换行"
           value={draft}
         />
-        <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs text-[var(--theme-elevation-600)]">
+        <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs text-[var(--gf-elevation-600)]">
           <input
             checked={autoApply}
             disabled={readOnly}
@@ -567,7 +567,7 @@ export const ContentEditionAiChat = ({
           生成后自动应用到正文（正文有改动时跳过，可撤销）
         </label>
         <div className="mt-2 flex items-center justify-between gap-2">
-          <span className="text-xs text-[var(--theme-elevation-600)]">
+          <span className="text-xs text-[var(--gf-elevation-600)]">
             {messages.length} 条记录{saved ? "" : " · 新稿草稿"}
           </span>
           {sending ? (
@@ -603,7 +603,7 @@ export const ContentEditionAiChatRail = ({ onExpand }: { readonly onExpand: () =
       <PanelLeftOpenIcon size={16} />
     </Button>
     <SparklesIcon size={16} />
-    <span className="text-xs font-bold text-[var(--theme-elevation-600)] xl:[writing-mode:vertical-rl]">
+    <span className="text-xs font-bold text-[var(--gf-elevation-600)] xl:[writing-mode:vertical-rl]">
       AI 助手
     </span>
   </div>

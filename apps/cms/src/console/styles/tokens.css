@@ -1,0 +1,363 @@
+/*
+ * Console 产品 token 体系（唯一主题源）：
+ * - :root / html[data-console-theme="dark"] 定义 --gf-* 两套明暗取值；
+ * - .gf-ui-* 是 Badge / IconBadge / ActionLink 共享的 UI 原语。
+ * 历史：--theme-*（Payload admin 主题）过渡族已于批次 3 并入 --gf-* 单族。
+ */
+:root {
+  --gf-font-body:
+    ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --gf-font-mono: ui-monospace, "SFMono-Regular", SFMono, Menlo, Consolas, monospace;
+
+  /* Payload uses a 13px rem root, so product tokens stay absolute. */
+  --gf-space-025: 2px;
+  --gf-space-050: 4px;
+  --gf-space-075: 6px;
+  --gf-space-100: 8px;
+  --gf-space-150: 12px;
+  --gf-space-200: 16px;
+  --gf-space-250: 20px;
+  --gf-space-300: 24px;
+  --gf-space-400: 32px;
+  --gf-space-500: 40px;
+  --gf-space-600: 48px;
+
+  --gf-font-size-meta: 12px;
+  --gf-line-height-meta: 16px;
+  --gf-font-size-body: 14px;
+  --gf-line-height-body: 20px;
+  --gf-font-size-section: 16px;
+  --gf-line-height-section: 20px;
+  --gf-font-size-page: 24px;
+  --gf-line-height-page: 28px;
+  --gf-font-size-metric: 28px;
+  --gf-line-height-metric: 32px;
+
+  --gf-control-height: 40px;
+  --gf-control-height-touch: 44px;
+  --gf-table-row-height: 48px;
+  --gf-table-row-height-compact: 40px;
+  /* Explicit (not elevation-ramp-derived) card surface: needs to read as
+     "lighter than the canvas" in both themes, and the ramp stop that
+     achieves that differs by theme, so it is set directly per theme. */
+  --gf-surface: #ffffff;
+  --gf-surface-muted: var(--gf-elevation-100);
+  --gf-border: var(--gf-elevation-150);
+  --gf-shadow-surface: 0 1px 2px rgb(15 23 42 / 5%), 0 8px 24px -12px rgb(15 23 42 / 12%);
+  --gf-shadow-pop: 0 4px 8px -2px rgb(15 23 42 / 8%), 0 16px 40px -12px rgb(15 23 42 / 16%);
+
+  --gutter-h: var(--gf-space-400);
+  --spacing-view-bottom: var(--gf-space-400);
+  --style-radius-s: 10px;
+  --style-radius-m: 12px;
+  --style-radius-l: 16px;
+
+  /* Brand accent — indigo. Drives primary buttons, links, focus rings,
+     selected/active states across both themes. */
+  --gf-accent-50: #eef2ff;
+  --gf-accent-100: #e0e7ff;
+  --gf-accent-150: #d4dbfc;
+  --gf-accent-200: #c7d2fe;
+  --gf-accent-250: #b7c2fd;
+  --gf-accent-300: #a5b4fc;
+  --gf-accent-350: #97a4fa;
+  --gf-accent-400: #818cf8;
+  --gf-accent-450: #757ff6;
+  --gf-accent-500: #6366f1;
+  --gf-accent-550: #585ceb;
+  --gf-accent-600: #4f46e5;
+  --gf-accent-650: #473fd9;
+  --gf-accent-700: #4338ca;
+  --gf-accent-750: #3c31b8;
+  --gf-accent-800: #3730a3;
+  --gf-accent-850: #322b8f;
+  --gf-accent-900: #312e81;
+  --gf-accent-950: #1e1b4b;
+
+  /* Semantic status tones — success/warning/danger borrow Payload's own
+     (unmodified) native ramps so status colors stay consistent everywhere
+     the admin renders them; accent/neutral cover brand emphasis and quiet
+     states. */
+  --gf-tone-success-bg: var(--gf-success-100);
+  --gf-tone-success-fg: var(--gf-success-700);
+  --gf-tone-warning-bg: var(--gf-warning-100);
+  --gf-tone-warning-fg: var(--gf-warning-700);
+  --gf-tone-danger-bg: var(--gf-error-100);
+  --gf-tone-danger-fg: var(--gf-error-700);
+  --gf-tone-neutral-bg: var(--gf-elevation-100);
+  --gf-tone-neutral-fg: var(--gf-elevation-700);
+  --gf-tone-accent-bg: var(--gf-accent-100);
+  --gf-tone-accent-fg: var(--gf-accent-700);
+
+  /* --- Official Payload tokens (light) --- */
+  --gf-bg: #f7f8fa;
+  --gf-input-bg: #ffffff;
+  --gf-text: #0f172a;
+  --gf-border-color: var(--gf-elevation-150);
+  --gf-overlay: rgb(15 23 42 / 45%);
+
+  --gf-elevation-0: #ffffff;
+  --gf-elevation-50: #f8fafc;
+  --gf-elevation-100: #f1f5f9;
+  --gf-elevation-150: #e7ebf0;
+  --gf-elevation-200: #e2e8f0;
+  --gf-elevation-250: #d9e0e8;
+  --gf-elevation-300: #cbd5e1;
+  --gf-elevation-350: #b7c2d0;
+  --gf-elevation-400: #9caab9;
+  --gf-elevation-450: #8998aa;
+  --gf-elevation-500: #64748b;
+  --gf-elevation-550: #57667b;
+  --gf-elevation-600: #47566b;
+  --gf-elevation-650: #3d4b5e;
+  --gf-elevation-700: #334155;
+  --gf-elevation-750: #2a3648;
+  --gf-elevation-800: #1e293b;
+  --gf-elevation-850: #17202e;
+  --gf-elevation-900: #0f172a;
+  --gf-elevation-950: #0a101b;
+  --gf-elevation-1000: #05080d;
+  /* Payload's compiled CSS references this exact (misspelled) custom
+     property in one place; keep it aliased so that rule resolves too. */
+
+  --gf-success-50: #ecfdf5;
+  --gf-success-100: #d1fae5;
+  --gf-success-150: #b8f3d6;
+  --gf-success-200: #a7f3d0;
+  --gf-success-250: #86ecc1;
+  --gf-success-300: #6ee7b7;
+  --gf-success-350: #52ddaa;
+  --gf-success-400: #34d399;
+  --gf-success-500: #10b981;
+  --gf-success-600: #059669;
+  --gf-success-650: #058a61;
+  --gf-success-700: #047857;
+  --gf-success-750: #036c4e;
+  --gf-success-800: #065f46;
+  --gf-success-850: #065442;
+  --gf-success-900: #064e3b;
+  --gf-success-950: #033b2c;
+
+  --gf-warning-50: #fffbeb;
+  --gf-warning-100: #fef3c7;
+  --gf-warning-150: #fde9a8;
+  --gf-warning-200: #fde68a;
+  --gf-warning-300: #fcd34d;
+  --gf-warning-400: #fbbf24;
+  --gf-warning-500: #f59e0b;
+  --gf-warning-600: #d97706;
+  --gf-warning-650: #c56c06;
+  --gf-warning-700: #b45309;
+  --gf-warning-750: #a04a09;
+  --gf-warning-800: #92400e;
+  --gf-warning-850: #7c3710;
+  --gf-warning-900: #78350f;
+  --gf-warning-950: #451a03;
+
+  --gf-error-50: #fff1f2;
+  --gf-error-100: #ffe4e6;
+  --gf-error-150: #fecdd3;
+  --gf-error-200: #fda4af;
+  --gf-error-300: #fb7185;
+  --gf-error-400: #f43f5e;
+  --gf-error-500: #e11d48;
+  --gf-error-600: #be123c;
+  --gf-error-650: #a80f35;
+  --gf-error-700: #9f1239;
+  --gf-error-750: #8a0f31;
+  --gf-error-800: #881337;
+  --gf-error-900: #4c0519;
+  --gf-error-950: #2c0310;
+}
+
+html[data-console-theme="dark"] {
+  --gf-shadow-surface: 0 0 0 1px rgb(255 255 255 / 6%);
+  --gf-shadow-pop: 0 0 0 1px rgb(255 255 255 / 8%), 0 16px 40px -12px rgb(0 0 0 / 60%);
+  --gf-surface: #171b26;
+
+  /* --- Official Payload tokens (dark) --- */
+  --gf-bg: #0f1117;
+  --gf-input-bg: #171b26;
+  --gf-text: #e7e9ee;
+  --gf-border-color: var(--gf-elevation-150);
+  --gf-overlay: rgb(0 0 0 / 65%);
+
+  /* Elevation is functionally mirrored: low numbers stay "surface", high
+     numbers stay "readable text", but the physical lightness direction
+     flips so text stays light-on-dark. */
+  --gf-elevation-0: #0b0d12;
+  --gf-elevation-50: #101319;
+  --gf-elevation-100: #171b26;
+  --gf-elevation-150: #1e2330;
+  --gf-elevation-200: #242a3a;
+  --gf-elevation-250: #2a3142;
+  --gf-elevation-300: #333b4e;
+  --gf-elevation-350: #3c4559;
+  --gf-elevation-400: #4b5568;
+  --gf-elevation-450: #5b6478;
+  --gf-elevation-500: #7c8698;
+  --gf-elevation-550: #8b94a6;
+  --gf-elevation-600: #9ba4b5;
+  --gf-elevation-650: #a7afbf;
+  --gf-elevation-700: #b9c0ce;
+  --gf-elevation-750: #c7cdd9;
+  --gf-elevation-800: #dde1e8;
+  --gf-elevation-850: #e7eaef;
+  --gf-elevation-900: #f1f3f6;
+  --gf-elevation-950: #f8f9fb;
+  --gf-elevation-1000: #ffffff;
+
+  --gf-success-50: #052e21;
+  --gf-success-100: #06402d;
+  --gf-success-150: #075138;
+  --gf-success-200: #086443;
+  --gf-success-250: #0a7a51;
+  --gf-success-300: #0e9463;
+  --gf-success-350: #14a874;
+  --gf-success-400: #1cbd85;
+  --gf-success-500: #34d399;
+  --gf-success-600: #4adea3;
+  --gf-success-650: #5fe3ac;
+  --gf-success-700: #6ee7b7;
+  --gf-success-750: #86ecc1;
+  --gf-success-800: #a7f3d0;
+  --gf-success-850: #bdf6db;
+  --gf-success-900: #d1fae5;
+  --gf-success-950: #ecfdf5;
+
+  --gf-warning-50: #3a1f02;
+  --gf-warning-100: #4f2b03;
+  --gf-warning-150: #653804;
+  --gf-warning-200: #7c4705;
+  --gf-warning-300: #955807;
+  --gf-warning-400: #b06e09;
+  --gf-warning-500: #d3870c;
+  --gf-warning-600: #e9a12a;
+  --gf-warning-650: #edac41;
+  --gf-warning-700: #f0b957;
+  --gf-warning-750: #f4c876;
+  --gf-warning-800: #f8d89a;
+  --gf-warning-850: #fbe4b8;
+  --gf-warning-900: #fef0d6;
+  --gf-warning-950: #fffaf0;
+
+  --gf-error-50: #340910;
+  --gf-error-100: #480d16;
+  --gf-error-150: #5c121d;
+  --gf-error-200: #711828;
+  --gf-error-300: #8f1f34;
+  --gf-error-400: #b12a45;
+  --gf-error-500: #d63a58;
+  --gf-error-600: #ea5975;
+  --gf-error-650: #ee6d86;
+  --gf-error-700: #f18298;
+  --gf-error-750: #f59caf;
+  --gf-error-800: #f9b8c6;
+  --gf-error-900: #fdd9e0;
+  --gf-error-950: #ffeef2;
+}
+
+/*
+ * Shared UI primitives (apps/cms/src/components/ui/). These back Badge,
+ * IconBadge, and ActionLink so status colors and action hierarchy stay
+ * identical everywhere they're used, instead of each surface inventing its
+ * own pill/button styling.
+ */
+.gf-ui-badge {
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: var(--gf-font-size-meta);
+  font-weight: 700;
+  line-height: var(--gf-line-height-meta);
+  padding: var(--gf-space-025) var(--gf-space-075);
+  text-transform: capitalize;
+}
+
+.gf-ui-badge--neutral {
+  background: var(--gf-tone-neutral-bg);
+  color: var(--gf-tone-neutral-fg);
+}
+.gf-ui-badge--success {
+  background: var(--gf-tone-success-bg);
+  color: var(--gf-tone-success-fg);
+}
+.gf-ui-badge--warning {
+  background: var(--gf-tone-warning-bg);
+  color: var(--gf-tone-warning-fg);
+}
+.gf-ui-badge--danger {
+  background: var(--gf-tone-danger-bg);
+  color: var(--gf-tone-danger-fg);
+}
+.gf-ui-badge--accent {
+  background: var(--gf-tone-accent-bg);
+  color: var(--gf-tone-accent-fg);
+}
+
+.gf-ui-icon-badge {
+  align-items: center;
+  border-radius: var(--style-radius-s);
+  display: inline-flex;
+  flex: none;
+  height: 40px;
+  justify-content: center;
+  width: 40px;
+}
+
+.gf-ui-icon-badge--neutral {
+  background: var(--gf-tone-neutral-bg);
+  color: var(--gf-tone-neutral-fg);
+}
+.gf-ui-icon-badge--success {
+  background: var(--gf-tone-success-bg);
+  color: var(--gf-tone-success-fg);
+}
+.gf-ui-icon-badge--warning {
+  background: var(--gf-tone-warning-bg);
+  color: var(--gf-tone-warning-fg);
+}
+.gf-ui-icon-badge--danger {
+  background: var(--gf-tone-danger-bg);
+  color: var(--gf-tone-danger-fg);
+}
+.gf-ui-icon-badge--accent {
+  background: var(--gf-tone-accent-bg);
+  color: var(--gf-tone-accent-fg);
+}
+
+.gf-ui-action-link {
+  align-items: center;
+  border-radius: var(--style-radius-s);
+  display: inline-flex;
+  font-size: var(--gf-font-size-meta);
+  font-weight: 700;
+  gap: var(--gf-space-050);
+  line-height: var(--gf-line-height-meta);
+  min-height: 36px;
+  padding: var(--gf-space-075) var(--gf-space-100);
+  text-decoration: none;
+}
+
+.gf-ui-action-link--secondary {
+  background: var(--gf-elevation-100);
+  color: var(--gf-text);
+}
+.gf-ui-action-link--secondary:hover {
+  background: var(--gf-tone-accent-bg);
+  text-decoration: none;
+}
+
+.gf-ui-action-link--primary {
+  background: var(--gf-accent-600);
+  color: #ffffff;
+}
+.gf-ui-action-link--primary:hover {
+  background: var(--gf-accent-700);
+  text-decoration: none;
+}
+
+@media (max-width: 768px) {
+  .gf-ui-action-link {
+    min-height: var(--gf-control-height-touch);
+  }
+}

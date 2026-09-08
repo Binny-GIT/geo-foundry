@@ -1,13 +1,6 @@
 "use client"
 
-import {
-  toast,
-  useAuth,
-  useDocumentInfo,
-  useField,
-  useFormFields,
-  useTranslation,
-} from "./edition-editor-context"
+import { toast, useEditionEditor, useEditionField } from "../state/edition-editor-context"
 import { useEffect, useState } from "react"
 import {
   CalendarClockIcon,
@@ -18,7 +11,7 @@ import {
   ShieldCheckIcon,
   UsersIcon,
 } from "@/components/icons"
-import { uiLangOf } from "@/components/i18n/ui-lang"
+import type { UiLang } from "@/components/i18n/ui-lang"
 import { Badge, IconBadge } from "@/components/ui"
 import { Button } from "@/components/ui/button"
 import { WorkflowActions } from "./WorkflowActions"
@@ -108,7 +101,7 @@ const Card = ({
           {title}
         </p>
         {count !== undefined && (
-          <strong className="mt-1 block truncate text-sm text-[var(--theme-text)]">{count}</strong>
+          <strong className="mt-1 block truncate text-sm text-[var(--gf-text)]">{count}</strong>
         )}
       </div>
     </div>
@@ -131,21 +124,22 @@ export const ContentEditionControlRail = ({
   readonly readOnly: boolean
   readonly selectedVersion: VersionSelection
 }) => {
-  const { id } = useDocumentInfo()
-  const { user } = useAuth()
-  const { i18n } = useTranslation()
-  const lang = uiLangOf(i18n.language)
-  const { setValue: setOwner, value: owner } = useField<unknown>({ path: "owner" })
-  const { setValue: setPriority, value: priority } = useField<string>({ path: "priority" })
-  const { setValue: setDueAt, value: dueAt } = useField<unknown>({ path: "dueAt" })
-  const { setValue: setEditorialStatus, value: editorialStatus } = useField<string>({
+  const editor = useEditionEditor()
+  const id = editor?.id ?? null
+  const user = editor === null ? null : { id: editor.userId, role: editor.role }
+  // Console 是纯中文界面；语言判定收敛为常量。
+  const lang: UiLang = "zh"
+  const { setValue: setOwner, value: owner } = useEditionField<unknown>({ path: "owner" })
+  const { setValue: setPriority, value: priority } = useEditionField<string>({ path: "priority" })
+  const { setValue: setDueAt, value: dueAt } = useEditionField<unknown>({ path: "dueAt" })
+  const { setValue: setEditorialStatus, value: editorialStatus } = useEditionField<string>({
     path: "editorialStatus",
   })
-  const { setValue: setSite, value: site } = useField<unknown>({ path: "site" })
-  const { setValue: setSites, value: sites } = useField<unknown>({ path: "sites" })
-  const body = useFormFields(([fields]) => fields["body"]?.value)
-  const tenant = useFormFields(([fields]) => fields["tenant"]?.value)
-  const workflowRevision = useFormFields(([fields]) => fields["workflowRevision"]?.value)
+  const { setValue: setSite, value: site } = useEditionField<unknown>({ path: "site" })
+  const { setValue: setSites, value: sites } = useEditionField<unknown>({ path: "sites" })
+  const body = editor?.values["body"]
+  const tenant = editor?.values["tenant"]
+  const workflowRevision = editor?.values["workflowRevision"]
   const [context, setContext] = useState<WorkspaceContext>(EMPTY)
   const [siteOptions, setSiteOptions] = useState<readonly SiteOption[]>([])
   const [scheduledFor, setScheduledFor] = useState("")
@@ -300,8 +294,8 @@ export const ContentEditionControlRail = ({
   }
 
   const fieldClass =
-    "min-h-10 w-full min-w-0 rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] px-3 text-sm text-[var(--theme-text)] focus:border-[var(--gf-accent-400)] focus:outline-none focus:ring-2 focus:ring-[var(--gf-accent-200)]"
-  const labelClass = "grid gap-1 text-xs font-bold text-[var(--theme-elevation-600)]"
+    "min-h-10 w-full min-w-0 rounded-lg border border-[var(--gf-elevation-250)] bg-[var(--gf-elevation-50)] px-3 text-sm text-[var(--gf-text)] focus:border-[var(--gf-accent-400)] focus:outline-none focus:ring-2 focus:ring-[var(--gf-accent-200)]"
+  const labelClass = "grid gap-1 text-xs font-bold text-[var(--gf-elevation-600)]"
 
   return (
     <aside
@@ -387,13 +381,13 @@ export const ContentEditionControlRail = ({
         icon={<GlobeIcon size={18} />}
         title={lang === "zh" ? "所属站点" : "Assigned sites"}
       >
-        <p className="m-0 mt-3 text-xs leading-5 text-[var(--theme-elevation-600)]">
+        <p className="m-0 mt-3 text-xs leading-5 text-[var(--gf-elevation-600)]">
           {lang === "zh"
             ? "勾选的站点才能读取这篇文章；第一个勾选的站点作为发布主站点。"
             : "Only assigned sites can read this article; the first one is the primary publication site."}
         </p>
         {siteOptions.length === 0 ? (
-          <p className="m-0 mt-3 text-sm text-[var(--theme-elevation-600)]">
+          <p className="m-0 mt-3 text-sm text-[var(--gf-elevation-600)]">
             {lang === "zh" ? "暂无可选站点。" : "No site is available."}
           </p>
         ) : (
@@ -402,7 +396,7 @@ export const ContentEditionControlRail = ({
               const checked = assignedSiteIds.includes(option.id)
               return (
                 <li key={option.id}>
-                  <label className="flex cursor-pointer items-center gap-2 rounded-lg px-1 py-1 text-sm text-[var(--theme-text)] hover:bg-[var(--theme-elevation-50)]">
+                  <label className="flex cursor-pointer items-center gap-2 rounded-lg px-1 py-1 text-sm text-[var(--gf-text)] hover:bg-[var(--gf-elevation-50)]">
                     <input
                       checked={checked}
                       disabled={readOnly}
@@ -428,7 +422,7 @@ export const ContentEditionControlRail = ({
         tone={qualityTone}
       >
         {context.quality === null ? (
-          <p className="m-0 mt-4 text-sm leading-6 text-[var(--theme-elevation-600)]">
+          <p className="m-0 mt-4 text-sm leading-6 text-[var(--gf-elevation-600)]">
             {lang === "zh"
               ? "当前版本没有可用质量评估。"
               : "No quality assessment is available for this version."}
@@ -437,11 +431,11 @@ export const ContentEditionControlRail = ({
           <div className="mt-4 grid gap-2">
             <div className="flex items-center justify-between gap-3">
               <Badge tone={qualityTone}>{context.quality.state ?? "—"}</Badge>
-              <span className="text-xs text-[var(--theme-elevation-600)]">
+              <span className="text-xs text-[var(--gf-elevation-600)]">
                 {context.quality.overall ?? "—"}
               </span>
             </div>
-            <p className="m-0 text-xs leading-5 text-[var(--theme-elevation-600)]">
+            <p className="m-0 text-xs leading-5 text-[var(--gf-elevation-600)]">
               {context.quality.issues.length} issue(s) · {Array.isArray(body) ? body.length : 0}{" "}
               block(s)
             </p>
@@ -463,7 +457,7 @@ export const ContentEditionControlRail = ({
               value={scheduledFor}
             />
           </label>
-          <p className="m-0 mt-2 text-xs text-[var(--theme-elevation-600)]">
+          <p className="m-0 mt-2 text-xs text-[var(--gf-elevation-600)]">
             {context.edition.siteTimezone}
           </p>
           <Button
@@ -485,20 +479,20 @@ export const ContentEditionControlRail = ({
         tone="neutral"
       >
         {context.sources.length === 0 ? (
-          <p className="m-0 mt-4 text-sm text-[var(--theme-elevation-600)]">
+          <p className="m-0 mt-4 text-sm text-[var(--gf-elevation-600)]">
             {lang === "zh" ? "暂时没有关联来源。" : "No linked sources yet."}
           </p>
         ) : (
           <ul className="m-0 mt-4 grid list-none gap-3 p-0 [&>li]:min-w-0">
             {context.sources.map((source, index) => (
               <li
-                className="min-w-0 overflow-hidden rounded-xl border border-[var(--theme-elevation-150)] bg-[var(--theme-elevation-50)] p-3"
+                className="min-w-0 overflow-hidden rounded-xl border border-[var(--gf-elevation-150)] bg-[var(--gf-elevation-50)] p-3"
                 key={source.id ?? index}
               >
                 <p className="m-0 text-xs font-bold uppercase tracking-[0.06em] text-[var(--gf-accent-700)]">
                   {source.role ?? "supporting"}
                 </p>
-                <strong className="mt-1 block text-sm text-[var(--theme-text)]">
+                <strong className="mt-1 block text-sm text-[var(--gf-text)]">
                   {source.intakeItem.title ?? "—"}
                 </strong>
                 {source.intakeItem.sourceUrl !== null && (
@@ -516,7 +510,7 @@ export const ContentEditionControlRail = ({
           </ul>
         )}
         {canEditSources && (
-          <div className="mt-4 grid gap-2 border-t border-[var(--theme-elevation-150)] pt-4">
+          <div className="mt-4 grid gap-2 border-t border-[var(--gf-elevation-150)] pt-4">
             <input
               aria-label={lang === "zh" ? "稿源条目 ID" : "Intake item ID"}
               className={fieldClass}
@@ -553,25 +547,25 @@ export const ContentEditionControlRail = ({
         tone="neutral"
       >
         {context.comments.length === 0 ? (
-          <p className="m-0 mt-4 text-sm text-[var(--theme-elevation-600)]">
+          <p className="m-0 mt-4 text-sm text-[var(--gf-elevation-600)]">
             {lang === "zh" ? "暂时没有审核评论。" : "No review comments yet."}
           </p>
         ) : (
           <ul className="m-0 mt-4 grid list-none gap-3 p-0 [&>li]:min-w-0">
             {context.comments.map((entry, index) => (
               <li
-                className="min-w-0 overflow-hidden rounded-xl border border-[var(--theme-elevation-150)] bg-[var(--theme-elevation-50)] p-3"
+                className="min-w-0 overflow-hidden rounded-xl border border-[var(--gf-elevation-150)] bg-[var(--gf-elevation-50)] p-3"
                 key={entry.id ?? index}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <strong className="truncate text-xs text-[var(--theme-text)]">
+                  <strong className="truncate text-xs text-[var(--gf-text)]">
                     {entry.author.email ?? "—"}
                   </strong>
-                  <span className="shrink-0 text-[11px] text-[var(--theme-elevation-600)]">
+                  <span className="shrink-0 text-[11px] text-[var(--gf-elevation-600)]">
                     {stampOf(entry.createdAt, lang)}
                   </span>
                 </div>
-                <p className="m-0 mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--theme-elevation-700)]">
+                <p className="m-0 mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--gf-elevation-700)]">
                   {entry.body ?? "—"}
                 </p>
               </li>
@@ -579,10 +573,10 @@ export const ContentEditionControlRail = ({
           </ul>
         )}
         {canComment && (
-          <div className="mt-4 border-t border-[var(--theme-elevation-150)] pt-4">
+          <div className="mt-4 border-t border-[var(--gf-elevation-150)] pt-4">
             <textarea
               aria-label={lang === "zh" ? "评论" : "Comment"}
-              className="min-h-20 w-full resize-y rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] p-3 text-sm text-[var(--theme-text)]"
+              className="min-h-20 w-full resize-y rounded-lg border border-[var(--gf-elevation-250)] bg-[var(--gf-elevation-50)] p-3 text-sm text-[var(--gf-text)]"
               maxLength={2000}
               onChange={(event) => setComment(event.target.value)}
               placeholder={

@@ -1,11 +1,12 @@
 import { notFound } from "next/navigation"
 
 import { CMS_ACTION, CMS_RESOURCE } from "@/access/policy"
-import { EditionEditor } from "@/console/components/editions/EditionEditor"
+import { EditionEditor } from "@/console/features/editions/components/EditionEditor"
 import { requireConsolePayloadContext } from "@/console/lib/payload.server"
 import { canConsole } from "@/console/lib/session.server"
 
-import "@/console/components/editions/edition-theme.css"
+import "@/console/styles/tokens.css"
+import "@/console/styles/edition-preview.css"
 
 export const dynamic = "force-dynamic"
 

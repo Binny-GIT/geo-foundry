@@ -33,9 +33,9 @@ type DialogContentProps = ComponentProps<typeof DialogPrimitive.Content> & {
   readonly wide?: boolean
 }
 
-/* Plain slate tokens on purpose: the dialog renders inside both the admin
- * shell (Payload --theme-* variables) and the console shell (its own
- * --console-* set), so it must not depend on either variable family. */
+/* Plain slate tokens on purpose: the dialog renders inside every shell
+ * (console --console-* / editor --gf-*), so it must not depend on either
+ * variable family. */
 const DialogContent = ({ children, className, wide = false, ...props }: DialogContentProps) => (
   <DialogPrimitive.Portal>
     <DialogOverlay />

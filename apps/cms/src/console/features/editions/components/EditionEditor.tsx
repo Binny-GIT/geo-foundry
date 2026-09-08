@@ -14,10 +14,10 @@ import {
   ContentEditionAiChat,
   ContentEditionAiChatRail,
   useAiChatPanel,
-} from "./ContentEditionAiChat"
+} from "../ai/ContentEditionAiChat"
 import { ContentEditionControlRail } from "./ContentEditionControlRail"
 import { ContentEditionHeadlineFields, ContentEditionMetadataEditor } from "./ContentEditionEditorCanvas"
-import { EditionMarkdownEditor } from "./EditionMarkdownEditor"
+import { EditionMarkdownEditor } from "../editor/EditionMarkdownEditor"
 import { ContentEditionPreview } from "./ContentEditionPreview"
 import type { VersionSelection } from "./ContentEditionRail"
 import { ContentEditionSetupFields } from "./ContentEditionSetupFields"
@@ -26,7 +26,7 @@ import {
   type EditionSession,
   useEditionBody,
   useEditionEditor,
-} from "./edition-editor-context"
+} from "../state/edition-editor-context"
 
 const workflowLabel = (status: unknown): string =>
   isWorkflowStatus(status) ? workflowStatusLabel(status, "zh") : String(status ?? "")
@@ -104,7 +104,7 @@ const EditorBody = ({ readOnly }: { readonly readOnly: boolean }) => {
                 Geo Foundry · Content edition
               </p>
               <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2">
-                <h1 className="min-w-0 truncate text-xl font-bold tracking-tight text-[var(--theme-text)] sm:text-2xl">
+                <h1 className="min-w-0 truncate text-xl font-bold tracking-tight text-[var(--gf-text)] sm:text-2xl">
                   {typeof title === "string" && title.length > 0 ? title : "未命名内容版本"}
                 </h1>
                 {isWorkflowStatus(workflowStatus) && (
@@ -113,7 +113,7 @@ const EditorBody = ({ readOnly }: { readonly readOnly: boolean }) => {
                   </Badge>
                 )}
               </div>
-              <p className="m-0 mt-1 text-xs text-[var(--theme-elevation-600)]">{saveState}</p>
+              <p className="m-0 mt-1 text-xs text-[var(--gf-elevation-600)]">{saveState}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               {!readOnly && (
@@ -163,10 +163,10 @@ const EditorBody = ({ readOnly }: { readonly readOnly: boolean }) => {
                   <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
                     {selectedVersion === null ? "正在预览文档" : "历史版本预览"}
                   </p>
-                  <h2 className="m-0 mt-2 text-3xl font-bold tracking-tight text-[var(--theme-text)]">
+                  <h2 className="m-0 mt-2 text-3xl font-bold tracking-tight text-[var(--gf-text)]">
                     {typeof source.title === "string" ? source.title : "—"}
                   </h2>
-                  <p className="m-0 mt-3 max-w-3xl whitespace-pre-wrap text-base leading-7 text-[var(--theme-elevation-700)]">
+                  <p className="m-0 mt-3 max-w-3xl whitespace-pre-wrap text-base leading-7 text-[var(--gf-elevation-700)]">
                     {typeof source.summary === "string" ? source.summary : "—"}
                   </p>
                 </div>
