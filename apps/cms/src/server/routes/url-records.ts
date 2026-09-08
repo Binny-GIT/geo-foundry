@@ -58,6 +58,7 @@ export const handleUrlRecordsPost = async (
   request: Request,
   slug: readonly string[] | undefined,
 ): Promise<Response | null> => {
+  if (slug === undefined) return null
   if (urlRenameRouteOf(slug)) return handleRename(request, slug)
   if (perfAcceptRouteOf(slug)) return handlePerfAccept(request)
   return null
