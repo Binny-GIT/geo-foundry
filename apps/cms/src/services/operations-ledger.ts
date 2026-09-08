@@ -15,7 +15,7 @@ import {
 } from "@geo/domain"
 import type { Payload } from "payload"
 
-import { resolveSessionClaims, type SessionClaims } from "../access/session"
+import type { SessionClaims } from "../access/session"
 import {
   appendOutboxEvent,
   OUTBOX_EVENT,
@@ -822,6 +822,25 @@ export async function submitEditionPublishOperation(
       depth: 0,
       req,
     })
+    /* Publish 与 evaluate/rollback 使用同一启动语义：operation、幂等绑定与
+     * requested 事件同事务提交。Worker reconciliation 仍是兜底，不再是
+     * publish operation 启动的唯一入口。 */
+    await appendOutboxEvent(
+      payload,
+      {
+        aggregateId: input.editionId,
+        eventPayload: {
+          editionId: input.editionId,
+          operationType: "publish",
+          releaseId,
+          ...(siteId === null ? {} : { siteId }),
+        },
+        operationId,
+        tenantId,
+        type: OUTBOX_EVENT.PUBLISH_REQUESTED,
+      },
+      req,
+    )
     return { created: true, operationId, releaseId, state: "queued" }
   })
 }

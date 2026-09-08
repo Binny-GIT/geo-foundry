@@ -386,6 +386,31 @@ describe("publisher-authorized release publication", () => {
     expect(replay.created).toBe(false)
     expect(replay.operationId).toBe(first.operationId)
     expect(replay.releaseId).toBe(first.releaseId)
+
+    const requested = await payload.find({
+      collection: "outbox-events",
+      depth: 0,
+      limit: 10,
+      overrideAccess: true,
+      where: {
+        and: [
+          { operationId: { equals: first.operationId } },
+          { type: { equals: "publish.requested" } },
+        ],
+      },
+    })
+    expect(requested.docs).toHaveLength(1)
+    expect(requested.docs[0]).toMatchObject({
+      aggregateId: edition.id,
+      eventPayload: expect.objectContaining({
+        editionId: edition.id,
+        operationType: "publish",
+        releaseId: first.releaseId,
+        siteId: site.id,
+      }),
+      status: "pending",
+      tenant: tenant.id,
+    })
   })
 
   it("advances a compiled edition to published under the operation's original publisher identity, then idempotently no-ops on receipt replay", async () => {

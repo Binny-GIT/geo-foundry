@@ -9,9 +9,14 @@
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres"
 import type { Pool } from "pg"
 
-import * as schema from "./schema"
+import * as ledgerSchema from "./ledger-schema"
+import * as coreSchema from "./schema"
 
-export type ServerDb = NodePgDatabase<typeof schema>
+export const serverSchema = { ...coreSchema, ...ledgerSchema }
+
+export type ServerDb = NodePgDatabase<typeof serverSchema>
 
 export const createServerDb = (input: string | Pool): ServerDb =>
-  typeof input === "string" ? drizzle(input, { schema }) : drizzle({ client: input, schema })
+  typeof input === "string"
+    ? drizzle(input, { schema: serverSchema })
+    : drizzle({ client: input, schema: serverSchema })

@@ -19,7 +19,7 @@ describe("server db schema bindings", () => {
     expect(sql.sql).toContain('"geo_foundry"."users"')
   })
 
-  it("binds every auth-relevant column with its snake_case name", async () => {
+  it("binds every auth-relevant column with its snake_case name", () => {
     const { users } = db._.fullSchema
     const columns = Object.keys(users)
     for (const expected of [
@@ -37,6 +37,30 @@ describe("server db schema bindings", () => {
     expect(users.enableAPIToken.name).toBe("enable_a_p_i_key")
     expect(users.apiKeyIndex.name).toBe("api_key_index")
     expect(users.loginAttempts.name).toBe("login_attempts")
+  })
+
+  it("binds operations, idempotency, and outbox to the final migrated columns", () => {
+    const { idempotencyRecords, operations, outboxEvents } = db._.fullSchema
+    expect(operations.idempotencyKeyHash.name).toBe("idempotency_key_hash")
+    expect(operations.requestPayload.name).toBe("request_payload")
+    expect(idempotencyRecords.uniqueKey.name).toBe("unique_key")
+    expect(idempotencyRecords.replayCount.name).toBe("replay_count")
+    expect(outboxEvents.aggregateType.name).toBe("aggregate_type")
+    expect(outboxEvents.eventPayload.name).toBe("event_payload")
+    expect(outboxEvents.dispatchedAt.name).toBe("dispatched_at")
+  })
+
+  it("contains every post-migration outbox enum value", () => {
+    expect(db._.fullSchema.outboxEventType.enumValues).toEqual([
+      "edition.transitioned",
+      "edition.draft-written",
+      "assessment.recorded",
+      "edition.compile-recorded",
+      "evaluation.requested",
+      "publish.requested",
+      "rollback.requested",
+    ])
+    expect(db._.fullSchema.outboxAggregateType.enumValues).toEqual(["edition", "site"])
   })
 })
 

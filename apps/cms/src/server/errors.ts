@@ -56,3 +56,10 @@ export class AuthenticationError extends DomainError {
     super(code, message, 401)
   }
 }
+
+export class IdempotencyConflictError extends DomainError {
+  override readonly name = "IdempotencyConflictError"
+  constructor() {
+    super("IDEMPOTENCY_KEY_REUSED", "幂等键已绑定到不同的请求内容。", 409)
+  }
+}
