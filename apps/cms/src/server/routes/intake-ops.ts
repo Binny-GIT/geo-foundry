@@ -104,8 +104,10 @@ export const handleIntakeOpsPost = async (
   const scope = entityScopeOf(auth)
   if (scope === null) return json(403, { error: { code: "INTAKE_ACTOR_INVALID" } })
   const tenantId = scope.kind === "global" ? null : scope.tenantId
-  const itemId = idOf(slug)
-  if (itemId === null) return json(400, { error: { code: "INTAKE_ITEM_ID_INVALID" } })
+  const itemId = action === "create" ? 0 : (idOf(slug) ?? 0)
+  if (action !== "create" && itemId === 0) {
+    return json(400, { error: { code: "INTAKE_ITEM_ID_INVALID" } })
+  }
 
   let raw: unknown = {}
   if (action === "merge" || action === "adopt") {

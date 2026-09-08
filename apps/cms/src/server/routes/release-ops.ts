@@ -63,11 +63,11 @@ export const rollbackIntentRouteOf = (slug: readonly string[] | undefined): bool
   slug?.length === 2 && slug[0] === "rollback-operations" && slug[1] === "intents"
 
 export const evaluationRouteOf = (slug: readonly string[] | undefined): boolean =>
-  slug?.length === 4 &&
+  slug?.length === 5 &&
   slug[0] === "workspaces" &&
   slug[1] === "editor" &&
   slug[2] === "editions" &&
-  slug[3] === "evaluation-operations"
+  slug[4] === "evaluation-operations"
 
 export const handleRollbackIntentPost = async (
   request: Request,
@@ -228,7 +228,7 @@ export const handleEvaluationPost = async (
   slug: readonly string[] | undefined,
 ): Promise<Response | null> => {
   if (!evaluationRouteOf(slug)) return null
-  const editionId = slug?.[2] !== undefined && /^\d+$/.test(slug[2]) ? Number(slug[2]) : null
+  const editionId = slug?.[3] !== undefined && /^\d+$/.test(slug[3]) ? Number(slug[3]) : null
   if (editionId === null || editionId <= 0) {
     return json(400, { error: { code: "EDITION_EVALUATION_ID_INVALID" } })
   }

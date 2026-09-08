@@ -93,16 +93,26 @@ export const handleEditionOpsPost = async (
     return json(403, { error: { code: "EDITION_OPS_FORBIDDEN" } })
   }
 
-  let raw: unknown
-  try {
-    raw = await request.json()
-  } catch {
-    return json(400, { error: { code: "EDITION_OPS_BODY_INVALID" } })
+  let raw: unknown = {}
+  if (slug[2] !== "duplicate") {
+    try {
+      raw = await request.json()
+    } catch {
+      return json(400, { error: { code: "EDITION_OPS_BODY_INVALID" } })
+    }
+  } else {
+    try {
+      raw = await request.json()
+    } catch {
+      raw = {}
+    }
   }
 
   const db = serverRuntime().db
 
   if (slug[2] === "duplicate") {
+    // 旧端点允许无 body 的 POST；JSON 解析失败按空对象处理。
+    if (raw === null) raw = {}
     const parsed = z.object({}).strict().safeParse(raw)
     if (!parsed.success) return json(400, { error: { code: "EDITION_OPS_BODY_INVALID" } })
     try {
