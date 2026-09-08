@@ -71,7 +71,7 @@ let consumed = null
 await workerBoss.work("spike-q", async (job) => {
   if (job.data.kind === "commit") consumed = job.id
 })
-await new Promise((resolve) => setTimeout(resolve, 2_000))
+await new Promise((resolve) => setTimeout(resolve, 8_000))
 check("restricted role consumed job", consumed !== null)
 
 const workerPool = new Pool({ connectionString: WORKER })
@@ -88,10 +88,15 @@ await workerPool.end()
 await boss.createQueue("spike-singleton").catch(() => {})
 const first = await boss.send("spike-singleton", { n: 1 }, { singletonKey: "op:1:stage" })
 const second = await boss.send("spike-singleton", { n: 2 }, { singletonKey: "op:1:stage" })
-check("singletonKey dedupes in-flight send", first !== null && second === null)
+check(
+  "singletonKey dedupes in-flight send",
+  first !== null && second === null,
+  `first=${String(first)} second=${String(second)}`,
+)
 
 // ---------- 4. cron 同名幂等 + 单实例语义 ----------
 const cron = "* * * * *"
+await boss.createQueue("spike-cron").catch(() => {})
 await boss.schedule("spike-cron", cron, {}, { tz: "UTC" })
 await boss.schedule("spike-cron", cron, {}, { tz: "UTC" })
 const cronRows = await adminPool.query("SELECT count(*)::int AS n FROM pgboss_spike.cron WHERE name='spike-cron'")
