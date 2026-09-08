@@ -93,19 +93,15 @@ export const handleEditionOpsPost = async (
     return json(403, { error: { code: "EDITION_OPS_FORBIDDEN" } })
   }
 
+  // body 只在本路由真正认领（duplicate/assignment）时才读取；
+  // 提前消费会让后续 handler 的 request.json() 抛错。
+  if (slug[2] !== "duplicate" && slug[2] !== "assignment") return null
   let raw: unknown = {}
-  if (slug[2] !== "duplicate") {
-    try {
-      raw = await request.json()
-    } catch {
-      return json(400, { error: { code: "EDITION_OPS_BODY_INVALID" } })
-    }
-  } else {
-    try {
-      raw = await request.json()
-    } catch {
-      raw = {}
-    }
+  try {
+    raw = await request.json()
+  } catch {
+    if (slug[2] === "duplicate") raw = {}
+    else return json(400, { error: { code: "EDITION_OPS_BODY_INVALID" } })
   }
 
   const db = serverRuntime().db
