@@ -1,7 +1,7 @@
 import type { Payload } from "payload"
 
 import { resolveSessionClaims } from "../access/session"
-import { blocksToMarkdown } from "../editor/block-markdown"
+import { blocksToMarkdown, markdownToBlocks } from "../editor/block-markdown"
 import {
   appendOutboxEvent,
   OUTBOX_EVENT,
@@ -95,24 +95,31 @@ const snapshotOf = (value: unknown): EditionVersionSnapshot | null => {
   const angle = textOf(row["angle"])
   const primaryTopic = textOf(row["primaryTopic"])
   const creationOrigin = textOf(row["creationOrigin"])
-  const body = row["body"]
+  const storedMarkdown = row["bodyMarkdown"]
+  const storedBody = row["body"]
+  const bodyMarkdown =
+    typeof storedMarkdown === "string"
+      ? storedMarkdown
+      : Array.isArray(storedBody)
+        ? blocksToMarkdown(storedBody)
+        : null
   if (
     title === null ||
     summary === null ||
     angle === null ||
     primaryTopic === null ||
     creationOrigin === null ||
-    !Array.isArray(body)
+    bodyMarkdown === null
   ) {
     return null
   }
   return {
     angle,
-    body: clone(body),
-    bodyMarkdown:
-      typeof row["bodyMarkdown"] === "string"
-        ? row["bodyMarkdown"]
-        : blocksToMarkdown(body),
+    body:
+      typeof storedMarkdown === "string"
+        ? markdownToBlocks(storedMarkdown)
+        : clone(storedBody as readonly unknown[]),
+    bodyMarkdown,
     citations: clone(row["citations"] ?? null),
     creationOrigin,
     entities: clone(row["entities"] ?? null),
