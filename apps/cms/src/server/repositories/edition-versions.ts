@@ -221,7 +221,10 @@ export class EditionVersionsRepository {
       if (Number(current.workflowRevision ?? 0) !== input.expectedRevision) {
         throw new EditionVersionRepositoryError("EDITION_WORKFLOW_REVISION_CONFLICT", 409)
       }
-      if (current.updatedAt.toISOString() !== input.expectedUpdatedAt) {
+      // 客户端读取的草稿 updatedAt 是 versionUpdatedAt ?? updatedAt（与 saveDraft 的 CAS 一致），
+      // 不能直接比版本行的 updated_at 列，两列在 Payload 版本表中通常不同。
+      const draftUpdatedAt = current.versionUpdatedAt ?? current.updatedAt
+      if (draftUpdatedAt.toISOString() !== input.expectedUpdatedAt) {
         throw new EditionVersionRepositoryError("EDITION_DRAFT_RESTORE_STALE", 409)
       }
 
