@@ -95,7 +95,7 @@ D2=$(curl -s -X POST "$BASE/api/internal/publication-plans/dispatch-due" \
   -H "$(auth)" -H 'Content-Type: application/json' \
   -d "{\"now\":\"$NOW2\",\"workerId\":\"e2e-sp-$TS\"}")
 ROW2=$(Q "status||'|'||coalesce(release_id,'')||'|'||(published_at IS NOT NULL) FROM geo_foundry.publication_plans WHERE plan_id='$PLAN'")
-[ "$ROW2" = "succeeded|$REL|t" ] && ok "plan settled succeeded + publishedAt + releaseId" || bad "settle row=$ROW2"
+[ "$ROW2" = "succeeded|$REL|true" ] && ok "plan settled succeeded + publishedAt + releaseId" || bad "settle row=$ROW2"
 ST=$(Q "workflow_status FROM geo_foundry.edition_revisions WHERE parent_id=$ED AND latest")
 [ "$ST" = "published" ] && ok "edition latest -> published" || bad "edition status=$ST"
 RL=$(Q "state FROM geo_foundry.releases WHERE release_id='$REL'")
@@ -115,7 +115,7 @@ OP2=$(Q "coalesce(operation_id,'') FROM geo_foundry.publication_plans WHERE plan
 # ---------- 7. 取消路径（第二篇一次性文章） ----------
 C2=$(curl -s -X POST "$BASE/api/content-editions?draft=true&depth=0" -b /tmp/sp-e.jar \
   -H 'Content-Type: application/json' \
-  -d "{\"title\":\"E2E 定时发布取消 $TS\",\"bodyMarkdown\":\"# 摘要\\n\\n取消路径。\",\"site\":$SITE}")
+  -d "{\"title\":\"E2E 定时发布 cancel $TS\",\"bodyMarkdown\":\"# 摘要\\n\\n取消路径。\",\"site\":$SITE}")
 ED2=$(echo "$C2" | python3 -c 'import json,sys;print(json.load(sys.stdin)["doc"]["id"])')
 curl -s -o /dev/null -X POST "$BASE/api/editions/$ED2/workflow-transitions" -b /tmp/sp-e.jar \
   -H 'Content-Type: application/json' -d '{"target":"review"}'
@@ -126,7 +126,8 @@ curl -s -o /dev/null -X POST "$BASE/api/workspaces/reviewer/editions/$ED2/approv
 FUT=$(date -u -d '1 hour' +%Y-%m-%dT%H:%M:%S.000Z)
 P2=$(curl -s -X POST "$BASE/api/publication-plan-operations" -b /tmp/sp-p.jar \
   -H 'Content-Type: application/json' -d "{\"editionId\":$ED2,\"scheduledFor\":\"$FUT\",\"timezone\":\"$TZ_\"}")
-PLAN2=$(echo "$P2" | python3 -c 'import json,sys;print(json.load(sys.stdin)["plan"]["planId"])')
+PLAN2=$(echo "$P2" | python3 -c 'import json,sys;print(json.load(sys.stdin).get("plan",{}).get("planId",""))')
+[ -n "$PLAN2" ] || { bad "plan2 create $P2"; exit 1; }
 CX=$(curl -s -w '\n%{http_code}' -X POST "$BASE/api/publication-plan-operations/$PLAN2/cancel" -b /tmp/sp-p.jar \
   -H 'Content-Type: application/json')
 [ "$(echo "$CX" | tail -1)" = "200" ] && ok "plan cancel 200" || bad "cancel $(echo "$CX"|tail -2)"
