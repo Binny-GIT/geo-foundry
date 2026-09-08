@@ -116,7 +116,7 @@ const scopeTenantOf = (scope: EntityScope): number | null =>
 
 type VersionRow = typeof editionVersions.$inferSelect
 
-const loadCurrentVersion = async (
+export const loadCurrentVersion = async (
   tx: Tx,
   scope: EntityScope,
   editionId: number,
@@ -182,7 +182,7 @@ const appendAudit = (
   tenantId: number,
 ): AuditEntry[] => [...(Array.isArray(current) ? current : []), { ...entry, at: new Date().toISOString(), tenantId }]
 
-const copyVersionChildren = async (
+export const copyVersionChildren = async (
   tx: Tx,
   sourceVersionId: number,
   targetVersionId: number,
@@ -231,7 +231,7 @@ const copyVersionChildren = async (
   }
 }
 
-const insertLatestVersion = async (
+export const insertLatestVersion = async (
   tx: Tx,
   current: VersionRow,
   values: Pick<VersionRow, "auditLog" | "compiledRelease" | "workflowRevision" | "workflowStatus">,

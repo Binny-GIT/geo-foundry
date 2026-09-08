@@ -23,6 +23,7 @@ import {
   handleEditionDraftPost,
 } from "@/server/routes/edition-writes"
 import { handleEditionWorkflowPost } from "@/server/routes/edition-workflow"
+import { handleEditionOpsPost } from "@/server/routes/edition-ops"
 import { handleEntityListGet } from "@/server/routes/entity-reads"
 import { handleDeliveryGet } from "@/server/routes/delivery"
 import { handleReviewCommentPost } from "@/server/routes/review-comments"
@@ -105,6 +106,7 @@ export const POST = async (request: Request, context: RouteContext): Promise<Res
     ["users-auth-post", () => handleUsersAuthPost(request, params.slug)],
     ["edition-version-post", () => handleEditionVersionPost(request, params.slug)],
     ["edition-workflow-post", () => handleEditionWorkflowPost(request, params.slug)],
+    ["edition-ops-post", () => handleEditionOpsPost(request, params.slug)],
     ["reviewer-decision-post", () => handleReviewerDecisionPost(request, params.slug)],
     ["review-comment-post", () => handleReviewCommentPost(request, params.slug)],
     ["edition-draft-post", () => handleEditionDraftPost(request, params.slug)],

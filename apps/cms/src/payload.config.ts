@@ -38,8 +38,6 @@ import {
 } from "./endpoints/auth-compat-probe"
 import { addArticleSourceEndpoint } from "./endpoints/article-sources"
 import { editionAiChatDraftEndpoint, editionAiChatEndpoint } from "./endpoints/edition-ai-chat"
-import { editionAssignmentEndpoint } from "./endpoints/edition-assignment"
-import { editionDuplicateEndpoint } from "./endpoints/edition-duplicate"
 import { editionWorkspaceContextEndpoint } from "./endpoints/edition-workspace-context"
 import { submitEditorEvaluationEndpoint } from "./endpoints/editor-evaluation"
 import {
@@ -151,8 +149,6 @@ export default buildConfig({
     authCompatSessionPostEndpoint,
     createRollbackIntentEndpoint,
     editionWorkspaceContextEndpoint,
-    editionAssignmentEndpoint,
-    editionDuplicateEndpoint,
     editionAiChatDraftEndpoint,
     editionAiChatEndpoint,
     renameUrlRecordEndpoint,
