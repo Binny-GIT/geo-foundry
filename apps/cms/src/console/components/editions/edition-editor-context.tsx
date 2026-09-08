@@ -31,9 +31,12 @@ type EditionBody = Readonly<{
   markdown: string
   loading: boolean
   replaceMarkdown: (next: string) => void
+  /** 编辑器正文里的当前选区；无选区为 null。给「改写选中」类操作定位用。 */
+  reportSelection: (next: Readonly<{ end: number; start: number; text: string }> | null) => void
   /** 派生区块视图，仅供预览/渲染消费，不是编辑入口。 */
   rows: readonly Row[]
   save: () => Promise<boolean>
+  selection: Readonly<{ end: number; start: number; text: string }> | null
 }>
 
 /** 编辑器全局状态；shim 与新代码都从这里取数。 */
@@ -159,8 +162,10 @@ const EMPTY_BODY: EditionBody = {
   loading: false,
   markdown: "",
   replaceMarkdown: () => undefined,
+  reportSelection: () => undefined,
   rows: [],
   save: async () => true,
+  selection: null,
 }
 
 export const EditionEditorProvider = ({
@@ -234,6 +239,13 @@ export const EditionEditorProvider = ({
     editsRef.current += 1
     setMarkdown(next)
     setBodyDirty(true)
+  }, [])
+
+  type Selection = { end: number; start: number; text: string }
+  const [selection, setSelection] = useState<Selection | null>(null)
+  // 选区只是视图状态，不是编辑动作，不递增编辑序号。
+  const reportSelection = useCallback((next: Selection | null) => {
+    setSelection(next)
   }, [])
 
   const docId = doc === null ? null : idOf(doc["id"])
@@ -364,10 +376,12 @@ export const EditionEditorProvider = ({
       loading: false,
       markdown,
       replaceMarkdown,
+      reportSelection,
       rows: derivedRows,
       save,
+      selection,
     }),
-    [bodyDirty, derivedRows, markdown, replaceMarkdown, save],
+    [bodyDirty, derivedRows, markdown, replaceMarkdown, reportSelection, save, selection],
   )
   const stateValue = useMemo<EditionEditorState>(
     () => ({

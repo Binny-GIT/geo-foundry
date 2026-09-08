@@ -15,8 +15,19 @@ const messageSchema = z
   })
   .strict()
 
+/* 编辑器未保存内容的上下文快照：只影响提示词，不改变任何访问边界。 */
+const draftSchema = z
+  .object({
+    markdown: z.string().max(24000),
+    summary: z.string().max(1000),
+    title: z.string().max(300),
+  })
+  .partial()
+  .strict()
+
 const bodySchema = z
   .object({
+    draft: draftSchema.optional(),
     messages: z.array(messageSchema).min(1).max(30),
   })
   .strict()
@@ -37,8 +48,6 @@ const response = (status: number, body: unknown): Response =>
 const record = (value: unknown): Record<string, unknown> =>
   typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {}
 
-const textOf = (value: unknown): string => (typeof value === "string" ? value : "")
-
 /* Reasoning models answer with a separate thinking channel; it is surfaced
  * to the editor as a collapsible section, never merged into the article text. */
 type Completion = Readonly<{ reasoning: string | null; reply: string }>
@@ -53,7 +62,7 @@ const attemptOnce = async (
   try {
     const upstream = await fetch(`${config.baseUrl}/chat/completions`, {
       body: JSON.stringify({
-        max_tokens: 2048,
+        max_tokens: config.maxTokens,
         messages: [{ content: system, role: "system" }, ...messages],
         model: config.model,
         temperature: 0.4,
@@ -149,7 +158,11 @@ const chatHandler = async (req: PayloadRequest, editionId: number | null): Promi
   if (config === null) return response(503, { error: { code: "AI_CHAT_UNCONFIGURED" } })
 
   try {
-    const completion = await replyOf(config, systemPromptOf(edition), parsed.data.messages)
+    const completion = await replyOf(
+      config,
+      systemPromptOf(edition, parsed.data.draft ?? null),
+      parsed.data.messages,
+    )
     return response(200, {
       ...(completion.reasoning === null ? {} : { reasoning: completion.reasoning }),
       reply: completion.reply,

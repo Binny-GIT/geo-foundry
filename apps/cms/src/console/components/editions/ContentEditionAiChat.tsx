@@ -1,7 +1,14 @@
 "use client"
 
-import { blocksOf, splitArticle } from "@/console/lib/ai-chat-model"
-import { useDocumentInfo } from "./edition-editor-context"
+import {
+  type SelectionSnapshot,
+  applyProposal,
+  buildDraftContext,
+  CONTINUE_WRITING_PROMPT,
+  selectionRewritePrompt,
+  splitArticle,
+} from "@/console/lib/ai-chat-model"
+import { toast, useDocumentInfo, useEditionBody, useEditionEditor } from "./edition-editor-context"
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
   CheckCircleIcon,
@@ -13,11 +20,12 @@ import {
   RotateCcwIcon,
   SendIcon,
   SparklesIcon,
+  SquareIcon,
   TrashIcon,
+  WandSparklesIcon,
 } from "@/components/icons"
 import { IconBadge } from "@/components/ui"
 import { Button } from "@/components/ui/button"
-import { useEditionBody } from "./edition-editor-context"
 
 const PANEL_KEY = "gf-ai-chat-open"
 const AUTO_APPLY_KEY = "gf-ai-auto-apply"
@@ -53,6 +61,8 @@ export type AiChatMessage = Readonly<{
   article?: string
   id: string
   reasoning?: string
+  /** 本条提案生成时瞄准的正文选区（「改写选中」专用）。 */
+  selection?: SelectionSnapshot
   role: "assistant" | "system" | "user"
 }>
 
@@ -65,6 +75,22 @@ const isMessage = (value: unknown): value is AiChatMessage => {
     typeof row["id"] === "string" &&
     (row["role"] === "assistant" || row["role"] === "system" || row["role"] === "user")
   )
+}
+
+/** localStorage 里的旧记录可能带畸形 selection；渲染前过滤。 */
+const selectionOfMessage = (message: AiChatMessage): SelectionSnapshot | null => {
+  const value = message.selection
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    typeof value.start === "number" &&
+    typeof value.end === "number" &&
+    typeof value.text === "string" &&
+    value.start < value.end
+  ) {
+    return value
+  }
+  return null
 }
 
 /**
@@ -105,16 +131,27 @@ export const ContentEditionAiChat = ({
   const { id } = useDocumentInfo()
   const saved = id !== undefined && id !== null
   const editionId = saved ? String(id) : "new"
-  const { markdown, replaceMarkdown } = useEditionBody()
+  const { markdown, replaceMarkdown, selection } = useEditionBody()
+  const editor = useEditionEditor()
   const [autoApply, setAutoApply] = useState(false)
   const [undoSnapshot, setUndoSnapshot] = useState<string | null>(null)
   const [appliedId, setAppliedId] = useState<string | null>(null)
+  /* 应用提案后的全文快照：撤销前对照它，防止一次撤销清掉随后的手工编辑。 */
+  const [appliedResult, setAppliedResult] = useState<string | null>(null)
   const conversationKey = useRef<string>(conversationKeyOf(editionId))
   const [messages, setMessages] = useState<readonly AiChatMessage[]>([])
   const [draft, setDraft] = useState("")
   const [sending, setSending] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const scroller = useRef<HTMLDivElement>(null)
+  /* 响应永远对照最新正文判定竞态；render 值会停在发送那一刻。 */
+  const markdownRef = useRef(markdown)
+  markdownRef.current = markdown
+  /* 请求序号 + AbortController：取消、切换文章、迟到响应三者共用一套隔离。 */
+  const reqSeqRef = useRef(0)
+  const abortRef = useRef<AbortController | null>(null)
+  /* 「改写选中」请求瞄准的选区快照：随提案存到消息上，应用时定位。 */
+  const armedSelectionRef = useRef<SelectionSnapshot | null>(null)
   /* Payload reports the document id one render after mount, so the key can
    * change under us. Writing back only for the key the current transcript was
    * loaded from prevents an empty state from erasing a stored conversation. */
@@ -126,6 +163,10 @@ export const ContentEditionAiChat = ({
       : conversationKeyOf(`draft-${draftSessionIdOf()}`)
     if (saved) adoptDraftTranscript(key)
     conversationKey.current = key
+    // 切换文章时，旧文章的在途请求不允许再写进当前会话。
+    reqSeqRef.current += 1
+    abortRef.current?.abort()
+    armedSelectionRef.current = null
     try {
       const stored = window.localStorage.getItem(key)
       const parsed: unknown = stored === null ? [] : JSON.parse(stored)
@@ -170,16 +211,30 @@ export const ContentEditionAiChat = ({
   const send = async () => {
     const text = draft.trim()
     if (text.length === 0 || sending) return
+    /* 提交时刻的正文快照：上下文与自动应用的竞态基线都用它。 */
+    const baseline = markdownRef.current
+    const armedSelection = armedSelectionRef.current
+    armedSelectionRef.current = null
     const history = [...messages, { content: text, createdAt: "", id: "", role: "user" as const }]
     append({ content: text, role: "user" })
     setDraft("")
     setSending(true)
     scrollToLatest()
+    reqSeqRef.current += 1
+    const seq = reqSeqRef.current
+    const controller = new AbortController()
+    abortRef.current = controller
     try {
       const response = await fetch(
         editionId === "new" ? "/api/editions/ai-chat" : `/api/editions/${editionId}/ai-chat`,
         {
           body: JSON.stringify({
+            /* 未保存的标题/摘要/正文随请求带给模型，而不是让模型读数据库旧稿。 */
+            draft: buildDraftContext({
+              markdown: baseline,
+              summary: typeof editor?.values["summary"] === "string" ? String(editor.values["summary"]) : "",
+              title: typeof editor?.values["title"] === "string" ? String(editor.values["title"]) : "",
+            }),
             messages: history
               .filter((message) => message.role !== "system")
               .slice(-20)
@@ -188,6 +243,7 @@ export const ContentEditionAiChat = ({
           credentials: "same-origin",
           headers: { "content-type": "application/json" },
           method: "POST",
+          signal: controller.signal,
         },
       )
       const payload = (await response.json().catch(() => ({}))) as {
@@ -195,6 +251,7 @@ export const ContentEditionAiChat = ({
         reasoning?: unknown
         reply?: unknown
       }
+      if (seq !== reqSeqRef.current) return
       if (!response.ok || typeof payload.reply !== "string") {
         append({
           content:
@@ -216,17 +273,40 @@ export const ContentEditionAiChat = ({
           ...(typeof payload.reasoning === "string" && payload.reasoning.length > 0
             ? { reasoning: payload.reasoning }
             : {}),
+          ...(armedSelection === null ? {} : { selection: armedSelection }),
           role: "assistant",
         },
       ])
       if (parsedReply.article !== null && autoApply && !readOnly) {
-        applyArticle(messageId, parsedReply.article, "replace")
+        /* 竞态防护：生成期间正文被编辑过就绝不自动覆盖，提案保留供手动应用。 */
+        if (markdownRef.current !== baseline) {
+          append({
+            content: "正文在生成期间已被编辑，已跳过自动应用；提案保留在上方，可手动应用。",
+            role: "system",
+          })
+        } else {
+          applyArticle(messageId, parsedReply.article, "replace")
+        }
       }
-    } catch {
+    } catch (error) {
+      if (seq !== reqSeqRef.current) return
+      if (error instanceof DOMException && error.name === "AbortError") {
+        append({ content: "已停止生成。", role: "system" })
+        return
+      }
       append({ content: "网络异常，未能发送到 AI 服务。", role: "system" })
     } finally {
-      setSending(false)
+      if (seq === reqSeqRef.current) {
+        abortRef.current = null
+        setSending(false)
+      }
     }
+  }
+
+  const cancel = () => {
+    /* 序号递增让在途响应整体作废（含 abort 触发的 catch 分支）。 */
+    reqSeqRef.current += 1
+    abortRef.current?.abort()
   }
 
   const copy = async (messageId: string, content: string) => {
@@ -241,30 +321,48 @@ export const ContentEditionAiChat = ({
 
   /* Applying is a single transaction: the pre-change Markdown is kept so one
    * click restores it, which is the cheapest reliable undo for a draft. */
-  const applyArticle = (messageId: string, article: string, mode: "append" | "replace") => {
+  const applyArticle = (
+    messageId: string,
+    article: string,
+    mode: "append" | "replace" | "selection",
+    messageSelection?: SelectionSnapshot | null,
+  ) => {
     if (article.trim().length === 0) return
-    setUndoSnapshot(markdown)
+    const current = markdownRef.current
+    const next = applyProposal(current, article, mode, messageSelection ?? undefined)
+    if (next === null) {
+      toast.error("正文已变化，选区无法定位；提案已保留，请手动应用或复制。")
+      return
+    }
+    setUndoSnapshot(current)
     setAppliedId(messageId)
-    replaceMarkdown(
-      mode === "replace" ? article : markdown.length > 0 ? `${markdown}
-
-${article}` : article,
-    )
+    setAppliedResult(next)
+    replaceMarkdown(next)
   }
 
   const undoApply = () => {
     if (undoSnapshot === null) return
+    /* 撤销只回滚「本次应用」：应用之后又动过正文时必须先确认再覆盖。 */
+    if (appliedResult !== null && markdownRef.current !== appliedResult) {
+      const proceed = window.confirm("应用提案后正文又被编辑过，撤销会覆盖这些修改。继续撤销？")
+      if (!proceed) return
+    }
     replaceMarkdown(undoSnapshot)
     setUndoSnapshot(null)
     setAppliedId(null)
+    setAppliedResult(null)
   }
 
   const insert = (content: string) => {
     const text = content.trim()
     if (text.length === 0) return
-    replaceMarkdown(markdown.length > 0 ? `${markdown}
+    replaceMarkdown(markdownRef.current.length > 0 ? `${markdownRef.current}\n\n${text}` : text)
+  }
 
-${text}` : text)
+  const armSelectionRewrite = () => {
+    if (selection === null) return
+    armedSelectionRef.current = selection
+    setDraft(selectionRewritePrompt(selection.text))
   }
 
   return (
@@ -310,92 +408,108 @@ ${text}` : text)
       <div className="flex min-h-40 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4" ref={scroller}>
         {messages.length === 0 ? (
           <p className="m-0 text-sm leading-6 text-[var(--theme-elevation-600)]">
-            向助手描述你的写作意图，例如“帮我基于当前摘要写三段引言”。对话记录只保存在本浏览器，可随时清空。
+            向助手描述你的写作意图，例如“帮我基于当前摘要写三段引言”。助手会读取未保存的标题与正文；对话记录只保存在本浏览器，可随时清空。
           </p>
         ) : (
-          messages.map((message) => (
-            <article
-              className={
-                message.role === "user"
-                  ? "self-end rounded-2xl rounded-br-sm bg-[var(--gf-tone-accent-bg)] px-3 py-2 text-sm leading-6 text-[var(--theme-text)]"
-                  : message.role === "system"
-                    ? "rounded-2xl border border-[var(--gf-tone-warning-fg)] bg-[var(--gf-tone-warning-bg)] px-3 py-2 text-sm leading-6 text-[var(--gf-tone-warning-fg)]"
-                    : "rounded-2xl rounded-bl-sm border border-[var(--theme-elevation-150)] bg-[var(--theme-elevation-50)] px-3 py-2 text-sm leading-6 text-[var(--theme-text)]"
-              }
-              key={message.id}
-            >
-              {message.reasoning !== undefined && (
-                <details className="mb-2 rounded-lg border border-[var(--theme-elevation-150)] bg-[var(--gf-surface)] px-2 py-1.5">
-                  <summary className="cursor-pointer list-none text-xs font-bold text-[var(--theme-elevation-600)]">
-                    思考过程
-                  </summary>
-                  <p className="m-0 mt-2 whitespace-pre-wrap break-words text-xs leading-5 text-[var(--theme-elevation-600)]">
-                    {message.reasoning}
-                  </p>
-                </details>
-              )}
-              <p className="m-0 whitespace-pre-wrap break-words">{message.content}</p>
-              {message.article !== undefined && (
-                <div className="mt-2 rounded-xl border border-[var(--gf-accent-300)] bg-[var(--gf-tone-accent-bg)] p-2.5">
-                  <p className="m-0 flex items-center gap-1.5 text-xs font-bold text-[var(--gf-accent-700)]">
-                    <FileClockIcon size={13} /> 文章提案 · {message.article.length} 字
-                  </p>
-                  <p className="m-0 mt-1.5 line-clamp-3 whitespace-pre-wrap break-words text-xs leading-5 text-[var(--theme-elevation-600)]">
-                    {message.article.slice(0, 160)}
-                  </p>
-                  {!readOnly && (
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      <Button
-                        onClick={() => applyArticle(message.id, message.article ?? "", "replace")}
-                        size="xs"
-                        type="button"
-                      >
-                        <CheckCircleIcon size={13} /> 应用到正文
-                      </Button>
-                      <Button
-                        onClick={() => applyArticle(message.id, message.article ?? "", "append")}
-                        size="xs"
-                        type="button"
-                        variant="secondary"
-                      >
-                        <FilePlusIcon size={13} /> 追加到末尾
-                      </Button>
-                      {appliedId === message.id && undoSnapshot !== null && (
-                        <Button onClick={undoApply} size="xs" type="button" variant="secondary">
-                          <RotateCcwIcon size={13} /> 撤销
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                  {appliedId === message.id && (
-                    <p className="m-0 mt-1.5 text-xs font-semibold text-[var(--gf-accent-700)]">
-                      已应用到正文，记得保存草稿。
+          messages.map((message) => {
+            const messageSelection = selectionOfMessage(message)
+            return (
+              <article
+                className={
+                  message.role === "user"
+                    ? "self-end rounded-2xl rounded-br-sm bg-[var(--gf-tone-accent-bg)] px-3 py-2 text-sm leading-6 text-[var(--theme-text)]"
+                    : message.role === "system"
+                      ? "rounded-2xl border border-[var(--gf-tone-warning-fg)] bg-[var(--gf-tone-warning-bg)] px-3 py-2 text-sm leading-6 text-[var(--gf-tone-warning-fg)]"
+                      : "rounded-2xl rounded-bl-sm border border-[var(--theme-elevation-150)] bg-[var(--theme-elevation-50)] px-3 py-2 text-sm leading-6 text-[var(--theme-text)]"
+                }
+                key={message.id}
+              >
+                {message.reasoning !== undefined && (
+                  <details className="mb-2 rounded-lg border border-[var(--theme-elevation-150)] bg-[var(--gf-surface)] px-2 py-1.5">
+                    <summary className="cursor-pointer list-none text-xs font-bold text-[var(--theme-elevation-600)]">
+                      思考过程
+                    </summary>
+                    <p className="m-0 mt-2 whitespace-pre-wrap break-words text-xs leading-5 text-[var(--theme-elevation-600)]">
+                      {message.reasoning}
                     </p>
-                  )}
-                </div>
-              )}
-              <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                <Button
-                  onClick={() => void copy(message.id, message.content)}
-                  size="xs"
-                  type="button"
-                  variant="secondary"
-                >
-                  <CopyIcon size={13} /> {copiedId === message.id ? "已复制" : "复制"}
-                </Button>
-                {message.role === "assistant" && !readOnly && (
+                  </details>
+                )}
+                <p className="m-0 whitespace-pre-wrap break-words">{message.content}</p>
+                {message.article !== undefined && (
+                  <div className="mt-2 rounded-xl border border-[var(--gf-accent-300)] bg-[var(--gf-tone-accent-bg)] p-2.5">
+                    <p className="m-0 flex items-center gap-1.5 text-xs font-bold text-[var(--gf-accent-700)]">
+                      <FileClockIcon size={13} /> 文章提案 · {message.article.length} 字
+                      {messageSelection !== null ? " · 对准选区" : ""}
+                    </p>
+                    <p className="m-0 mt-1.5 line-clamp-3 whitespace-pre-wrap break-words text-xs leading-5 text-[var(--theme-elevation-600)]">
+                      {message.article.slice(0, 160)}
+                    </p>
+                    {!readOnly && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        <Button
+                          onClick={() => applyArticle(message.id, message.article ?? "", "replace")}
+                          size="xs"
+                          type="button"
+                        >
+                          <CheckCircleIcon size={13} /> 应用到正文
+                        </Button>
+                        <Button
+                          onClick={() => applyArticle(message.id, message.article ?? "", "append")}
+                          size="xs"
+                          type="button"
+                          variant="secondary"
+                        >
+                          <FilePlusIcon size={13} /> 追加到末尾
+                        </Button>
+                        {messageSelection !== null && (
+                          <Button
+                            onClick={() =>
+                              applyArticle(message.id, message.article ?? "", "selection", messageSelection)
+                            }
+                            size="xs"
+                            type="button"
+                            variant="secondary"
+                          >
+                            <WandSparklesIcon size={13} /> 替换选中
+                          </Button>
+                        )}
+                        {appliedId === message.id && undoSnapshot !== null && (
+                          <Button onClick={undoApply} size="xs" type="button" variant="secondary">
+                            <RotateCcwIcon size={13} /> 撤销
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                    {appliedId === message.id && (
+                      <p className="m-0 mt-1.5 text-xs font-semibold text-[var(--gf-accent-700)]">
+                        已应用到正文，记得保存草稿。
+                      </p>
+                    )}
+                  </div>
+                )}
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
                   <Button
-                    onClick={() => insert(message.content)}
+                    onClick={() => void copy(message.id, message.content)}
                     size="xs"
                     type="button"
                     variant="secondary"
                   >
-                    <FilePlusIcon size={13} /> 插入正文
+                    <CopyIcon size={13} /> {copiedId === message.id ? "已复制" : "复制"}
                   </Button>
-                )}
-              </div>
-            </article>
-          ))
+                  {message.role === "assistant" && !readOnly && (
+                    <Button
+                      onClick={() => insert(message.content)}
+                      size="xs"
+                      type="button"
+                      variant="secondary"
+                    >
+                      <FilePlusIcon size={13} /> 插入正文
+                    </Button>
+                  )}
+                </div>
+              </article>
+            )
+          })
         )}
         {sending && (
           <p className="m-0 text-xs text-[var(--theme-elevation-600)]">助手正在生成回复…</p>
@@ -403,6 +517,29 @@ ${text}` : text)
       </div>
 
       <div className="shrink-0 border-t border-[var(--theme-elevation-150)] px-4 py-3">
+        {!readOnly && (
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            <Button
+              disabled={sending}
+              onClick={() => setDraft(CONTINUE_WRITING_PROMPT)}
+              size="xs"
+              type="button"
+              variant="secondary"
+            >
+              <WandSparklesIcon size={13} /> 续写正文
+            </Button>
+            <Button
+              disabled={sending || selection === null}
+              onClick={armSelectionRewrite}
+              size="xs"
+              type="button"
+              variant="secondary"
+            >
+              <WandSparklesIcon size={13} /> 改写选中
+              {selection !== null ? `（${String(selection.text.length)} 字）` : ""}
+            </Button>
+          </div>
+        )}
         <textarea
           aria-label="向 AI 助手提问"
           className="min-h-20 w-full resize-y rounded-lg border border-[var(--theme-elevation-250)] bg-[var(--theme-elevation-50)] p-3 text-sm leading-6 text-[var(--theme-text)] outline-none focus:border-[var(--gf-accent-400)] focus:ring-2 focus:ring-[var(--gf-accent-200)]"
@@ -427,20 +564,26 @@ ${text}` : text)
             }}
             type="checkbox"
           />
-          生成后自动应用到正文（可撤销）
+          生成后自动应用到正文（正文有改动时跳过，可撤销）
         </label>
         <div className="mt-2 flex items-center justify-between gap-2">
           <span className="text-xs text-[var(--theme-elevation-600)]">
             {messages.length} 条记录{saved ? "" : " · 新稿草稿"}
           </span>
-          <Button
-            disabled={draft.trim().length === 0 || sending}
-            onClick={() => void send()}
-            size="sm"
-            type="button"
-          >
-            <SendIcon size={14} /> {sending ? "发送中…" : "发送"}
-          </Button>
+          {sending ? (
+            <Button onClick={cancel} size="sm" type="button" variant="secondary">
+              <SquareIcon size={14} /> 停止
+            </Button>
+          ) : (
+            <Button
+              disabled={draft.trim().length === 0}
+              onClick={() => void send()}
+              size="sm"
+              type="button"
+            >
+              <SendIcon size={14} /> 发送
+            </Button>
+          )}
         </div>
       </div>
     </aside>

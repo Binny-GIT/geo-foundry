@@ -1,4 +1,4 @@
-/** AI 对话的前端纯逻辑：回复解析与正文分块，供 ContentEditionAiChat 与单测共用。 */
+/** AI 对话的前端纯逻辑：回复解析、提案应用与草稿上下文，供组件与单测共用。 */
 
 /**
  * 提案围栏：从 ```article 起始，贪婪匹配到回复末尾的闭合 ```。
@@ -21,14 +21,59 @@ export const splitArticle = (reply: string): { article: string | null; message: 
   }
 }
 
-/** 「插入正文」用的简易分块：# 开头两行变标题，其余按空行分段。 */
-export const blocksOf = (reply: string): Record<string, unknown>[] =>
-  reply
-    .split(/\n{2,}/)
-    .map((part) => part.trim())
-    .filter((part) => part.length > 0)
-    .map((part) =>
-      part.startsWith("#")
-        ? { blockType: "heading", level: "2", text: part.replace(/^#+\s*/, "") }
-        : { blockType: "paragraph", text: part },
-    )
+/* 发给服务端的未保存正文上限：超长截断而不是拒绝，避免长文写作时上下文丢失。 */
+export const DRAFT_MARKDOWN_LIMIT = 20000
+
+/** 未保存编辑内容的上下文快照：AI 优先读这份，而不是数据库里的旧稿。 */
+export const buildDraftContext = (input: {
+  readonly markdown: string
+  readonly summary: string
+  readonly title: string
+}): { markdown: string; summary: string; title: string } => ({
+  markdown:
+    input.markdown.length > DRAFT_MARKDOWN_LIMIT
+      ? input.markdown.slice(0, DRAFT_MARKDOWN_LIMIT)
+      : input.markdown,
+  summary: input.summary.slice(0, 600),
+  title: input.title.slice(0, 200),
+})
+
+/** 编辑器正文里的选区快照；应用「替换选中」提案时按 start/end 定位。 */
+export type SelectionSnapshot = Readonly<{ end: number; start: number; text: string }>
+
+export type ProposalMode = "append" | "replace" | "selection"
+
+/**
+ * 把提案应用到正文，返回应用后的全文。
+ * 「替换选中」在正文已漂移（选区定位处的文字与快照不一致）时返回 null，
+ * 由调用方提示用户改用其他方式，绝不盲目替换错位的内容。
+ */
+export const applyProposal = (
+  markdown: string,
+  article: string,
+  mode: ProposalMode,
+  selection?: SelectionSnapshot,
+): string | null => {
+  if (mode === "selection") {
+    if (selection === undefined || selection.start >= selection.end) return null
+    if (markdown.slice(selection.start, selection.end) !== selection.text) return null
+    return `${markdown.slice(0, selection.start)}${article}${markdown.slice(selection.end)}`
+  }
+  if (mode === "replace") return article
+  return markdown.length > 0 ? `${markdown}\n\n${article}` : article
+}
+
+export const CONTINUE_WRITING_PROMPT =
+  "请基于当前正文续写：从结尾自然延续，保持既有人称、语气与结构，只输出新增的部分，并放进 ```article 围栏。"
+
+const SELECTED_TEXT_LIMIT = 2000
+
+/** 「改写选中」的指令模板：选中文本随指令一起发给模型，输出只含改写后的选段。 */
+export const selectionRewritePrompt = (selected: string): string =>
+  [
+    "请改写下面选中的内容：保持原意，表达更清晰流畅，与上下文风格一致，只输出改写后的这一段并放进 ```article 围栏。",
+    "",
+    "<<<选中内容开始>>>",
+    selected.length > SELECTED_TEXT_LIMIT ? selected.slice(0, SELECTED_TEXT_LIMIT) : selected,
+    "<<<选中内容结束>>>",
+  ].join("\n")

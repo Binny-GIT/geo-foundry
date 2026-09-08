@@ -10,7 +10,7 @@ import { useEditionBody } from "./edition-editor-context"
  * 连续输入、粘贴与自适应高度的行为正确。
  */
 export const EditionMarkdownEditor = ({ readOnly }: { readonly readOnly: boolean }) => {
-  const { markdown, replaceMarkdown } = useEditionBody()
+  const { markdown, replaceMarkdown, reportSelection } = useEditionBody()
   const areaRef = useRef<HTMLTextAreaElement>(null)
 
   const autosize = useCallback(() => {
@@ -19,6 +19,19 @@ export const EditionMarkdownEditor = ({ readOnly }: { readonly readOnly: boolean
     node.style.height = "auto"
     node.style.height = `${String(Math.max(node.scrollHeight, 320))}px`
   }, [])
+
+  /* 鼠标/键盘选择都会触发 onSelect；折叠光标（start==end）视为无选区。 */
+  const handleSelect = useCallback(() => {
+    const node = areaRef.current
+    if (node === null) return
+    const start = node.selectionStart
+    const end = node.selectionEnd
+    if (readOnly || start >= end) {
+      reportSelection(null)
+      return
+    }
+    reportSelection({ end, start, text: node.value.slice(start, end) })
+  }, [readOnly, reportSelection])
 
   const chars = markdown.length
 
@@ -39,6 +52,7 @@ export const EditionMarkdownEditor = ({ readOnly }: { readonly readOnly: boolean
           autosize()
         }}
         onInput={autosize}
+        onSelect={handleSelect}
         placeholder={"用 Markdown 写正文：## 标题、段落、- 列表、```代码```、![图片](url)…"}
         ref={areaRef}
         spellCheck={false}
@@ -50,5 +64,3 @@ export const EditionMarkdownEditor = ({ readOnly }: { readonly readOnly: boolean
     </section>
   )
 }
-
-export default EditionMarkdownEditor
