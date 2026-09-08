@@ -3,10 +3,11 @@ import { describe, expect, it } from "vitest"
 import { restorableEditionFieldsOf } from "../../src/services/edition-version-history"
 
 describe("edition draft restore model", () => {
-  it("copies only explicitly editable content fields into a new draft", () => {
+  it("restores the Markdown truth and only explicitly editable content fields", () => {
     const fields = restorableEditionFieldsOf({
       angle: "historical angle",
       body: [{ blockType: "paragraph", text: "Historical body" }],
+      bodyMarkdown: "Historical body",
       citations: [{ id: "citation-1", title: "Source", url: "https://example.com" }],
       creationOrigin: "human",
       entities: [{ id: "entity-1", name: "Entity", type: "topic" }],
@@ -18,7 +19,7 @@ describe("edition draft restore model", () => {
 
     expect(fields).toEqual({
       angle: "historical angle",
-      body: [{ blockType: "paragraph", text: "Historical body" }],
+      bodyMarkdown: "Historical body",
       citations: [{ id: "citation-1", title: "Source", url: "https://example.com" }],
       creationOrigin: "human",
       entities: [{ id: "entity-1", name: "Entity", type: "topic" }],
@@ -27,6 +28,7 @@ describe("edition draft restore model", () => {
       summary: "Historical summary",
       title: "Historical title",
     })
+    expect(fields).not.toHaveProperty("body")
     expect(fields).not.toHaveProperty("workflowStatus")
     expect(fields).not.toHaveProperty("workflowRevision")
     expect(fields).not.toHaveProperty("compiledRelease")

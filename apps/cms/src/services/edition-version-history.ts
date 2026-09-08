@@ -1,6 +1,7 @@
 import type { Payload } from "payload"
 
 import { resolveSessionClaims } from "../access/session"
+import { blocksToMarkdown } from "../editor/block-markdown"
 import {
   appendOutboxEvent,
   OUTBOX_EVENT,
@@ -58,6 +59,7 @@ const isUniqueViolation = (error: unknown): boolean => {
 export type EditionVersionSnapshot = Readonly<{
   angle: string
   body: unknown
+  bodyMarkdown: string
   citations: unknown
   creationOrigin: string
   entities: unknown
@@ -107,6 +109,10 @@ const snapshotOf = (value: unknown): EditionVersionSnapshot | null => {
   return {
     angle,
     body: clone(body),
+    bodyMarkdown:
+      typeof row["bodyMarkdown"] === "string"
+        ? row["bodyMarkdown"]
+        : blocksToMarkdown(body),
     citations: clone(row["citations"] ?? null),
     creationOrigin,
     entities: clone(row["entities"] ?? null),
@@ -283,7 +289,7 @@ export const restorableEditionFieldsOf = (
   snapshot: EditionVersionSnapshot,
 ): Record<string, unknown> => ({
   angle: snapshot.angle,
-  body: clone(snapshot.body),
+  bodyMarkdown: snapshot.bodyMarkdown,
   citations: clone(snapshot.citations),
   creationOrigin: snapshot.creationOrigin,
   entities: clone(snapshot.entities),
