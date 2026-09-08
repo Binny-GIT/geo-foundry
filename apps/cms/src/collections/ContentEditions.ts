@@ -7,7 +7,7 @@ import {
 
 import { claimsFromRequest, collectionAccess } from "../access/functions"
 import { CMS_RESOURCE, readScope } from "../access/policy"
-import { markdownToBlocks } from "../editor/block-markdown"
+import { normalizeEditionBodyWrite } from "../editor/normalize-edition-body"
 import { PAGE_DOCUMENT_BLOCKS } from "../editor/page-document-blocks"
 import { validateEditionBody } from "../editor/validate-body"
 import { canonicalize } from "../services/edition-input-hash"
@@ -30,6 +30,7 @@ const MEDIA_SRC_PATTERN = /\/media\/tenants\/(\d+)\/([^/?#]+)(?:[?#]|$)/
 
 const CONTENT_VERSION_FIELDS = [
   "body",
+  "bodyMarkdown",
   "citations",
   "entities",
   "primaryTopic",
@@ -60,13 +61,10 @@ const contentFieldChanged = (
   Object.hasOwn(data, field) &&
   JSON.stringify(canonicalize(data[field])) !== JSON.stringify(canonicalize(originalDoc?.[field]))
 
-/* Markdown 是编辑真相：任何写入只要带 bodyMarkdown，就同步派生 body 区块，
- * 供编译/发布/Delivery 消费。派生在其余 beforeChange 之前执行。 */
-const deriveBodyFromMarkdown: CollectionBeforeChangeHook = ({ data }) => {
-  if (typeof data["bodyMarkdown"] !== "string") return data
-  data["body"] = markdownToBlocks(data["bodyMarkdown"])
-  return data
-}
+/* 正文双向归一化在其余 beforeChange 之前执行：新写入 Markdown→blocks，
+ * legacy body-only 写入 blocks→Markdown；见 normalizeEditionBodyWrite。 */
+const normalizeBodyTruth: CollectionBeforeChangeHook = ({ data }) =>
+  normalizeEditionBodyWrite(data)
 
 const trackContentVersion: CollectionBeforeChangeHook = ({ data, operation, originalDoc }) => {
   if (
@@ -227,11 +225,11 @@ export const ContentEditions = {
   },
   hooks: {
     beforeChange: [
-    deriveBodyFromMarkdown,
-    trackContentVersion,
-    ensureTenantConsistency,
-    ensureMediaReferences,
-  ],
+      normalizeBodyTruth,
+      trackContentVersion,
+      ensureTenantConsistency,
+      ensureMediaReferences,
+    ],
   },
   fields: localizedFields([
     {
