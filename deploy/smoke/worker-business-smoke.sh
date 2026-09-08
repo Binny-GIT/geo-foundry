@@ -153,6 +153,4 @@ if before != after:
     raise SystemExit("WORKER_BUSINESS_SMOKE_EDITION_MUTATED")
 PY
 
-printf 'WORKER_BUSINESS_SMOKE_OK edition=%s cron=completed
-' "$edition_id"
-printf 'WORKER_BUSINESS_SMOKE_OK edition=%s event=%s\n' "$edition_id" "$event_id"
+printf 'WORKER_BUSINESS_SMOKE_OK edition=%s cron=completed\n' "$edition_id"
