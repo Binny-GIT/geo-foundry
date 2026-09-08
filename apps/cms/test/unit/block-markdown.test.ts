@@ -66,6 +66,28 @@ const answer = 42
     expect(markdownToBlocks(markdown)).toEqual(blocks)
   })
 
+  it("treats unfilled (null) image dimensions as storage noise, not dimensions", () => {
+    // 真实存量数据：image 块带着未填写的 null width/height/caption（Payload 的
+    // 未填形态），它们应按噪声剥离并走可读语法，而不是被吓进保护块。
+    const blocks = [
+      {
+        alt: "BLOG-3473 2.png",
+        blockName: null,
+        blockType: "image",
+        caption: null,
+        extensions: null,
+        height: null,
+        src: "https://example.com/img.png",
+        width: null,
+      },
+    ]
+    const markdown = blocksToMarkdown(blocks)
+    expect(markdown).toBe("![BLOG-3473 2.png](https://example.com/img.png)")
+    expect(markdownToBlocks(markdown)).toEqual([
+      { alt: "BLOG-3473 2.png", blockType: "image", src: "https://example.com/img.png" },
+    ])
+  })
+
   it("keeps images with dimensions or hostile text as protected blocks", () => {
     const blocks = [
       { alt: "带尺寸", blockType: "image", height: 400, src: "https://example.com/s.png", width: 640 },

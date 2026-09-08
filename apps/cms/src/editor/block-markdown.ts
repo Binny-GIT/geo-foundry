@@ -133,17 +133,16 @@ const isReadableList = (row: Row): boolean =>
   row["items"].length > 0 &&
   row["items"].every(isReadableListItem)
 
-/* 图片按标准 Markdown 语法可读化；带 width/height 等额外字段的仍走保护块保真。 */
+/* 图片按标准 Markdown 语法可读化；width/height 未填（null）是存储噪声，
+ * 实际带尺寸或其他额外字段的仍走保护块保真。 */
 const isReadableImage = (row: Row): boolean => {
-  if (
-    row["blockType"] !== "image" ||
-    !hasOnlyKeys(row, ["blockType", "src", "alt", "caption"])
-  ) {
-    return false
-  }
-  const src = stringOf(row, "src")
-  const alt = stringOf(row, "alt")
-  const caption = optionalStringOf(row, "caption")
+  if (row["blockType"] !== "image") return false
+  if (typeof row["width"] === "number" || typeof row["height"] === "number") return false
+  const { height: _height, width: _width, ...rest } = row
+  if (!hasOnlyKeys(rest, ["blockType", "src", "alt", "caption"])) return false
+  const src = stringOf(rest, "src")
+  const alt = stringOf(rest, "alt")
+  const caption = optionalStringOf(rest, "caption")
   return (
     src !== null &&
     alt !== null &&
