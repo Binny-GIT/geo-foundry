@@ -1,5 +1,6 @@
 import {
   APIError,
+  type CollectionAfterReadHook,
   type CollectionBeforeChangeHook,
   type CollectionConfig,
   type Where,
@@ -7,6 +8,7 @@ import {
 
 import { claimsFromRequest, collectionAccess } from "../access/functions"
 import { CMS_RESOURCE, readScope } from "../access/policy"
+import { markdownToBlocks } from "../editor/block-markdown"
 import { normalizeEditionBodyWrite } from "../editor/normalize-edition-body"
 import { PAGE_DOCUMENT_BLOCKS } from "../editor/page-document-blocks"
 import { validateEditionBody } from "../editor/validate-body"
@@ -68,6 +70,18 @@ const normalizeBodyTruth: CollectionBeforeChangeHook = ({ data, originalDoc }) =
     data,
     originalDoc as Readonly<Record<string, unknown>> | undefined,
   )
+
+/**
+ * 双栈迁移读取适配：Drizzle 新写入只保存 version_body_markdown，不再维护
+ * Payload version block 子表；所有剩余 Payload Local API 消费方在 afterRead
+ * 阶段仍得到同一份派生 body（编译/Delivery/工作流契约不变）。
+ */
+const deriveBodyOnRead: CollectionAfterReadHook = ({ doc }) => {
+  if (typeof doc["bodyMarkdown"] === "string") {
+    doc["body"] = markdownToBlocks(doc["bodyMarkdown"])
+  }
+  return doc
+}
 
 const trackContentVersion: CollectionBeforeChangeHook = ({ data, operation, originalDoc }) => {
   if (
@@ -227,6 +241,7 @@ export const ContentEditions = {
     drafts: true,
   },
   hooks: {
+    afterRead: [deriveBodyOnRead],
     beforeChange: [
       normalizeBodyTruth,
       trackContentVersion,

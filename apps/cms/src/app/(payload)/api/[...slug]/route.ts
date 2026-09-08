@@ -14,9 +14,11 @@ import {
   handleUsersAuthPost,
 } from "@/server/routes/auth"
 import { handleEditionDraftGet } from "@/server/routes/edition-reads"
+import { handleEditionDraftPatch } from "@/server/routes/edition-writes"
 import { handleEntityListGet } from "@/server/routes/entity-reads"
 
 const payloadGet = REST_GET(config)
+const payloadPatch = REST_PATCH(config)
 const payloadPost = REST_POST(config)
 
 type RouteContext = { readonly params: Promise<{ readonly slug?: string[] }> }
@@ -44,6 +46,10 @@ export const POST = async (request: Request, context: RouteContext): Promise<Res
 }
 
 export const DELETE = REST_DELETE(config)
-export const PATCH = REST_PATCH(config)
+export const PATCH = async (request: Request, context: RouteContext): Promise<Response> => {
+  const params = await context.params
+  const editionResponse = await handleEditionDraftPatch(request, params.slug)
+  return editionResponse ?? payloadPatch(request, context)
+}
 export const PUT = REST_PUT(config)
 export const OPTIONS = REST_OPTIONS(config)

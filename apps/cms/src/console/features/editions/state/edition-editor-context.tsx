@@ -275,6 +275,9 @@ export const EditionEditorProvider = ({
       }
       payload["bodyMarkdown"] = submittedMarkdown
       const creating = docId === null
+      if (!creating && typeof initialRef.current["updatedAt"] === "string") {
+        payload["expectedUpdatedAt"] = initialRef.current["updatedAt"]
+      }
       const response = await fetch(
         creating
           ? "/api/content-editions?depth=0&draft=true"
