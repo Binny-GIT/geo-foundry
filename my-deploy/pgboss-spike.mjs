@@ -26,20 +26,20 @@ const db = drizzle(adminPool)
 const boss = new PgBoss({ connectionString: ADMIN, schema: "pgboss_spike" })
 await boss.start()
 
-// 生产同款授权模型：owner 建好 schema 后一次性授权，并让未来新建的表自动带权限，
-// 这样 worker（migrate:false）永远不需要 DDL，业务 schema 一律不授。
-await adminPool.query(`
-  GRANT USAGE ON SCHEMA pgboss_spike TO spike_worker;
-  GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA pgboss_spike TO spike_worker;
-  GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA pgboss_spike TO spike_worker;
-  ALTER DEFAULT PRIVILEGES FOR ROLE spike_admin IN SCHEMA pgboss_spike
-    GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO spike_worker;
-  ALTER DEFAULT PRIVILEGES FOR ROLE spike_admin IN SCHEMA pgboss_spike
-    GRANT USAGE, SELECT ON SEQUENCES TO spike_worker;
-`)
+// 生产同款授权模型：owner 建好 schema 与全部队列（每队列一张分区表）后一次性授权，
+// 并让未来新建的表自动带权限；worker（migrate:false）永远不需要 DDL，业务 schema 一律不授。
+const grantToWorker = () =>
+  adminPool.query(`
+    GRANT USAGE ON SCHEMA pgboss_spike TO spike_worker;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA pgboss_spike TO spike_worker;
+    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA pgboss_spike TO spike_worker;
+    ALTER DEFAULT PRIVILEGES FOR ROLE spike_admin IN SCHEMA pgboss_spike
+      GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO spike_worker;
+    ALTER DEFAULT PRIVILEGES FOR ROLE spike_admin IN SCHEMA pgboss_spike
+      GRANT USAGE, SELECT ON SEQUENCES TO spike_worker;
+  `)
 
 await db.execute(sql`CREATE TABLE IF NOT EXISTS spike_rows (id serial primary key, note text)`)
-await boss.createQueue("spike-q").catch(() => {}) // 已存在则忽略
 
 await db.transaction(async (tx) => {
   await tx.execute(sql`INSERT INTO spike_rows (note) VALUES ('committed')`)
@@ -59,6 +59,12 @@ try {
 }
 jobs = await adminPool.query("SELECT count(*)::int AS n FROM pgboss_spike.job WHERE data->>'kind'='rollback'")
 check("send in rolled-back tx vanishes", rolledBack && jobs.rows[0].n === 0)
+
+// 队列全部建完（每个队列一张分区表）才授权，避免运行中新建分区表缺权限。
+await boss.createQueue("spike-q").catch(() => {})
+await boss.createQueue("spike-singleton", { policy: "short" }).catch(() => {})
+await boss.createQueue("spike-cron").catch(() => {})
+await grantToWorker()
 
 // ---------- 2. 受限 role 消费 / 业务表隔离 ----------
 const workerBoss = new PgBoss({
@@ -86,7 +92,6 @@ check("restricted role denied on business table", denied)
 await workerPool.end()
 
 // ---------- 3. singletonKey 去重 ----------
-await boss.createQueue("spike-singleton", { policy: "singleton" }).catch(() => {})
 const first = await boss.send("spike-singleton", { n: 1 }, { singletonKey: "op:1:stage" })
 const second = await boss.send("spike-singleton", { n: 2 }, { singletonKey: "op:1:stage" })
 check(
@@ -97,7 +102,6 @@ check(
 
 // ---------- 4. cron 同名幂等 + 单实例语义 ----------
 const cron = "* * * * *"
-await boss.createQueue("spike-cron").catch(() => {})
 await boss.schedule("spike-cron", cron, {}, { tz: "UTC" })
 await boss.schedule("spike-cron", cron, {}, { tz: "UTC" })
 const cronRows = await adminPool.query("SELECT count(*)::int AS n FROM pgboss_spike.schedule WHERE name='spike-cron'")
