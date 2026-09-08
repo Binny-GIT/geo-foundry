@@ -11,6 +11,7 @@ import { and, eq, gt, inArray, sql } from "drizzle-orm"
 
 import { payloadApiKeyIndexesOf } from "../auth/compat"
 import type { ServerDb } from "../db/client"
+import { usersRels } from "../db/entity-schema"
 import { users, usersSessions, type usersRole } from "../db/schema"
 
 export type UserAuthRecord = Readonly<{
@@ -171,5 +172,16 @@ export class UsersRepository {
       .from(usersSessions)
       .where(and(eq(usersSessions.parentId, userId), gt(usersSessions.expiresAt, new Date())))
     return rows.map((row) => row.sid)
+  }
+
+  async siteIds(userId: number): Promise<readonly number[]> {
+    const rows = await this.db
+      .select({ siteId: usersRels.siteId })
+      .from(usersRels)
+      .where(and(eq(usersRels.parentId, userId), eq(usersRels.path, "sites")))
+      .orderBy(usersRels.order)
+    return rows
+      .map((row) => row.siteId)
+      .filter((siteId): siteId is number => siteId !== null)
   }
 }
