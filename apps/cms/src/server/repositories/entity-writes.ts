@@ -50,8 +50,15 @@ const assertScope = (scope: EntityScope, rowTenantId: number | null): void => {
   if (rowTenantId !== scope.tenantId) throw fail("CMS_TENANT_MISMATCH", 404)
 }
 
-const isUniqueViolation = (error: unknown): boolean =>
-  typeof error === "object" && error !== null && (error as { code?: unknown }).code === "23505"
+/* Drizzle 0.45 把 pg 错误包成 DrizzleQueryError，原始 code 在 cause 上。 */
+const isUniqueViolation = (error: unknown): boolean => {
+  let current: unknown = error
+  for (let depth = 0; depth < 4 && typeof current === "object" && current !== null; depth += 1) {
+    if ((current as { code?: unknown }).code === "23505") return true
+    current = (current as { cause?: unknown }).cause
+  }
+  return false
+}
 
 /* ---------- tenants ---------- */
 
