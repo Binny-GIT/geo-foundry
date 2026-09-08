@@ -66,6 +66,7 @@ const workerBoss = new PgBoss({
   migrate: false,
   schema: "pgboss_spike",
 })
+workerBoss.on("error", (error) => console.log("worker-error:", String(error).slice(0, 200)))
 await workerBoss.start()
 let consumed = null
 await workerBoss.work("spike-q", async (job) => {
@@ -85,7 +86,7 @@ check("restricted role denied on business table", denied)
 await workerPool.end()
 
 // ---------- 3. singletonKey 去重 ----------
-await boss.createQueue("spike-singleton").catch(() => {})
+await boss.createQueue("spike-singleton", { policy: "singleton" }).catch(() => {})
 const first = await boss.send("spike-singleton", { n: 1 }, { singletonKey: "op:1:stage" })
 const second = await boss.send("spike-singleton", { n: 2 }, { singletonKey: "op:1:stage" })
 check(
@@ -99,7 +100,7 @@ const cron = "* * * * *"
 await boss.createQueue("spike-cron").catch(() => {})
 await boss.schedule("spike-cron", cron, {}, { tz: "UTC" })
 await boss.schedule("spike-cron", cron, {}, { tz: "UTC" })
-const cronRows = await adminPool.query("SELECT count(*)::int AS n FROM pgboss_spike.cron WHERE name='spike-cron'")
+const cronRows = await adminPool.query("SELECT count(*)::int AS n FROM pgboss_spike.schedule WHERE name='spike-cron'")
 check("duplicate schedule() is idempotent", cronRows.rows[0].n === 1)
 
 let cronCount = 0
