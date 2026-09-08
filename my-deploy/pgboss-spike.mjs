@@ -5,7 +5,7 @@
  * 3) singletonKey 去重：同 key 未完成时再 send 返回 null；
  * 4) cron schedule 同名幂等，两个实例 75s 内只触发一次。
  */
-import PgBoss, { fromDrizzle } from "pg-boss"
+import { PgBoss, fromDrizzle } from "pg-boss"
 import { Pool } from "pg"
 import { drizzle } from "drizzle-orm/node-postgres"
 import { sql } from "drizzle-orm"
