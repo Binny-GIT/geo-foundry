@@ -131,6 +131,9 @@ importers:
       cross-env:
         specifier: 7.0.3
         version: 7.0.3
+      drizzle-orm:
+        specifier: 0.45.2
+        version: 0.45.2(@types/pg@8.20.0)(pg@8.20.0)
       graphql:
         specifier: 16.11.0
         version: 16.11.0
