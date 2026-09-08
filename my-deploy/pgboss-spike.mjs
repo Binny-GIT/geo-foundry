@@ -77,10 +77,17 @@ workerBoss.on("error", (error) => console.log("worker-error:", String(error).sli
 await workerBoss.start()
 let consumed = null
 await workerBoss.work("spike-q", async (job) => {
-  if (job.data.kind === "commit") consumed = job.id
+  consumed = job.id
 })
-await new Promise((resolve) => setTimeout(resolve, 8_000))
-check("restricted role consumed job", consumed !== null)
+let completedCount = 0
+for (let i = 0; i < 6 && consumed === null; i += 1) {
+  await new Promise((resolve) => setTimeout(resolve, 3_000))
+}
+const completedRows = await adminPool.query(
+  "SELECT count(*)::int AS n FROM pgboss_spike.job WHERE name='spike-q' AND state='completed'",
+)
+completedCount = completedRows.rows[0].n
+check("restricted role consumed job", consumed !== null && completedCount >= 1, `consumed=${String(consumed)} completed=${completedCount}`)
 
 const workerPool = new Pool({ connectionString: WORKER })
 let denied = false
