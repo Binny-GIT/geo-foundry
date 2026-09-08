@@ -70,7 +70,11 @@ export const duplicateEdition = async (
     collection: "content-editions",
     data: {
       angle: source.angle,
-      body: cloneBody(source.body),
+      ...(typeof source.bodyMarkdown === "string"
+        ? { bodyMarkdown: source.bodyMarkdown }
+        : source.body === undefined
+          ? {}
+          : { body: cloneBody(source.body) }),
       ...(source.citations === undefined ? {} : { citations: clone(source.citations) }),
       content: source.content,
       creationOrigin: source.creationOrigin ?? "human",

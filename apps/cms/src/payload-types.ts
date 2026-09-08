@@ -353,6 +353,7 @@ export interface ContentEdition {
   id: number;
   content: number | Content;
   site: number | Site;
+  sites?: (number | Site)[] | null;
   tenant?: (number | null) | Tenant;
   owner?: (number | null) | User;
   priority?: ('low' | 'normal' | 'high' | 'urgent') | null;
@@ -361,227 +362,230 @@ export interface ContentEdition {
   angle: string;
   title: string;
   summary: string;
-  body: (
-    | {
-        text: string;
-        extensions?:
-          | {
-              [k: string]: unknown;
-            }
-          | unknown[]
-          | string
-          | number
-          | boolean
-          | null;
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'paragraph';
-      }
-    | {
-        level: '2' | '3' | '4' | '5' | '6';
-        text: string;
-        extensions?:
-          | {
-              [k: string]: unknown;
-            }
-          | unknown[]
-          | string
-          | number
-          | boolean
-          | null;
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'heading';
-      }
-    | {
-        src: string;
-        alt: string;
-        caption?: string | null;
-        width?: number | null;
-        height?: number | null;
-        extensions?:
-          | {
-              [k: string]: unknown;
-            }
-          | unknown[]
-          | string
-          | number
-          | boolean
-          | null;
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'image';
-      }
-    | {
-        text: string;
-        attribution?: string | null;
-        citeUrl?: string | null;
-        extensions?:
-          | {
-              [k: string]: unknown;
-            }
-          | unknown[]
-          | string
-          | number
-          | boolean
-          | null;
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'quote';
-      }
-    | {
-        style: 'ordered' | 'unordered';
-        items: {
-          text: string;
-          id?: string | null;
-        }[];
-        extensions?:
-          | {
-              [k: string]: unknown;
-            }
-          | unknown[]
-          | string
-          | number
-          | boolean
-          | null;
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'list';
-      }
-    | {
-        columns: {
-          text: string;
-          id?: string | null;
-        }[];
-        rows: {
-          cells: {
+  body?:
+    | (
+        | {
             text: string;
+            extensions?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
             id?: string | null;
-          }[];
-          id?: string | null;
-        }[];
-        caption?: string | null;
-        extensions?:
-          | {
-              [k: string]: unknown;
-            }
-          | unknown[]
-          | string
-          | number
-          | boolean
-          | null;
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'table';
-      }
-    | {
-        items: {
-          question: string;
-          answer: string;
-          id?: string | null;
-        }[];
-        extensions?:
-          | {
-              [k: string]: unknown;
-            }
-          | unknown[]
-          | string
-          | number
-          | boolean
-          | null;
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'faq';
-      }
-    | {
-        tone: 'info' | 'success' | 'warning' | 'danger';
-        title?: string | null;
-        text: string;
-        extensions?:
-          | {
-              [k: string]: unknown;
-            }
-          | unknown[]
-          | string
-          | number
-          | boolean
-          | null;
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'callout';
-      }
-    | {
-        language: string;
-        code: string;
-        caption?: string | null;
-        extensions?:
-          | {
-              [k: string]: unknown;
-            }
-          | unknown[]
-          | string
-          | number
-          | boolean
-          | null;
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'code';
-      }
-    | {
-        src: string;
-        title: string;
-        poster?: string | null;
-        transcript?: string | null;
-        extensions?:
-          | {
-              [k: string]: unknown;
-            }
-          | unknown[]
-          | string
-          | number
-          | boolean
-          | null;
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'video';
-      }
-    | {
-        provider: string;
-        url: string;
-        title: string;
-        extensions?:
-          | {
-              [k: string]: unknown;
-            }
-          | unknown[]
-          | string
-          | number
-          | boolean
-          | null;
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'embed';
-      }
-    | {
-        items: {
-          citationId: string;
-          label: string;
-          id?: string | null;
-        }[];
-        extensions?:
-          | {
-              [k: string]: unknown;
-            }
-          | unknown[]
-          | string
-          | number
-          | boolean
-          | null;
-        id?: string | null;
-        blockName?: string | null;
-        blockType: 'references';
-      }
-  )[];
+            blockName?: string | null;
+            blockType: 'paragraph';
+          }
+        | {
+            level: '2' | '3' | '4' | '5' | '6';
+            text: string;
+            extensions?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'heading';
+          }
+        | {
+            src: string;
+            alt: string;
+            caption?: string | null;
+            width?: number | null;
+            height?: number | null;
+            extensions?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'image';
+          }
+        | {
+            text: string;
+            attribution?: string | null;
+            citeUrl?: string | null;
+            extensions?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'quote';
+          }
+        | {
+            style: 'ordered' | 'unordered';
+            items: {
+              text: string;
+              id?: string | null;
+            }[];
+            extensions?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'list';
+          }
+        | {
+            columns: {
+              text: string;
+              id?: string | null;
+            }[];
+            rows: {
+              cells: {
+                text: string;
+                id?: string | null;
+              }[];
+              id?: string | null;
+            }[];
+            caption?: string | null;
+            extensions?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'table';
+          }
+        | {
+            items: {
+              question: string;
+              answer: string;
+              id?: string | null;
+            }[];
+            extensions?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'faq';
+          }
+        | {
+            tone: 'info' | 'success' | 'warning' | 'danger';
+            title?: string | null;
+            text: string;
+            extensions?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'callout';
+          }
+        | {
+            language: string;
+            code: string;
+            caption?: string | null;
+            extensions?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'code';
+          }
+        | {
+            src: string;
+            title: string;
+            poster?: string | null;
+            transcript?: string | null;
+            extensions?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'video';
+          }
+        | {
+            provider: string;
+            url: string;
+            title: string;
+            extensions?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'embed';
+          }
+        | {
+            items: {
+              citationId: string;
+              label: string;
+              id?: string | null;
+            }[];
+            extensions?:
+              | {
+                  [k: string]: unknown;
+                }
+              | unknown[]
+              | string
+              | number
+              | boolean
+              | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'references';
+          }
+      )[]
+    | null;
+  bodyMarkdown?: string | null;
   primaryTopic: string;
   secondaryTopics?: string[] | null;
   citations?:
@@ -1418,6 +1422,7 @@ export interface ContentsSelect<T extends boolean = true> {
 export interface ContentEditionsSelect<T extends boolean = true> {
   content?: T;
   site?: T;
+  sites?: T;
   tenant?: T;
   owner?: T;
   priority?: T;
@@ -1577,6 +1582,7 @@ export interface ContentEditionsSelect<T extends boolean = true> {
               blockName?: T;
             };
       };
+  bodyMarkdown?: T;
   primaryTopic?: T;
   secondaryTopics?: T;
   citations?: T;
