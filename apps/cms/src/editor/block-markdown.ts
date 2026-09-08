@@ -23,8 +23,9 @@ const isStorageNoise = (row: Row, key: string): boolean =>
 const hasOnlyKeys = (row: Row, allowed: readonly string[]): boolean =>
   Object.keys(row).every((key) => allowed.includes(key) || isStorageNoise(row, key))
 
+/* 可选字段：未填（null 是 Payload 的未填形态）或字符串都算合法。 */
 const hasOptionalString = (row: Row, key: string): boolean =>
-  !Object.hasOwn(row, key) || typeof row[key] === "string"
+  !Object.hasOwn(row, key) || row[key] === null || typeof row[key] === "string"
 
 const stringOf = (row: Row, key: string): string | null => {
   const value = row[key]
