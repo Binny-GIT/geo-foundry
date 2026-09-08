@@ -8,24 +8,32 @@ import {
   REST_PUT,
 } from "@payloadcms/next/routes"
 
+import { handleUsersAuthGet, handleUsersAuthPost } from "@/server/routes/auth"
 import { handleEntityListGet } from "@/server/routes/entity-reads"
 
 const payloadGet = REST_GET(config)
+const payloadPost = REST_POST(config)
 
 type RouteContext = { readonly params: Promise<{ readonly slug?: string[] }> }
 
 /**
- * 去 Payload 双栈分流：首批三个精确集合列表 GET 由 Drizzle 接管；不支持的
- * 查询形态、详情、auth/internal/delivery 等全部原样回退 Payload。
- * POST/PATCH/PUT/DELETE 在对应 service/repository 迁移前保持完全不变。
+ * 去 Payload 双栈分流：compat auth + 三个基础集合列表 GET 由自建层接管；
+ * 不支持的查询/路由仍原样回退 Payload。PATCH/PUT/DELETE 保持完全不变。
  */
 export const GET = async (request: Request, context: RouteContext): Promise<Response> => {
   const params = await context.params
-  const handled = await handleEntityListGet(request, params.slug)
-  return handled ?? payloadGet(request, context)
+  const authResponse = await handleUsersAuthGet(request, params.slug)
+  if (authResponse !== null) return authResponse
+  const entityResponse = await handleEntityListGet(request, params.slug)
+  return entityResponse ?? payloadGet(request, context)
 }
 
-export const POST = REST_POST(config)
+export const POST = async (request: Request, context: RouteContext): Promise<Response> => {
+  const params = await context.params
+  const authResponse = await handleUsersAuthPost(request, params.slug)
+  return authResponse ?? payloadPost(request, context)
+}
+
 export const DELETE = REST_DELETE(config)
 export const PATCH = REST_PATCH(config)
 export const PUT = REST_PUT(config)

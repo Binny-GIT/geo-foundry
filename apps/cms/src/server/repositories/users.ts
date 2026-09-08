@@ -15,8 +15,9 @@ import { usersRels } from "../db/entity-schema"
 import { users, usersSessions, type usersRole } from "../db/schema"
 
 export type UserAuthRecord = Readonly<{
+  createdAt: Date
   email: string
-  enableAPIToken: boolean
+  enableAPIToken: boolean | null
   hash: string | null
   id: number
   loginAttempts: number
@@ -24,13 +25,15 @@ export type UserAuthRecord = Readonly<{
   role: (typeof usersRole.enumValues)[number]
   salt: string | null
   tenantId: number | null
+  updatedAt: Date
 }>
 
 type UserRow = typeof users.$inferSelect
 
 const authRecordOf = (row: UserRow): UserAuthRecord => ({
+  createdAt: row.createdAt,
   email: row.email,
-  enableAPIToken: row.enableAPIToken === true,
+  enableAPIToken: row.enableAPIToken,
   hash: row.hash,
   id: row.id,
   loginAttempts: row.loginAttempts === null ? 0 : Number(row.loginAttempts),
@@ -38,6 +41,7 @@ const authRecordOf = (row: UserRow): UserAuthRecord => ({
   role: row.role,
   salt: row.salt,
   tenantId: row.tenantId,
+  updatedAt: row.updatedAt,
 })
 
 export class UsersRepository {
@@ -166,12 +170,22 @@ export class UsersRepository {
     return rows.length
   }
 
-  async activeSessionIds(userId: number): Promise<readonly string[]> {
-    const rows = await this.db
-      .select({ sid: usersSessions.id })
+  async activeSessions(userId: number): Promise<
+    readonly Readonly<{ createdAt: Date | null; expiresAt: Date; id: string }>[]
+  > {
+    return this.db
+      .select({
+        createdAt: usersSessions.createdAt,
+        expiresAt: usersSessions.expiresAt,
+        id: usersSessions.id,
+      })
       .from(usersSessions)
       .where(and(eq(usersSessions.parentId, userId), gt(usersSessions.expiresAt, new Date())))
-    return rows.map((row) => row.sid)
+      .orderBy(usersSessions.order)
+  }
+
+  async activeSessionIds(userId: number): Promise<readonly string[]> {
+    return (await this.activeSessions(userId)).map((session) => session.id)
   }
 
   async siteIds(userId: number): Promise<readonly number[]> {

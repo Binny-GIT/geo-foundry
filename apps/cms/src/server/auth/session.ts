@@ -11,6 +11,8 @@ import { serverRuntime } from "../runtime"
 
 export type AuthenticatedRequest = Readonly<{
   claims: SessionClaims
+  /** Cookie JWT metadata; API-Key identities have no browser session. */
+  session: Readonly<{ exp: number; sid: string; token: string }> | null
   siteIds: readonly number[]
   user: UserAuthRecord
 }>
@@ -27,6 +29,7 @@ const tokenFromCookie = (cookie: string | null): string | null => {
 const authenticatedOf = async (
   repo: UsersRepository,
   user: UserAuthRecord,
+  session: AuthenticatedRequest["session"] = null,
 ): Promise<AuthenticatedRequest | null> => {
   const claims = resolveSessionClaims({
     id: user.id,
@@ -34,7 +37,7 @@ const authenticatedOf = async (
     tenant: user.tenantId,
   })
   if (claims === null) return null
-  return { claims, siteIds: await repo.siteIds(user.id), user }
+  return { claims, session, siteIds: await repo.siteIds(user.id), user }
 }
 
 export const authenticateRequest = async (headers: Headers): Promise<AuthenticatedRequest | null> => {
@@ -62,5 +65,11 @@ export const authenticateRequest = async (headers: Headers): Promise<Authenticat
     repo.findAuthById(tokenClaims.id),
     repo.hasActiveSession(tokenClaims.id, tokenClaims.sid),
   ])
-  return user === null || !active ? null : authenticatedOf(repo, user)
+  return user === null || !active
+    ? null
+    : authenticatedOf(repo, user, {
+        exp: tokenClaims.exp,
+        sid: tokenClaims.sid,
+        token,
+      })
 }

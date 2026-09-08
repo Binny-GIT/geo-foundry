@@ -15,8 +15,10 @@ const authOf = (
     tenantId,
     userId: "1",
   },
+  session: null,
   siteIds,
   user: {
+    createdAt: new Date("2026-09-08T00:00:00.000Z"),
     email: "a@b.c",
     enableAPIToken: false,
     hash: null,
@@ -26,6 +28,7 @@ const authOf = (
     role,
     salt: null,
     tenantId,
+    updatedAt: new Date("2026-09-08T00:00:00.000Z"),
   },
 })
 
