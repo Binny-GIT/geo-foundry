@@ -220,4 +220,19 @@ export class EditionsRepository {
     })
     return page.docs[0] ?? null
   }
+
+  async versionCount(scope: EntityScope, editionId: number): Promise<number> {
+    const tenantId = effectiveTenant(scope)
+    const rows = await this.db
+      .select({ id: editionVersions.id })
+      .from(editionVersions)
+      .innerJoin(contentEditions, eq(contentEditions.id, editionVersions.parentId))
+      .where(
+        and(
+          eq(contentEditions.id, editionId),
+          ...(tenantId === null ? [] : [eq(editionVersions.tenantId, tenantId)]),
+        ),
+      )
+    return rows.length
+  }
 }

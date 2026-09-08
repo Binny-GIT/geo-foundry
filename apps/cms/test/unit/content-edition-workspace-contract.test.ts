@@ -33,7 +33,12 @@ describe("content edition unified workspace", () => {
       expect(page).toContain("CMS_ACTION")
       expect(page).toContain('export const dynamic = "force-dynamic"')
     }
-    expect(editPage).toContain("draft: true")
+    expect(editPage).toContain("new EditionsRepository(serverRuntime().db)")
+    expect(editPage).toContain("repository.findDraft(scope, editionId)")
+    expect(editPage).toContain("repository.versionCount(scope, editionId)")
+    expect(editPage).not.toContain("requireConsolePayloadContext")
+    expect(createPage).toContain("requireConsoleSession")
+    expect(createPage).not.toContain("requireConsolePayloadContext")
     expect(editPage).toContain("EditionEditor")
     expect(createPage).toContain("doc={null}")
     // Payload UI 已整体移除：无 emergency 兜底树，admin 路由指向 console 首页。
@@ -64,7 +69,7 @@ describe("content edition unified workspace", () => {
     // The assistant keeps its transcript and open state in the browser only.
     expect(chat).toContain("gf-ai-chat")
     expect(chat).toContain("localStorage")
-    expect(chat).toContain("/api/editions/${editionId}/ai-chat")
+    expect(chat).toContain(["/api/editions/", "${editionId}", "/ai-chat"].join(""))
     expect(editor).toContain("StructuredRowsField")
     expect(editor).not.toContain("JsonField")
     // 正文编辑唯一入口是整篇 Markdown 编辑器；块编辑画布已退役。

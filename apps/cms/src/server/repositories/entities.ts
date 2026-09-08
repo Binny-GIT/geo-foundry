@@ -17,24 +17,41 @@ export type EntityScope =
   | Readonly<{ kind: "tenant"; tenantId: number }>
   | Readonly<{ kind: "site"; siteIds: readonly number[]; tenantId: number }>
 
-export const entityScopeOf = (
-  auth: AuthenticatedRequest,
+export const entityScopeFor = (
+  input: Readonly<{
+    role: AuthenticatedRequest["claims"]["role"]
+    siteIds: readonly number[]
+    tenantId: string | number | null
+  }>,
   options: Readonly<{ applySiteScope?: boolean }> = {},
 ): EntityScope | null => {
-  if (auth.claims.role === CMS_ROLE.SUPER_ADMIN) return { kind: "global" }
-  const tenantId = Number(auth.claims.tenantId)
+  if (input.role === CMS_ROLE.SUPER_ADMIN) return { kind: "global" }
+  const tenantId = Number(input.tenantId)
   if (!Number.isInteger(tenantId) || tenantId <= 0) return null
   /* users.sites 是 Console 显示收窄，不是 Payload collection access 的安全边界。
    * 通用 /api/sites 兼容路由默认维持租户级语义；特定 UI 查询可显式开启。 */
   if (
     options.applySiteScope === true &&
-    auth.claims.role !== CMS_ROLE.TENANT_ADMIN &&
-    auth.siteIds.length > 0
+    input.role !== CMS_ROLE.TENANT_ADMIN &&
+    input.siteIds.length > 0
   ) {
-    return { kind: "site", siteIds: auth.siteIds, tenantId }
+    return { kind: "site", siteIds: input.siteIds, tenantId }
   }
   return { kind: "tenant", tenantId }
 }
+
+export const entityScopeOf = (
+  auth: AuthenticatedRequest,
+  options: Readonly<{ applySiteScope?: boolean }> = {},
+): EntityScope | null =>
+  entityScopeFor(
+    {
+      role: auth.claims.role,
+      siteIds: auth.siteIds,
+      tenantId: auth.claims.tenantId,
+    },
+    options,
+  )
 
 export type ListInput = Readonly<{
   ids?: readonly number[]
