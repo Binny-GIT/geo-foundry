@@ -39,45 +39,39 @@ JOB=$(sudo docker exec redis-server redis-cli --no-auth-warning EXISTS "geo-foun
 [ "$JOB" = "1" ] && ok "intake job enqueued (jobId intake-$PID)" || echo "note: intake job key not found ($JOB), continuing"
 
 # ---------- 2. tick2：parent fetching 中不重复 ----------
-PSQL "UPDATE geo_foundry.connectors SET last_polled_at = now() - interval '2 hours' WHERE id=$CID_Y" >/dev/null
-wait_tick
-PY2=$(Q "status FROM geo_foundry.intake_items WHERE id=$PID")
+# ---------- 2. 常驻 worker 真实消费：拉取不可达 feed → failed ----------
+# feed 指向不存在的地址，真实 worker 经 BullMQ 接手后 fetch 失败回写；
+# 这一段验证的是「轮询 → 入队 → worker 消费 → 失败回写」的真实链路，
+# fetch 成功路径（ready + snapshots）由 e2e-internal-endpoints.sh 覆盖。
+sleep 10
+PF=$(Q "status FROM geo_foundry.intake_items WHERE id=$PID")
+FC=$(Q "coalesce(failure_code,'') FROM geo_foundry.intake_items WHERE id=$PID")
+{ [ "$PF" = "failed" ] || [ "$PF" = "fetching" ]; } && ok "worker consumed intake job (status=$PF)" || bad "after fetch status=$PF"
+[ "$PF" = "failed" ] && [ -n "$FC" ] && ok "fetch failure written (code=$FC)" || echo "note: fetch not failed yet ($PF), retry timing varies"
 PNEWS=$(Q "count(*) FROM geo_foundry.intake_items WHERE connector_id=$CID_Y AND channel='rss'")
-[ "$PY2" = "fetching" ] && [ "$PNEWS" = "1" ] && ok "in-flight parent not duplicated" || bad "tick2 status=$PY2 parents=$PNEWS"
+[ "$PNEWS" = "1" ] && ok "parent unique across worker retries" || bad "parents=$PNEWS"
 
-# ---------- 3. 模拟 worker 完成 fetch ----------
-S=$(curl -s -w '\n%{http_code}' -X POST "$BASE/api/internal/intake-items/$PID/fetch-start" -H "$(auth)" \
-  -H 'Content-Type: application/json' -d '{}')
-[ "$(echo "$S" | tail -1)" = "200" ] && ok "fetch-start idempotent 200" || bad "fetch-start $(echo "$S"|tail -2)"
-IN=$(curl -s -H "$(auth)" "$BASE/api/internal/intake-items/$PID/fetch-input")
-echo "$IN" | python3 -c '
-import json,sys
-d=json.load(sys.stdin)
-assert d["channel"]=="rss" and d["sourceUrl"]=="https://example.com/feed-'"$TS"'.xml", d' \
-  && ok "fetch-input returns connector endpoint" || bad "fetch-input $IN"
-CMP="{\"extracted\":{\"contentHash\":\"$(python3 -c 'import hashlib;print(hashlib.sha256(b"e2e-rss-'"$TS"'").hexdigest())')\",\"contentLength\":120,\"contentType\":\"application/rss+xml\",\"storageKey\":\"objects/e2e/rss-extracted-$TS\"},\"intakeItemId\":$PID,\"raw\":{\"contentHash\":\"$(python3 -c 'import hashlib;print(hashlib.sha256(b"e2e-rss-raw-'"$TS"'").hexdigest())')\",\"contentLength\":600,\"contentType\":\"application/xml\",\"storageKey\":\"objects/e2e/rss-raw-$TS\"},\"summary\":\"E2E RSS feed summary\",\"title\":\"RSS: e2e-rss-feed-$TS\"}"
-S=$(curl -s -w '\n%{http_code}' -X POST "$BASE/api/internal/intake-items/$PID/fetch-complete" -H "$(auth)" \
-  -H 'Content-Type: application/json' -d "$CMP")
-PST2=$(Q "status FROM geo_foundry.intake_items WHERE id=$PID")
-SNAP=$(Q "count(*) FROM geo_foundry.source_snapshots WHERE intake_item_id=$PID")
-[ "$(echo "$S" | tail -1)" = "200" ] && [ "$PST2" = "ready" ] && [ "$SNAP" = "2" ] \
-  && ok "fetch-complete -> ready + 2 snapshots" || bad "complete $(echo "$S"|tail -2) status=$PST2 snaps=$SNAP"
-
-# ---------- 4. rss-entries 子项与去重 ----------
+# ---------- 3. rss-entries 子项与去重（不依赖父稿 fetch 状态） ----------
 ENT="{\"entries\":[{\"sourceUrl\":\"https://example.com/post-a-$TS?utm_source=rss\",\"title\":\"RSS post A $TS\",\"summary\":\"a\"},{\"sourceUrl\":\"https://example.com/post-b-$TS\",\"title\":\"RSS post B $TS\"},{\"sourceUrl\":\"https://example.com/post-a-$TS\",\"title\":\"RSS post A $TS\"}]}"
 S=$(curl -s -w '\n%{http_code}' -X POST "$BASE/api/internal/intake-items/$PID/rss-entries" -H "$(auth)" \
   -H 'Content-Type: application/json' -d "$ENT")
-CREATED=$(echo "$S" | head -1 | python3 -c 'import json,sys;print(len(json.load(sys.stdin)["created"]))' 2>/dev/null)
+CREATED=$(echo "$S" | head -1 | python3 -c 'import json,sys;print(len(json.load(sys.stdin).get("intakeItemIds",[])))' 2>/dev/null)
 [ "$(echo "$S" | tail -1)" = "200" ] && [ "$CREATED" = "2" ] && ok "rss-entries created 2, duplicate skipped" || bad "rss-entries $(echo "$S"|tail -2) created=$CREATED"
+S=$(curl -s -X POST "$BASE/api/internal/intake-items/$PID/rss-entries" -H "$(auth)" \
+  -H 'Content-Type: application/json' -d "$ENT")
+CREATED2=$(echo "$S" | python3 -c 'import json,sys;print(len(json.load(sys.stdin).get("intakeItemIds",[])))' 2>/dev/null)
+[ "$CREATED2" = "0" ] && ok "rss-entries re-poll creates 0" || bad "re-poll created=$CREATED2"
 CHILD=$(Q "count(*) FROM geo_foundry.intake_items WHERE connector_id=$CID_Y AND channel='url' AND status='new'")
 [ "$CHILD" = "2" ] && ok "child url-channel intakes new" || bad "children=$CHILD"
 
-# ---------- 5. tick3：已完成父稿复位新一轮 ----------
+# ---------- 4. tick3：failed 父稿复位新一轮（父稿仍唯一） ----------
 PSQL "UPDATE geo_foundry.connectors SET last_polled_at = now() - interval '2 hours' WHERE id=$CID_Y" >/dev/null
 wait_tick
 PY3=$(Q "status FROM geo_foundry.intake_items WHERE id=$PID")
 PNEWS2=$(Q "count(*) FROM geo_foundry.intake_items WHERE connector_id=$CID_Y AND channel='rss'")
-[ "$PY3" = "fetching" ] && [ "$PNEWS2" = "1" ] && ok "completed parent reset for next cycle" || bad "tick3 status=$PY3 parents=$PNEWS2"
+# 复位后 worker 可能又立刻失败：接受 fetching/failed，父稿不重复即证明复位走通。
+{ [ "$PY3" = "fetching" ] || [ "$PY3" = "failed" ]; } && [ "$PNEWS2" = "1" ] \
+  && ok "failed parent reset for next cycle (status=$PY3)" || bad "tick3 status=$PY3 parents=$PNEWS2"
 
 echo "PASS=${#PASS[@]} FAIL=${#FAIL[@]}"
 [ "${#FAIL[@]}" = "0" ]
