@@ -248,6 +248,30 @@ const incomplete = true`),
     ])
   })
 
+  it("widens the fence when code content itself contains fenced runs", () => {
+    const blocks = [
+      {
+        blockType: "code",
+        code: "正文示例：\n\n```md\n# 内层\n```\n\n结束",
+        language: "text",
+      },
+      { blockType: "code", code: "四反引号 ```` 也在内容里", language: "text" },
+    ]
+    const markdown = blocksToMarkdown(blocks)
+    expect(markdown).toContain("````text\n正文示例：")
+    expect(markdown).toContain("`````text\n四反引号")
+    expect(markdown).not.toContain(":::gf-block")
+    expect(markdownToBlocks(markdown)).toEqual(blocks)
+  })
+
+  it("parses a handwritten four-backtick fence and keeps inner fences as content", () => {
+    expect(
+      markdownToBlocks("````js\nconst a = 1\n```\nstill code\n````"),
+    ).toEqual([
+      { blockType: "code", code: "const a = 1\n```\nstill code", language: "js" },
+    ])
+  })
+
   it("returns empty results for invalid top-level input", () => {
     expect(blocksToMarkdown(null as unknown as readonly unknown[])).toBe("")
     expect(markdownToBlocks(null as unknown as string)).toEqual([])

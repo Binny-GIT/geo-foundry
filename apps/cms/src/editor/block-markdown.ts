@@ -48,7 +48,21 @@ const isProtectedClosing = (line: string): boolean => /^:::[\t ]*$/.test(line)
 
 const isFencedOpening = (line: string): boolean => line.startsWith("```")
 
-const isFencedClosing = (line: string): boolean => /^```[\t ]*$/.test(line)
+/* CommonMark：闭合围栏至少与开栏等长，因此内容里的短围栏不会提前闭合。 */
+const fenceClosingMatchOf = (line: string, openingTicks: number): RegExpMatchArray | null =>
+  line.match(new RegExp("^`{" + String(openingTicks) + ",}[\\t ]*$"))
+
+/* 开栏形如 ```lang 或 ````lang；返回 [整行, 反引号串, 语言]。 */
+const FENCE_OPENING = /^(`{3,})[ \t]*(.*)$/
+
+const fenceOpeningMatchOf = (line: string): RegExpMatchArray | null => FENCE_OPENING.exec(line)
+
+/* 内容里最长反引号串决定所需围栏长度（开栏必须更长才不会被内容提前闭合）。 */
+const fenceTicksFor = (code: string): number => {
+  let longest = 0
+  for (const run of code.match(/`+/g) ?? []) longest = Math.max(longest, run.length)
+  return Math.max(3, longest + 1)
+}
 
 /* 图片行：![alt](src) 或 ![alt](src "caption")。src 不含空白与括号，alt 不含方括号。 */
 const IMAGE_LINE = /^!\[([^\][]*)\]\(([^()\s]+)(?: "([^"]*)")?\)$/
@@ -166,12 +180,12 @@ const isReadableCode = (row: Row): boolean => {
   const language = stringOf(row, "language")
   const code = stringOf(row, "code")
   const caption = optionalStringOf(row, "caption")
+  /* 内容含 ``` 也不再放弃可读性：输出方向会按内容加长围栏（CommonMark）。 */
   return (
     language !== null &&
     code !== null &&
     !hasLineBreak(language) &&
     !code.includes("\r") &&
-    !code.split("\n").some(isFencedClosing) &&
     (caption === undefined || !hasLineBreak(caption))
   )
 }
@@ -230,10 +244,11 @@ const readableMarkdownOf = (row: Row): string | null => {
     const caption = optionalStringOf(row, "caption")
     if (language === null || code === null) return null
 
+    const fence = "`".repeat(fenceTicksFor(code))
     return [
-      `\`\`\`${language}`,
+      `${fence}${language}`,
       code,
-      "```",
+      fence,
       ...(caption === undefined ? [] : [`*${caption}*`]),
     ].join("\n")
   }
@@ -294,12 +309,17 @@ const fencedCodeSegmentAt = (
   lines: readonly string[],
   startIndex: number,
 ): { block: Row; nextIndex: number } => {
+  const opening = fenceOpeningMatchOf(lines[startIndex] ?? "")
+  if (opening === null) {
+    return { block: paragraphOf(lines.slice(startIndex).join("\n")), nextIndex: lines.length }
+  }
+  const openingTicks = (opening[1] ?? "```").length
   let closingIndex = startIndex + 1
   while (closingIndex < lines.length) {
-    if (isFencedClosing(lines[closingIndex] ?? "")) {
+    if (fenceClosingMatchOf(lines[closingIndex] ?? "", openingTicks) !== null) {
       const captionLine = lines[closingIndex + 1]
       const captionMatch = captionLine === undefined ? null : /^\*(.*)\*$/.exec(captionLine)
-      const language = (lines[startIndex] ?? "").slice(3)
+      const language = opening[2] ?? ""
       const code = lines.slice(startIndex + 1, closingIndex).join("\n")
       return {
         block: {
