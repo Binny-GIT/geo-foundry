@@ -7,7 +7,10 @@ import { Button } from "@/components/ui/button"
 import ArticleDetail from "@/console/components/ArticleDetail"
 import { ConsoleUrlRename } from "@/console/components/ConsoleUrlRename"
 import SiteDetail from "@/console/components/SiteDetail"
-import { findConsoleDocument, requireConsolePayloadContext } from "@/console/lib/payload.server"
+import {
+  requireConsoleContext,
+  requireReadableConsoleResource,
+} from "@/console/lib/console-context.server"
 import {
   CONSOLE_RESOURCES,
   type ConsoleResourceSlug,
@@ -16,6 +19,7 @@ import {
   isFirstWaveMutableResource,
 } from "@/console/lib/resources"
 import { canConsole } from "@/console/lib/session.server"
+import { findConsoleRecord } from "@/server/repositories/console-collections"
 
 const formatValue = (value: unknown, relationship = false): string => {
   if (relationship && (typeof value === "number" || typeof value === "string")) return "受限"
@@ -90,10 +94,12 @@ const ConsoleDocumentPage = async ({ params }: ConsoleDocumentPageProps) => {
   }
 
   const resource = CONSOLE_RESOURCES[slug]
-  const [document, context] = await Promise.all([
-    findConsoleDocument({ id, slug }),
-    requireConsolePayloadContext(),
-  ])
+  const context = await requireConsoleContext()
+  requireReadableConsoleResource(context.session, slug)
+  const numericId = Number.parseInt(id, 10)
+  if (!Number.isSafeInteger(numericId) || numericId <= 0) notFound()
+  const document = await findConsoleRecord(context.db, context.scope, slug, numericId)
+  if (document === null) notFound()
   const canEdit =
     resource.resource !== null &&
     (isFirstWaveMutableResource(slug) || slug === "users") &&

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { parseUserListQuery, USER_ROLE_OPTIONS, userListHref, userListWhere } from "./user-filters"
+import { parseUserListQuery, USER_ROLE_OPTIONS, userListHref } from "./user-filters"
 
 describe("User list query", () => {
   it("Given missing or malformed search params, when parsing, then it falls back to an unfiltered first page", () => {
@@ -19,20 +19,6 @@ describe("User list query", () => {
       q: "mark@",
       role: "editor",
       tenant: 413,
-    })
-  })
-
-  it("Given no active filter, when building the where clause, then it stays undefined so Payload scoping alone applies", () => {
-    expect(userListWhere({ page: 1, q: null, role: null, tenant: null })).toBeUndefined()
-  })
-
-  it("Given several filters, when building the where clause, then they are combined with and", () => {
-    expect(userListWhere({ page: 1, q: "mark", role: "editor", tenant: 413 })).toEqual({
-      and: [
-        { role: { equals: "editor" } },
-        { tenant: { equals: 413 } },
-        { email: { like: "mark" } },
-      ],
     })
   })
 

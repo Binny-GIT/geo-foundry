@@ -17,7 +17,7 @@ type PayloadError = {
   readonly message?: string
 }
 
-const CREATE_SUPPORTED = new Set<ConsoleResourceSlug>(["contents", "domains", "tenants"])
+const CREATE_SUPPORTED = new Set<ConsoleResourceSlug>(["domains", "tenants"])
 
 const errorMessage = (payload: PayloadError): string =>
   payload.errors?.find((error) => typeof error.message === "string")?.message ??
@@ -59,18 +59,12 @@ export const ConsoleCreateForm = ({ slug }: { readonly slug: ConsoleResourceSlug
     const data =
       slug === "tenants"
         ? { name: String(form.get("name") ?? "").trim() }
-        : slug === "contents"
-          ? {
-              createdBy: String(form.get("createdBy") ?? "human"),
-              intent: String(form.get("intent") ?? "").trim(),
-              topic: String(form.get("topic") ?? "").trim(),
-            }
-          : {
-              hostname: String(form.get("hostname") ?? "").trim(),
-              role: String(form.get("role") ?? "canonical"),
-              site: String(form.get("site") ?? ""),
-              status: String(form.get("status") ?? "active"),
-            }
+        : {
+            hostname: String(form.get("hostname") ?? "").trim(),
+            role: String(form.get("role") ?? "canonical"),
+            site: String(form.get("site") ?? ""),
+            status: String(form.get("status") ?? "active"),
+          }
 
     try {
       const response = await fetch(`/api/${slug}`, {
@@ -105,40 +99,6 @@ export const ConsoleCreateForm = ({ slug }: { readonly slug: ConsoleResourceSlug
             required
           />
         </label>
-      )}
-      {slug === "contents" && (
-        <>
-          <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
-            内容主题
-            <input
-              className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
-              name="topic"
-              placeholder="例如：企业内容治理"
-              required
-            />
-          </label>
-          <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
-            内容意图
-            <textarea
-              className="gf-console-focus min-h-28 resize-y rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 py-3 text-base leading-6 text-[var(--console-ink)] outline-none"
-              name="intent"
-              placeholder="描述受众、目标和希望达成的结果。"
-              required
-            />
-          </label>
-          <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
-            创建来源
-            <select
-              className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
-              defaultValue="human"
-              name="createdBy"
-            >
-              <option value="human">人工</option>
-              <option value="ai">AI</option>
-              <option value="hybrid">混合</option>
-            </select>
-          </label>
-        </>
       )}
       {slug === "domains" && (
         <>

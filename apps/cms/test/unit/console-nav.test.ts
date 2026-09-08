@@ -32,7 +32,6 @@ describe("Console navigation contract", () => {
     expect(CONSOLE_RESOURCES.media.label.zh).toBe("OSS存储")
     expect(CONSOLE_RESOURCES["content-editions"].label.zh).toBe("文章列表")
     expect(CONSOLE_RESOURCES.sites.label.zh).toBe("站点列表")
-    expect(CONSOLE_RESOURCES["performance-snapshots"].label.zh).toBe("流量统计")
   })
 
   it("keeps ledger and config routes reachable outside the sidebar", () => {
@@ -42,8 +41,6 @@ describe("Console navigation contract", () => {
       "quality-assessments",
       "releases",
       "rollback-intents",
-      "performance-snapshots",
-      "contents",
       "publication-plans",
     ] as const
     for (const slug of offNavSlugs) {

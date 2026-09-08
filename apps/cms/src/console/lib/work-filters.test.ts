@@ -4,9 +4,8 @@ import {
   ALL_WORK_COLUMNS,
   defaultCustomDays,
   parseWorkQuery,
-  scopedWorkWhere,
+  workDateRange,
   workHref,
-  workWhere,
 } from "./work-filters"
 
 describe("Workbench query", () => {
@@ -67,74 +66,24 @@ describe("Workbench query", () => {
     )
   })
 
-  it("Given filters, when producing where conditions, then it maps q/owner/site onto payload operators and bounds the UTC day range", () => {
-    expect(workWhere(parseWorkQuery({}), new Date("2026-09-01T14:20:00.000Z"))).toEqual({
-      updatedAt: {
-        greater_than_equal: "2026-08-03T00:00:00.000Z",
-        less_than: "2026-09-02T00:00:00.000Z",
-      },
+  it("Given a preset range, when computing the date window, then it spans whole UTC days with an exclusive next-day upper bound", () => {
+    expect(workDateRange(parseWorkQuery({}), new Date("2026-09-01T14:20:00.000Z"))).toEqual({
+      from: new Date("2026-08-03T00:00:00.000Z"),
+      toExclusive: new Date("2026-09-02T00:00:00.000Z"),
     })
     expect(
-      workWhere(
-        parseWorkQuery({ owner: "7", q: "标题", site: "12" }),
-        new Date("2026-09-01T00:00:00.000Z"),
-      ),
+      workDateRange(parseWorkQuery({ range: "today" }), new Date("2026-09-01T14:20:00.000Z")),
     ).toEqual({
-      and: [
-        { title: { like: "标题" } },
-        { owner: { in: [7] } },
-        { or: [{ site: { equals: 12 } }, { sites: { contains: 12 } }] },
-        {
-          updatedAt: {
-            greater_than_equal: "2026-08-03T00:00:00.000Z",
-            less_than: "2026-09-02T00:00:00.000Z",
-          },
-        },
-      ],
+      from: new Date("2026-09-01T00:00:00.000Z"),
+      toExclusive: new Date("2026-09-02T00:00:00.000Z"),
     })
   })
 
-  it("Given multiple owner/site ids, when producing where conditions, then it maps them onto an in-list and OR'd site/sites pairs", () => {
-    expect(
-      workWhere(
-        parseWorkQuery({ owner: "7,9", range: "30d", site: "12,13" }),
-        new Date("2026-09-01T00:00:00.000Z"),
-      ),
-    ).toEqual({
-      and: [
-        { owner: { in: [7, 9] } },
-        {
-          or: [
-            { site: { equals: 12 } },
-            { sites: { contains: 12 } },
-            { site: { equals: 13 } },
-            { sites: { contains: 13 } },
-          ],
-        },
-        {
-          updatedAt: {
-            greater_than_equal: "2026-08-03T00:00:00.000Z",
-            less_than: "2026-09-02T00:00:00.000Z",
-          },
-        },
-      ],
-    })
-  })
-
-  it("Given a custom date range and site scope, when composing where conditions, then it uses the next UTC day as an exclusive upper bound", () => {
+  it("Given a custom date range, when computing the date window, then it uses the next UTC day as an exclusive upper bound", () => {
     const query = parseWorkQuery({ from: "2026-08-20", range: "custom", to: "2026-08-22" })
-    expect(
-      scopedWorkWhere(query, { site: { in: [7] } }, new Date("2026-09-01T00:00:00.000Z")),
-    ).toEqual({
-      and: [
-        { site: { in: [7] } },
-        {
-          updatedAt: {
-            greater_than_equal: "2026-08-20T00:00:00.000Z",
-            less_than: "2026-08-23T00:00:00.000Z",
-          },
-        },
-      ],
+    expect(workDateRange(query, new Date("2026-09-01T00:00:00.000Z"))).toEqual({
+      from: new Date("2026-08-20T00:00:00.000Z"),
+      toExclusive: new Date("2026-08-23T00:00:00.000Z"),
     })
   })
 

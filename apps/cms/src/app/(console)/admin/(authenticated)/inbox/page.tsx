@@ -2,8 +2,9 @@ import { notFound } from "next/navigation"
 
 import { CMS_ACTION, CMS_RESOURCE } from "@/access/policy"
 import { IntakeInbox } from "@/console/components/IntakeInbox"
-import { requireConsolePayloadContext } from "@/console/lib/payload.server"
+import { requireConsoleContext } from "@/console/lib/console-context.server"
 import { canConsole } from "@/console/lib/session.server"
+import { listInboxItems } from "@/server/repositories/console-reads"
 
 const CHANNELS = new Set(["manual", "url", "webhook", "rss"])
 const STATUSES = new Set([
@@ -27,26 +28,14 @@ const InboxPage = async ({ searchParams }: InboxPageProps) => {
   const query = await searchParams
   const channel = CHANNELS.has(query.channel ?? "") ? (query.channel ?? "") : ""
   const status = STATUSES.has(query.status ?? "") ? (query.status ?? "") : ""
-  const context = await requireConsolePayloadContext()
+  const context = await requireConsoleContext()
   if (!canConsole(context.session, CMS_RESOURCE.INTAKE_ITEMS, CMS_ACTION.READ)) notFound()
-  const clauses = [
-    channel ? { channel: { equals: channel } } : null,
-    status ? { status: { equals: status } } : null,
-  ].filter((value): value is NonNullable<typeof value> => value !== null)
-  const result = await context.payload.find({
-    collection: "intake-items",
-    depth: 1,
-    limit: 50,
-    overrideAccess: false,
-    sort: "-receivedAt",
-    user: context.user,
-    ...(clauses.length > 0 ? { where: clauses.length === 1 ? clauses[0] : { and: clauses } } : {}),
-  })
+  const items = await listInboxItems(context.db, context.scope, { channel, status })
   return (
     <IntakeInbox
       canManage={canConsole(context.session, CMS_RESOURCE.INTAKE_ITEMS, CMS_ACTION.UPDATE)}
       initialChannel={channel}
-      initialItems={result.docs as unknown as readonly Record<string, unknown>[]}
+      initialItems={items}
       initialStatus={status}
     />
   )

@@ -5,9 +5,10 @@ import { CMS_ACTION, CMS_RESOURCE } from "@/access/policy"
 import { CMS_ROLE } from "@/access/roles"
 import { Button } from "@/components/ui/button"
 import { ReleaseRestore } from "@/console/components/ReleaseRestore"
-import { requireConsolePayloadContext } from "@/console/lib/payload.server"
+import { requireConsoleContext } from "@/console/lib/console-context.server"
 import { consoleRoute } from "@/console/lib/resources"
 import { canConsole } from "@/console/lib/session.server"
+import { loadSiteDetail } from "@/server/repositories/console-detail"
 
 const WORKFLOW_STATES = [
   { key: "draft", label: "草稿" },
@@ -58,29 +59,11 @@ const relationText = (value: unknown, field: string): string | null => {
 }
 
 const SiteDetail = async ({ id }: { readonly id: string }) => {
-  const context = await requireConsolePayloadContext()
-  const { payload, session, user } = context
+  const context = await requireConsoleContext()
+  const { session } = context
   const siteId = Number.parseInt(id, 10)
   if (!Number.isSafeInteger(siteId) || siteId <= 0) notFound()
 
-  let site: Record<string, unknown>
-  try {
-    site = (await payload.findByID({
-      collection: "sites",
-      depth: 1,
-      id: siteId,
-      overrideAccess: false,
-      user,
-    })) as unknown as Record<string, unknown>
-  } catch {
-    notFound()
-  }
-
-  const name =
-    typeof site["name"] === "string" && site["name"].length > 0
-      ? site["name"]
-      : `站点 #${String(siteId)}`
-  const tenantName = relationText(site["tenant"], "name")
   const canReadEditions = canConsole(session, CMS_RESOURCE.EDITIONS, CMS_ACTION.READ)
   const canReadDomains = canConsole(session, CMS_RESOURCE.DOMAINS, CMS_ACTION.READ)
   const canReadReleases = canConsole(session, CMS_RESOURCE.RELEASES, CMS_ACTION.READ)
@@ -88,129 +71,25 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
   const isPublisher = session.role === CMS_ROLE.PUBLISHER || session.role === CMS_ROLE.SUPER_ADMIN
   const canCreateDomain = canConsole(session, CMS_RESOURCE.DOMAINS, CMS_ACTION.CREATE)
 
-  const [
-    statusCounts,
-    domains,
-    canonicalDomain,
-    recentEditions,
-    releases,
-    operations,
-    siteSnapshots,
-  ] = await Promise.all([
-    canReadEditions
-      ? Promise.all(
-          WORKFLOW_STATES.map((state) =>
-            payload
-              .count({
-                collection: "content-editions",
-                overrideAccess: false,
-                user,
-                where: {
-                  and: [{ site: { equals: siteId } }, { workflowStatus: { equals: state.key } }],
-                },
-              })
-              .then((result) => result.totalDocs ?? 0),
-          ),
-        )
-      : null,
-    canReadDomains
-      ? payload
-          .find({
-            collection: "domains",
-            depth: 0,
-            limit: 50,
-            overrideAccess: false,
-            sort: "hostname",
-            user,
-            where: { site: { equals: siteId } },
-          })
-          .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
-          .catch(() => [] as readonly Record<string, unknown>[])
-      : null,
-    canReadDomains
-      ? payload
-          .find({
-            collection: "domains",
-            depth: 0,
-            limit: 1,
-            overrideAccess: false,
-            user,
-            where: {
-              and: [
-                { site: { equals: siteId } },
-                { role: { equals: "canonical" } },
-                { status: { equals: "active" } },
-              ],
-            },
-          })
-          .then((result) => (result.docs[0] ?? null) as Record<string, unknown> | null)
-          .catch(() => null)
-      : null,
-    canReadEditions
-      ? payload
-          .find({
-            collection: "content-editions",
-            depth: 1,
-            draft: true,
-            limit: 10,
-            overrideAccess: false,
-            sort: "-updatedAt",
-            user,
-            where: { site: { equals: siteId } },
-          })
-          .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
-          .catch(() => [] as readonly Record<string, unknown>[])
-      : null,
-    canReadReleases
-      ? payload
-          .find({
-            collection: "releases",
-            depth: 0,
-            limit: 20,
-            overrideAccess: false,
-            sort: "-createdAt",
-            user,
-            where: { site: { equals: siteId } },
-          })
-          .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
-          .catch(() => [] as readonly Record<string, unknown>[])
-      : null,
-    canReadOperations
-      ? payload
-          .find({
-            collection: "operations",
-            depth: 0,
-            limit: 10,
-            overrideAccess: false,
-            sort: "-updatedAt",
-            user,
-            where: { site: { equals: siteId } },
-          })
-          .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
-          .catch(() => [] as readonly Record<string, unknown>[])
-      : null,
-    canConsole(session, CMS_RESOURCE.PERFORMANCE_SNAPSHOTS, CMS_ACTION.READ)
-      ? payload
-          .find({
-            collection: "performance-snapshots",
-            depth: 0,
-            limit: 1000,
-            overrideAccess: false,
-            select: { visits: true },
-            user,
-            where: { site: { equals: siteId } },
-          })
-          .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
-          .catch(() => [] as readonly Record<string, unknown>[])
-      : null,
-  ])
-
-  const hostname =
-    canonicalDomain === null
+  const detail = await loadSiteDetail(context.db, context.scope, siteId, {
+    domains: canReadDomains,
+    editions: canReadEditions,
+    operations: canReadOperations,
+    releases: canReadReleases,
+  })
+  if (detail === null) notFound()
+  const { domains, operations, recentEditions, releases, site } = detail
+  const statusCounts =
+    detail.statusCounts === null
       ? null
-      : typeof canonicalDomain["hostname"] === "string"
-        ? canonicalDomain["hostname"]
-        : null
+      : WORKFLOW_STATES.map((state) => detail.statusCounts?.get(state.key) ?? 0)
+
+  const name =
+    typeof site["name"] === "string" && site["name"].length > 0
+      ? site["name"]
+      : `站点 #${String(siteId)}`
+  const tenantName = relationText(site["tenant"], "name")
+  const hostname = detail.canonicalHostname
   const entryUrl = hostname === null ? null : `https://${hostname}`
   const currentRelease = (releases ?? []).find((release) => release["state"] === "current")
   const currentRestore =
@@ -304,20 +183,6 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
             </dt>
             <dd className="m-0 break-all pt-1 font-mono text-xs leading-5 text-[var(--console-ink)]">
               {hostname === null ? "—" : `/api/delivery/sites/${hostname}/articles`}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--console-ink-muted)]">
-              累计阅读
-            </dt>
-            <dd className="m-0 pt-1 text-sm text-[var(--console-ink)]">
-              {siteSnapshots === null
-                ? "当前角色无权读取流量统计"
-                : `${siteSnapshots.reduce(
-                    (sum, snapshot) =>
-                      sum + (typeof snapshot["visits"] === "number" ? snapshot["visits"] : 0),
-                    0,
-                  )} 次（流量统计上报后累计）`}
             </dd>
           </div>
         </dl>

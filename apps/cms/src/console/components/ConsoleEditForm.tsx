@@ -40,7 +40,7 @@ export const ConsoleEditForm = ({
   slug,
 }: {
   readonly document: RecordLike
-  readonly slug: "contents" | "domains" | "tenants"
+  readonly slug: "domains" | "tenants"
 }) => {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -75,18 +75,12 @@ export const ConsoleEditForm = ({
     const data =
       slug === "tenants"
         ? { name: String(form.get("name") ?? "").trim() }
-        : slug === "contents"
-          ? {
-              createdBy: String(form.get("createdBy") ?? "human"),
-              intent: String(form.get("intent") ?? "").trim(),
-              topic: String(form.get("topic") ?? "").trim(),
-            }
-          : {
-              hostname: String(form.get("hostname") ?? "").trim(),
-              role: String(form.get("role") ?? "canonical"),
-              site: String(form.get("site") ?? ""),
-              status: String(form.get("status") ?? "active"),
-            }
+        : {
+            hostname: String(form.get("hostname") ?? "").trim(),
+            role: String(form.get("role") ?? "canonical"),
+            site: String(form.get("site") ?? ""),
+            status: String(form.get("status") ?? "active"),
+          }
 
     try {
       const response = await fetch(`/api/${slug}/${encodeURIComponent(id)}`, {
@@ -121,40 +115,6 @@ export const ConsoleEditForm = ({
             required
           />
         </label>
-      )}
-      {slug === "contents" && (
-        <>
-          <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
-            内容主题
-            <input
-              className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
-              defaultValue={stringValue(document["topic"])}
-              name="topic"
-              required
-            />
-          </label>
-          <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
-            内容意图
-            <textarea
-              className="gf-console-focus min-h-28 resize-y rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 py-3 text-base leading-6 text-[var(--console-ink)] outline-none"
-              defaultValue={stringValue(document["intent"])}
-              name="intent"
-              required
-            />
-          </label>
-          <label className="grid gap-2 text-sm font-medium text-[var(--console-ink)]">
-            创建来源
-            <select
-              className="gf-console-focus h-11 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 text-base text-[var(--console-ink)] outline-none"
-              defaultValue={stringValue(document["createdBy"], "human")}
-              name="createdBy"
-            >
-              <option value="human">人工</option>
-              <option value="ai">AI</option>
-              <option value="hybrid">混合</option>
-            </select>
-          </label>
-        </>
       )}
       {slug === "domains" && (
         <>

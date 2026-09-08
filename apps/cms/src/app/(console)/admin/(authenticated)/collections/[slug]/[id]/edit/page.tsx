@@ -5,7 +5,7 @@ import { ConsoleEditForm } from "@/console/components/ConsoleEditForm"
 import { ConsoleSiteForm } from "@/console/components/ConsoleSiteForm"
 import { ConsoleUserForm } from "@/console/components/ConsoleUserForm"
 import { PageHeader } from "@/console/components/PageHeader"
-import { findConsoleDocument } from "@/console/lib/payload.server"
+import { requireConsoleContext } from "@/console/lib/console-context.server"
 import {
   CONSOLE_RESOURCES,
   type ConsoleResourceSlug,
@@ -14,6 +14,7 @@ import {
 } from "@/console/lib/resources"
 import { canConsole, requireConsoleSession } from "@/console/lib/session.server"
 import { siteFormValuesFromDocument } from "@/console/lib/site-form"
+import { findConsoleRecord } from "@/server/repositories/console-collections"
 
 type UserAdministratorRole = typeof CMS_ROLE.SUPER_ADMIN | typeof CMS_ROLE.TENANT_ADMIN
 
@@ -46,7 +47,11 @@ const ConsoleEditPage = async ({ params }: EditPageProps) => {
     notFound()
   }
 
-  const document = await findConsoleDocument({ id, slug })
+  const context = await requireConsoleContext()
+  const numericId = Number.parseInt(id, 10)
+  if (!Number.isSafeInteger(numericId) || numericId <= 0) notFound()
+  const document = await findConsoleRecord(context.db, context.scope, slug, numericId)
+  if (document === null) notFound()
   return (
     <div className="grid gap-6">
       <PageHeader title={`编辑${resource.label.zh}`} />
@@ -65,7 +70,7 @@ const ConsoleEditPage = async ({ params }: EditPageProps) => {
         ) : (
           <ConsoleEditForm
             document={document}
-            slug={slug as Extract<ConsoleResourceSlug, "contents" | "domains" | "tenants">}
+            slug={slug as Extract<ConsoleResourceSlug, "domains" | "tenants">}
           />
         )}
       </section>

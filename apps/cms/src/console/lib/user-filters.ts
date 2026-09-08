@@ -1,13 +1,11 @@
-import type { Where } from "payload"
-
 import { CMS_ROLE, type CmsRole, isCmsRole } from "../../access/roles"
 
 import { USER_ROLE_LABEL } from "./user-form"
 
 /**
  * Server-side whitelist for the user list filters. Search params are only
- * translated into `where` conditions through this module — the client never
- * supplies arbitrary query structures.
+ * translated into a typed query through this module — the repository maps it
+ * to SQL predicates; the client never supplies arbitrary query structures.
  */
 
 /** Privilege order for the filter dropdown, not the storage order in CMS_ROLES. */
@@ -47,15 +45,6 @@ export const parseUserListQuery = (
     role: isCmsRole(roleRaw) ? roleRaw : null,
     tenant: positiveInt(first(searchParams["tenant"])),
   }
-}
-
-export const userListWhere = (query: UserListQuery): Where | undefined => {
-  const conditions: Where[] = []
-  if (query.role !== null) conditions.push({ role: { equals: query.role } })
-  if (query.tenant !== null) conditions.push({ tenant: { equals: query.tenant } })
-  if (query.q !== null) conditions.push({ email: { like: query.q } })
-  if (conditions.length === 0) return undefined
-  return conditions.length === 1 ? conditions[0] : { and: conditions }
 }
 
 export const userListHref = (

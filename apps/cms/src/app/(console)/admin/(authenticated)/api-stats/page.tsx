@@ -1,7 +1,8 @@
 import { ChartBarIcon } from "@/components/icons"
 import { ChartCard, RankedBars, TrendBars, type TrendPoint } from "@/console/components/charts"
 import { PageHeader } from "@/console/components/PageHeader"
-import { requireConsolePayloadContext } from "@/console/lib/payload.server"
+import { requireConsoleContext } from "@/console/lib/console-context.server"
+import { apiUsageSince, listSiteOptions } from "@/server/repositories/console-reads"
 
 export const metadata = { title: "接口统计 | Geo Foundry" }
 
@@ -16,61 +17,32 @@ const emptyDays = (): readonly string[] => {
 }
 
 const ApiStatsPage = async () => {
-  const context = await requireConsolePayloadContext()
-  const { payload, user } = context
+  const context = await requireConsoleContext()
   const days = emptyDays()
   const cutoff = days[0] as string
 
   const [rows, sites] = await Promise.all([
-    payload
-      .find({
-        collection: "api-usage-dailies",
-        depth: 0,
-        limit: 500,
-        overrideAccess: false,
-        sort: "-date",
-        user,
-        where: { date: { greater_than_equal: cutoff } },
-      })
-      .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
-      .catch(() => [] as readonly Record<string, unknown>[]),
-    payload
-      .find({
-        collection: "sites",
-        depth: 0,
-        limit: 100,
-        overrideAccess: false,
-        sort: "name",
-        user,
-      })
-      .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
-      .catch(() => [] as readonly Record<string, unknown>[]),
+    apiUsageSince(context.db, context.scope, cutoff).catch(
+      () => [] as Awaited<ReturnType<typeof apiUsageSince>>,
+    ),
+    listSiteOptions(context.db, context.scope).catch(
+      () => [] as Awaited<ReturnType<typeof listSiteOptions>>,
+    ),
   ])
 
-  const siteNames = new Map(
-    sites.flatMap((site) => {
-      const id = site["id"]
-      const name = site["name"]
-      return typeof id === "number" && typeof name === "string"
-        ? ([[id, name] as const] as const)
-        : []
-    }),
-  )
+  const siteNames = new Map(sites.map((site) => [site.id, site.name] as const))
 
   const byDay = new Map<string, number>(days.map((day) => [day, 0] as const))
   const bySite = new Map<string, number>()
   let total = 0
   for (const row of rows) {
-    const date = row["date"]
-    const count = typeof row["count"] === "number" ? row["count"] : 0
-    total += count
-    if (typeof date === "string" && byDay.has(date)) {
-      byDay.set(date, (byDay.get(date) ?? 0) + count)
-    }
-    const siteId = row["siteId"]
+    total += row.count
+    if (byDay.has(row.date)) byDay.set(row.date, (byDay.get(row.date) ?? 0) + row.count)
     const siteKey =
-      typeof siteId === "number" ? (siteNames.get(siteId) ?? `站点 #${String(siteId)}`) : "未知站点"
-    bySite.set(siteKey, (bySite.get(siteKey) ?? 0) + count)
+      row.siteId === null
+        ? "未知站点"
+        : (siteNames.get(row.siteId) ?? `站点 #${String(row.siteId)}`)
+    bySite.set(siteKey, (bySite.get(siteKey) ?? 0) + row.count)
   }
 
   const trend: readonly TrendPoint[] = days.map((day) => ({

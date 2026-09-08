@@ -2,10 +2,15 @@ import { CMS_ACTION, CMS_RESOURCE } from "@/access/policy"
 import ReviewBoard from "@/console/components/ReviewBoard"
 import { WorkToolbar } from "@/console/components/WorkToolbar"
 import { groupBoardCards } from "@/console/lib/board-model"
-import { requireConsolePayloadContext } from "@/console/lib/payload.server"
+import { requireConsoleContext } from "@/console/lib/console-context.server"
 import { canConsole } from "@/console/lib/session.server"
-import { siteScopeWhere } from "@/console/lib/site-scope"
-import { parseWorkQuery, scopedWorkWhere } from "@/console/lib/work-filters"
+import { parseWorkQuery, workDateRange } from "@/console/lib/work-filters"
+import {
+  failedOperationsCount,
+  listOwnerOptions,
+  listSiteOptions,
+  workBoardEditions,
+} from "@/server/repositories/console-reads"
 
 export const metadata = { title: "工作台 | Geo Foundry" }
 
@@ -28,75 +33,39 @@ type SiteOption = Readonly<{ readonly id: number; readonly name: string }>
 
 const WorkbenchPage = async ({ searchParams }: WorkbenchPageProps) => {
   const query = parseWorkQuery(await searchParams)
-  const context = await requireConsolePayloadContext()
-  const { payload, session, user } = context
+  const context = await requireConsoleContext()
+  const { session } = context
   const role = session.role
   const canCreateEdition = canConsole(session, CMS_RESOURCE.EDITIONS, CMS_ACTION.CREATE)
   const canReadOperations = canConsole(session, CMS_RESOURCE.OPERATIONS, CMS_ACTION.READ)
-  const editionsWhere = scopedWorkWhere(query, siteScopeWhere(context.session))
+  const range = workDateRange(query)
 
-  const [editionResult, failedCount, ownerDocs, siteDocs] = await Promise.all([
-    payload
-      .find({
-        collection: "content-editions",
-        depth: 1,
-        draft: true,
-        limit: WORK_QUERY_LIMIT,
-        overrideAccess: false,
-        sort: "-updatedAt",
-        user,
-        ...(editionsWhere === undefined ? {} : { where: editionsWhere }),
-      })
-      .catch(() => ({ docs: [], totalDocs: 0 })),
+  const [editionResult, failedCount, ownerRows, siteRows] = await Promise.all([
+    workBoardEditions(
+      context.db,
+      context.scope,
+      {
+        from: range.from,
+        owner: query.owner,
+        q: query.q,
+        site: query.site,
+        siteScope: context.siteIds,
+        toExclusive: range.toExclusive,
+      },
+      WORK_QUERY_LIMIT,
+    ).catch(() => ({ docs: [] as readonly Record<string, unknown>[], totalDocs: 0 })),
     canReadOperations
-      ? payload
-          .count({
-            collection: "operations",
-            overrideAccess: false,
-            user,
-            where: { state: { equals: "failed" } },
-          })
-          .then((result) => result.totalDocs ?? 0)
-          .catch(() => 0)
+      ? failedOperationsCount(context.db, context.scope).catch(() => 0)
       : Promise.resolve(0),
-    payload
-      .find({
-        collection: "users",
-        depth: 0,
-        limit: 100,
-        overrideAccess: false,
-        sort: "email",
-        user,
-      })
-      .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
-      .catch(() => [] as readonly Record<string, unknown>[]),
-    payload
-      .find({
-        collection: "sites",
-        depth: 0,
-        limit: 100,
-        overrideAccess: false,
-        sort: "name",
-        user,
-      })
-      .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
-      .catch(() => [] as readonly Record<string, unknown>[]),
+    listOwnerOptions(context.db, context.scope).catch(() => []),
+    listSiteOptions(context.db, context.scope).catch(() => []),
   ])
 
-  const editions = editionResult.docs as unknown as readonly Record<string, unknown>[]
-  const totalDocs = editionResult.totalDocs ?? 0
+  const editions = editionResult.docs
+  const totalDocs = editionResult.totalDocs
   const hiddenCount = totalDocs - editions.length
-
-  const owners: readonly OwnerOption[] = ownerDocs.flatMap((doc) => {
-    const id = doc["id"]
-    const email = doc["email"]
-    return typeof id === "number" && typeof email === "string" ? [{ email, id }] : []
-  })
-  const sites: readonly SiteOption[] = siteDocs.flatMap((doc) => {
-    const id = doc["id"]
-    const name = doc["name"]
-    return typeof id === "number" && typeof name === "string" ? [{ id, name }] : []
-  })
+  const owners: readonly OwnerOption[] = ownerRows.map((row) => ({ email: row.email, id: row.id }))
+  const sites: readonly SiteOption[] = siteRows.map((row) => ({ id: row.id, name: row.name }))
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 [&>*]:min-w-0">

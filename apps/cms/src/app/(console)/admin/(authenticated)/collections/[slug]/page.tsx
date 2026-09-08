@@ -9,8 +9,12 @@ import { PageHeader } from "@/console/components/PageHeader"
 import { PublicationPlansWorkspace } from "@/console/components/PublicationPlansWorkspace"
 import SitesWorkspace, { type SiteRow } from "@/console/components/SitesWorkspace"
 import UsersWorkspace from "@/console/components/UsersWorkspace"
-import { articleListWhere, parseArticleListQuery } from "@/console/lib/article-filters"
-import { findConsoleDocuments, requireConsolePayloadContext } from "@/console/lib/payload.server"
+import { parseArticleListQuery } from "@/console/lib/article-filters"
+import {
+  type ConsoleContext,
+  requireConsoleContext,
+  requireReadableConsoleResource,
+} from "@/console/lib/console-context.server"
 import {
   CONSOLE_RESOURCES,
   type ConsoleResourceSlug,
@@ -18,8 +22,9 @@ import {
   isConsoleResourceSlug,
 } from "@/console/lib/resources"
 import { canConsole } from "@/console/lib/session.server"
-import { combineWhere, siteScopeWhere, sitesIdScopeWhere } from "@/console/lib/site-scope"
-import { parseUserListQuery, userListWhere } from "@/console/lib/user-filters"
+import { parseUserListQuery } from "@/console/lib/user-filters"
+import { listConsoleCollection, siteListExtras } from "@/server/repositories/console-collections"
+import { listSiteOptions, listTenantOptions } from "@/server/repositories/console-reads"
 
 const formatValue = (value: unknown, relationship = false): string => {
   if (relationship && (typeof value === "number" || typeof value === "string")) return "受限"
@@ -91,31 +96,21 @@ type CollectionPageProps = {
 }
 
 const filterOptions = async (
-  context: Awaited<ReturnType<typeof requireConsolePayloadContext>>,
+  context: ConsoleContext,
   collection: "sites" | "tenants",
 ): Promise<readonly FilterOption[]> => {
   const resource = collection === "sites" ? CMS_RESOURCE.SITES : CMS_RESOURCE.TENANTS
   if (!canConsole(context.session, resource, CMS_ACTION.READ)) return []
   try {
-    const result = await context.payload.find({
-      collection,
-      depth: 0,
-      limit: 100,
-      overrideAccess: false,
-      sort: "name",
-      user: context.user,
-    })
-    return (result.docs as unknown as readonly Record<string, unknown>[]).flatMap((doc) => {
-      const id = doc["id"]
-      const name = doc["name"]
-      return typeof id === "number" && typeof name === "string" && name.length > 0
-        ? [{ id, name }]
-        : []
-    })
+    return collection === "sites"
+      ? await listSiteOptions(context.db, context.scope)
+      : await listTenantOptions(context.db, context.scope)
   } catch {
     return []
   }
 }
+
+const PAGE_SIZE = 20
 
 const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPageProps) => {
   const { slug } = await params
@@ -125,13 +120,18 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
   const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1
 
   if (slug === "content-editions") {
-    const context = await requireConsolePayloadContext()
+    const context = await requireConsoleContext()
+    requireReadableConsoleResource(context.session, slug)
     const articleQuery = parseArticleListQuery(query)
     const [result, siteOptions, tenantOptions] = await Promise.all([
-      findConsoleDocuments({
+      listConsoleCollection(context.db, context.scope, slug, {
+        limit: PAGE_SIZE,
         page,
-        slug,
-        where: combineWhere(articleListWhere(articleQuery), siteScopeWhere(context.session)),
+        q: articleQuery.q,
+        site: articleQuery.site,
+        siteScope: context.siteIds,
+        status: articleQuery.status,
+        tenant: articleQuery.tenant,
       }),
       filterOptions(context, "sites"),
       context.session.role === CMS_ROLE.SUPER_ADMIN
@@ -156,11 +156,18 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
   }
 
   if (slug === "users") {
-    const context = await requireConsolePayloadContext()
+    const context = await requireConsoleContext()
+    requireReadableConsoleResource(context.session, slug)
     const isSuperAdmin = context.session.role === CMS_ROLE.SUPER_ADMIN
     const userQuery = parseUserListQuery(query)
     const [result, tenantOptions] = await Promise.all([
-      findConsoleDocuments({ page, slug, where: userListWhere(userQuery) }),
+      listConsoleCollection(context.db, context.scope, slug, {
+        limit: PAGE_SIZE,
+        page,
+        q: userQuery.q,
+        role: userQuery.role,
+        tenant: userQuery.tenant,
+      }),
       isSuperAdmin
         ? filterOptions(context, "tenants")
         : Promise.resolve([] as readonly FilterOption[]),
@@ -190,68 +197,41 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
   }
 
   if (slug === "sites") {
-    const context = await requireConsolePayloadContext()
-    const result = await findConsoleDocuments({
+    const context = await requireConsoleContext()
+    requireReadableConsoleResource(context.session, slug)
+    const result = await listConsoleCollection(context.db, context.scope, slug, {
+      limit: PAGE_SIZE,
       page,
-      slug,
-      where: sitesIdScopeWhere(context.session),
+      siteScope: context.siteIds,
     })
-    const canReadEditions = canConsole(context.session, CMS_RESOURCE.EDITIONS, CMS_ACTION.READ)
-    const canReadReleases = canConsole(context.session, CMS_RESOURCE.RELEASES, CMS_ACTION.READ)
-    const rows = await Promise.all(
-      result.docs.map(async (site): Promise<SiteRow> => {
-        const siteId = site["id"] as number
-        const [articleCount, latestRelease] = await Promise.all([
-          canReadEditions
-            ? context.payload
-                .count({
-                  collection: "content-editions",
-                  overrideAccess: false,
-                  user: context.user,
-                  where: { site: { equals: siteId } },
-                })
-                .then((counted) => counted.totalDocs ?? 0)
-                .catch(() => 0)
-            : 0,
-          canReadReleases
-            ? context.payload
-                .find({
-                  collection: "releases",
-                  depth: 0,
-                  limit: 1,
-                  overrideAccess: false,
-                  sort: "-createdAt",
-                  user: context.user,
-                  where: { site: { equals: siteId } },
-                })
-                .then(
-                  (found) =>
-                    ((found.docs[0] ?? null) as Record<string, unknown> | null)?.["createdAt"] ??
-                    null,
-                )
-                .catch(() => null)
-            : null,
-        ])
-        const tenantRecord = site["tenant"]
-        return {
-          articleCount,
-          id: siteId,
-          lastPublishedAt: typeof latestRelease === "string" ? latestRelease : null,
-          locale: typeof site["locale"] === "string" ? site["locale"] : null,
-          name:
-            typeof site["name"] === "string" && site["name"].length > 0
-              ? site["name"]
-              : `站点 #${String(siteId)}`,
-          status: typeof site["status"] === "string" ? site["status"] : null,
-          tenantName:
-            typeof tenantRecord === "object" &&
-            tenantRecord !== null &&
-            typeof (tenantRecord as Record<string, unknown>)["name"] === "string"
-              ? String((tenantRecord as Record<string, unknown>)["name"])
-              : null,
-        }
-      }),
+    const siteIds = result.docs.flatMap((site) =>
+      typeof site["id"] === "number" ? [site["id"]] : [],
     )
+    const extras = await siteListExtras(context.db, context.scope, siteIds, {
+      editions: canConsole(context.session, CMS_RESOURCE.EDITIONS, CMS_ACTION.READ),
+      releases: canConsole(context.session, CMS_RESOURCE.RELEASES, CMS_ACTION.READ),
+    })
+    const rows: readonly SiteRow[] = result.docs.map((site): SiteRow => {
+      const siteId = site["id"] as number
+      const tenantRecord = site["tenant"]
+      return {
+        articleCount: extras.articleCounts.get(siteId) ?? 0,
+        id: siteId,
+        lastPublishedAt: extras.lastReleases.get(siteId) ?? null,
+        locale: typeof site["locale"] === "string" ? site["locale"] : null,
+        name:
+          typeof site["name"] === "string" && site["name"].length > 0
+            ? site["name"]
+            : `站点 #${String(siteId)}`,
+        status: typeof site["status"] === "string" ? site["status"] : null,
+        tenantName:
+          typeof tenantRecord === "object" &&
+          tenantRecord !== null &&
+          typeof (tenantRecord as Record<string, unknown>)["name"] === "string"
+            ? String((tenantRecord as Record<string, unknown>)["name"])
+            : null,
+      }
+    })
     return (
       <div className="grid gap-6 [&>*]:min-w-0">
         <PageHeader
@@ -273,15 +253,19 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
     )
   }
 
-  const context = await requireConsolePayloadContext()
-  const result = await findConsoleDocuments({ page, slug })
+  const context = await requireConsoleContext()
+  requireReadableConsoleResource(context.session, slug)
+  const result = await listConsoleCollection(context.db, context.scope, slug, {
+    limit: PAGE_SIZE,
+    page,
+  })
   const resource = CONSOLE_RESOURCES[slug]
   const columns = resource.defaultColumns
   const canCreate =
     resource.resource !== null && canConsole(context.session, resource.resource, CMS_ACTION.CREATE)
   // content-editions / sites / users render their own workspace above and never
   // reach this generic list.
-  const createSupported = ["contents", "domains", "tenants"].includes(slug)
+  const createSupported = ["domains", "tenants"].includes(slug)
   const canUploadMedia =
     slug === "media" &&
     resource.resource !== null &&

@@ -1,7 +1,4 @@
-import type { Where } from "payload"
-
 import { BOARD_COLUMNS, type BoardColumnKey } from "./board-model"
-import { combineWhere } from "./site-scope"
 
 export const WORK_RANGES = ["today", "7d", "30d", "90d", "180d", "custom"] as const
 export type WorkRange = (typeof WORK_RANGES)[number]
@@ -88,17 +85,20 @@ export const parseWorkQuery = (
   }
 }
 
-const dateWhere = (query: WorkQuery, now: Date): Where | undefined => {
+export type WorkDateRange = Readonly<{ from: Date; toExclusive: Date }>
+
+/**
+ * 工作台时间窗：按 UTC 日历天计算，上界为次日零点（排他）。custom 需要
+ * 合法的 from/to；其余按 range 从今天倒推固定天数。
+ */
+export const workDateRange = (query: WorkQuery, now = new Date()): WorkDateRange => {
   const today = utcDay(now)
   if (query.range === "custom" && query.from != null && query.to != null) {
     return {
-      updatedAt: {
-        greater_than_equal: `${query.from}T00:00:00.000Z`,
-        less_than: shiftDays(new Date(`${query.to}T00:00:00.000Z`), 1).toISOString(),
-      },
+      from: new Date(`${query.from}T00:00:00.000Z`),
+      toExclusive: shiftDays(new Date(`${query.to}T00:00:00.000Z`), 1),
     }
   }
-
   const start = (() => {
     switch (query.range) {
       case "today":
@@ -113,35 +113,8 @@ const dateWhere = (query: WorkQuery, now: Date): Where | undefined => {
         return shiftDays(today, -29)
     }
   })()
-
-  return {
-    updatedAt: {
-      greater_than_equal: start.toISOString(),
-      less_than: shiftDays(today, 1).toISOString(),
-    },
-  }
+  return { from: start, toExclusive: shiftDays(today, 1) }
 }
-
-export const workWhere = (query: WorkQuery, now = new Date()): Where | undefined => {
-  const conditions: Where[] = []
-  if (query.q !== null) conditions.push({ title: { like: query.q } })
-  if (query.owner.length > 0) conditions.push({ owner: { in: [...query.owner] } })
-  if (query.site.length > 0) {
-    conditions.push({
-      or: query.site.flatMap((id) => [{ site: { equals: id } }, { sites: { contains: id } }]),
-    })
-  }
-  const dates = dateWhere(query, now)
-  if (dates !== undefined) conditions.push(dates)
-  if (conditions.length === 0) return undefined
-  return conditions.length === 1 ? conditions[0]! : { and: conditions }
-}
-
-export const scopedWorkWhere = (
-  query: WorkQuery,
-  scopeWhere: Where | undefined,
-  now = new Date(),
-): Where | undefined => combineWhere(scopeWhere, workWhere(query, now))
 
 export const workHref = (query: WorkQuery, overrides: Partial<WorkQuery> = {}): string => {
   const merged: WorkQuery = { ...query, ...overrides }

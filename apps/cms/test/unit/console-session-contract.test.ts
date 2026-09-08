@@ -48,13 +48,14 @@ describe("Console human session contract", () => {
     expect(layout).toContain("requireConsoleSession(")
   })
 
-  it("keeps Payload only as a collection adapter after compat session verification", async () => {
-    const payloadContext = await sourceOf("src/console/lib/payload.server.ts")
+  it("derives the Console data scope from the verified compat session, never from Payload", async () => {
+    const consoleContext = await sourceOf("src/console/lib/console-context.server.ts")
 
-    expect(payloadContext).toContain("isHumanConsoleSession")
-    expect(payloadContext).toContain("if (!isHumanConsoleSession(session)")
-    expect(payloadContext).toContain("payloadUserOf(session)")
-    expect(payloadContext).not.toContain("payload.auth(")
+    expect(consoleContext).toContain("isHumanConsoleSession")
+    expect(consoleContext).toContain("if (!isHumanConsoleSession(session)")
+    expect(consoleContext).toContain("entityScopeFor(")
+    expect(consoleContext).not.toContain("getPayload")
+    expect(consoleContext).not.toContain("payload.auth(")
   })
 
   it("only redirects an existing human session from login to the dashboard", async () => {

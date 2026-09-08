@@ -13,8 +13,9 @@ import {
   type TrendPoint,
 } from "@/console/components/charts"
 import { PageHeader } from "@/console/components/PageHeader"
-import { requireConsolePayloadContext } from "@/console/lib/payload.server"
+import { requireConsoleContext } from "@/console/lib/console-context.server"
 import { canConsole } from "@/console/lib/session.server"
+import { dashboardStats, failedOperationsCount } from "@/server/repositories/console-reads"
 
 export const metadata = {
   title: "控制台 | Geo Foundry",
@@ -45,12 +46,10 @@ const emptyTrend = (): readonly TrendPoint[] => {
   return days
 }
 
-const bucketByDay = (docs: readonly Record<string, unknown>[]): readonly TrendPoint[] => {
+const bucketByDay = (instants: readonly string[]): readonly TrendPoint[] => {
   const byDay = new Map<string, number>()
-  for (const doc of docs) {
-    const createdAt = doc["createdAt"]
-    if (typeof createdAt !== "string") continue
-    byDay.set(utcDay(createdAt), (byDay.get(utcDay(createdAt)) ?? 0) + 1)
+  for (const instant of instants) {
+    byDay.set(utcDay(instant), (byDay.get(utcDay(instant)) ?? 0) + 1)
   }
   return emptyTrend().map((point) => ({ ...point, value: byDay.get(point.date) ?? 0 }))
 }
@@ -58,103 +57,34 @@ const bucketByDay = (docs: readonly Record<string, unknown>[]): readonly TrendPo
 const restrictedNote = "当前角色无权读取"
 
 const ConsoleDashboardPage = async () => {
-  const context = await requireConsolePayloadContext()
-  const { payload, session, user } = context
+  const context = await requireConsoleContext()
+  const { session } = context
   const canRead = (resource: CmsResource) => canConsole(session, resource, CMS_ACTION.READ)
 
-  const cutoff = new Date(Date.now() - (TREND_DAYS - 1) * 86_400_000).toISOString()
+  const cutoff = new Date(Date.now() - (TREND_DAYS - 1) * 86_400_000)
 
   const canReadEditions = canRead(CMS_RESOURCE.EDITIONS)
   const canReadIntake = canRead(CMS_RESOURCE.INTAKE_ITEMS)
   const canReadReleases = canRead(CMS_RESOURCE.RELEASES)
   const canReadOperations = canRead(CMS_RESOURCE.OPERATIONS)
   const canReadSites = canRead(CMS_RESOURCE.SITES)
-  const canReadSnapshots = canRead(CMS_RESOURCE.PERFORMANCE_SNAPSHOTS)
 
-  const [statusCounts, intakeDocs, releaseDocs, failedOperations, sites, snapshotDocs] =
-    await Promise.all([
-      canReadEditions
-        ? Promise.all(
-            WORKFLOW_STATES.map((state) =>
-              payload
-                .count({
-                  collection: "content-editions",
-                  overrideAccess: false,
-                  user,
-                  where: { workflowStatus: { equals: state.key } },
-                })
-                .then((result) => result.totalDocs ?? 0),
-            ),
-          )
-        : null,
-      canReadIntake
-        ? payload
-            .find({
-              collection: "intake-items",
-              depth: 0,
-              limit: 1000,
-              overrideAccess: false,
-              pagination: false,
-              select: { createdAt: true },
-              sort: "-createdAt",
-              user,
-              where: { createdAt: { greater_than_equal: cutoff } },
-            })
-            .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
-        : null,
-      canReadReleases
-        ? payload
-            .find({
-              collection: "releases",
-              depth: 0,
-              limit: 1000,
-              overrideAccess: false,
-              pagination: false,
-              select: { createdAt: true },
-              sort: "-createdAt",
-              user,
-              where: { createdAt: { greater_than_equal: cutoff } },
-            })
-            .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
-        : null,
-      canReadOperations
-        ? payload
-            .count({
-              collection: "operations",
-              overrideAccess: false,
-              user,
-              where: { state: { equals: "failed" } },
-            })
-            .then((result) => result.totalDocs ?? 0)
-        : null,
-      canReadSites
-        ? payload
-            .find({
-              collection: "sites",
-              depth: 0,
-              limit: 12,
-              overrideAccess: false,
-              sort: "name",
-              user,
-            })
-            .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
-        : null,
-      canReadSnapshots
-        ? payload
-            .find({
-              collection: "performance-snapshots",
-              depth: 0,
-              limit: 1000,
-              overrideAccess: false,
-              select: { observedAt: true, visits: true },
-              sort: "-observedAt",
-              user,
-              where: { observedAt: { greater_than_equal: cutoff } },
-            })
-            .then((result) => result.docs as unknown as readonly Record<string, unknown>[])
-        : null,
-    ])
+  const [stats, failedOperations] = await Promise.all([
+    dashboardStats(context.db, context.scope, {
+      cutoff,
+      includeEditions: canReadEditions,
+      includeIntake: canReadIntake,
+      includeReleases: canReadReleases,
+      includeSites: canReadSites,
+    }),
+    canReadOperations ? failedOperationsCount(context.db, context.scope) : null,
+  ])
 
+  const statusCounts = canReadEditions
+    ? WORKFLOW_STATES.map((state) => stats.editionCountsByStatus.get(state.key) ?? 0)
+    : null
+  const intakeDocs = canReadIntake ? stats.intakeDays : null
+  const releaseDocs = canReadReleases ? stats.releaseDays : null
   const segments: readonly ChartSegment[] | null =
     statusCounts === null
       ? null
@@ -163,41 +93,7 @@ const ConsoleDashboardPage = async () => {
           label: state.label,
           value: statusCounts[index] ?? 0,
         }))
-
-  const siteArticleItems = await (async () => {
-    if (sites === null || !canReadEditions) return null
-    return Promise.all(
-      sites.map(async (site) => {
-        const siteId = site["id"] as number
-        const name =
-          typeof site["name"] === "string" && site["name"].length > 0
-            ? site["name"]
-            : `站点 #${String(siteId)}`
-        const result = await payload.count({
-          collection: "content-editions",
-          overrideAccess: false,
-          user,
-          where: { site: { equals: siteId } },
-        })
-        return { label: name, value: result.totalDocs ?? 0 }
-      }),
-    )
-  })()
-
-  const readingByDay = new Map<string, number>(
-    emptyTrend().map((point) => [point.date, 0] as const),
-  )
-  for (const snapshot of snapshotDocs ?? []) {
-    const observedAt = snapshot["observedAt"]
-    const visits = typeof snapshot["visits"] === "number" ? snapshot["visits"] : 0
-    if (typeof observedAt !== "string" || !readingByDay.has(observedAt.slice(0, 10))) continue
-    const day = observedAt.slice(0, 10)
-    readingByDay.set(day, (readingByDay.get(day) ?? 0) + visits)
-  }
-  const readingTrend: readonly TrendPoint[] = [...readingByDay.entries()].map(([date, value]) => ({
-    date,
-    value,
-  }))
+  const siteArticleItems = canReadSites && canReadEditions ? stats.editionCountsBySite : null
 
   const reviewCount = statusCounts === null ? null : (statusCounts[2] ?? 0)
   const publishReadyCount =
@@ -334,16 +230,6 @@ const ConsoleDashboardPage = async () => {
             </div>
           ) : (
             <RankedBars emptyLabel="暂无站点" items={siteArticleItems} />
-          )}
-        </ChartCard>
-
-        <ChartCard title="近 30 天阅读趋势">
-          {snapshotDocs === null ? (
-            <div className="grid min-h-40 place-items-center rounded-md border border-dashed border-[var(--console-border)]">
-              <span className="text-sm text-[var(--console-ink-muted)]">{restrictedNote}</span>
-            </div>
-          ) : (
-            <TrendBars color="#f59e0b" data={readingTrend} emptyLabel="近 30 天暂无阅读数据" />
           )}
         </ChartCard>
       </section>

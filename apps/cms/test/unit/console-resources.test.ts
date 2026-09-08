@@ -8,8 +8,8 @@ import {
 } from "../../src/console/lib/resources"
 
 describe("Console resource registry", () => {
-  it("Given the human Console, when resources are registered, then all 14 visible collections have an entry", () => {
-    expect(VISIBLE_RESOURCE_SLUGS).toHaveLength(14)
+  it("Given the human Console, when resources are registered, then all 12 visible collections have an entry", () => {
+    expect(VISIBLE_RESOURCE_SLUGS).toHaveLength(12)
     expect(Object.keys(CONSOLE_RESOURCES).sort()).toEqual([...VISIBLE_RESOURCE_SLUGS].sort())
   })
 
@@ -28,6 +28,6 @@ describe("Console resource registry", () => {
   it("Given a list with relationship columns, when defining its display contract, then relationships are hydrated rather than rendered as IDs", () => {
     expect(CONSOLE_RESOURCES["content-editions"].relationshipColumns).toContain("site")
     expect(CONSOLE_RESOURCES.releases.relationshipColumns).toContain("site")
-    expect(CONSOLE_RESOURCES.contents.relationshipColumns).toBeUndefined()
+    expect(CONSOLE_RESOURCES.operations.relationshipColumns).toBeUndefined()
   })
 })

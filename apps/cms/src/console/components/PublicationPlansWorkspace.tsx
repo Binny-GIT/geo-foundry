@@ -1,13 +1,14 @@
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
-import type { requireConsolePayloadContext } from "@/console/lib/payload.server"
+import type { ConsoleContext } from "@/console/lib/console-context.server"
 import { consoleRoute } from "@/console/lib/resources"
+import { publicationPlanRows } from "@/server/repositories/console-reads"
 
 type PlanRecord = Readonly<Record<string, unknown>>
 
 type PublicationPlansWorkspaceProps = {
-  readonly context: Awaited<ReturnType<typeof requireConsolePayloadContext>>
+  readonly context: ConsoleContext
   readonly view: "day" | "week"
 }
 
@@ -107,37 +108,10 @@ export const PublicationPlansWorkspace = async ({
   context,
   view,
 }: PublicationPlansWorkspaceProps) => {
-  const payload = context.payload
-  const user = context.user
-  const [active, terminal] = await Promise.all([
-    payload.find({
-      collection: "publication-plans",
-      depth: 1,
-      limit: 100,
-      overrideAccess: false,
-      sort: "scheduledFor",
-      user,
-      where: { or: [{ status: { equals: "pending" } }, { status: { equals: "running" } }] },
-    }),
-    payload.find({
-      collection: "publication-plans",
-      depth: 1,
-      limit: 10,
-      overrideAccess: false,
-      sort: "-updatedAt",
-      user,
-      where: {
-        or: [
-          { status: { equals: "succeeded" } },
-          { status: { equals: "failed" } },
-          { status: { equals: "cancelled" } },
-        ],
-      },
-    }),
-  ])
+  const { active, terminal } = await publicationPlanRows(context.db, context.scope)
 
   const groups = new Map<string, PlanRecord[]>()
-  for (const doc of active.docs as unknown as PlanRecord[]) {
+  for (const doc of active) {
     const scheduledFor = text(doc["scheduledFor"])
     if (scheduledFor.length === 0) continue
     const key = view === "week" ? utcWeekKey(scheduledFor) : utcDayKey(scheduledFor)
@@ -207,7 +181,7 @@ export const PublicationPlansWorkspace = async ({
         )}
       </section>
 
-      {terminal.docs.length > 0 && (
+      {terminal.length > 0 && (
         <section className="gf-console-card overflow-hidden">
           <div className="border-b border-[var(--console-border)] px-5 py-4">
             <h2 className="m-0 text-sm font-semibold text-[var(--console-ink)]">最近完成</h2>
@@ -216,7 +190,7 @@ export const PublicationPlansWorkspace = async ({
             </p>
           </div>
           <ul className="m-0 list-none divide-y divide-[var(--console-border)] p-0">
-            {(terminal.docs as unknown as PlanRecord[]).map((plan) => (
+            {terminal.map((plan) => (
               <PlanRow key={String(plan["id"])} plan={plan} />
             ))}
           </ul>

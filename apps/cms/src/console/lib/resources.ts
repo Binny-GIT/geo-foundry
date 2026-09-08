@@ -19,7 +19,6 @@ export const VISIBLE_RESOURCE_SLUGS = [
   "tenants",
   "sites",
   "domains",
-  "contents",
   "content-editions",
   "media",
   "url-records",
@@ -27,7 +26,6 @@ export const VISIBLE_RESOURCE_SLUGS = [
   "releases",
   "rollback-intents",
   "publication-plans",
-  "performance-snapshots",
   "operations",
 ] as const
 
@@ -107,15 +105,6 @@ export const CONSOLE_RESOURCES: Readonly<Record<ConsoleResourceSlug, ConsoleReso
     resource: CMS_RESOURCE.DOMAINS,
     subtitle: { en: "Canonical hostnames and aliases", zh: "主域名与别名管理（站点详情内维护）" },
   },
-  contents: {
-    apiSlug: "contents",
-    defaultColumns: ["topic", "intent", "createdBy", "updatedAt"],
-    section: "system",
-    icon: SearchIcon,
-    label: { en: "Contents", zh: "内容条目" },
-    resource: CMS_RESOURCE.CONTENTS,
-    subtitle: { en: "Content briefs and production intent", zh: "内容简报与生产意图" },
-  },
   "content-editions": {
     apiSlug: "content-editions",
     defaultColumns: ["title", "site", "workflowStatus", "updatedAt"],
@@ -171,19 +160,6 @@ export const CONSOLE_RESOURCES: Readonly<Record<ConsoleResourceSlug, ConsoleReso
     resource: CMS_RESOURCE.RELEASES,
     subtitle: { en: "Immutable release registry", zh: "不可变发布版本台账" },
   },
-  "performance-snapshots": {
-    apiSlug: "performance-snapshots",
-    defaultColumns: ["site", "edition", "source", "observedAt", "visits", "updatedAt"],
-    section: "system",
-    icon: LayersIcon,
-    label: { en: "Traffic Statistics", zh: "流量统计" },
-    relationshipColumns: ["edition", "site", "tenant"],
-    resource: CMS_RESOURCE.PERFORMANCE_SNAPSHOTS,
-    subtitle: {
-      en: "Imported traffic observations for reading analytics",
-      zh: "导入的流量统计数据（阅读分析的数据源）",
-    },
-  },
   "publication-plans": {
     apiSlug: "publication-plans",
     defaultColumns: ["edition", "site", "scheduledFor", "timezone", "status", "updatedAt"],
@@ -221,7 +197,7 @@ export const CONSOLE_RESOURCES: Readonly<Record<ConsoleResourceSlug, ConsoleReso
   },
 }
 
-export const FIRST_WAVE_MUTABLE_RESOURCES = ["contents", "domains", "sites", "tenants"] as const
+export const FIRST_WAVE_MUTABLE_RESOURCES = ["domains", "sites", "tenants"] as const
 
 export const isFirstWaveMutableResource = (value: ConsoleResourceSlug): boolean =>
   (FIRST_WAVE_MUTABLE_RESOURCES as readonly string[]).includes(value)

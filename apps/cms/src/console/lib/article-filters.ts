@@ -1,9 +1,7 @@
-import type { Where } from "payload"
-
 /**
  * Server-side whitelist for the article list filters. Search params are only
- * translated into `where` conditions through this module — the client never
- * supplies arbitrary query structures.
+ * translated into a typed query through this module — the repository maps it
+ * to SQL predicates; the client never supplies arbitrary query structures.
  */
 
 export const ARTICLE_STATUS_OPTIONS = [
@@ -48,16 +46,6 @@ export const parseArticleListQuery = (
     status: statusRaw !== null && STATUS_KEYS.includes(statusRaw) ? statusRaw : null,
     tenant: positiveInt(first(searchParams["tenant"])),
   }
-}
-
-export const articleListWhere = (query: ArticleListQuery): Where | undefined => {
-  const conditions: Where[] = []
-  if (query.site !== null) conditions.push({ site: { equals: query.site } })
-  if (query.status !== null) conditions.push({ workflowStatus: { equals: query.status } })
-  if (query.tenant !== null) conditions.push({ tenant: { equals: query.tenant } })
-  if (query.q !== null) conditions.push({ title: { like: query.q } })
-  if (conditions.length === 0) return undefined
-  return conditions.length === 1 ? conditions[0]! : { and: conditions }
 }
 
 export const articleListHref = (
