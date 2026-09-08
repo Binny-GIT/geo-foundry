@@ -304,8 +304,8 @@ export const ContentEditionAiChat = ({
   }
 
   const cancel = () => {
-    /* 序号递增让在途响应整体作废（含 abort 触发的 catch 分支）。 */
-    reqSeqRef.current += 1
+    /* 只 abort：请求死掉后 catch 分支按序号正常收尾并提示「已停止生成」。
+     * 递增序号是切换文章的事（effect 里做），这里做了会把自己的提示也拦掉。 */
     abortRef.current?.abort()
   }
 
