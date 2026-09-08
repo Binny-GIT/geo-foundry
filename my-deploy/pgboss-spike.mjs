@@ -30,7 +30,7 @@ await boss.start()
 // 并让未来新建的表自动带权限；worker（migrate:false）永远不需要 DDL，业务 schema 一律不授。
 const grantToWorker = () =>
   adminPool.query(`
-    GRANT USAGE ON SCHEMA pgboss_spike TO spike_worker;
+    GRANT USAGE, CREATE ON SCHEMA pgboss_spike TO spike_worker;
     GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA pgboss_spike TO spike_worker;
     GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA pgboss_spike TO spike_worker;
     ALTER DEFAULT PRIVILEGES FOR ROLE spike_admin IN SCHEMA pgboss_spike
