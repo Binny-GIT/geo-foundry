@@ -131,7 +131,7 @@ RUID=$(body "$R" | jget '["doc"]["id"]' 2>/dev/null)
 printf '\x89PNG\r\n\x1a\n' > /tmp/e2e-$TS.png; head -c 300 /dev/urandom >> /tmp/e2e-$TS.png
 R=$(curl -s -w '\n%{http_code}' -b /tmp/cp-e.jar -X POST "$BASE/api/media" -F "file=@/tmp/e2e-$TS.png;type=image/png" -F "alt=e2e alt $TS" -F "caption=cap")
 MID=$(body "$R" | jget '["doc"]["id"]' 2>/dev/null)
-[ "$(status "$R")" = 201 ] && [ "$(PSQL "SELECT tenant_id||'|'||prefix||'|'||media_path FROM geo_foundry.media WHERE id=$MID")" = "413|tenants/413|/media/tenants/413/e2e-$TS.png" ] && ok "media upload 201" || bad "media upload $R"
+[ "$(status "$R")" = 201 ] && [ "$(PSQL "SELECT tenant_id||'|'||filename FROM geo_foundry.media WHERE id=$MID")" = "413|e2e-$TS.png" ] && body "$R" | python3 -c 'import json,sys; d=json.load(sys.stdin)["doc"]; assert d["url"]=="/api/media/file/e2e-'"$TS"'.png" and d["mediaPath"]=="/media/tenants/413/e2e-'"$TS"'.png"' && ok "media upload 201 with derived paths" || bad "media upload $R"
 curl -s -b /tmp/cp-e.jar -o /tmp/e2e-$TS.back "$BASE/api/media/file/e2e-$TS.png" -w '%{http_code}\n' > /tmp/mcode
 [ "$(cat /tmp/mcode)" = 200 ] && cmp -s /tmp/e2e-$TS.png /tmp/e2e-$TS.back && ok "media file readback byte-identical" || bad "media readback code=$(cat /tmp/mcode)"
 code=$(curl -s -o /dev/null -w '%{http_code}' -b /tmp/cp-t.jar "$BASE/api/media/file/ui-loop-admin-ui-20260823-3a5da6eb756e.png")
