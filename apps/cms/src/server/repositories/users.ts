@@ -9,9 +9,9 @@
 
 import { and, eq, gt, inArray, sql } from "drizzle-orm"
 
-import { payloadApiKeyIndexesOf } from "../auth/compat"
+import { apiKeyIndexesOf } from "../auth/compat"
 import type { ServerDb } from "../db/client"
-import { users, usersSessions, type usersRole } from "../db/schema"
+import { users, type usersRole, usersSessions } from "../db/schema"
 
 export type UserAuthRecord = Readonly<{
   createdAt: Date
@@ -59,11 +59,11 @@ export class UsersRepository {
   }
 
   /**
-   * Worker keyring：数据库 api_key 是密文，不能与明文比较；按 Payload 官方
-   * 策略计算 HMAC-SHA256 / legacy SHA1 两种 api_key_index 查询。
+   * Worker keyring：数据库 api_key 是密文，不能与明文比较；按历史兼容规则
+   * 计算 HMAC-SHA256 与旧 SHA-1 两种 api_key_index 查询。
    */
   async findAuthByApiKey(apiKey: string, configSecret: string): Promise<UserAuthRecord | null> {
-    const indexes = payloadApiKeyIndexesOf(apiKey, configSecret)
+    const indexes = apiKeyIndexesOf(apiKey, configSecret)
     const rows = await this.db
       .select()
       .from(users)
@@ -126,10 +126,7 @@ export class UsersRepository {
         order: Number(maxOrderRows[0]?.order ?? -1) + 1,
         parentId: userId,
       })
-      await tx
-        .update(users)
-        .set({ loginAttempts: 0, lockUntil: null })
-        .where(eq(users.id, userId))
+      await tx.update(users).set({ loginAttempts: 0, lockUntil: null }).where(eq(users.id, userId))
     })
   }
 
@@ -148,7 +145,7 @@ export class UsersRepository {
     return rows.length > 0
   }
 
-  /** 会话撤销：按 sid 删除 users_sessions 行（Payload 撤销语义的等价实现）。 */
+  /** 会话撤销：按 sid 删除 users_sessions 行，保持历史撤销语义。 */
   async revokeSession(userId: number, sid: string): Promise<boolean> {
     const rows = await this.db
       .delete(usersSessions)
@@ -163,20 +160,6 @@ export class UsersRepository {
       .where(eq(usersSessions.parentId, userId))
       .returning({ id: usersSessions.id })
     return rows.length
-  }
-
-  async refreshSession(userId: number, sid: string, expiresAt: Date): Promise<boolean> {
-    return this.db.transaction(async (tx) => {
-      await tx
-        .delete(usersSessions)
-        .where(and(eq(usersSessions.parentId, userId), sql`${usersSessions.expiresAt} <= NOW()`))
-      const rows = await tx
-        .update(usersSessions)
-        .set({ expiresAt })
-        .where(and(eq(usersSessions.parentId, userId), eq(usersSessions.id, sid)))
-        .returning({ id: usersSessions.id })
-      return rows.length === 1
-    })
   }
 
   async updatePasswordHash(

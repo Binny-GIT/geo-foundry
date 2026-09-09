@@ -13,7 +13,7 @@ type SiteOption = {
   readonly name?: string
 }
 
-type PayloadError = {
+type ApiErrorBody = {
   readonly errors?: readonly { readonly message?: string }[]
   readonly message?: string
 }
@@ -30,7 +30,7 @@ const relationId = (value: unknown): string => {
   return ""
 }
 
-const errorMessage = (payload: PayloadError): string =>
+const errorMessage = (payload: ApiErrorBody): string =>
   payload.errors?.find((error) => typeof error.message === "string")?.message ??
   payload.message ??
   "保存失败，请检查填写内容后重试。"
@@ -90,7 +90,7 @@ export const ConsoleEditForm = ({
         method: "PATCH",
       })
       if (!response.ok) {
-        const payload = (await response.json().catch(() => ({}))) as PayloadError
+        const payload = (await response.json().catch(() => ({}))) as ApiErrorBody
         setError(errorMessage(payload))
         return
       }

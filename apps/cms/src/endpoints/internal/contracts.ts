@@ -21,7 +21,6 @@ export const INTERNAL_PATHS = {
   operationGet: "/internal/operations/:operationId",
   operationStageComplete: "/internal/operations/:operationId/stages/complete",
   operationStageStart: "/internal/operations/:operationId/stages/start",
-  operationsNonTerminal: "/internal/operations/non-terminal",
 } as const
 
 export const SHA256_PATTERN = /^[0-9a-f]{64}$/

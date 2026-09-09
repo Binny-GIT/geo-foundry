@@ -23,7 +23,7 @@ const clientMethodByOperation: Readonly<Record<string, string>> = {
   getEditionInput: "getEditionInput",
   getIntakeFetchInput: "getIntakeFetchInput",
   getOperation: "getOperation",
-  listNonTerminalOperations: "listNonTerminalOperations",
+  pollDueConnectors: "pollDueConnectors",
   recordAssessment: "recordAssessment",
   recordCompileResult: "recordCompileResult",
   recordPublishedRelease: "recordPublishedRelease",

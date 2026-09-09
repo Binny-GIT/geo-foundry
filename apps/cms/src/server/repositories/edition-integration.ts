@@ -1,28 +1,26 @@
 /*
  * 内部集成服务 Drizzle 实现：生成草稿写入 / 编译结果 / 质量评估 /
- * 输入快照读取。契约（错误码、审计形状、outbox 事件、幂等语义）与
+ * 输入快照读取。契约（错误码、审计形状、任务事件、幂等语义）与
  * services/edition-integration.ts + recordAssessment 保持一致。
  */
 
-
 import type { ContentEditionState } from "@geo/domain"
 import { eq } from "drizzle-orm"
-
-import { markdownToBlocks, blocksToMarkdown } from "../../editor/block-markdown"
-import { validateEditionBody } from "../../editor/validate-body"
 import { resolveSessionClaims } from "../../access/session"
+import { blocksToMarkdown, markdownToBlocks } from "../../editor/block-markdown"
+import { validateEditionBody } from "../../editor/validate-body"
 import { hashEditionContent } from "../../services/edition-input-hash"
 import { EditionWorkflowError } from "../../services/edition-workflow"
 import type { ServerDb } from "../db/client"
-import { sendEditionEmbeddingJobWithin } from "../jobs/pgboss"
 import { editionVersions } from "../db/edition-schema"
 import { qualityAssessments } from "../db/session-schema"
+import { sendEditionEmbeddingJobWithin } from "../jobs/pgboss"
 import {
   insertLatestVersion,
   loadCurrentVersion,
   transitionEditionWithinTx,
-  workflowActorOf,
   type WorkflowClaims,
+  workflowActorOf,
 } from "./edition-workflow"
 import type { EntityScope } from "./entities"
 
@@ -283,6 +281,8 @@ export const recordAssessment = async (
     readonly inputHash: string
     readonly issues: readonly { readonly code: string; readonly severity: string }[]
     readonly modelId: string
+    readonly overall?: number
+    readonly dimensions?: Readonly<Record<string, number>>
     readonly promptVersion: string
     readonly provider: string
     readonly state: "error" | "failed" | "passed"
@@ -305,6 +305,8 @@ export const recordAssessment = async (
         inputHash: input.inputHash,
         issues: input.issues.map((issue) => ({ ...issue })),
         modelId: input.modelId,
+        ...(input.overall === undefined ? {} : { overall: String(input.overall) }),
+        ...(input.dimensions === undefined ? {} : { dimensions: { ...input.dimensions } }),
         promptVersion: input.promptVersion,
         provider: input.provider,
         siteId: version.siteId ?? -1,

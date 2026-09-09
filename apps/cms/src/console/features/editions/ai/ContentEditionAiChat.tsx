@@ -1,14 +1,5 @@
 "use client"
 
-import {
-  type SelectionSnapshot,
-  applyProposal,
-  buildDraftContext,
-  CONTINUE_WRITING_PROMPT,
-  selectionRewritePrompt,
-  splitArticle,
-} from "../model/ai-chat-model"
-import { toast, useEditionBody, useEditionEditor } from "../state/edition-editor-context"
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
   CheckCircleIcon,
@@ -26,6 +17,15 @@ import {
 } from "@/components/icons"
 import { IconBadge } from "@/components/ui"
 import { Button } from "@/components/ui/button"
+import {
+  applyProposal,
+  buildDraftContext,
+  CONTINUE_WRITING_PROMPT,
+  type SelectionSnapshot,
+  selectionRewritePrompt,
+  splitArticle,
+} from "../model/ai-chat-model"
+import { toast, useEditionBody, useEditionEditor } from "../state/edition-editor-context"
 
 const PANEL_KEY = "gf-ai-chat-open"
 const AUTO_APPLY_KEY = "gf-ai-auto-apply"
@@ -152,9 +152,8 @@ export const ContentEditionAiChat = ({
   const abortRef = useRef<AbortController | null>(null)
   /* 「改写选中」请求瞄准的选区快照：随提案存到消息上，应用时定位。 */
   const armedSelectionRef = useRef<SelectionSnapshot | null>(null)
-  /* Payload reports the document id one render after mount, so the key can
-   * change under us. Writing back only for the key the current transcript was
-   * loaded from prevents an empty state from erasing a stored conversation. */
+  /* 新建草稿保存后文档 id 会在下一次渲染更新；仅写回当前会话加载时的 key，
+   * 防止空状态覆盖已经保存的对话记录。 */
   const loadedKey = useRef<string | null>(null)
 
   useEffect(() => {
@@ -232,8 +231,12 @@ export const ContentEditionAiChat = ({
             /* 未保存的标题/摘要/正文随请求带给模型，而不是让模型读数据库旧稿。 */
             draft: buildDraftContext({
               markdown: baseline,
-              summary: typeof editor?.values["summary"] === "string" ? String(editor.values["summary"]) : "",
-              title: typeof editor?.values["title"] === "string" ? String(editor.values["title"]) : "",
+              summary:
+                typeof editor?.values["summary"] === "string"
+                  ? String(editor.values["summary"])
+                  : "",
+              title:
+                typeof editor?.values["title"] === "string" ? String(editor.values["title"]) : "",
             }),
             messages: history
               .filter((message) => message.role !== "system")
@@ -378,9 +381,7 @@ export const ContentEditionAiChat = ({
           <p className="m-0 text-xs font-extrabold uppercase tracking-[0.08em] text-[var(--gf-accent-700)]">
             AI 助手
           </p>
-          <strong className="mt-0.5 block truncate text-sm text-[var(--gf-text)]">
-            写作对话
-          </strong>
+          <strong className="mt-0.5 block truncate text-sm text-[var(--gf-text)]">写作对话</strong>
         </div>
         <Button
           aria-label="清空对话"
@@ -464,7 +465,12 @@ export const ContentEditionAiChat = ({
                         {messageSelection !== null && (
                           <Button
                             onClick={() =>
-                              applyArticle(message.id, message.article ?? "", "selection", messageSelection)
+                              applyArticle(
+                                message.id,
+                                message.article ?? "",
+                                "selection",
+                                messageSelection,
+                              )
                             }
                             size="xs"
                             type="button"
@@ -511,9 +517,7 @@ export const ContentEditionAiChat = ({
             )
           })
         )}
-        {sending && (
-          <p className="m-0 text-xs text-[var(--gf-elevation-600)]">助手正在生成回复…</p>
-        )}
+        {sending && <p className="m-0 text-xs text-[var(--gf-elevation-600)]">助手正在生成回复…</p>}
       </div>
 
       <div className="shrink-0 border-t border-[var(--gf-elevation-150)] px-4 py-3">

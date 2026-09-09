@@ -1,10 +1,10 @@
 import type { PageDocument } from "@geo/schema"
 
-import type { RenderSlotPayload } from "./model.js"
+import type { RenderSlotData } from "./model.js"
 
 const slotNames = ["page-header", "after-hero", "before-body", "after-body", "footer"] as const
 
-export const createRenderSlots = (document: PageDocument): readonly RenderSlotPayload[] =>
+export const createRenderSlots = (document: PageDocument): readonly RenderSlotData[] =>
   slotNames.map((name) => ({
     name,
     pageId: document.identity.pageId,

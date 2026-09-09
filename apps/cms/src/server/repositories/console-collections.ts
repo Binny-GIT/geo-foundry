@@ -375,22 +375,22 @@ const listEditions = async (
 
 /* ---------- media ---------- */
 
-const mediaDoc = (row: typeof media.$inferSelect): Row => ({
-  alt: row.alt,
-  caption: row.caption,
-  createdAt: iso(row.createdAt),
-  filename: row.filename,
-  filesize: row.filesize === null ? null : Number(row.filesize),
-  height: row.height === null ? null : Number(row.height),
-  id: row.id,
-  mediaPath: row.mediaPath,
-  mimeType: row.mimeType,
-  tenant: row.tenantId,
-  thumbnailURL: row.thumbnailUrl,
-  updatedAt: iso(row.updatedAt),
-  url: row.url,
-  width: row.width === null ? null : Number(row.width),
-})
+const mediaDoc = (row: typeof media.$inferSelect): Row => {
+  const filename = row.filename ?? ""
+  return {
+    alt: row.alt,
+    caption: row.caption,
+    createdAt: iso(row.createdAt),
+    filename: row.filename,
+    filesize: row.filesize,
+    id: row.id,
+    mediaPath: filename.length === 0 ? null : `/media/tenants/${row.tenantId}/${filename}`,
+    mimeType: row.mimeType,
+    tenant: row.tenantId,
+    updatedAt: iso(row.updatedAt),
+    url: filename.length === 0 ? null : `/api/media/file/${filename}`,
+  }
+}
 
 const listMedia = async (
   db: ServerDb,
@@ -730,11 +730,8 @@ export const operationDoc = (row: typeof operations.$inferSelect): Row => ({
   error: row.error,
   id: row.id,
   lastStageAt: iso(row.lastStageAt),
-  modelId: row.modelId,
   operationId: row.operationId,
   operationType: row.operationType,
-  promptVersion: row.promptVersion,
-  providerVersion: row.providerVersion,
   requestPayload: row.requestPayload,
   result: row.result,
   revision: Number(row.revision ?? 0),

@@ -104,6 +104,30 @@ describe("content service client", () => {
   })
 })
 
+describe("content service client: connector polling", () => {
+  it("calls the tenant-scoped due connector endpoint without a request body", async () => {
+    const captured: CapturedRequest[] = []
+    const instance = client(
+      fakeFetch(
+        { body: { errors: [], polled: [12], skipped: [{ connectorId: 13, reason: "NOT_DUE" }] } },
+        captured,
+      ),
+    )
+
+    await expect(instance.pollDueConnectors({ requestId: "poll-req-0001" })).resolves.toEqual({
+      errors: [],
+      polled: [12],
+      skipped: [{ connectorId: 13, reason: "NOT_DUE" }],
+    })
+    expect(captured[0]).toMatchObject({
+      body: null,
+      method: "POST",
+      url: "http://cms.test/api/internal/connectors/poll-due",
+    })
+    expect(captured[0]?.headers["x-request-id"]).toBe("poll-req-0001")
+  })
+})
+
 describe("content service client: intake", () => {
   it("uses the tenant-scoped intake fetch endpoints", async () => {
     const captured: CapturedRequest[] = []

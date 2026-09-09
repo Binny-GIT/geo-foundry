@@ -6,7 +6,7 @@ import { hashPassword, verifyPassword } from "../../src/server/auth/password"
 /*
  * scrypt 密码哈希契约：
  * - 新哈希带 $scrypt$ 前缀，往返验证通过且不再需要 rehash；
- * - 旧 PBKDF2（Payload 兼容参数）验证通过且标记 needsRehash；
+ * - 旧 PBKDF2（历史兼容参数）验证通过且标记 needsRehash；
  * - 错误密码、损坏哈希串一律 false。
  */
 const legacyCredentialsOf = async (password: string) => {
@@ -45,7 +45,13 @@ describe("password hashing (scrypt migration)", () => {
 
   it("rejects malformed hash strings without throwing", async () => {
     const salt = "ab".repeat(32)
-    for (const hash of ["", "$scrypt$", "$scrypt$not,numbers$aa$bb", "$scrypt$131072,8,1$zzzz$ffff", "00zz"]) {
+    for (const hash of [
+      "",
+      "$scrypt$",
+      "$scrypt$not,numbers$aa$bb",
+      "$scrypt$131072,8,1$zzzz$ffff",
+      "00zz",
+    ]) {
       const verification = await verifyPassword("x", { hash, salt })
       expect(verification.valid).toBe(false)
     }

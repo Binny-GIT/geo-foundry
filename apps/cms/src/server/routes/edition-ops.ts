@@ -9,11 +9,11 @@ import { eq, inArray } from "drizzle-orm"
 import { z } from "zod"
 
 import { authenticateRequest } from "../auth/session"
-import { insertLatestVersion, loadCurrentVersion } from "../repositories/edition-workflow"
-import { entityScopeOf } from "../repositories/entities"
 import { contentEditions, editionVersions } from "../db/edition-schema"
 import { sites } from "../db/entity-schema"
 import { users } from "../db/schema"
+import { insertLatestVersion, loadCurrentVersion } from "../repositories/edition-workflow"
+import { entityScopeOf } from "../repositories/entities"
 import { serverRuntime } from "../runtime"
 
 export class EditionOpsError extends Error {
@@ -101,7 +101,6 @@ export const handleEditionOpsPost = async (
             priority: "normal",
             siteId: version.siteId,
             sites: version.sites,
-            status: "draft",
             summary: version.summary,
             tenantId: version.tenantId,
             title: version.title,
@@ -132,7 +131,6 @@ export const handleEditionOpsPost = async (
             priority: "normal",
             siteId: version.siteId,
             sites: version.sites,
-            status: "draft",
             summary: version.summary,
             tenantId: version.tenantId,
             title: version.title,

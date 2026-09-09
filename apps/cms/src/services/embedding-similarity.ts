@@ -1,6 +1,8 @@
 import { sql } from "drizzle-orm"
 
 import type { ServerDb } from "../server/db/client"
+import { contentEditions } from "../server/db/edition-schema"
+import { embeddings } from "../server/db/entity-schema"
 
 import {
   anchorOf,
@@ -50,20 +52,20 @@ const similarityQuery = (input: {
 }) => {
   const sitePredicate =
     input.comparison === "cross-domain"
-      ? sql`"e"."site_id" <> ${input.anchor.siteId}`
-      : sql`"e"."site_id" = ${input.anchor.siteId}`
+      ? sql`${embeddings.siteId} <> ${input.anchor.siteId}`
+      : sql`${embeddings.siteId} = ${input.anchor.siteId}`
   return sql`
-    SELECT "e"."edition_id", "e"."site_id", "e"."input_hash", "ce"."title",
-           round((1 - ("e"."embedding" OPERATOR(public.<=>) ${input.vectorLiteral}::public.vector))::numeric, 6)::float8 AS "similarity"
-    FROM "geo_foundry"."embeddings" "e"
-    JOIN "geo_foundry"."content_editions" "ce" ON "ce"."id" = "e"."edition_id"
-    WHERE "e"."tenant_id" = ${input.anchor.tenantId}
-      AND "e"."scope" = ${input.scope}
-      AND "e"."model_id" = ${input.modelId}
-      AND "e"."dimension" = ${input.dimension}
-      AND "e"."edition_id" <> ${input.anchor.editionId}
+    SELECT ${embeddings.editionId}, ${embeddings.siteId}, ${embeddings.inputHash}, ${contentEditions.title},
+           round((1 - (${embeddings.embedding} OPERATOR(public.<=>) ${input.vectorLiteral}::public.vector))::numeric, 6)::float8 AS "similarity"
+    FROM ${embeddings}
+    JOIN ${contentEditions} ON ${contentEditions.id} = ${embeddings.editionId}
+    WHERE ${embeddings.tenantId} = ${input.anchor.tenantId}
+      AND ${embeddings.scope} = ${input.scope}
+      AND ${embeddings.modelId} = ${input.modelId}
+      AND ${embeddings.dimension} = ${input.dimension}
+      AND ${embeddings.editionId} <> ${input.anchor.editionId}
       AND ${sitePredicate}
-    ORDER BY "e"."embedding" OPERATOR(public.<=>) ${input.vectorLiteral}::public.vector
+    ORDER BY ${embeddings.embedding} OPERATOR(public.<=>) ${input.vectorLiteral}::public.vector
     LIMIT ${input.limit}`
 }
 

@@ -1,7 +1,6 @@
 import {
   completeOperationStage,
   getOperation,
-  listNonTerminalOperations,
   startOperationStage,
 } from "../../server/repositories/operations-ledger"
 import { serverRuntime } from "../../server/runtime"
@@ -59,17 +58,8 @@ const handleCompleteStage = withInternalGuards(
   },
 )
 
-const handleListNonTerminal = withInternalGuards(
-  { bodySchema: null, operation: "listNonTerminalOperations" },
-  async (req, ctx) => {
-    const result = await listNonTerminalOperations(serverRuntime().db, req.user)
-    return internalJsonResponse(200, result, ctx.requestId, null)
-  },
-)
-
 export const operationHandlerByOperation: Record<string, typeof handleGetOperation> = {
   completeOperationStage: handleCompleteStage,
   getOperation: handleGetOperation,
-  listNonTerminalOperations: handleListNonTerminal,
   startOperationStage: handleStartStage,
 }

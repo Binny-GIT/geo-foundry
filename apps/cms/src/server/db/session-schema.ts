@@ -124,6 +124,7 @@ export const articleSources = geo.table(
     index("article_sources_edition_idx").on(table.editionId),
     index("article_sources_tenant_idx").on(table.tenantId),
     index("article_sources_intake_item_idx").on(table.intakeItemId),
+    uniqueIndex("article_sources_edition_intake_item_idx").on(table.editionId, table.intakeItemId),
   ],
 )
 
@@ -165,6 +166,7 @@ export const domains = geo.table(
   (table) => [
     index("domains_site_idx").on(table.siteId),
     index("domains_tenant_idx").on(table.tenantId),
+    uniqueIndex("domains_hostname_idx").on(table.hostname),
   ],
 )
 
@@ -201,16 +203,22 @@ export const apiUsageDailies = geo.table(
   "api_usage_dailies",
   {
     id: serial("id").primaryKey(),
-    count: integer("count").default(0),
-    date: varchar("date"),
-    route: usageRoute("route"),
-    siteId: integer("site_id"),
-    tenantId: integer("tenant_id"),
+    count: integer("count").default(0).notNull(),
+    date: varchar("date").notNull(),
+    route: usageRoute("route").notNull(),
+    siteId: integer("site_id").notNull(),
+    tenantId: integer("tenant_id").notNull(),
     ...timestamps,
   },
   (table) => [
     index("api_usage_dailies_date_idx").on(table.date),
     index("api_usage_dailies_site_idx").on(table.siteId),
+    uniqueIndex("api_usage_dailies_tenant_date_route_site_idx").on(
+      table.tenantId,
+      table.date,
+      table.route,
+      table.siteId,
+    ),
   ],
 )
 

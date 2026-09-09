@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest"
-
-import { editionHistoryItemOf } from "../../src/server/repositories/edition-versions"
 import type { editionVersions } from "../../src/server/db/edition-schema"
+import { editionHistoryItemOf } from "../../src/server/repositories/edition-versions"
 
 const versionRow = (
   overrides: Partial<typeof editionVersions.$inferSelect> = {},
@@ -26,7 +25,6 @@ const versionRow = (
   secondaryTopics: ["history"],
   siteId: 2,
   sites: [2],
-  status: "draft",
   summary: "Historical summary",
   tenantId: 3,
   title: "Historical title",

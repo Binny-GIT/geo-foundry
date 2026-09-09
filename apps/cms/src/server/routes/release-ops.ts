@@ -1,6 +1,6 @@
 /*
  * 控制面操作路由：回滚意图创建 + editor 评估操作提交。
- * 两者都以 operation+idempotency+outbox 同事务落账（评估复用
+ * 两者都以 operation、idempotency 与任务入队同事务落账（评估复用
  * OperationsRepository；回滚为保持与 intent 插入同事务，内联同构逻辑）。
  */
 
@@ -11,10 +11,10 @@ import { z } from "zod"
 
 import { operationRequestHashOf, operationUniqueKeyOf } from "../../services/operations-ledger"
 import { authenticateRequest } from "../auth/session"
-import { operations, idempotencyRecords } from "../db/ledger-schema"
-import { sendOperationJobWithin } from "../jobs/pgboss"
 import { sites } from "../db/entity-schema"
+import { idempotencyRecords, operations } from "../db/ledger-schema"
 import { releases, rollbackIntents } from "../db/session-schema"
+import { sendOperationJobWithin } from "../jobs/pgboss"
 import { entityScopeOf } from "../repositories/entities"
 import { OperationsRepository } from "../repositories/operations"
 import { serverRuntime } from "../runtime"
@@ -258,7 +258,7 @@ export const handleEvaluationPost = async (
   if (!parsed.success) {
     return json(400, { error: { code: "EDITION_EVALUATION_BODY_INVALID" } }, resolvedRequestId)
   }
-  const thresholds = parsed.data.thresholds === undefined ? undefined : parsed.data.thresholds
+  const requestedThresholds = parsed.data.thresholds
   const db = serverRuntime().db
   const { EditionsRepository } = await import("../repositories/editions")
   const document = await new EditionsRepository(db).findDraft(scope, editionId)
@@ -280,6 +280,27 @@ export const handleEvaluationPost = async (
   const tenantId = scope.kind === "global" ? Number(document["tenant"] ?? -1) : scope.tenantId
   const siteIdRaw = document["site"]
   const siteId = typeof siteIdRaw === "number" ? siteIdRaw : undefined
+  const siteThresholds =
+    siteId === undefined
+      ? null
+      : (
+          await db
+            .select({
+              dimensionMin: sites.qualityThresholdsDimensionMinimum,
+              overallMin: sites.qualityThresholdsOverallMinimum,
+            })
+            .from(sites)
+            .where(eq(sites.id, siteId))
+            .limit(1)
+        )[0]
+  const thresholds =
+    requestedThresholds ??
+    (siteThresholds === undefined || siteThresholds === null
+      ? undefined
+      : {
+          dimensionMin: Number(siteThresholds.dimensionMin ?? 75),
+          overallMin: Number(siteThresholds.overallMin ?? 80),
+        })
   const endpoint = `/workspaces/editor/editions/${editionId}/evaluation/revision-${Number(document["workflowRevision"] ?? 0)}`
   const requestPayload = {
     body: {

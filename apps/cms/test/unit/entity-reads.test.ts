@@ -54,7 +54,7 @@ describe("entity read scope", () => {
   })
 })
 
-describe("Payload-compatible entity list query", () => {
+describe("stable entity list query", () => {
   it("parses the current Console query shapes", () => {
     expect(
       parseEntityListQuery(
@@ -72,7 +72,7 @@ describe("Payload-compatible entity list query", () => {
     ).toEqual({ ids: [1, 2], limit: 20, page: 2, sort: "-updatedAt" })
   })
 
-  it("returns null for unsupported filters/depth so the gateway falls back to Payload", () => {
+  it("returns null for unsupported filters/depth so the gateway rejects the route", () => {
     expect(
       parseEntityListQuery(new URL("https://example.test/api/sites?where[status][equals]=active")),
     ).toBeNull()

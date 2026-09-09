@@ -21,20 +21,33 @@ const matchRoute = (
 ): Readonly<{ endpoint: InternalEndpoint; params: Record<string, string> }> | null => {
   for (const route of ROUTES) {
     if (route.endpoint.method.toUpperCase() !== method) continue
-    if (route.segments.length !== slug.length) continue
-    const params: Record<string, string> = {}
-    let matched = true
-    for (let index = 0; index < route.segments.length; index += 1) {
-      const pattern = route.segments[index] ?? ""
-      const actual = slug[index] ?? ""
-      if (pattern.startsWith(":")) {
-        params[pattern.slice(1)] = decodeURIComponent(actual)
-      } else if (pattern !== actual) {
-        matched = false
-        break
-      }
+    const params = matchRoutePath(route, slug)
+    if (params !== null) return { endpoint: route.endpoint, params }
+  }
+  return null
+}
+
+const matchRoutePath = (route: Route, slug: readonly string[]): Record<string, string> | null => {
+  if (route.segments.length !== slug.length) return null
+  const params: Record<string, string> = {}
+  for (let index = 0; index < route.segments.length; index += 1) {
+    const pattern = route.segments[index] ?? ""
+    const actual = slug[index] ?? ""
+    if (pattern.startsWith(":")) {
+      params[pattern.slice(1)] = decodeURIComponent(actual)
+    } else if (pattern !== actual) {
+      return null
     }
-    if (matched) return { endpoint: route.endpoint, params }
+  }
+  return params
+}
+
+const matchOptionsRoute = (
+  slug: readonly string[],
+): Readonly<{ endpoint: InternalEndpoint; params: Record<string, string> }> | null => {
+  for (const route of ROUTES) {
+    const params = matchRoutePath(route, slug)
+    if (params !== null) return { endpoint: route.endpoint, params }
   }
   return null
 }
@@ -45,7 +58,7 @@ export const handleInternalRequest = async (
 ): Promise<Response | null> => {
   if (slug === undefined || slug[0] !== "internal") return null
   const method = request.method.toUpperCase()
-  const route = matchRoute(method === "OPTIONS" ? "POST" : method, slug)
+  const route = method === "OPTIONS" ? matchOptionsRoute(slug) : matchRoute(method, slug)
   if (route === null) {
     return Response.json({ error: { code: "INTERNAL_ROUTE_NOT_FOUND" } }, { status: 404 })
   }

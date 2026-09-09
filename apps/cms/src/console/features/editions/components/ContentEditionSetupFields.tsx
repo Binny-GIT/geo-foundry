@@ -6,7 +6,7 @@ import { useEditionField } from "../state/edition-editor-context"
 
 type Option = Readonly<{ id: number; label: string; tenantId: number | null }>
 
-type PayloadList = Readonly<{
+type DocumentListEnvelope = Readonly<{
   docs?: readonly Record<string, unknown>[]
 }>
 
@@ -29,7 +29,7 @@ const loadSites = async (): Promise<readonly Option[]> => {
     credentials: "same-origin",
   })
   if (!response.ok) return []
-  const data = (await response.json().catch(() => ({}))) as PayloadList
+  const data = (await response.json().catch(() => ({}))) as DocumentListEnvelope
   return (data.docs ?? []).flatMap((row) => {
     const id = idOf(row["id"])
     return id === null
@@ -103,7 +103,10 @@ export const ContentEditionSetupFields = ({ readOnly }: { readonly readOnly: boo
         </select>
       </label>
       <p className="m-0 mt-3 text-xs text-[var(--gf-elevation-600)]">
-        租户：{selectedSite?.tenantId === null || selectedSite === null ? "由站点自动确定" : `#${selectedSite.tenantId}`}
+        租户：
+        {selectedSite?.tenantId === null || selectedSite === null
+          ? "由站点自动确定"
+          : `#${selectedSite.tenantId}`}
       </p>
     </section>
   )

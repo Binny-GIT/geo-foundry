@@ -26,7 +26,7 @@ describe("Console human session contract", () => {
 
     expect(session).toContain("authenticateRequest(await headers())")
     expect(session).not.toContain("payload.auth(")
-    expect(compat).toContain("verifySessionTokenCompat")
+    expect(compat).toContain("verifySessionToken")
     expect(compat).toContain("hasActiveSession")
     expect(session).toContain("isHumanConsoleSession")
     expect(session).toContain("session.role !== CMS_ROLE.CONTENT_SERVICE")

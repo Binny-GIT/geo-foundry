@@ -2,13 +2,10 @@ import { pollDueRssConnectors } from "../../server/repositories/connector-pollin
 import { serverRuntime } from "../../server/runtime"
 import { internalJsonResponse, withInternalGuards } from "./guards"
 
-/*
- * RSS connector 轮询入口（worker cron 每分钟调用）：取代 CMS 进程内的
- * 60 秒定时器——后台任务不再住在 Next.js instrumentation 里。
- */
+/* RSS connector 轮询入口，由 worker 的每分钟维护任务调用。 */
 const handlePollDueConnectors = withInternalGuards(
   { bodySchema: null, operation: "pollDueConnectors" },
-  async (req, ctx) => {
+  async (_req, ctx) => {
     const report = await pollDueRssConnectors(serverRuntime().db)
     return internalJsonResponse(
       200,

@@ -100,7 +100,15 @@ R=$(call GET "/internal/sites/376/compile-snapshot")
 R=$(call GET "/internal/sites/374/compile-snapshot")
 [ "$(status "$R")" = 500 ] && ok "compile-snapshot no canonical domain 500 (legacy parity)" || bad "compile-snapshot 374 $R"
 
-# ---------- 4. dispatch-due ----------
+# ---------- 4. poll-due ----------
+R=$(call POST "/internal/connectors/poll-due")
+[ "$(status "$R")" = 200 ] && body "$R" | python3 -c '
+import json,sys
+d=json.load(sys.stdin)
+assert isinstance(d["polled"], list) and isinstance(d["skipped"], list) and isinstance(d["errors"], list), d
+' && ok "poll-due baseline 200 shape" || bad "poll-due $R"
+
+# ---------- 5. dispatch-due ----------
 NOW=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
 R=$(call POST "/internal/publication-plans/dispatch-due" "{\"now\":\"$NOW\",\"workerId\":\"e2e-$TS\"}")
 [ "$(status "$R")" = 200 ] && body "$R" | python3 -c 'import json,sys;assert isinstance(json.load(sys.stdin)["plans"],list)' \
@@ -113,7 +121,7 @@ ROW=$(PSQL "SELECT status||'|'||coalesce(last_error,'')||'|'||attempts||'|'||coa
 [ "$(status "$R")" = 200 ] && [ "$ROW" = "failed|EDITION_WORKFLOW_NOT_APPROVED|1|e2e-$TS" ] \
   && ok "dispatch-due claims and fails not-approved plan" || bad "dispatch-due plan row=$ROW $R"
 
-# ---------- 5. release receipts ----------
+# ---------- 6. release receipts ----------
 CUR=$(PSQL "SELECT release_id||'|'||manifest_sha256 FROM geo_foundry.releases WHERE site_id=375 AND state='current' LIMIT 1")
 CUR_ID=${CUR%%|*}; CUR_SHA=${CUR##*|}
 ACTOR='{"kind":"service","actorId":"geo-foundry-worker"}'
@@ -131,7 +139,7 @@ R=$(call POST "/internal/releases/rollback-receipt" "$ROLL")
 [ "$(status "$R")" = 409 ] && [ "$(body "$R" | jget '["error"]["code"]')" = RELEASE_RECONCILIATION_REQUIRED ] \
   && ok "rollback receipt unknown target 409" || bad "rollback receipt $R"
 
-# ---------- 6. rollback intent consume ----------
+# ---------- 7. rollback intent consume ----------
 INT=$(PSQL "SELECT intent_id||'|'||runtime_site_id||'|'||target_release_id||'|'||expected_manifest_sha256||'|'||expected_current_release_id||'|'||expected_current_manifest_sha256||'|'||operation_id FROM geo_foundry.rollback_intents WHERE tenant_id=413 AND consumed_at IS NOT NULL AND operation_id IS NOT NULL ORDER BY id DESC LIMIT 1")
 IFS='|' read -r I_ID I_SITE I_TARGET I_SHA I_CUR I_CURSHA I_OP <<<"$INT"
 CONS="{\"rollbackIntentId\":\"$I_ID\",\"runtimeSiteId\":\"$I_SITE\",\"targetReleaseId\":\"$I_TARGET\",\"expectedManifestSha256\":\"$I_SHA\",\"expectedCurrentReleaseId\":\"$I_CUR\",\"expectedCurrentManifestSha256\":\"$I_CURSHA\",\"operationId\":\"$I_OP\"}"
@@ -143,8 +151,8 @@ R=$(call POST "/internal/rollback-intents/consume" "$(echo "$CONS" | sed "s/\"op
 R=$(call POST "/internal/rollback-intents/consume" "$(echo "$CONS" | sed "s/$I_ID/00000000-0000-4000-8000-000000000000/")")
 [ "$(status "$R")" = 404 ] && ok "consume unknown intent 404" || bad "consume unknown $R"
 
-# ---------- 7. 已删端点 ----------
-for p in /internal/operations/generate /internal/operations/evaluate /internal/operations/rollback /internal/operations/submit; do
+# ---------- 8. 已删端点 ----------
+for p in /internal/operations/generate /internal/operations/evaluate /internal/operations/rollback /internal/operations/submit /internal/operations/non-terminal; do
   R=$(call POST "$p" '{}')
   [ "$(status "$R")" = 404 ] && ok "removed $p 404" || bad "removed $p $(status "$R")"
 done

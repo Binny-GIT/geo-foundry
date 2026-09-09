@@ -13,10 +13,11 @@ const contractsDirectory = resolve(
 
 const stableStringify = (value: unknown): string => `${JSON.stringify(value, null, 2)}\n`
 
-const openApiPathOf = (routePath: string): string => routePath.replace(":id", "{id}")
+const openApiPathOf = (routePath: string): string =>
+  routePath.replace(/:([A-Za-z][A-Za-z0-9_]*)/g, "{$1}")
 
 describe("internal API contract fixtures", () => {
-  it("keeps the route table, Payload endpoints, and OpenAPI document in sync", () => {
+  it("keeps the route table, internal endpoints, and OpenAPI document in sync", () => {
     expect(internalEndpoints).toHaveLength(INTERNAL_OPERATIONS.length)
     for (const operation of INTERNAL_OPERATIONS) {
       const endpoint = internalEndpoints.find(
@@ -25,10 +26,18 @@ describe("internal API contract fixtures", () => {
       expect(endpoint, `endpoint for ${operation.operationId}`).toBeDefined()
       const pathItem = internalOpenApiDocument.paths[openApiPathOf(operation.path)] as Record<
         string,
-        { operationId: string }
+        { operationId: string; parameters?: readonly { $ref: string }[] }
       >
       expect(pathItem, `openapi path ${operation.path}`).toBeDefined()
       expect(pathItem[operation.method]?.operationId).toBe(operation.operationId)
+      const parameters = pathItem[operation.method]?.parameters ?? []
+      const hasId = operation.path.includes(":id")
+      const hasOperationId = operation.path.includes(":operationId")
+      expect(parameters.some((parameter) => parameter.$ref.endsWith("/ResourceId"))).toBe(hasId)
+      expect(parameters.some((parameter) => parameter.$ref.endsWith("/OperationId"))).toBe(
+        hasOperationId,
+      )
+      expect(parameters).toHaveLength(Number(hasId) + Number(hasOperationId))
     }
     const documentedOperations = Object.values(internalOpenApiDocument.paths).flatMap((pathItem) =>
       Object.values(pathItem as Record<string, { operationId: string }>).map(
@@ -36,6 +45,9 @@ describe("internal API contract fixtures", () => {
       ),
     )
     expect(documentedOperations).toHaveLength(INTERNAL_OPERATIONS.length)
+    expect(Object.keys(internalOpenApiDocument.paths).every((path) => !path.includes(":"))).toBe(
+      true,
+    )
   })
 
   it("commits byte-stable OpenAPI and client-operation fixtures", async () => {

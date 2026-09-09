@@ -74,9 +74,7 @@ const ConsoleAccountTabs = ({
               </span>
               <div>
                 <h2 className="m-0 text-base font-semibold text-[var(--console-ink)]">账户身份</h2>
-                <p className="m-0 pt-1 text-sm text-[var(--console-ink-muted)]">
-                  来自当前 Payload 会话
-                </p>
+                <p className="m-0 pt-1 text-sm text-[var(--console-ink-muted)]">来自当前安全会话</p>
               </div>
             </div>
             <dl className="m-0 grid gap-4 border-t border-[var(--console-border)] pt-5 sm:grid-cols-2">
@@ -111,8 +109,8 @@ const ConsoleAccountTabs = ({
               </div>
             </div>
             <p className="m-0 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] p-4 text-sm leading-6 text-[var(--console-ink-muted)]">
-              界面上的可见操作仅用于说明权限范围；每一次读取与写入仍会由 Payload
-              集合访问策略和工作流端点在服务端再次验证。
+              界面上的可见操作仅用于说明权限范围；每一次读取与写入仍会由权限矩阵、
+              租户范围和工作流端点在服务端再次验证。
             </p>
           </section>
         </>

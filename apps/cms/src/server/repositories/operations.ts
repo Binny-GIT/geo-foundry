@@ -1,9 +1,9 @@
 /*
- * Operations + Idempotency + Outbox 的事务仓储。
+ * Operations + Idempotency 的事务仓储。
  *
  * 跨实例幂等由数据库完成：同一 uniqueKey 先取得 transaction-level advisory
- * lock，再判断 replay/create；新请求的三张表写入同一事务，任何一步失败
- * 都整体回滚。进程内 Map 只能减流，不能成为正确性边界。
+ * lock，再判断 replay/create；新请求的记录与任务在同一事务内提交，任何一步
+ * 失败都整体回滚。进程内 Map 只能减流，不能成为正确性边界。
  */
 
 import { and, eq, sql } from "drizzle-orm"
@@ -11,12 +11,12 @@ import { and, eq, sql } from "drizzle-orm"
 import type { ServerDb } from "../db/client"
 import {
   idempotencyRecords,
-  operations,
   type operationState,
+  operations,
   type operationType,
 } from "../db/ledger-schema"
-import { sendOperationJobWithin } from "../jobs/pgboss"
 import { IdempotencyConflictError } from "../errors"
+import { sendOperationJobWithin } from "../jobs/pgboss"
 
 type OperationType = (typeof operationType.enumValues)[number]
 type OperationState = (typeof operationState.enumValues)[number]
@@ -114,12 +114,12 @@ export class OperationsRepository {
         uniqueKey: input.uniqueKey,
       })
       if (input.outbox !== undefined) {
-        // 同事务入队：operation 与任务原子提交，outbox/dispatcher/reconcile 不复存在。
+        // operation 与队列任务在同一事务内提交。
         await sendOperationJobWithin(tx, {
           kind: "operation",
           operationId: input.operationId,
           operationType: input.operationType,
-          payload: (input.outbox.eventPayload ?? {}) as Record<string, unknown>,
+          payload: input.outbox.eventPayload,
           tenantId: input.tenantId,
         })
       }

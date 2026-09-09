@@ -1,14 +1,11 @@
 /*
- * 工作流批次的物理表声明：URL 注册表、评审评论、审核决策幂等。
- * 表结构来自既有 Payload migration（本批无新迁移）；根表 texts/rels 用于
- * published/archived 转移时把 draft 内容发布到 live 根表。
+ * 工作流物理表：URL 注册表、评审评论与审核决策幂等。
  */
 
 import {
   index,
   integer,
   jsonb,
-  numeric,
   pgEnum,
   serial,
   timestamp,
@@ -42,7 +39,6 @@ export const urlRecords = geo.table(
     statusCode: integer("status_code"),
     targetUrlId: integer("target_url_id"),
     revision: integer("revision").default(0).notNull(),
-    audit: jsonb("audit"),
     updatedAt: timestamp("updated_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
   },

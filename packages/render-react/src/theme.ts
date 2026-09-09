@@ -1,14 +1,13 @@
-import type { ReactNode } from "react"
-
 import type {
   RenderBlock,
   RenderContent,
   RenderHero,
   RenderListing,
   RenderPage,
+  RenderSlotData,
   RenderSlotName,
-  RenderSlotPayload,
 } from "@geo/render-core"
+import type { ReactNode } from "react"
 
 export type GeoThemeTokens = Readonly<{
   accentColor: string
@@ -49,7 +48,7 @@ export type GeoThemeComponents = Readonly<{
 }>
 
 export type GeoSlotContext = GeoThemeComponentContext &
-  Readonly<{ readonly payload: RenderSlotPayload }>
+  Readonly<{ readonly payload: RenderSlotData }>
 
 export type GeoSlotComponent = (context: GeoSlotContext) => ReactNode
 

@@ -9,6 +9,7 @@ import {
   StaleRevisionError,
   TenantScopeError,
 } from "../../src/server/errors"
+
 /* 不连接数据库：drizzle 的查询构造是纯计算，toSQL() 足以锁住
  * 表名/列名/参数形态——迁移 DDL 与 schema.ts 一旦漂移立刻在这里暴露。 */
 const db = createServerDb("postgresql://mock:mock@localhost:5432/mock")
@@ -24,7 +25,6 @@ describe("server db schema bindings", () => {
     const columns = Object.keys(users)
     for (const expected of [
       "enableAPIToken",
-      "apiKey",
       "apiKeyIndex",
       "resetPasswordToken",
       "resetPasswordExpiration",
@@ -39,7 +39,33 @@ describe("server db schema bindings", () => {
     expect(users.loginAttempts.name).toBe("login_attempts")
   })
 
-
+  it("declares the post-cleanup workflow, media, usage, and embedding model", () => {
+    const {
+      apiUsageDailies,
+      contentEditions,
+      editionVersions,
+      embeddings,
+      media,
+      operations,
+      urlRecords,
+      users,
+    } = db._.fullSchema
+    expect(contentEditions).not.toHaveProperty("status")
+    expect(contentEditions).not.toHaveProperty("contentTopic")
+    expect(contentEditions).not.toHaveProperty("contentIntent")
+    expect(editionVersions).not.toHaveProperty("status")
+    expect(editionVersions.latest.notNull).toBe(true)
+    expect(media).not.toHaveProperty("prefix")
+    expect(media).not.toHaveProperty("thumbnailUrl")
+    expect(media).not.toHaveProperty("mediaPath")
+    expect(urlRecords).not.toHaveProperty("audit")
+    expect(users).not.toHaveProperty("apiKey")
+    expect(operations).not.toHaveProperty("providerVersion")
+    expect(operations).not.toHaveProperty("promptVersion")
+    expect(operations).not.toHaveProperty("modelId")
+    expect(apiUsageDailies.tenantId.notNull).toBe(true)
+    expect(embeddings.embedding.name).toBe("embedding")
+  })
 })
 
 describe("domain errors", () => {

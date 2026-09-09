@@ -1,6 +1,6 @@
 /*
- * RSS connector 定时轮询（后台 runtime 每分钟调用）。每个 connector 只维护一条
- * RSS 父稿源；已完成的父项重置为 new，再由稳定的 per-item job 身份去重。
+ * RSS connector 定时轮询（worker 的每分钟维护任务调用）。每个 connector 只维护
+ * 一条 RSS 父稿源；已完成的父项重置为 new，再由稳定的 per-item job 身份去重。
  * lastPolledAt 每次尝试都写入，坏源会退避整个周期。
  */
 

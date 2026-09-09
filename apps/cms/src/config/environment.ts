@@ -21,7 +21,7 @@ const configModeSchema = z.union([
   z.literal("fault-test"),
 ])
 const faultRunIdSchema = z.string().regex(/^todo39-[a-z0-9]{20}$/)
-const payloadSecretSchema = z.string().min(32)
+const cmsSecretSchema = z.string().min(32)
 
 export const faultDatabaseOf = (runId: string): string => {
   const parsed = faultRunIdSchema.safeParse(runId)
@@ -41,7 +41,7 @@ export const faultMediaPrefixOf = (runId: string): string => {
 
 export type CmsEnvironment = {
   readonly mode: "runtime" | "build" | "integration-test" | "fault-test"
-  readonly payloadSecret: string
+  readonly cmsSecret: string
   readonly postgres: {
     readonly connectionString: string
     readonly schema: typeof CMS_POSTGRES_SCHEMA
@@ -85,6 +85,58 @@ const serviceEnvironment = (
   environment: Record<string, string | undefined>,
   mode: "runtime" | "integration-test" | "fault-test",
 ): CmsEnvironment => {
+  const cmsSecretVariable = "GEO_FOUNDRY_CMS_SECRET"
+  const legacySecretVariable = "PAYLOAD_SECRET"
+  const cmsSecretFileVariable = "GEO_FOUNDRY_CMS_SECRET_FILE"
+  const directCmsSecret = environment[cmsSecretVariable]?.trim()
+  const directLegacySecret = environment[legacySecretVariable]?.trim()
+  if (
+    directCmsSecret !== undefined &&
+    directCmsSecret.length > 0 &&
+    directLegacySecret !== undefined &&
+    directLegacySecret.length > 0 &&
+    directCmsSecret !== directLegacySecret
+  ) {
+    throw new CmsEnvironmentError([cmsSecretVariable, legacySecretVariable])
+  }
+
+  const usesCredentialFile = (environment[cmsSecretFileVariable]?.trim().length ?? 0) > 0
+  let cmsSecretValue: string
+  let cmsSecretSource: string
+  try {
+    if (
+      environment["GEO_FOUNDRY_CREDENTIAL_MODE"] === "file" &&
+      directLegacySecret !== undefined &&
+      directLegacySecret.length > 0
+    ) {
+      throw new CmsEnvironmentError([legacySecretVariable])
+    }
+    if (usesCredentialFile || (directCmsSecret !== undefined && directCmsSecret.length > 0)) {
+      cmsSecretValue = requireCmsCredential(environment, cmsSecretVariable, cmsSecretFileVariable)
+      cmsSecretSource =
+        environment["GEO_FOUNDRY_CREDENTIAL_MODE"] === "file"
+          ? cmsSecretFileVariable
+          : cmsSecretVariable
+    } else {
+      cmsSecretValue = requireCmsCredential(
+        environment,
+        legacySecretVariable,
+        cmsSecretFileVariable,
+      )
+      cmsSecretSource = legacySecretVariable
+    }
+  } catch (error) {
+    if (error instanceof CmsEnvironmentError) throw error
+    if (error instanceof CmsCredentialFileError) {
+      throw new CmsEnvironmentError(error.variables)
+    }
+    throw error
+  }
+  const cmsSecret = cmsSecretSchema.safeParse(cmsSecretValue)
+  if (!cmsSecret.success) {
+    throw new CmsEnvironmentError([cmsSecretSource])
+  }
+
   let normalized: Record<string, string | undefined>
   let sharedServices: CmsSharedServicesEnvironment
   try {
@@ -106,35 +158,13 @@ const serviceEnvironment = (
     throw error
   }
 
-  let payloadSecretValue: string
-  try {
-    payloadSecretValue = requireCmsCredential(
-      environment,
-      "PAYLOAD_SECRET",
-      "GEO_FOUNDRY_CMS_SECRET_FILE",
-    )
-  } catch (error) {
-    if (error instanceof CmsCredentialFileError) {
-      throw new CmsEnvironmentError(error.variables)
-    }
-    throw error
-  }
-  const payloadSecret = payloadSecretSchema.safeParse(payloadSecretValue)
-  if (!payloadSecret.success) {
-    throw new CmsEnvironmentError([
-      environment["GEO_FOUNDRY_CREDENTIAL_MODE"] === "file"
-        ? "GEO_FOUNDRY_CMS_SECRET_FILE"
-        : "PAYLOAD_SECRET",
-    ])
-  }
-
   const runId = mode === "fault-test" ? environment["GEO_FOUNDRY_FAULT_RUN_ID"] : undefined
   const faultDatabase = runId === undefined ? undefined : faultDatabaseOf(runId)
   const faultMediaPrefix = runId === undefined ? undefined : faultMediaPrefixOf(runId)
   const integration = mode === "integration-test"
   return {
     mode,
-    payloadSecret: payloadSecret.data,
+    cmsSecret: cmsSecret.data,
     postgres: {
       connectionString: postgresConnectionString(
         sharedServices,
@@ -172,7 +202,7 @@ const faultTestEnvironment = (environment: Record<string, string | undefined>): 
 
 const buildEnvironment = (): CmsEnvironment => ({
   mode: "build",
-  payloadSecret: "geo-foundry-cms-build-only-secret",
+  cmsSecret: "geo-foundry-cms-build-only-secret",
   postgres: {
     connectionString:
       "postgresql://build:build@127.0.0.1:1/geo_foundry?application_name=geo-foundry-cms-build&options=-c+search_path%3Dgeo_foundry",

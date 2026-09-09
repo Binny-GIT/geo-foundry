@@ -4,10 +4,10 @@ import {
   recordCompileResult,
   writeGeneratedDraft,
 } from "../../server/repositories/edition-integration"
+import { serverRuntime } from "../../server/runtime"
 import { EditionWorkflowError } from "../../services/edition-workflow"
 import { findSimilarEditions } from "../../services/embedding-similarity"
 import { storeEditionEmbedding } from "../../services/embedding-store"
-import { serverRuntime } from "../../server/runtime"
 import {
   type AssessmentBody,
   assessmentBodySchema,
@@ -70,6 +70,8 @@ const handleRecordAssessment = withInternalGuards(
       inputHash: body.inputHash,
       issues: body.issues,
       modelId: body.modelId,
+      ...(body.overall === undefined ? {} : { overall: body.overall }),
+      ...(body.dimensions === undefined ? {} : { dimensions: body.dimensions }),
       ...(ctx.operationId === null ? {} : { operationId: ctx.operationId }),
       promptVersion: body.promptVersion,
       provider: body.provider,

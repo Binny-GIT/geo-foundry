@@ -22,7 +22,7 @@ describe("edition draft read query", () => {
     })
   })
 
-  it("returns null for live/depth-one/unknown filters so Payload remains the fallback", () => {
+  it("returns null for unsupported live/depth-one/unknown filters", () => {
     expect(
       parseEditionListQuery(new URL("https://example.test/api/content-editions?depth=0")),
     ).toBeNull()
@@ -47,7 +47,6 @@ describe("edition draft physical schema", () => {
     expect(editionVersions.bodyMarkdown.name).toBe("body_markdown")
     expect(editionVersions.workflowRevision.name).toBe("workflow_revision")
     expect(editionVersions.contentModifiedAt.name).toBe("content_modified_at")
-    expect(editionVersions.status.name).toBe("status")
     expect(editionVersions.versionUpdatedAt.name).toBe("edition_updated_at")
     expect(editionVersions.latest.name).toBe("latest")
   })

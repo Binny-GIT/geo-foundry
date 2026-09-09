@@ -1,8 +1,7 @@
 /*
- * Operations / Idempotency / Outbox 的最终物理表定义。
+ * Operations 与 Idempotency 的最终物理表定义。
  *
  * 权威来源（按迁移顺序叠加）：
- * - task16_outbox + editor_evaluation_outbox + rollback_outbox_dispatch
  * - task17_operations + task17b_op_keyhash + task24_request_payload
  */
 
@@ -10,7 +9,6 @@ import {
   index,
   integer,
   jsonb,
-  numeric,
   pgEnum,
   serial,
   timestamp,
@@ -54,9 +52,6 @@ export const operations = geo.table(
     requestPayload: jsonb("request_payload").default({}).notNull(),
     result: jsonb("result"),
     error: jsonb("error"),
-    providerVersion: varchar("provider_version"),
-    promptVersion: varchar("prompt_version"),
-    modelId: varchar("model_id"),
     auditLog: jsonb("audit_log").default([]),
     updatedAt: timestamp("updated_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),

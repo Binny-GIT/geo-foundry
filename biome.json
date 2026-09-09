@@ -30,11 +30,7 @@
   },
   "overrides": [
     {
-      "includes": [
-        "**/vitest*.config.ts",
-        "vitest.workspace.ts",
-        "playwright.config.ts"
-      ],
+      "includes": ["**/vitest*.config.ts", "vitest.workspace.ts", "playwright.config.ts"],
       "linter": {
         "rules": {
           "style": {
@@ -47,8 +43,6 @@
       "includes": [
         "apps/cms/next.config.ts",
         "next.config.ts",
-        "apps/cms/src/payload.config.ts",
-        "src/payload.config.ts",
         "apps/cms/src/app/**/layout.tsx",
         "src/app/**/layout.tsx",
         "apps/cms/src/app/**/page.tsx",
@@ -67,9 +61,7 @@
       }
     },
     {
-      "includes": [
-        "**/*.css"
-      ],
+      "includes": ["**/*.css"],
       "linter": {
         "rules": {
           "complexity": {
@@ -93,7 +85,6 @@
       "!**/coverage",
       "!**/.omo/evidence",
       "!packages/content-client/contracts",
-      "!apps/cms/src/payload-types.ts",
       "!apps/cms/src/app/**/importMap.ts",
       "!**/admin-tailwind.css",
       "!**/console.css"

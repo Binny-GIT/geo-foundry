@@ -6,7 +6,7 @@ import { redirect } from "next/navigation"
 import { CMS_ACTION, type CmsAction, type CmsResource, decideAccess } from "@/access/policy"
 import { CMS_ROLE, type CmsRole } from "@/access/roles"
 import { normalizeConsoleNext } from "@/console/lib/console-next"
-import { authenticateRequest, type AuthenticatedRequest } from "@/server/auth/session"
+import { type AuthenticatedRequest, authenticateRequest } from "@/server/auth/session"
 import { EntitiesRepository } from "@/server/repositories/entities"
 import { serverRuntime } from "@/server/runtime"
 
@@ -33,8 +33,8 @@ const sessionFromAuth = (auth: AuthenticatedRequest): ConsoleSession => {
 }
 
 /**
- * Console 页面守卫直接解析现有 payload-token：兼容验签、active sid、用户与
- * tenant invariant 全部由自建认证层完成，不再依赖 Payload 认证管线。
+ * Console 页面守卫直接解析当前或旧版会话 cookie：验签、active sid、用户与
+ * tenant invariant 全部由自建认证层完成。
  */
 export const getConsoleSession = async (): Promise<ConsoleSession | null> => {
   const auth = await authenticateRequest(await headers())

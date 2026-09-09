@@ -1,7 +1,7 @@
 /*
- * Payload users auth 路由的兼容接管（login/logout/me）。
- * Cookie、JWT、状态码与响应 envelope 保持兼容；密码/session/用户读取全走
- * Drizzle + compat auth。未迁出的 refresh/forgot/reset 继续由 catch-all 回退。
+ * 旧认证路由的兼容接管（login/logout/me）。
+ * JWT、状态码与响应 envelope 保持历史兼容；密码、会话与用户读取均走
+ * Drizzle 与本地认证实现。
  */
 
 import { randomBytes, randomUUID } from "node:crypto"
@@ -10,9 +10,9 @@ import { z } from "zod"
 
 import { hashPassword, verifyPassword } from "../auth/password"
 import { authenticateRequest } from "../auth/session"
-import { UsersRepository, type UserAuthRecord } from "../repositories/users"
+import { issueSessionToken } from "../auth/session-token"
+import { type UserAuthRecord, UsersRepository } from "../repositories/users"
 import { serverRuntime } from "../runtime"
-import { issueCompatSessionToken } from "../../services/auth-compat-probe-model"
 
 const loginSchema = z
   .object({
@@ -45,21 +45,26 @@ const json = (status: number, body: unknown, headers?: Headers): Response => {
 
 const cookieOf = (token: string, expiresAt: number): string =>
   [
-    `payload-token=${token}`,
+    `gf-session=${token}`,
     `Expires=${new Date(expiresAt * 1000).toUTCString()}`,
     "Path=/",
     "HttpOnly=true",
     "SameSite=Lax",
   ].join("; ")
 
-const expiredCookie = (): string =>
+const expiredCookieOf = (name: "gf-session" | "payload-token"): string =>
   [
-    "payload-token=",
+    `${name}=`,
     `Expires=${new Date(Date.now() - 1000).toUTCString()}`,
     "Path=/",
     "HttpOnly=true",
     "SameSite=Lax",
   ].join("; ")
+
+const expiredCookies = (): readonly [string, string] => [
+  expiredCookieOf("gf-session"),
+  expiredCookieOf("payload-token"),
+]
 
 const publicUser = async (
   repository: UsersRepository,
@@ -117,7 +122,7 @@ const handleLogin = async (request: Request): Promise<Response> => {
   }
 
   const sid = randomUUID()
-  const session = await issueCompatSessionToken({
+  const session = await issueSessionToken({
     configSecret,
     email: user.email,
     sid,
@@ -162,42 +167,9 @@ const handleLogout = async (request: Request): Promise<Response> => {
   const repository = new UsersRepository(serverRuntime().db)
   if (allSessions) await repository.revokeAllSessions(auth.user.id)
   else await repository.revokeSession(auth.user.id, auth.session.sid)
-  const headers = new Headers({ "set-cookie": expiredCookie() })
+  const headers = new Headers()
+  for (const cookie of expiredCookies()) headers.append("set-cookie", cookie)
   return json(200, { message: "成功登出。" }, headers)
-}
-
-const handleRefresh = async (request: Request): Promise<Response> => {
-  const auth = await authenticateRequest(request.headers)
-  if (auth === null || auth.session === null) {
-    return json(403, { errors: [{ message: "您无权执行此操作。" }] })
-  }
-  const { configSecret, db } = serverRuntime()
-  const repository = new UsersRepository(db)
-  const refreshed = await issueCompatSessionToken({
-    configSecret,
-    email: auth.user.email,
-    sid: auth.session.sid,
-    userId: auth.user.id,
-  })
-  const updated = await repository.refreshSession(
-    auth.user.id,
-    auth.session.sid,
-    new Date(refreshed.expiresAt * 1000),
-  )
-  if (!updated) return json(403, { errors: [{ message: "您无权执行此操作。" }] })
-  const headers = new Headers({ "set-cookie": cookieOf(refreshed.token, refreshed.expiresAt) })
-  return json(
-    200,
-    {
-      exp: refreshed.expiresAt,
-      message: "令牌刷新成功。",
-      refreshedToken: refreshed.token,
-      setCookie: true,
-      strategy: "local-jwt",
-      user: await publicUser(repository, auth.user),
-    },
-    headers,
-  )
 }
 
 const handleForgotPassword = async (request: Request): Promise<Response> => {
@@ -216,7 +188,7 @@ const handleForgotPassword = async (request: Request): Promise<Response> => {
     token,
     new Date(Date.now() + 60 * 60 * 1000),
   )
-  // 未配置邮件 adapter 时与 Payload 一样不向响应暴露 token；未知邮箱同样 200。
+  // 未配置邮件 adapter 时不向响应暴露 token；未知邮箱同样返回 200。
   return json(200, { message: "成功" })
 }
 
@@ -244,7 +216,7 @@ const handleResetPassword = async (request: Request): Promise<Response> => {
   if (user === null) {
     return json(403, { errors: [{ message: "Token is either invalid or has expired." }] })
   }
-  const session = await issueCompatSessionToken({
+  const session = await issueSessionToken({
     configSecret,
     email: user.email,
     expiresAt,
@@ -302,7 +274,6 @@ export type CompatAuthRoute =
   | "login"
   | "logout"
   | "me"
-  | "refresh"
   | "reset-password"
 
 export const compatAuthRouteOf = (
@@ -317,7 +288,6 @@ export const compatAuthRouteOf = (
   if (slug[1] === "forgot-password") return "forgot-password"
   if (slug[1] === "login") return "login"
   if (slug[1] === "logout") return "logout"
-  if (slug[1] === "refresh-token") return "refresh"
   if (slug[1] === "reset-password") return "reset-password"
   return null
 }
@@ -338,8 +308,6 @@ export const handleUsersAuthPost = async (
       return handleLogin(request)
     case "logout":
       return handleLogout(request)
-    case "refresh":
-      return handleRefresh(request)
     case "reset-password":
       return handleResetPassword(request)
     default:
@@ -353,4 +321,4 @@ export const handleAccountAuthPost = async (
 ): Promise<Response | null> =>
   compatAuthRouteOf("POST", slug) === "account-password" ? handlePasswordChange(request) : null
 
-export const authCookie = { cookieOf, expiredCookie }
+export const authCookie = { cookieOf, expiredCookies }

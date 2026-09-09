@@ -1,9 +1,8 @@
 /*
  * 服务端 Drizzle 实例工厂。
  *
- * 迁移期与 Payload 共存：调用方传 Payload 的连接池（payload.db.drizzle 的
- * 底层）或独立连接串都可以——仓储层只依赖本模块返回的 Drizzle 接口，
- * 不感知连接来源，认证切换时替换为自建池即可。
+ * 服务端 Drizzle 实例可从共享 pg Pool 或独立连接串构造；仓储层只依赖
+ * 本模块返回的接口，不感知连接来源。
  */
 
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres"

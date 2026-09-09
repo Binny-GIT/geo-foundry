@@ -243,10 +243,6 @@ export const operationResponseSchema = z.object({
   operation: operationSnapshotSchema,
 })
 
-export const nonTerminalOperationsResponseSchema = z.object({
-  operations: z.array(operationSnapshotSchema),
-})
-
 export const embeddingScopeSchema = z.enum(["content", "title"])
 
 export const semanticComparisonSchema = z.enum(["cross-domain", "same-site"])

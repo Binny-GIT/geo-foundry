@@ -5,40 +5,38 @@ import {
   assessmentReceiptSchema,
   type CompileResultReceipt,
   type CompileSnapshot,
+  type CompleteIntakeFetchRequest,
   type CompleteOperationStageRequest,
   type ConsumeRollbackIntentRequest,
+  type CreateRssEntriesRequest,
   compileResultReceiptSchema,
   compileSnapshotSchema,
+  completeIntakeFetchRequestSchema,
   completeOperationStageRequestSchema,
   consumeRollbackIntentReceiptSchema,
   consumeRollbackIntentRequestSchema,
-  type DraftWriteReceipt,
-  draftWriteReceiptSchema,
+  createRssEntriesRequestSchema,
   type DispatchDuePublicationPlansRequest,
+  type DraftWriteReceipt,
   dispatchDuePublicationPlansRequestSchema,
   dispatchDuePublicationPlansResponseSchema,
-  pollDueConnectorsResponseSchema,
-  type CompleteIntakeFetchRequest,
-  completeIntakeFetchRequestSchema,
-  type CreateRssEntriesRequest,
-  createRssEntriesRequestSchema,
+  draftWriteReceiptSchema,
   type EditionInput,
   type EmbeddingReceipt,
-  type FailIntakeFetchRequest,
-  failIntakeFetchRequestSchema,
-  intakeClaimReceiptSchema,
-  intakeFailureReceiptSchema,
-  type IntakeFetchInput,
-  intakeFetchInputSchema,
-  intakeFetchReceiptSchema,
-  rssEntriesReceiptSchema,
   editionInputSchema,
   embeddingReceiptSchema,
+  type FailIntakeFetchRequest,
+  failIntakeFetchRequestSchema,
+  type IntakeFetchInput,
   idempotencyKeySchema,
+  intakeClaimReceiptSchema,
+  intakeFailureReceiptSchema,
+  intakeFetchInputSchema,
+  intakeFetchReceiptSchema,
   internalErrorSchema,
-  nonTerminalOperationsResponseSchema,
   type OperationSnapshot,
   operationResponseSchema,
+  pollDueConnectorsResponseSchema,
   type RecordAssessmentRequest,
   type RecordCompileResultRequest,
   type RecordReleaseReceiptRequest,
@@ -46,6 +44,7 @@ import {
   recordCompileResultRequestSchema,
   recordReleaseReceiptRequestSchema,
   recordReleaseReceiptSchema,
+  rssEntriesReceiptSchema,
   type SimilarityMatch,
   type SimilarityQueryRequest,
   type StartOperationStageRequest,
@@ -81,10 +80,6 @@ export type CallOptions = {
   readonly idempotencyKey?: string
   readonly operationId?: string
   readonly requestId?: string
-}
-
-type IdempotentCallOptions = CallOptions & {
-  readonly idempotencyKey: string
 }
 
 export class ContentServiceClient {
@@ -344,18 +339,6 @@ export class ContentServiceClient {
         options,
       )
     ).operation
-  }
-
-  async listNonTerminalOperations(): Promise<readonly OperationSnapshot[]> {
-    return (
-      await this.#call(
-        "GET",
-        "/internal/operations/non-terminal",
-        null,
-        null,
-        nonTerminalOperationsResponseSchema,
-      )
-    ).operations
   }
 
   async storeEmbedding(

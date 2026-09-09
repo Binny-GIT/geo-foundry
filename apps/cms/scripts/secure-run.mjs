@@ -6,7 +6,7 @@ const credentialFiles = [
   ["GEO_FOUNDRY_PG_PASSWORD_FILE", "GEO_FOUNDRY_PG_PASSWORD"],
   ["GEO_FOUNDRY_S3_ACCESS_KEY_FILE", "GEO_FOUNDRY_S3_ACCESS_KEY"],
   ["GEO_FOUNDRY_S3_SECRET_KEY_FILE", "GEO_FOUNDRY_S3_SECRET_KEY"],
-  ["GEO_FOUNDRY_CMS_SECRET_FILE", "PAYLOAD_SECRET"],
+  ["GEO_FOUNDRY_CMS_SECRET_FILE", "GEO_FOUNDRY_CMS_SECRET"],
 ]
 
 const optionalCredentialFiles = [
@@ -70,6 +70,7 @@ const run = async () => {
 
   const credentials = await Promise.all(credentialFiles.map(([file]) => readCredential(file)))
   const injectedEnvironment = { ...process.env }
+  delete injectedEnvironment.PAYLOAD_SECRET
   credentialFiles.forEach(([, variable], index) => {
     injectedEnvironment[variable] = credentials[index]
   })

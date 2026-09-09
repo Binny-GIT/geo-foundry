@@ -6,14 +6,14 @@
  * body，secondaryTopics/sites 直接读取版本数组列；不读取 20+ 张 version block 表。
  */
 
-import { and, asc, desc, eq, ilike, inArray, sql, type SQL } from "drizzle-orm"
+import { and, asc, desc, eq, ilike, inArray, type SQL, sql } from "drizzle-orm"
 
 import { markdownToBlocks } from "../../editor/block-markdown"
 import type { ServerDb } from "../db/client"
 import { contentEditions, editionVersions } from "../db/edition-schema"
 import { sites } from "../db/entity-schema"
 import { users } from "../db/schema"
-import type { EntityScope, PayloadPage } from "./entities"
+import type { EntityScope, PaginatedResult } from "./entities"
 
 export type EditionListInput = Readonly<{
   ids?: readonly number[]
@@ -64,7 +64,7 @@ const pageOf = <T>(
   docs: readonly T[],
   totalDocs: number,
   input: EditionListInput,
-): PayloadPage<T> => {
+): PaginatedResult<T> => {
   const totalPages = Math.max(1, Math.ceil(totalDocs / input.limit))
   return {
     docs,
@@ -115,7 +115,7 @@ const rootPredicates = (scope: EntityScope, input: EditionListInput): SQL[] => {
 const dtoOf = (editionId: number, row: EditionRoot): Record<string, unknown> => {
   const markdown = row.bodyMarkdown ?? ""
   return {
-    _status: row.status ?? "draft",
+    _status: (row.workflowStatus ?? "draft") === "published" ? "published" : "draft",
     angle: row.angle ?? "",
     auditLog: Array.isArray(row.auditLog) ? row.auditLog : [],
     body: markdownToBlocks(markdown),
@@ -150,7 +150,7 @@ export class EditionsRepository {
   async listDrafts(
     scope: EntityScope,
     input: EditionListInput,
-  ): Promise<PayloadPage<Record<string, unknown>>> {
+  ): Promise<PaginatedResult<Record<string, unknown>>> {
     const where = and(...rootPredicates(scope, input))
     const roots = await this.db
       .select({ editionId: contentEditions.id, version: editionVersions })
@@ -273,7 +273,6 @@ export class EditionsRepository {
           secondaryTopics,
           siteId: requestedSiteId,
           sites: assignedSites,
-          status: "draft",
           summary: patch.summary ?? "",
           tenantId,
           title: patch.title ?? "",
@@ -305,7 +304,6 @@ export class EditionsRepository {
           secondaryTopics,
           siteId: requestedSiteId,
           sites: assignedSites,
-          status: "draft",
           summary: patch.summary ?? "",
           tenantId,
           title: patch.title ?? "",
@@ -441,7 +439,6 @@ export class EditionsRepository {
           secondaryTopics,
           siteId,
           sites: assignedSites,
-          status: current.status,
           summary: patch.summary ?? current.summary,
           tenantId,
           title: patch.title ?? current.title,

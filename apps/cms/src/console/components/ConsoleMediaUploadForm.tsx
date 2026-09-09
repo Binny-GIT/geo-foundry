@@ -7,12 +7,12 @@ import { Button } from "@/components/ui/button"
 
 import { consoleRoute } from "../lib/resources"
 
-type PayloadError = {
+type ApiErrorBody = {
   readonly errors?: readonly { readonly message?: string }[]
   readonly message?: string
 }
 
-const messageFor = (payload: PayloadError): string => {
+const messageFor = (payload: ApiErrorBody): string => {
   const raw =
     payload.errors?.find((error) => typeof error.message === "string")?.message ?? payload.message
   if (raw?.includes("CMS_MEDIA_FILE_TOO_LARGE")) return "文件超过 5 MB 限制。"
@@ -41,7 +41,7 @@ export const ConsoleMediaUploadForm = () => {
         credentials: "same-origin",
         method: "POST",
       })
-      const payload = (await response.json().catch(() => ({}))) as PayloadError & {
+      const payload = (await response.json().catch(() => ({}))) as ApiErrorBody & {
         readonly doc?: { readonly id?: string | number }
       }
       if (!response.ok) {

@@ -3,13 +3,13 @@
  *
  * 存储形态沿用 users.salt / users.hash 两列，算法标记放进 hash 串前缀：
  * - 新格式："$scrypt$131072,8,1$<saltHex>$<keyHex>"（salt 列同步存 saltHex）
- * - 旧格式：纯 hex（Payload 兼容 PBKDF2 25000 轮 512 字节 sha256）
+ * - 旧格式：纯 hex（历史兼容 PBKDF2 25000 轮 512 字节 sha256）
  * 旧格式验证成功后由登录路径在同一请求内用新算法重哈希写回，用户无感知。
  */
 
 import crypto from "node:crypto"
 
-import { verifyPasswordCompat, type StoredCredentials } from "./compat"
+import { type StoredCredentials, verifyLegacyPbkdf2 } from "./compat"
 
 const SCRYPT_PREFIX = "$scrypt$"
 const SCRYPT_N = 131_072
@@ -53,7 +53,13 @@ export const hashPassword = async (password: string): Promise<StoredCredentials>
 
 const parseScryptHash = (
   hash: string,
-): { readonly key: Buffer; readonly N: number; readonly p: number; readonly r: number; readonly salt: Buffer } | null => {
+): {
+  readonly key: Buffer
+  readonly N: number
+  readonly p: number
+  readonly r: number
+  readonly salt: Buffer
+} | null => {
   if (!hash.startsWith(SCRYPT_PREFIX)) return null
   const parts = hash.slice(SCRYPT_PREFIX.length).split("$")
   if (parts.length !== 3) return null
@@ -63,7 +69,14 @@ const parseScryptHash = (
   const N = Number(nText)
   const r = Number(rText)
   const p = Number(pText)
-  if (!Number.isInteger(N) || !Number.isInteger(r) || !Number.isInteger(p) || N <= 0 || r <= 0 || p <= 0) {
+  if (
+    !Number.isInteger(N) ||
+    !Number.isInteger(r) ||
+    !Number.isInteger(p) ||
+    N <= 0 ||
+    r <= 0 ||
+    p <= 0
+  ) {
     return null
   }
   if (saltHex.length === 0 || keyHex.length === 0) return null
@@ -87,7 +100,8 @@ export const verifyPassword = async (
   const scryptHash = parseScryptHash(stored.hash)
   if (scryptHash !== null) {
     const key = await scryptAsync(password, scryptHash.salt, scryptHash)
-    const valid = key.length === scryptHash.key.length && crypto.timingSafeEqual(key, scryptHash.key)
+    const valid =
+      key.length === scryptHash.key.length && crypto.timingSafeEqual(key, scryptHash.key)
     return { needsRehash: false, valid }
   }
   const legacy = await verifyPasswordLegacy(password, stored)
@@ -100,5 +114,5 @@ const verifyPasswordLegacy = async (
 ): Promise<boolean> => {
   if (stored.salt.length === 0 || stored.hash.length === 0) return false
   if (stored.hash.startsWith(SCRYPT_PREFIX)) return false
-  return verifyPasswordCompat(password, stored)
+  return verifyLegacyPbkdf2(password, stored)
 }

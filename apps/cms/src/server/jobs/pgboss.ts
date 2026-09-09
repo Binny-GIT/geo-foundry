@@ -2,17 +2,17 @@
  * pg-boss 队列接入（CMS 发布端）。
  *
  * 关键机制：send() 通过 fromDrizzle(tx, sql) 挂进业务事务——operation 行、
- * 幂等记录与任务在同一事务提交/回滚，取代 outbox 表 + 每秒 dispatcher +
- * worker reconcile 三层间接。队列与授权由 scripts/provision-pgboss.mjs
- * 一次性建好（schema "pgboss"）；CMS 运行时实例不做 DDL（migrate:false）。
+ * 幂等记录与任务在同一事务提交或回滚。队列与授权由
+ * scripts/provision-pgboss.mjs 一次性建好（schema "pgboss"）；CMS
+ * 运行时实例不做 DDL（migrate:false）。
  *
  * 去重：operation/intake 队列均为 short policy，singletonKey 保证同键在
  * created 态不可重复入队（等价旧 BullMQ 稳定 jobId 语义）。
  */
 
 import { sql } from "drizzle-orm"
-import { fromDrizzle, PgBoss } from "pg-boss"
 import type { Pool, QueryResult } from "pg"
+import { fromDrizzle, PgBoss } from "pg-boss"
 
 import type { ServerDb } from "../db/client"
 import { serverRuntime } from "../runtime"
@@ -130,7 +130,7 @@ export type EditionEmbeddingJobData = Readonly<{
   tenantId: number
 }>
 
-/** 草稿写入/恢复后重建向量：沿用旧 outbox 事件驱动的 embed-ed-<id> 去重键。 */
+/** 草稿写入或恢复后重建向量，使用稳定的 embed-ed-<id> 去重键。 */
 export const sendEditionEmbeddingJobWithin = async (
   tx: TxLike,
   input: Readonly<{ editionId: number; tenantId: number }>,

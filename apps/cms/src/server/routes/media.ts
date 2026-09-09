@@ -66,7 +66,7 @@ export const handleMediaUploadPost = async (
   const captionRaw = String(form.get("caption") ?? "").trim()
   const caption = captionRaw.length === 0 ? null : captionRaw
   const runtime = serverRuntime()
-  const filename = await uniqueFilename(tenantId, safeFilename(file.name))
+  const filename = await uniqueFilename(safeFilename(file.name))
   const body = new Uint8Array(await file.arrayBuffer())
   await runtime.media.client.send(
     new PutObjectCommand({
@@ -84,11 +84,8 @@ export const handleMediaUploadPost = async (
       caption,
       filename,
       filesize: body.byteLength,
-      mediaPath: `/media/tenants/${tenantId}/${filename}`,
       mimeType: file.type,
-      prefix: `tenants/${tenantId}`,
       tenantId,
-      url: `/api/media/file/${filename}`,
     })
     .returning()
   const row = rows[0]
@@ -100,16 +97,16 @@ export const handleMediaUploadPost = async (
       filename: row.filename,
       filesize: body.byteLength,
       id: row.id,
-      mediaPath: row.mediaPath,
+      mediaPath: `/media/tenants/${row.tenantId}/${filename}`,
       mimeType: row.mimeType,
       tenant: row.tenantId,
-      url: row.url,
+      url: `/api/media/file/${filename}`,
     },
   })
 }
 
 /** 同租户文件名冲突时追加短后缀（Payload 的 -1/-2 语义等价）。 */
-const uniqueFilename = async (tenantId: number, filename: string): Promise<string> => {
+const uniqueFilename = async (filename: string): Promise<string> => {
   const db = serverRuntime().db
   const dot = filename.lastIndexOf(".")
   const stem = dot > 0 ? filename.slice(0, dot) : filename
@@ -119,7 +116,7 @@ const uniqueFilename = async (tenantId: number, filename: string): Promise<strin
     const rows = await db
       .select({ id: media.id })
       .from(media)
-      .where(and(eq(media.tenantId, tenantId), eq(media.filename, candidate)))
+      .where(eq(media.filename, candidate))
       .limit(1)
     if (rows[0] === undefined) return candidate
     candidate = `${stem}-${attempt}${ext}`

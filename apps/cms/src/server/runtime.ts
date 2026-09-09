@@ -1,4 +1,4 @@
-/* Runtime-only database/config singleton. Import is build-safe: credentials are read lazily on first call. */
+/* 仅运行时使用的数据库与配置单例；导入时安全，首次调用才读取凭据。 */
 
 import { S3Client } from "@aws-sdk/client-s3"
 import { Pool } from "pg"
@@ -28,7 +28,7 @@ export const serverRuntime = (): ServerRuntime => {
     const environment = parseCmsEnvironment(process.env)
     const pool = new Pool({ connectionString: environment.postgres.connectionString, max: 8 })
     return {
-      configSecret: environment.payloadSecret,
+      configSecret: environment.cmsSecret,
       db: createServerDb(pool),
       pool,
       media: {

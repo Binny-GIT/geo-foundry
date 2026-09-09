@@ -20,6 +20,12 @@ const log = loggerOf({ component: "delivery" })
 const RATE_LIMIT_WINDOW_MS = 60_000
 const RATE_LIMIT_MAX = 60
 const rateBuckets = new Map<string, { count: number; resetAt: number }>()
+let rateLimitMax = RATE_LIMIT_MAX
+
+export const configureDeliveryRateLimitForTests = (limit = RATE_LIMIT_MAX): void => {
+  rateBuckets.clear()
+  rateLimitMax = limit
+}
 
 const rateLimited = (key: string): boolean => {
   const now = Date.now()
@@ -29,7 +35,7 @@ const rateLimited = (key: string): boolean => {
     return false
   }
   bucket.count += 1
-  return bucket.count > RATE_LIMIT_MAX
+  return bucket.count > rateLimitMax
 }
 
 const json = (status: number, body: unknown, cacheSeconds?: number): Response => {
@@ -45,27 +51,23 @@ const recordUsage = (
   db: ServerDb,
   route: "article" | "articles",
   siteId: number,
-  tenantId: number | null,
+  tenantId: number,
 ): void => {
   const date = new Date().toISOString().slice(0, 10)
   void (async () => {
     try {
-      const updated = await db
-        .update(apiUsageDailies)
-        .set({ count: sql`${apiUsageDailies.count} + 1`, updatedAt: new Date() })
-        .where(
-          and(
-            eq(apiUsageDailies.date, date),
-            eq(apiUsageDailies.route, route),
-            eq(apiUsageDailies.siteId, siteId),
-          ),
-        )
-        .returning({ id: apiUsageDailies.id })
-      if (updated.length === 0) {
-        await db
-          .insert(apiUsageDailies)
-          .values({ count: 1, date, route, siteId, tenantId: tenantId ?? 0 })
-      }
+      await db
+        .insert(apiUsageDailies)
+        .values({ count: 1, date, route, siteId, tenantId })
+        .onConflictDoUpdate({
+          set: { count: sql`${apiUsageDailies.count} + 1`, updatedAt: new Date() },
+          target: [
+            apiUsageDailies.tenantId,
+            apiUsageDailies.date,
+            apiUsageDailies.route,
+            apiUsageDailies.siteId,
+          ],
+        })
     } catch (error) {
       log.warn({ err: error, route, siteId }, "usage aggregation failed")
     }
@@ -133,9 +135,9 @@ const publicEdition = (
 export const deliveryRouteOf = (
   slug: readonly string[] | undefined,
 ): "articles" | "article" | null => {
-  if (slug?.length !== 4 || slug[0] !== "delivery") return null
-  if (slug[1] === "sites" && slug[3] === "articles") return "articles"
-  if (slug[1] === "articles") return "article"
+  if (slug?.[0] !== "delivery") return null
+  if (slug.length === 4 && slug[1] === "sites" && slug[3] === "articles") return "articles"
+  if (slug.length === 3 && slug[1] === "articles") return "article"
   return null
 }
 
@@ -176,7 +178,7 @@ export const handleDeliveryGet = async (
       db.select({ value: count() }).from(contentEditions).where(where),
       activePathnameByEdition(db, site.siteId),
     ])
-    recordUsage(db, "articles", site.siteId, site.tenantId)
+    if (site.tenantId !== null) recordUsage(db, "articles", site.siteId, site.tenantId)
     const totalDocs = totals[0]?.value ?? 0
     return json(
       200,
@@ -215,7 +217,7 @@ export const handleDeliveryGet = async (
     return json(404, { error: { code: "DELIVERY_ARTICLE_NOT_FOUND" } }, 60)
   }
   const pathnames = await activePathnameByEdition(db, activeSite.id)
-  recordUsage(db, "article", activeSite.id, activeSite.tenantId ?? null)
+  if (activeSite.tenantId !== null) recordUsage(db, "article", activeSite.id, activeSite.tenantId)
   const markdown = edition.bodyMarkdown ?? ""
   return json(
     200,

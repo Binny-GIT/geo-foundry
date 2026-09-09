@@ -110,14 +110,30 @@ CN=$(curl -s -w '\n%{http_code}' -X POST "$BASE/api/publication-plan-operations/
 curl -s -o /dev/null -X POST "$BASE/api/editions/586/workflow-transitions" -b /tmp/s-e.jar \
   -H 'Content-Type: application/json' -d '{"target":"draft"}'
 
-# 7. 回滚意图负例：374 无 release（用一次性 e2e publisher，root 重置密码）
+# 7. delivery 真实公开读：已发布详情与站点列表均为 200
+DELIVERY_ED=$(PSQL "SELECT id FROM geo_foundry.content_editions WHERE workflow_status='published' AND site_id=375 ORDER BY id DESC LIMIT 1")
+DELIVERY_DOMAIN=$(PSQL "SELECT hostname FROM geo_foundry.domains WHERE site_id=375 AND role='canonical' AND status='active' LIMIT 1")
+DL_DETAIL=$(curl -s -w '\n%{http_code}' "$BASE/api/delivery/articles/$DELIVERY_ED")
+[ -n "$DELIVERY_ED" ] && [ "$(echo "$DL_DETAIL" | tail -1)" = "200" ] && echo "$DL_DETAIL" | head -1 | python3 -c '
+import json,sys
+d=json.load(sys.stdin)
+assert d["id"] > 0 and isinstance(d["body"], list), d
+' && ok "delivery published detail 200" || bad "delivery detail $(echo "$DL_DETAIL"|tail -2)"
+DL_LIST=$(curl -s -w '\n%{http_code}' "$BASE/api/delivery/sites/$DELIVERY_DOMAIN/articles?limit=1")
+[ -n "$DELIVERY_DOMAIN" ] && [ "$(echo "$DL_LIST" | tail -1)" = "200" ] && echo "$DL_LIST" | head -1 | python3 -c '
+import json,sys
+d=json.load(sys.stdin)
+assert isinstance(d["docs"], list) and d["page"] == 1, d
+' && ok "delivery site list 200" || bad "delivery list $(echo "$DL_LIST"|tail -2)"
+
+# 8. 回滚意图负例：374 无 release（用一次性 e2e publisher，root 重置密码）
 curl -s -o /dev/null -X PATCH "$BASE/api/users/1112" -b /tmp/s-r.jar   -H 'Content-Type: application/json' -d '{"password":"gf-pub-e2e-001"}'
 login e2e-scheduled-publisher@geo-foundry.test gf-pub-e2e-001 /tmp/s-p.jar
 RB=$(curl -s -w '\n%{http_code}' -X POST "$BASE/api/rollback-operations/intents" -b /tmp/s-p.jar \
   -H 'Content-Type: application/json' -d '{"expectedCurrentManifestSha256":"'"$(printf 'a%.0s' {1..64})"'","expectedCurrentReleaseId":"rel-none","expectedManifestSha256":"'"$(printf 'b%.0s' {1..64})"'","siteId":374,"targetReleaseId":"rel-none2"}')
 [ "$(echo "$RB" | tail -1)" = "404" ] && ok "rollback intent no-release 404" || bad "rollback $(echo "$RB"|tail -2)"
 
-# 8. delivery 负例：无 canonical 域名
+# 9. delivery 负例：无 canonical 域名
 DL=$(curl -s -w '\n%{http_code}' "$BASE/api/delivery/sites/no-such-domain.test/articles")
 [ "$(echo "$DL" | tail -1)" = "404" ] && echo "$DL" | head -1 | grep -q DELIVERY_SITE_NOT_FOUND \
   && ok "delivery unknown domain 404" || bad "delivery $(echo "$DL"|tail -2)"

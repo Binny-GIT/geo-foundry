@@ -1,6 +1,6 @@
 /*
  * 稿源操作路由：ignore / merge / retry / adopt。
- * create 仍在旧 Payload endpoint（去重规则未迁移）。
+ * create/ignore/merge/retry/adopt 均由自建路由与 Drizzle 仓储处理。
  * adopt 用事务包住 editions+article_sources+intake 写入（旧实现无事务）。
  */
 
@@ -8,8 +8,8 @@ import { eq } from "drizzle-orm"
 import { z } from "zod"
 
 import { blocksToMarkdown } from "../../editor/block-markdown"
-import { enqueueIntakeFetchFromEnvironment } from "../../services/intake-queue"
 import { IntakeError, normalizeIntakeInput } from "../../services/intake"
+import { enqueueIntakeFetchFromEnvironment } from "../../services/intake-queue"
 import { authenticateRequest } from "../auth/session"
 import { contentEditions, editionVersions } from "../db/edition-schema"
 import { sites } from "../db/entity-schema"
@@ -367,7 +367,6 @@ export const handleIntakeOpsPost = async (
           priority: "normal",
           siteId,
           sites: [siteId],
-          status: "draft",
           summary,
           tenantId: item.tenantId,
           title,
@@ -397,7 +396,6 @@ export const handleIntakeOpsPost = async (
           priority: "normal",
           siteId,
           sites: [siteId],
-          status: "draft",
           summary,
           tenantId: item.tenantId,
           title,

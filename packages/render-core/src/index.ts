@@ -18,8 +18,8 @@ const freezeRecursively = <Value>(value: Value): Value => {
 export const renderPage = (document: PageDocument): RenderPage =>
   freezeRecursively(cloneJson(renderPageModel(document)))
 
-export { RENDER_ERROR, RenderError } from "./errors.js"
 export type { RenderErrorCode, RenderErrorLocation } from "./errors.js"
+export { RENDER_ERROR, RenderError } from "./errors.js"
 export type {
   RenderArticleListPage,
   RenderArticlePage,
@@ -44,8 +44,8 @@ export type {
   RenderQuoteBlock,
   RenderRedirectPage,
   RenderReferencesBlock,
+  RenderSlotData,
   RenderSlotName,
-  RenderSlotPayload,
   RenderTableBlock,
   RenderTagPage,
   RenderVideoBlock,

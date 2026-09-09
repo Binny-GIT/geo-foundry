@@ -132,7 +132,7 @@ export type RenderBlock =
 
 export type RenderSlotName = "page-header" | "after-hero" | "before-body" | "after-body" | "footer"
 
-export type RenderSlotPayload = Readonly<{
+export type RenderSlotData = Readonly<{
   readonly name: RenderSlotName
   readonly pageId: string
   readonly pageType: PageDocument["pageType"]
@@ -147,7 +147,7 @@ export type RenderContent = Readonly<{
   readonly entities: readonly Entity[]
   readonly hero?: RenderHero
   readonly relatedPages: readonly RelatedPage[]
-  readonly slots: readonly RenderSlotPayload[]
+  readonly slots: readonly RenderSlotData[]
 }>
 
 export type RenderListing = Readonly<{

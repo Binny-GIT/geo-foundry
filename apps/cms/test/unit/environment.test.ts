@@ -26,7 +26,7 @@ const runtimeEnvironment = (): Record<string, string> => ({
   GEO_FOUNDRY_S3_SECRET_KEY: "rustfs-secret-key",
   GEO_FOUNDRY_S3_SECRET_REF: "rustfs-geo-foundry-svc",
   GEO_FOUNDRY_S3_USE_SSL: "false",
-  PAYLOAD_SECRET: "payload-secret-value-at-least-32-characters",
+  GEO_FOUNDRY_CMS_SECRET: "cms-secret-value-at-least-32-characters",
 })
 
 const fileRuntimeEnvironment = async (): Promise<{
@@ -154,24 +154,43 @@ describe("CMS environment", () => {
       expect(parsed.mode).toBe("runtime")
       expect(new URL(parsed.postgres.connectionString).username).toBe("geo_foundry")
       expect(parsed.rustfs.accessKeyId).toBe("rustfs-access-key")
-      expect(parsed.payloadSecret).toBe("payload-secret-value-at-least-32-characters")
+      expect(parsed.cmsSecret).toBe("payload-secret-value-at-least-32-characters")
     } finally {
       await fixture.cleanup()
     }
   })
 
-  it("Given FILE-only runtime credentials, when a direct secret is present, then parsing rejects it", async () => {
+  it("Given FILE-only runtime credentials, when a direct new secret is present, then parsing rejects it", async () => {
     const fixture = await fileRuntimeEnvironment()
     try {
       const error = captureCmsEnvironmentError({
         ...fixture.environment,
-        PAYLOAD_SECRET: "must-not-be-accepted",
+        GEO_FOUNDRY_CMS_SECRET: "must-not-be-accepted",
       })
 
-      expect(error.variables).toEqual(["PAYLOAD_SECRET"])
+      expect(error.variables).toEqual(["GEO_FOUNDRY_CMS_SECRET"])
     } finally {
       await fixture.cleanup()
     }
+  })
+
+  it("Given direct legacy secret only, when parsed, then it remains supported", () => {
+    const environment = runtimeEnvironment()
+    delete environment["GEO_FOUNDRY_CMS_SECRET"]
+    environment["PAYLOAD_SECRET"] = "legacy-secret-value-at-least-32-characters"
+
+    expect(parseCmsEnvironment(environment).cmsSecret).toBe(
+      "legacy-secret-value-at-least-32-characters",
+    )
+  })
+
+  it("Given both direct secret variables with different values, when parsed, then it fails closed", () => {
+    const error = captureCmsEnvironmentError({
+      ...runtimeEnvironment(),
+      PAYLOAD_SECRET: "legacy-secret-value-at-least-32-characters",
+    })
+
+    expect(error.variables).toEqual(["GEO_FOUNDRY_CMS_SECRET", "PAYLOAD_SECRET"])
   })
 
   it("Given FILE-only runtime credentials, when a credential file is insecure, then parsing fails closed", async () => {

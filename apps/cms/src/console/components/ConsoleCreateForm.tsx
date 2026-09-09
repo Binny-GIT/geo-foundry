@@ -12,14 +12,14 @@ type SiteOption = {
   readonly name?: string
 }
 
-type PayloadError = {
+type ApiErrorBody = {
   readonly errors?: readonly { readonly message?: string }[]
   readonly message?: string
 }
 
 const CREATE_SUPPORTED = new Set<ConsoleResourceSlug>(["domains", "tenants"])
 
-const errorMessage = (payload: PayloadError): string =>
+const errorMessage = (payload: ApiErrorBody): string =>
   payload.errors?.find((error) => typeof error.message === "string")?.message ??
   payload.message ??
   "保存失败，请检查填写内容后重试。"
@@ -74,7 +74,7 @@ export const ConsoleCreateForm = ({ slug }: { readonly slug: ConsoleResourceSlug
         method: "POST",
       })
       if (!response.ok) {
-        const payload = (await response.json().catch(() => ({}))) as PayloadError
+        const payload = (await response.json().catch(() => ({}))) as ApiErrorBody
         setError(errorMessage(payload))
         return
       }

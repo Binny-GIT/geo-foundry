@@ -1,7 +1,7 @@
 /*
- * 基础实体只读仓储：显式 scope + Payload 兼容分页 DTO。
- * 首批只接当前 Console 已实际使用的查询形态；遇到不支持的 where 由路由回退
- * Payload，绝不静默忽略过滤条件。
+ * 基础实体只读仓储：显式 scope + 稳定分页 DTO。
+ * 只接当前 Console 已实际使用的查询形态；不支持的过滤条件返回 null，
+ * 由自建网关统一返回 404，绝不静默忽略。
  */
 
 import { and, asc, desc, eq, inArray, type SQL } from "drizzle-orm"
@@ -28,8 +28,8 @@ export const entityScopeFor = (
   if (input.role === CMS_ROLE.SUPER_ADMIN) return { kind: "global" }
   const tenantId = Number(input.tenantId)
   if (!Number.isInteger(tenantId) || tenantId <= 0) return null
-  /* users.sites 是 Console 显示收窄，不是 Payload collection access 的安全边界。
-   * 通用 /api/sites 兼容路由默认维持租户级语义；特定 UI 查询可显式开启。 */
+  /* users.sites 是 Console 显示收窄，不是数据权限的安全边界。
+   * 通用 /api/sites 默认维持租户级语义；特定 UI 查询可显式开启。 */
   if (
     options.applySiteScope === true &&
     input.role !== CMS_ROLE.TENANT_ADMIN &&
@@ -61,7 +61,7 @@ export type ListInput = Readonly<{
   tenantId?: number
 }>
 
-export type PayloadPage<T> = Readonly<{
+export type PaginatedResult<T> = Readonly<{
   docs: readonly T[]
   hasNextPage: boolean
   hasPrevPage: boolean
@@ -74,7 +74,7 @@ export type PayloadPage<T> = Readonly<{
   totalPages: number
 }>
 
-const pageOf = <T>(docs: readonly T[], totalDocs: number, input: ListInput): PayloadPage<T> => {
+const pageOf = <T>(docs: readonly T[], totalDocs: number, input: ListInput): PaginatedResult<T> => {
   const totalPages = Math.max(1, Math.ceil(totalDocs / input.limit))
   return {
     docs,
@@ -123,7 +123,7 @@ export class EntitiesRepository {
   async listTenants(
     scope: EntityScope,
     input: ListInput,
-  ): Promise<PayloadPage<Record<string, unknown>>> {
+  ): Promise<PaginatedResult<Record<string, unknown>>> {
     const where =
       scope.kind === "global"
         ? input.ids === undefined
@@ -161,7 +161,7 @@ export class EntitiesRepository {
   async listSites(
     scope: EntityScope,
     input: ListInput,
-  ): Promise<PayloadPage<Record<string, unknown>>> {
+  ): Promise<PaginatedResult<Record<string, unknown>>> {
     const tenantId = effectiveTenant(scope, input.tenantId)
     const predicates = [
       ...(tenantId === null ? [] : [eq(sites.tenantId, tenantId)]),

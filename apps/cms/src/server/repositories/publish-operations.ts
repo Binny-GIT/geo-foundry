@@ -1,6 +1,6 @@
 /*
- * 发布意图提交：approved/compiled 文章 → publish operation（台账 + 幂等 +
- * publish.requested 事件同事务）。会话路由与定时发布调度共用；
+ * 发布意图提交：approved/compiled 文章 → publish operation（台账、幂等与
+ * 任务入队同事务）。会话路由与定时发布调度共用；
  * 幂等键派生与旧 services/operations-ledger.submitEditionPublishOperation 一致。
  */
 
@@ -9,9 +9,9 @@ import { createHash, randomUUID } from "node:crypto"
 import { operationRequestHashOf, operationUniqueKeyOf } from "../../services/operations-ledger"
 import type { ServerDb } from "../db/client"
 import {
-  WorkflowRepositoryError,
-  type WorkflowClaims,
   loadCurrentVersion,
+  type WorkflowClaims,
+  WorkflowRepositoryError,
 } from "./edition-workflow"
 import { OperationsRepository } from "./operations"
 

@@ -1,8 +1,19 @@
 {
   "components": {
     "parameters": {
-      "EditionId": {
-        "description": "Numeric ContentEdition id",
+      "OperationId": {
+        "description": "Operation identifier",
+        "in": "path",
+        "name": "operationId",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "ResourceId": {
+        "description": "Numeric resource identifier",
         "in": "path",
         "name": "id",
         "required": true,
@@ -14,7 +25,7 @@
     },
     "securitySchemes": {
       "serviceApiKey": {
-        "description": "Payload users API key of a tenant-scoped content-service identity",
+        "description": "Tenant-scoped content-service API key",
         "in": "header",
         "name": "Authorization",
         "type": "apiKey"
@@ -22,7 +33,7 @@
     }
   },
   "info": {
-    "description": "Zero-trust integration surface between the CMS and the content-service. Every call requires the content-service identity, is tenant-bound, and records correlated outbox events.",
+    "description": "Zero-trust integration surface between the CMS and the content-service. Every call requires a tenant-scoped content-service identity.",
     "title": "Geo Foundry CMS Internal API",
     "version": "1.0.0"
   },
@@ -33,7 +44,7 @@
         "operationId": "getEditionInput",
         "parameters": [
           {
-            "$ref": "#/components/parameters/EditionId"
+            "$ref": "#/components/parameters/ResourceId"
           }
         ],
         "responses": {
@@ -48,7 +59,7 @@
             }
           },
           "400": {
-            "description": "Malformed or schema-invalid body"
+            "description": "Malformed or schema-invalid request"
           },
           "401": {
             "description": "Missing or invalid service identity"
@@ -57,7 +68,7 @@
             "description": "Non-service identity or tenant mismatch"
           },
           "404": {
-            "description": "Unknown edition"
+            "description": "Requested resource was not found or is outside the tenant scope"
           },
           "409": {
             "description": "Workflow state conflict"
@@ -75,18 +86,13 @@
           }
         ],
         "tags": [
-          "internal-editions"
+          "internal"
         ]
       }
     },
     "/internal/publication-plans/dispatch-due": {
       "post": {
         "operationId": "dispatchDuePublicationPlans",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/EditionId"
-          }
-        ],
         "responses": {
           "200": {
             "description": "Success",
@@ -99,7 +105,7 @@
             }
           },
           "400": {
-            "description": "Malformed or schema-invalid body"
+            "description": "Malformed or schema-invalid request"
           },
           "401": {
             "description": "Missing or invalid service identity"
@@ -108,7 +114,7 @@
             "description": "Non-service identity or tenant mismatch"
           },
           "404": {
-            "description": "Unknown edition"
+            "description": "Requested resource was not found or is outside the tenant scope"
           },
           "409": {
             "description": "Workflow state conflict"
@@ -126,7 +132,53 @@
           }
         ],
         "tags": [
-          "internal-editions"
+          "internal"
+        ]
+      }
+    },
+    "/internal/connectors/poll-due": {
+      "post": {
+        "operationId": "pollDueConnectors",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed or schema-invalid request"
+          },
+          "401": {
+            "description": "Missing or invalid service identity"
+          },
+          "403": {
+            "description": "Non-service identity or tenant mismatch"
+          },
+          "404": {
+            "description": "Requested resource was not found or is outside the tenant scope"
+          },
+          "409": {
+            "description": "Workflow state conflict"
+          },
+          "413": {
+            "description": "Body exceeds the configured size limit"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        },
+        "security": [
+          {
+            "serviceApiKey": []
+          }
+        ],
+        "tags": [
+          "internal"
         ]
       }
     },
@@ -135,7 +187,7 @@
         "operationId": "getIntakeFetchInput",
         "parameters": [
           {
-            "$ref": "#/components/parameters/EditionId"
+            "$ref": "#/components/parameters/ResourceId"
           }
         ],
         "responses": {
@@ -150,7 +202,7 @@
             }
           },
           "400": {
-            "description": "Malformed or schema-invalid body"
+            "description": "Malformed or schema-invalid request"
           },
           "401": {
             "description": "Missing or invalid service identity"
@@ -159,7 +211,7 @@
             "description": "Non-service identity or tenant mismatch"
           },
           "404": {
-            "description": "Unknown edition"
+            "description": "Requested resource was not found or is outside the tenant scope"
           },
           "409": {
             "description": "Workflow state conflict"
@@ -177,7 +229,7 @@
           }
         ],
         "tags": [
-          "internal-editions"
+          "internal"
         ]
       }
     },
@@ -186,7 +238,7 @@
         "operationId": "claimIntakeFetch",
         "parameters": [
           {
-            "$ref": "#/components/parameters/EditionId"
+            "$ref": "#/components/parameters/ResourceId"
           }
         ],
         "responses": {
@@ -201,7 +253,7 @@
             }
           },
           "400": {
-            "description": "Malformed or schema-invalid body"
+            "description": "Malformed or schema-invalid request"
           },
           "401": {
             "description": "Missing or invalid service identity"
@@ -210,7 +262,7 @@
             "description": "Non-service identity or tenant mismatch"
           },
           "404": {
-            "description": "Unknown edition"
+            "description": "Requested resource was not found or is outside the tenant scope"
           },
           "409": {
             "description": "Workflow state conflict"
@@ -228,7 +280,7 @@
           }
         ],
         "tags": [
-          "internal-editions"
+          "internal"
         ]
       }
     },
@@ -237,7 +289,7 @@
         "operationId": "completeIntakeFetch",
         "parameters": [
           {
-            "$ref": "#/components/parameters/EditionId"
+            "$ref": "#/components/parameters/ResourceId"
           }
         ],
         "responses": {
@@ -252,7 +304,7 @@
             }
           },
           "400": {
-            "description": "Malformed or schema-invalid body"
+            "description": "Malformed or schema-invalid request"
           },
           "401": {
             "description": "Missing or invalid service identity"
@@ -261,7 +313,7 @@
             "description": "Non-service identity or tenant mismatch"
           },
           "404": {
-            "description": "Unknown edition"
+            "description": "Requested resource was not found or is outside the tenant scope"
           },
           "409": {
             "description": "Workflow state conflict"
@@ -279,7 +331,7 @@
           }
         ],
         "tags": [
-          "internal-editions"
+          "internal"
         ]
       }
     },
@@ -288,7 +340,7 @@
         "operationId": "failIntakeFetch",
         "parameters": [
           {
-            "$ref": "#/components/parameters/EditionId"
+            "$ref": "#/components/parameters/ResourceId"
           }
         ],
         "responses": {
@@ -303,7 +355,7 @@
             }
           },
           "400": {
-            "description": "Malformed or schema-invalid body"
+            "description": "Malformed or schema-invalid request"
           },
           "401": {
             "description": "Missing or invalid service identity"
@@ -312,7 +364,7 @@
             "description": "Non-service identity or tenant mismatch"
           },
           "404": {
-            "description": "Unknown edition"
+            "description": "Requested resource was not found or is outside the tenant scope"
           },
           "409": {
             "description": "Workflow state conflict"
@@ -330,7 +382,7 @@
           }
         ],
         "tags": [
-          "internal-editions"
+          "internal"
         ]
       }
     },
@@ -339,7 +391,7 @@
         "operationId": "createRssEntries",
         "parameters": [
           {
-            "$ref": "#/components/parameters/EditionId"
+            "$ref": "#/components/parameters/ResourceId"
           }
         ],
         "responses": {
@@ -354,7 +406,7 @@
             }
           },
           "400": {
-            "description": "Malformed or schema-invalid body"
+            "description": "Malformed or schema-invalid request"
           },
           "401": {
             "description": "Missing or invalid service identity"
@@ -363,7 +415,7 @@
             "description": "Non-service identity or tenant mismatch"
           },
           "404": {
-            "description": "Unknown edition"
+            "description": "Requested resource was not found or is outside the tenant scope"
           },
           "409": {
             "description": "Workflow state conflict"
@@ -381,7 +433,7 @@
           }
         ],
         "tags": [
-          "internal-editions"
+          "internal"
         ]
       }
     },
@@ -390,7 +442,7 @@
         "operationId": "getCompileSnapshot",
         "parameters": [
           {
-            "$ref": "#/components/parameters/EditionId"
+            "$ref": "#/components/parameters/ResourceId"
           }
         ],
         "responses": {
@@ -405,7 +457,7 @@
             }
           },
           "400": {
-            "description": "Malformed or schema-invalid body"
+            "description": "Malformed or schema-invalid request"
           },
           "401": {
             "description": "Missing or invalid service identity"
@@ -414,7 +466,7 @@
             "description": "Non-service identity or tenant mismatch"
           },
           "404": {
-            "description": "Unknown edition"
+            "description": "Requested resource was not found or is outside the tenant scope"
           },
           "409": {
             "description": "Workflow state conflict"
@@ -432,7 +484,7 @@
           }
         ],
         "tags": [
-          "internal-editions"
+          "internal"
         ]
       }
     },
@@ -441,7 +493,7 @@
         "operationId": "writeDraftVersion",
         "parameters": [
           {
-            "$ref": "#/components/parameters/EditionId"
+            "$ref": "#/components/parameters/ResourceId"
           }
         ],
         "responses": {
@@ -456,7 +508,7 @@
             }
           },
           "400": {
-            "description": "Malformed or schema-invalid body"
+            "description": "Malformed or schema-invalid request"
           },
           "401": {
             "description": "Missing or invalid service identity"
@@ -465,7 +517,7 @@
             "description": "Non-service identity or tenant mismatch"
           },
           "404": {
-            "description": "Unknown edition"
+            "description": "Requested resource was not found or is outside the tenant scope"
           },
           "409": {
             "description": "Workflow state conflict"
@@ -483,7 +535,7 @@
           }
         ],
         "tags": [
-          "internal-editions"
+          "internal"
         ]
       }
     },
@@ -492,7 +544,7 @@
         "operationId": "recordAssessment",
         "parameters": [
           {
-            "$ref": "#/components/parameters/EditionId"
+            "$ref": "#/components/parameters/ResourceId"
           }
         ],
         "responses": {
@@ -507,7 +559,7 @@
             }
           },
           "400": {
-            "description": "Malformed or schema-invalid body"
+            "description": "Malformed or schema-invalid request"
           },
           "401": {
             "description": "Missing or invalid service identity"
@@ -516,7 +568,7 @@
             "description": "Non-service identity or tenant mismatch"
           },
           "404": {
-            "description": "Unknown edition"
+            "description": "Requested resource was not found or is outside the tenant scope"
           },
           "409": {
             "description": "Workflow state conflict"
@@ -534,7 +586,7 @@
           }
         ],
         "tags": [
-          "internal-editions"
+          "internal"
         ]
       }
     },
@@ -543,7 +595,7 @@
         "operationId": "recordCompileResult",
         "parameters": [
           {
-            "$ref": "#/components/parameters/EditionId"
+            "$ref": "#/components/parameters/ResourceId"
           }
         ],
         "responses": {
@@ -558,7 +610,7 @@
             }
           },
           "400": {
-            "description": "Malformed or schema-invalid body"
+            "description": "Malformed or schema-invalid request"
           },
           "401": {
             "description": "Missing or invalid service identity"
@@ -567,7 +619,7 @@
             "description": "Non-service identity or tenant mismatch"
           },
           "404": {
-            "description": "Unknown edition"
+            "description": "Requested resource was not found or is outside the tenant scope"
           },
           "409": {
             "description": "Workflow state conflict"
@@ -585,18 +637,13 @@
           }
         ],
         "tags": [
-          "internal-editions"
+          "internal"
         ]
       }
     },
     "/internal/rollback-intents/consume": {
       "post": {
         "operationId": "consumeRollbackIntent",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/EditionId"
-          }
-        ],
         "responses": {
           "200": {
             "description": "Success",
@@ -609,7 +656,7 @@
             }
           },
           "400": {
-            "description": "Malformed or schema-invalid body"
+            "description": "Malformed or schema-invalid request"
           },
           "401": {
             "description": "Missing or invalid service identity"
@@ -618,7 +665,7 @@
             "description": "Non-service identity or tenant mismatch"
           },
           "404": {
-            "description": "Unknown edition"
+            "description": "Requested resource was not found or is outside the tenant scope"
           },
           "409": {
             "description": "Workflow state conflict"
@@ -636,7 +683,7 @@
           }
         ],
         "tags": [
-          "internal-editions"
+          "internal"
         ]
       }
     },
@@ -645,7 +692,7 @@
         "operationId": "recordPublishedRelease",
         "parameters": [
           {
-            "$ref": "#/components/parameters/EditionId"
+            "$ref": "#/components/parameters/ResourceId"
           }
         ],
         "responses": {
@@ -660,7 +707,7 @@
             }
           },
           "400": {
-            "description": "Malformed or schema-invalid body"
+            "description": "Malformed or schema-invalid request"
           },
           "401": {
             "description": "Missing or invalid service identity"
@@ -669,7 +716,7 @@
             "description": "Non-service identity or tenant mismatch"
           },
           "404": {
-            "description": "Unknown edition"
+            "description": "Requested resource was not found or is outside the tenant scope"
           },
           "409": {
             "description": "Workflow state conflict"
@@ -687,18 +734,13 @@
           }
         ],
         "tags": [
-          "internal-editions"
+          "internal"
         ]
       }
     },
     "/internal/releases/rollback-receipt": {
       "post": {
         "operationId": "recordRollbackReceipt",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/EditionId"
-          }
-        ],
         "responses": {
           "200": {
             "description": "Success",
@@ -711,7 +753,7 @@
             }
           },
           "400": {
-            "description": "Malformed or schema-invalid body"
+            "description": "Malformed or schema-invalid request"
           },
           "401": {
             "description": "Missing or invalid service identity"
@@ -720,7 +762,7 @@
             "description": "Non-service identity or tenant mismatch"
           },
           "404": {
-            "description": "Unknown edition"
+            "description": "Requested resource was not found or is outside the tenant scope"
           },
           "409": {
             "description": "Workflow state conflict"
@@ -738,7 +780,7 @@
           }
         ],
         "tags": [
-          "internal-editions"
+          "internal"
         ]
       }
     },
@@ -747,7 +789,7 @@
         "operationId": "storeEmbedding",
         "parameters": [
           {
-            "$ref": "#/components/parameters/EditionId"
+            "$ref": "#/components/parameters/ResourceId"
           }
         ],
         "responses": {
@@ -762,7 +804,7 @@
             }
           },
           "400": {
-            "description": "Malformed or schema-invalid body"
+            "description": "Malformed or schema-invalid request"
           },
           "401": {
             "description": "Missing or invalid service identity"
@@ -771,7 +813,7 @@
             "description": "Non-service identity or tenant mismatch"
           },
           "404": {
-            "description": "Unknown edition"
+            "description": "Requested resource was not found or is outside the tenant scope"
           },
           "409": {
             "description": "Workflow state conflict"
@@ -789,7 +831,7 @@
           }
         ],
         "tags": [
-          "internal-editions"
+          "internal"
         ]
       }
     },
@@ -798,7 +840,7 @@
         "operationId": "findSimilarEditions",
         "parameters": [
           {
-            "$ref": "#/components/parameters/EditionId"
+            "$ref": "#/components/parameters/ResourceId"
           }
         ],
         "responses": {
@@ -813,7 +855,7 @@
             }
           },
           "400": {
-            "description": "Malformed or schema-invalid body"
+            "description": "Malformed or schema-invalid request"
           },
           "401": {
             "description": "Missing or invalid service identity"
@@ -822,7 +864,7 @@
             "description": "Non-service identity or tenant mismatch"
           },
           "404": {
-            "description": "Unknown edition"
+            "description": "Requested resource was not found or is outside the tenant scope"
           },
           "409": {
             "description": "Workflow state conflict"
@@ -840,67 +882,16 @@
           }
         ],
         "tags": [
-          "internal-editions"
+          "internal"
         ]
       }
     },
-    "/internal/operations/non-terminal": {
-      "get": {
-        "operationId": "listNonTerminalOperations",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/EditionId"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Malformed or schema-invalid body"
-          },
-          "401": {
-            "description": "Missing or invalid service identity"
-          },
-          "403": {
-            "description": "Non-service identity or tenant mismatch"
-          },
-          "404": {
-            "description": "Unknown edition"
-          },
-          "409": {
-            "description": "Workflow state conflict"
-          },
-          "413": {
-            "description": "Body exceeds the configured size limit"
-          },
-          "429": {
-            "description": "Rate limit exceeded"
-          }
-        },
-        "security": [
-          {
-            "serviceApiKey": []
-          }
-        ],
-        "tags": [
-          "internal-editions"
-        ]
-      }
-    },
-    "/internal/operations/:operationId": {
+    "/internal/operations/{operationId}": {
       "get": {
         "operationId": "getOperation",
         "parameters": [
           {
-            "$ref": "#/components/parameters/EditionId"
+            "$ref": "#/components/parameters/OperationId"
           }
         ],
         "responses": {
@@ -915,7 +906,7 @@
             }
           },
           "400": {
-            "description": "Malformed or schema-invalid body"
+            "description": "Malformed or schema-invalid request"
           },
           "401": {
             "description": "Missing or invalid service identity"
@@ -924,7 +915,7 @@
             "description": "Non-service identity or tenant mismatch"
           },
           "404": {
-            "description": "Unknown edition"
+            "description": "Requested resource was not found or is outside the tenant scope"
           },
           "409": {
             "description": "Workflow state conflict"
@@ -942,16 +933,16 @@
           }
         ],
         "tags": [
-          "internal-editions"
+          "internal"
         ]
       }
     },
-    "/internal/operations/:operationId/stages/start": {
+    "/internal/operations/{operationId}/stages/start": {
       "post": {
         "operationId": "startOperationStage",
         "parameters": [
           {
-            "$ref": "#/components/parameters/EditionId"
+            "$ref": "#/components/parameters/OperationId"
           }
         ],
         "responses": {
@@ -966,7 +957,7 @@
             }
           },
           "400": {
-            "description": "Malformed or schema-invalid body"
+            "description": "Malformed or schema-invalid request"
           },
           "401": {
             "description": "Missing or invalid service identity"
@@ -975,7 +966,7 @@
             "description": "Non-service identity or tenant mismatch"
           },
           "404": {
-            "description": "Unknown edition"
+            "description": "Requested resource was not found or is outside the tenant scope"
           },
           "409": {
             "description": "Workflow state conflict"
@@ -993,16 +984,16 @@
           }
         ],
         "tags": [
-          "internal-editions"
+          "internal"
         ]
       }
     },
-    "/internal/operations/:operationId/stages/complete": {
+    "/internal/operations/{operationId}/stages/complete": {
       "post": {
         "operationId": "completeOperationStage",
         "parameters": [
           {
-            "$ref": "#/components/parameters/EditionId"
+            "$ref": "#/components/parameters/OperationId"
           }
         ],
         "responses": {
@@ -1017,7 +1008,7 @@
             }
           },
           "400": {
-            "description": "Malformed or schema-invalid body"
+            "description": "Malformed or schema-invalid request"
           },
           "401": {
             "description": "Missing or invalid service identity"
@@ -1026,7 +1017,7 @@
             "description": "Non-service identity or tenant mismatch"
           },
           "404": {
-            "description": "Unknown edition"
+            "description": "Requested resource was not found or is outside the tenant scope"
           },
           "409": {
             "description": "Workflow state conflict"
@@ -1044,7 +1035,7 @@
           }
         ],
         "tags": [
-          "internal-editions"
+          "internal"
         ]
       }
     }
@@ -1056,8 +1047,8 @@
   ],
   "tags": [
     {
-      "description": "Edition integration operations",
-      "name": "internal-editions"
+      "description": "Internal worker integration operations",
+      "name": "internal"
     }
   ]
 }

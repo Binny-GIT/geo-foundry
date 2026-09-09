@@ -39,7 +39,7 @@ export const ConsoleCreateDialog = ({
       <p className={dialogKickerClass}>创建记录</p>
       <DialogTitle>新建{createLabel}</DialogTitle>
       <DialogDescription id="create-dialog-desc">
-        可用角色与租户选择由当前会话决定；Payload API 仍会在服务端强制执行最终权限与租户规则。
+        可用角色与租户选择由当前会话决定；服务端仍会强制执行最终权限与租户规则。
       </DialogDescription>
       <div className="mt-5">
         <ConsoleUserForm actorRole={actorRole} />

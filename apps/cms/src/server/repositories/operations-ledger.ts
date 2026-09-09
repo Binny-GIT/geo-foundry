@@ -1,10 +1,8 @@
 /*
- * Operations 台账 Drizzle 仓储：get / listNonTerminal / start / complete / cancel。
+ * Operations 台账 Drizzle 仓储：get / start / complete / cancel。
  * 状态机仍走 @geo/domain.transitionOperation；审计追加与 revision CAS 同事务；
  * 契约（错误码、快照形状）与 services/operations-ledger.ts 保持一致。
  */
-
-import { and, asc, eq, inArray } from "drizzle-orm"
 
 import {
   type AuditActor,
@@ -17,6 +15,7 @@ import {
   parseTenantId,
   transitionOperation,
 } from "@geo/domain"
+import { and, eq } from "drizzle-orm"
 
 import { resolveSessionClaims } from "../../access/session"
 import { OperationsLedgerError } from "../../services/operations-ledger"
@@ -149,28 +148,6 @@ export const getOperation = async (
   const row = await loadByOperationId(db, operationId)
   assertTenantScope(claims, row)
   return snapshotOf(row)
-}
-
-export const listNonTerminalOperations = async (
-  db: ServerDb,
-  user: unknown,
-  limit = 100,
-): Promise<{ readonly operations: readonly OperationSnapshot[] }> => {
-  const claims = serviceClaimsOf(user)
-  const rows = await db
-    .select()
-    .from(operations)
-    .where(
-      and(
-        inArray(operations.state, ["queued", "running"]),
-        ...(claims.role === "super-admin"
-          ? []
-          : [eq(operations.tenantId, Number(claims.tenantId ?? -1))]),
-      ),
-    )
-    .orderBy(asc(operations.createdAt))
-    .limit(limit)
-  return { operations: rows.map(snapshotOf) }
 }
 
 const STAGE_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/

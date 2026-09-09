@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto"
-import { eq, and, sql } from "drizzle-orm"
-
-import { editionVersions } from "../server/db/edition-schema"
-import type { ServerDb } from "../server/db/client"
+import { and, eq, sql } from "drizzle-orm"
 import { resolveSessionClaims } from "../access/session"
+import type { ServerDb } from "../server/db/client"
+import { editionVersions } from "../server/db/edition-schema"
+import { embeddings } from "../server/db/entity-schema"
 
 /** The single pgvector column dimension pinned by the task20 migration. */
 export const EMBEDDING_DIMENSION = 1536
@@ -158,11 +158,11 @@ export async function storeEditionEmbedding(
   })
   try {
     const inserted = await db.execute(sql`
-      INSERT INTO "geo_foundry"."embeddings"
-        ("embedding_key", "tenant_id", "site_id", "edition_id", "scope", "model_id", "dimension", "input_hash", "embedding")
+      INSERT INTO ${embeddings}
+        (${embeddings.embeddingKey}, ${embeddings.tenantId}, ${embeddings.siteId}, ${embeddings.editionId}, ${embeddings.scope}, ${embeddings.modelId}, ${embeddings.dimension}, ${embeddings.inputHash}, ${embeddings.embedding})
       VALUES (${embeddingKey}, ${anchor.tenantId}, ${anchor.siteId}, ${anchor.editionId}, ${input.scope}, ${input.modelId}, ${input.dimension}, ${input.inputHash}, ${vectorLiteral}::public.vector)
-      ON CONFLICT ("embedding_key") DO NOTHING
-      RETURNING "id"`)
+      ON CONFLICT (${embeddings.embeddingKey}) DO NOTHING
+      RETURNING ${embeddings.id}`)
     const insertedRows = inserted.rows as unknown as IdRow[]
     if (insertedRows.length > 0 && insertedRows[0] !== undefined) {
       return {
@@ -172,7 +172,7 @@ export async function storeEditionEmbedding(
       }
     }
     const existing = await db.execute(sql`
-      SELECT "id" FROM "geo_foundry"."embeddings" WHERE "embedding_key" = ${embeddingKey}`)
+      SELECT ${embeddings.id} FROM ${embeddings} WHERE ${embeddings.embeddingKey} = ${embeddingKey}`)
     const existingRows = existing.rows as unknown as IdRow[]
     const row = existingRows[0]
     if (row === undefined) {

@@ -23,12 +23,21 @@ set -a
 # shellcheck disable=SC1090
 . "$ENV_FILE"
 set +a
-for variable in GEO_FOUNDRY_PG_USER GEO_FOUNDRY_PG_PASSWORD GEO_FOUNDRY_S3_ACCESS_KEY GEO_FOUNDRY_S3_SECRET_KEY PAYLOAD_SECRET; do
+for variable in GEO_FOUNDRY_PG_USER GEO_FOUNDRY_PG_PASSWORD GEO_FOUNDRY_S3_ACCESS_KEY GEO_FOUNDRY_S3_SECRET_KEY; do
   if [[ -z "${!variable:-}" ]]; then
     printf '%s\n' "MK_DEV_CREDENTIAL_SOURCE_MISSING:${variable}" >&2
     exit 1
   fi
 done
+if [[ -n "${GEO_FOUNDRY_CMS_SECRET:-}" && -n "${PAYLOAD_SECRET:-}" && "$GEO_FOUNDRY_CMS_SECRET" != "$PAYLOAD_SECRET" ]]; then
+  printf '%s\n' 'MK_DEV_CREDENTIAL_SOURCE_CONFLICT:GEO_FOUNDRY_CMS_SECRET,PAYLOAD_SECRET' >&2
+  exit 1
+fi
+CMS_SECRET="${GEO_FOUNDRY_CMS_SECRET:-${PAYLOAD_SECRET:-}}"
+if [[ -z "$CMS_SECRET" ]]; then
+  printf '%s\n' 'MK_DEV_CREDENTIAL_SOURCE_MISSING:GEO_FOUNDRY_CMS_SECRET' >&2
+  exit 1
+fi
 
 install -d -m 700 -o 1001 -g 1001 "$CREDENTIALS_DIR"
 cleanup() {
@@ -47,7 +56,7 @@ write_credential pg-user "$GEO_FOUNDRY_PG_USER"
 write_credential pg-password "$GEO_FOUNDRY_PG_PASSWORD"
 write_credential s3-access-key "$GEO_FOUNDRY_S3_ACCESS_KEY"
 write_credential s3-secret-key "$GEO_FOUNDRY_S3_SECRET_KEY"
-write_credential cms-secret "$PAYLOAD_SECRET"
+write_credential cms-secret "$CMS_SECRET"
 
 # geo_worker：worker 的受限队列角色，仅授权 pgboss schema（队列授权由
 # cms pgboss:provision 执行）；业务读写仍走 internal HTTP API。
@@ -86,6 +95,7 @@ sed -i \
   -e '/^GEO_FOUNDRY_PG_PASSWORD=/d' \
   -e '/^GEO_FOUNDRY_S3_ACCESS_KEY=/d' \
   -e '/^GEO_FOUNDRY_S3_SECRET_KEY=/d' \
+  -e '/^GEO_FOUNDRY_CMS_SECRET=/d' \
   -e '/^PAYLOAD_SECRET=/d' \
   "$ENV_FILE"
 printf '\nGEO_FOUNDRY_CREDENTIALS_DIR=%s\n' "$CREDENTIALS_DIR" >> "$ENV_FILE"

@@ -1,17 +1,12 @@
 /*
- * 服务端数据访问的表定义（批次 4：去 Payload 的 Drizzle 仓储层）。
- *
- * 列名与类型必须与 src/migrations 的手写 DDL 逐列一致（迁移是 schema 的
- * 唯一权威）；本文件只声明服务端查询所需的最小列集，新列按需补齐。
- * Payload 的驼峰字段名（enableAPIToken 之类）到 snake_case 列名的映射
- * 由仓储层负责，不在这里翻译。
+ * 服务端数据访问的核心表定义。TypeScript schema 与已提交 SQL migration
+ * 必须逐列一致；业务属性名到 PostgreSQL snake_case 列名在此显式映射。
  */
 
 import {
   boolean,
   index,
   integer,
-  numeric,
   pgEnum,
   pgSchema,
   serial,
@@ -41,7 +36,6 @@ export const users = geo.table(
     updatedAt: timestamp("updated_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
     enableAPIToken: boolean("enable_a_p_i_key"),
-    apiKey: varchar("api_key"),
     apiKeyIndex: varchar("api_key_index"),
     email: varchar("email").notNull(),
     resetPasswordToken: varchar("reset_password_token"),
@@ -60,7 +54,7 @@ export const users = geo.table(
   ],
 )
 
-/** users.sessions 数组表（Payload 会话撤销机制，见同迁移）。 */
+/** 会话撤销表：sid、创建时间与过期时间。 */
 export const usersSessions = geo.table(
   "users_sessions",
   {

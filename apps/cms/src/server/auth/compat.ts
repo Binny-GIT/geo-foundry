@@ -1,33 +1,31 @@
 /*
- * 认证兼容层（批次 4 后端去 Payload 的第一步）：
- * 不 import 任何 Payload 代码，独立复现其凭据与会话校验。
+ * 旧认证格式兼容层：不依赖旧运行时，独立校验历史凭据与会话。
  *
- * 机制（与 Payload 3.88 源码逐字对照，已在 mk-dev 用真实数据验证）：
- * - 密码：pbkdf2(password, salt, 25000 轮, 512 字节, sha256)，salt 为
- *   32 字节随机数的 hex；存储形态 users 表的 salt/hash 两列（hex 字符串）。
- * - 会话：jose HS256 JWT，cookie 名 payload-token；载荷含 id/collection/
+ * 历史兼容规则：
+ * - 密码：PBKDF2(password, salt, 25000 轮, 512 字节, sha256)，salt 为
+ *   32 字节随机数的 hex；存储形态为 users 表的 salt/hash 两列（hex 字符串）。
+ * - 会话：jose HS256 JWT，旧 cookie 名为 payload-token；载荷含 id/collection/
  *   email/sid（会话撤销用），iat + exp（7 天）。
- * - 关键坑：JWT 签名密钥不是 config.secret 原文，而是 Payload 初始化时的
- *   派生值 sha256(secret).hex 的前 32 字符（payload/dist/index.js:322）。
+ * - JWT 签名密钥使用 sha256(secret).hex 的前 32 字符派生值，而非原始 secret。
  */
 
 import crypto from "node:crypto"
 
 import { jwtVerify } from "jose"
 
-/** Payload 运行时签名密钥：sha256(configSecret) 的 hex 前 32 字符。 */
-export const payloadSigningKeyOf = (configSecret: string): string =>
+/** 历史认证格式的签名密钥：sha256(configSecret) 的 hex 前 32 字符。 */
+export const derivedAuthKeyOf = (configSecret: string): string =>
   crypto.createHash("sha256").update(configSecret).digest("hex").slice(0, 32)
 
 /**
- * Payload API-Key 不按 api_key 密文列匹配，而是用运行时签名密钥对明文 key
- * 计算 HMAC 索引。SHA-1 是 v3.46.0 以前的兼容形态，SHA-256 是当前形态。
+ * 历史 API-Key 不按 api_key 密文列匹配，而是用派生签名密钥对明文 key
+ * 计算 HMAC 索引。SHA-1 是旧版兼容形态，SHA-256 是当前形态。
  */
-export const payloadApiKeyIndexesOf = (
+export const apiKeyIndexesOf = (
   apiKey: string,
   configSecret: string,
 ): readonly [sha1: string, sha256: string] => {
-  const signingKey = payloadSigningKeyOf(configSecret)
+  const signingKey = derivedAuthKeyOf(configSecret)
   return [
     crypto.createHmac("sha1", signingKey).update(apiKey).digest("hex"),
     crypto.createHmac("sha256", signingKey).update(apiKey).digest("hex"),
@@ -49,22 +47,8 @@ export type StoredCredentials = Readonly<{
   readonly salt: string
 }>
 
-/** 生成与 Payload 完全相同的 PBKDF2 salt/hash，供新建与修改密码。 */
-export const generatePasswordCredentialsCompat = async (
-  password: string,
-): Promise<StoredCredentials> => {
-  const salt = crypto.randomBytes(32).toString("hex")
-  const hash = await new Promise<Buffer>((resolve, reject) => {
-    crypto.pbkdf2(password, salt, 25_000, 512, "sha256", (error, hashRaw) => {
-      if (error !== null) reject(error)
-      else resolve(hashRaw)
-    })
-  })
-  return { hash: hash.toString("hex"), salt }
-}
-
-/** 校验明文密码与存储凭据是否匹配（参数与 Payload authenticate 逐字一致）。 */
-export const verifyPasswordCompat = async (
+/** 校验明文密码与旧 PBKDF2 存储凭据是否匹配。 */
+export const verifyLegacyPbkdf2 = async (
   password: string,
   stored: StoredCredentials,
 ): Promise<boolean> => {
@@ -88,15 +72,15 @@ export type SessionClaims = Readonly<{
   sid?: unknown
 }>
 
-/** 校验 payload-token 的 JWT 签名与有效期；解析失败/过期/篡改一律 null。 */
-export const verifySessionTokenCompat = async (
+/** 校验会话 JWT 的签名与有效期；解析失败、过期或篡改一律返回 null。 */
+export const verifySessionToken = async (
   token: string,
   configSecret: string,
 ): Promise<SessionClaims | null> => {
   try {
     const { payload } = await jwtVerify(
       token,
-      new TextEncoder().encode(payloadSigningKeyOf(configSecret)),
+      new TextEncoder().encode(derivedAuthKeyOf(configSecret)),
       {
         algorithms: ["HS256"],
       },

@@ -1,5 +1,4 @@
 import { headers } from "next/headers"
-import Script from "next/script"
 import type { ReactNode } from "react"
 
 import { CMS_ACTION } from "@/access/policy"
@@ -36,25 +35,18 @@ const AuthenticatedConsoleLayout = async ({ children }: AuthenticatedLayoutProps
   })
 
   return (
-    <>
-      {/* Keep Payload i18n aligned with the SSR zh fallback before any jump
-          into the emergency tree; same bootstrap as workspace/_emergency. */}
-      <Script id="payload-language-bootstrap" strategy="beforeInteractive">
-        {`if (!document.cookie.split('; ').some((row) => row.startsWith('payload-lng='))) document.cookie = 'payload-lng=zh; path=/; SameSite=Lax'`}
-      </Script>
-      <ConsoleShell
-        navigation={{
-          resources,
-          session: {
-            email: session.email,
-            roleLabel: ROLE_LABEL[session.role] ?? session.role,
-            tenantName: session.tenantName,
-          },
-        }}
-      >
-        {children}
-      </ConsoleShell>
-    </>
+    <ConsoleShell
+      navigation={{
+        resources,
+        session: {
+          email: session.email,
+          roleLabel: ROLE_LABEL[session.role] ?? session.role,
+          tenantName: session.tenantName,
+        },
+      }}
+    >
+      {children}
+    </ConsoleShell>
   )
 }
 

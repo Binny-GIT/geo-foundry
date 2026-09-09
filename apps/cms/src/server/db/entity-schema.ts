@@ -8,7 +8,9 @@ import {
   pgEnum,
   serial,
   timestamp,
+  uniqueIndex,
   varchar,
+  vector,
 } from "drizzle-orm/pg-core"
 
 import { geo } from "./schema"
@@ -108,7 +110,37 @@ export const sourceSnapshots = geo.table(
   (table) => [
     index("source_snapshots_intake_item_idx").on(table.intakeItemId),
     index("source_snapshots_tenant_idx").on(table.tenantId),
-    index("source_snapshots_storage_key_idx").on(table.storageKey),
+    uniqueIndex("source_snapshots_storage_key_idx").on(table.storageKey),
+  ],
+)
+
+export const embeddings = geo.table(
+  "embeddings",
+  {
+    id: serial("id").primaryKey(),
+    embeddingKey: varchar("embedding_key").notNull(),
+    tenantId: integer("tenant_id").notNull(),
+    siteId: integer("site_id").notNull(),
+    editionId: integer("edition_id").notNull(),
+    scope: varchar("scope").notNull(),
+    modelId: varchar("model_id").notNull(),
+    dimension: integer("dimension").notNull(),
+    inputHash: varchar("input_hash").notNull(),
+    embedding: vector("embedding", { dimensions: 1536 }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("embeddings_embedding_key_idx").on(table.embeddingKey),
+    index("embeddings_lookup_idx").on(
+      table.tenantId,
+      table.scope,
+      table.modelId,
+      table.dimension,
+      table.siteId,
+    ),
+    index("embeddings_edition_idx").on(table.editionId),
+    index("embeddings_embedding_hnsw_idx").using("hnsw", table.embedding.op("vector_cosine_ops")),
   ],
 )
 
@@ -119,19 +151,14 @@ export const media = geo.table(
     tenantId: integer("tenant_id").notNull(),
     alt: varchar("alt").notNull(),
     caption: varchar("caption"),
-    prefix: varchar("prefix").default(""),
-    url: varchar("url"),
-    thumbnailUrl: varchar("thumbnail_u_r_l"),
     filename: varchar("filename"),
     mimeType: varchar("mime_type"),
     filesize: integer("filesize"),
-    width: integer("width"),
-    height: integer("height"),
-    focalX: numeric("focal_x"),
-    focalY: numeric("focal_y"),
-    mediaPath: varchar("media_path"),
     updatedAt: timestamp("updated_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
   },
-  (table) => [index("media_tenant_idx").on(table.tenantId)],
+  (table) => [
+    index("media_tenant_idx").on(table.tenantId),
+    uniqueIndex("media_filename_idx").on(table.filename),
+  ],
 )

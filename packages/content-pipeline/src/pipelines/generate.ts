@@ -1,6 +1,5 @@
-import { z } from "zod"
-
 import type { ContentServiceClient } from "@geo/content-client"
+import { z } from "zod"
 
 import { canonicalJson, sha256Hex } from "../canonical.js"
 import {
@@ -67,7 +66,7 @@ type StageClient = Pick<ContentServiceClient, "writeDraftVersion">
 
 const hashOf = (payload: unknown): string => sha256Hex(canonicalJson(payload))
 
-const payloadBlocksOf = (
+const legacyStorageBlocksOf = (
   blocks: readonly { readonly text: string; readonly type: string }[],
   target: GenerationTarget,
 ) => [
@@ -136,7 +135,7 @@ export const runGenerationOperation = async (
     })
     const summary = `${input.brief.topic} - ${target.angle}`
     await deps.client.writeDraftVersion(target.editionId, {
-      body: payloadBlocksOf(adaptation.value.blocks, target),
+      body: legacyStorageBlocksOf(adaptation.value.blocks, target),
       summary,
       title: adaptation.value.title,
     })

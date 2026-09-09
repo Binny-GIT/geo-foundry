@@ -4,7 +4,7 @@
  * 相同的物理写入语义：
  * - draft 泳道目标只写 _content_editions_v（新 latest 版本行）；
  * - published/archived 额外把 draft 内容发布到 live 根表；
- * - 审计、outbox 与业务写入同事务。
+ * - 审计、任务入队与业务写入同事务。
  */
 
 import { randomUUID } from "node:crypto"
@@ -63,7 +63,7 @@ export type WorkflowClaims = Readonly<{
 export type WorkflowActor = Readonly<{
   claims: WorkflowClaims
   domain: AuditActor
-  /** tenantId 用于 outbox/审计；super-admin 由调用方在加载文章后解析。 */
+  /** tenantId 用于任务入队和审计；super-admin 由调用方在加载文章后解析。 */
   tenantOf: (editionTenantId: number) => number
 }>
 
@@ -209,7 +209,6 @@ export const insertLatestVersion = async (
       secondaryTopics: current.secondaryTopics,
       siteId: current.siteId,
       sites: current.sites,
-      status: current.status,
       summary: current.summary,
       tenantId: current.tenantId,
       title: current.title,
@@ -255,7 +254,6 @@ const publishVersionToRoot = async (
       secondaryTopics: version.secondaryTopics,
       siteId: nn(version.siteId),
       sites: version.sites,
-      status: version.status ?? "draft",
       summary: nn(version.summary),
       tenantId: nn(version.tenantId),
       title: nn(version.title),
@@ -467,7 +465,6 @@ export const transitionEditionWithinTx = async (
     }
   }
   return input.target
-
 }
 
 export const createDraftFromPublishedWithinTx = async (

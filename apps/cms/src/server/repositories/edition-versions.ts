@@ -3,17 +3,16 @@
  * 旧版本 Markdown 已经数据回填，因此这里只读取版本行及其数组列。
  */
 
-
 import { and, desc, eq, sql } from "drizzle-orm"
 
 import { markdownToBlocks } from "../../editor/block-markdown"
 import type { ServerDb } from "../db/client"
-import { sendEditionEmbeddingJobWithin } from "../jobs/pgboss"
 import {
   contentEditions,
   editionDraftRestoreIdempotency,
   editionVersions,
 } from "../db/edition-schema"
+import { sendEditionEmbeddingJobWithin } from "../jobs/pgboss"
 import type { EntityScope } from "./entities"
 
 export type EditionHistoryItem = Readonly<{
@@ -81,7 +80,7 @@ export const editionHistoryItemOf = (
   const markdown = row.bodyMarkdown ?? ""
   return {
     createdAt: row.createdAt.toISOString(),
-    draft: (row.status ?? "draft") === "draft",
+    draft: (row.workflowStatus ?? "draft") !== "published",
     id: row.id,
     latest: row.latest === true,
     snapshot: {
@@ -265,7 +264,6 @@ export class EditionVersionsRepository {
           secondaryTopics: sourceTopics,
           siteId: current.siteId,
           sites: currentSites,
-          status: current.status,
           summary: source.summary,
           tenantId: current.tenantId,
           title: source.title,

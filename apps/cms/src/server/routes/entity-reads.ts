@@ -1,11 +1,11 @@
 /*
- * 基础集合 GET 的 Payload-兼容只读接管。
+ * 基础集合 GET 的只读接管。
  *
- * 返回 null 表示「不属于首批支持的精确列表查询」，catch-all 网关随后原样
- * 委托 Payload；返回 Response 表示已由 Drizzle + compat auth 完整处理。
+ * 返回 null 表示「不属于支持的精确列表查询」，由 API 网关继续匹配其他
+ * 自建处理器；返回 Response 表示已由 Drizzle 完整处理。
  */
 
-import { CMS_ACTION, CMS_RESOURCE, decideAccess, type CmsResource } from "../../access/policy"
+import { CMS_ACTION, CMS_RESOURCE, type CmsResource, decideAccess } from "../../access/policy"
 import { authenticateRequest } from "../auth/session"
 import { EntitiesRepository, entityScopeOf, type ListInput } from "../repositories/entities"
 import { serverRuntime } from "../runtime"

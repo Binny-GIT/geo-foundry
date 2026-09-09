@@ -29,6 +29,20 @@
       "when": 1788999000003,
       "tag": "0003_drop_outbox",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788999000004,
+      "tag": "0004_legacy_field_cleanup",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788999000005,
+      "tag": "0005_workflow_integrity",
+      "breakpoints": true
     }
   ]
 }

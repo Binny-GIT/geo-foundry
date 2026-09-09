@@ -11,6 +11,11 @@
       "path": "/internal/publication-plans/dispatch-due"
     },
     {
+      "method": "post",
+      "operationId": "pollDueConnectors",
+      "path": "/internal/connectors/poll-due"
+    },
+    {
       "method": "get",
       "operationId": "getIntakeFetchInput",
       "path": "/internal/intake-items/{id}/fetch-input"
@@ -82,23 +87,18 @@
     },
     {
       "method": "get",
-      "operationId": "listNonTerminalOperations",
-      "path": "/internal/operations/non-terminal"
-    },
-    {
-      "method": "get",
       "operationId": "getOperation",
-      "path": "/internal/operations/:operationId"
+      "path": "/internal/operations/{operationId}"
     },
     {
       "method": "post",
       "operationId": "startOperationStage",
-      "path": "/internal/operations/:operationId/stages/start"
+      "path": "/internal/operations/{operationId}/stages/start"
     },
     {
       "method": "post",
       "operationId": "completeOperationStage",
-      "path": "/internal/operations/:operationId/stages/complete"
+      "path": "/internal/operations/{operationId}/stages/complete"
     }
   ]
 }

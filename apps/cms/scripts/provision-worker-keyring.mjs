@@ -9,7 +9,7 @@ import { join } from "node:path"
 
 import { eq } from "drizzle-orm"
 
-import { payloadApiKeyIndexesOf } from "../src/server/auth/compat.ts"
+import { apiKeyIndexesOf } from "../src/server/auth/compat.ts"
 import { users } from "../src/server/db/schema.ts"
 import { serverRuntime } from "../src/server/runtime.ts"
 
@@ -31,10 +31,10 @@ const tenants = {}
 for (const service of services) {
   if (service.tenantId === null) throw new Error("WORKER_KEYRING_SERVICE_TENANT_INVALID")
   const apiKey = randomBytes(32).toString("base64url")
-  const [, sha256Index] = payloadApiKeyIndexesOf(apiKey, runtime.configSecret)
+  const [, sha256Index] = apiKeyIndexesOf(apiKey, runtime.configSecret)
   await runtime.db
     .update(users)
-    .set({ apiKey: null, apiKeyIndex: sha256Index, enableAPIToken: true, updatedAt: new Date() })
+    .set({ apiKeyIndex: sha256Index, enableAPIToken: true, updatedAt: new Date() })
     .where(eq(users.id, service.id))
   tenants[String(service.tenantId)] = apiKey
 }

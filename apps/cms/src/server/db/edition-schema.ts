@@ -4,12 +4,12 @@
  * blocks 在服务层实时派生。
  */
 
+import { sql } from "drizzle-orm"
 import {
   boolean,
   index,
   integer,
   jsonb,
-  numeric,
   pgEnum,
   serial,
   text,
@@ -30,19 +30,16 @@ const WORKFLOW = [
   "published",
   "archived",
 ] as const
-const DOCUMENT_STATUS = ["draft", "published"] as const
 const PRIORITIES = ["low", "normal", "high", "urgent"] as const
 const EDITORIAL = ["unassigned", "assigned", "in-progress", "blocked"] as const
 
 export const editionCreationOrigin = pgEnum("enum_content_editions_creation_origin", ORIGINS)
 export const editionWorkflowStatus = pgEnum("enum_content_editions_workflow_status", WORKFLOW)
-export const editionDocumentStatus = pgEnum("enum_content_editions_status", DOCUMENT_STATUS)
 export const editionPriority = pgEnum("enum_content_editions_priority", PRIORITIES)
 export const editionEditorialStatus = pgEnum("enum_content_editions_editorial_status", EDITORIAL)
 
 export const versionCreationOrigin = pgEnum("enum_edition_revisions_creation_origin", ORIGINS)
 export const versionWorkflowStatus = pgEnum("enum_edition_revisions_workflow_status", WORKFLOW)
-export const versionDocumentStatus = pgEnum("enum_edition_revisions_status", DOCUMENT_STATUS)
 export const versionPriority = pgEnum("enum_edition_revisions_priority", PRIORITIES)
 export const versionEditorialStatus = pgEnum("enum_edition_revisions_editorial_status", EDITORIAL)
 
@@ -53,9 +50,6 @@ export const contentEditions = geo.table(
     siteId: integer("site_id"),
     tenantId: integer("tenant_id"),
     ownerId: integer("owner_id"),
-    /** 原 contents.topic/intent 的只读历史值（合并后不再有独立 content 身份）。 */
-    contentTopic: varchar("content_topic"),
-    contentIntent: varchar("content_intent"),
     secondaryTopics: text("secondary_topics").array().notNull().default([]),
     sites: integer("sites").array().notNull().default([]),
     priority: editionPriority("priority").default("normal").notNull(),
@@ -79,12 +73,10 @@ export const contentEditions = geo.table(
     bodyMarkdown: text("body_markdown"),
     updatedAt: timestamp("updated_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
-    status: editionDocumentStatus("_status").default("draft"),
   },
   (table) => [
     index("content_editions_site_idx").on(table.siteId),
     index("content_editions_tenant_idx").on(table.tenantId),
-    index("content_editions_content_modified_at_idx").on(table.contentModifiedAt),
   ],
 )
 
@@ -120,15 +112,16 @@ export const editionVersions = geo.table(
     bodyMarkdown: text("body_markdown"),
     versionUpdatedAt: timestamp("edition_updated_at", { withTimezone: true, precision: 3 }),
     versionCreatedAt: timestamp("edition_created_at", { withTimezone: true, precision: 3 }),
-    status: versionDocumentStatus("status").default("draft"),
     createdAt: timestamp("created_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
-    latest: boolean("latest"),
+    latest: boolean("latest").notNull().default(false),
   },
   (table) => [
     index("edition_revisions_parent_idx").on(table.parentId),
     index("edition_revisions_latest_idx").on(table.latest),
-    index("edition_revisions_content_modified_at_idx").on(table.contentModifiedAt),
+    uniqueIndex("edition_revisions_one_latest_per_parent_idx")
+      .on(table.parentId)
+      .where(sql`${table.latest} IS TRUE`),
     index("edition_revisions_site_idx").on(table.siteId),
     index("edition_revisions_tenant_idx").on(table.tenantId),
     index("edition_revisions_edition_updated_at_idx").on(table.versionUpdatedAt),

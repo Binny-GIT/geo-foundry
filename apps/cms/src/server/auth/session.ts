@@ -1,29 +1,32 @@
 /*
- * 不依赖 Payload auth 管线的请求身份解析。
- * 支持现有 payload-token cookie 与 Worker `users API-Key <key>`；两条路径最终
- * 都复用 resolveSessionClaims 的角色/租户不变量，避免认证切换出现第二套规则。
+ * 不依赖旧认证管线的请求身份解析。
+ * 优先支持 gf-session，回退旧 cookie payload-token；Worker 仍使用
+ * `users API-Key <key>`。两条路径最终都复用 resolveSessionClaims 的角色/租户
+ * 不变量，避免认证切换出现第二套规则。
  */
 
 import { resolveSessionClaims, type SessionClaims } from "../../access/session"
-import { apiKeyFromAuthorization, verifySessionTokenCompat } from "./compat"
-import { UsersRepository, type UserAuthRecord } from "../repositories/users"
+import { type UserAuthRecord, UsersRepository } from "../repositories/users"
 import { serverRuntime } from "../runtime"
+import { apiKeyFromAuthorization, verifySessionToken } from "./compat"
 
 export type AuthenticatedRequest = Readonly<{
   claims: SessionClaims
-  /** Cookie JWT metadata; API-Key identities have no browser session. */
+  /** Cookie JWT 元数据；API-Key 身份不具有浏览器会话。 */
   session: Readonly<{ exp: number; sid: string; token: string }> | null
   siteIds: readonly number[]
   user: UserAuthRecord
 }>
 
-const tokenFromCookie = (cookie: string | null): string | null => {
+export const sessionTokenFromCookie = (cookie: string | null): string | null => {
   if (cookie === null) return null
-  const pair = cookie
-    .split(";")
-    .map((part) => part.trim())
-    .find((part) => part.startsWith("payload-token="))
-  return pair === undefined ? null : pair.slice("payload-token=".length)
+  const cookies = new Map(
+    cookie.split(";").map((part) => {
+      const [name, ...value] = part.trim().split("=")
+      return [name, value.join("=")] as const
+    }),
+  )
+  return cookies.get("gf-session") || cookies.get("payload-token") || null
 }
 
 const authenticatedOf = async (
@@ -52,9 +55,9 @@ export const authenticateRequest = async (
     return user === null ? null : authenticatedOf(repo, user)
   }
 
-  const token = tokenFromCookie(headers.get("cookie"))
+  const token = sessionTokenFromCookie(headers.get("cookie"))
   if (token === null) return null
-  const tokenClaims = await verifySessionTokenCompat(token, configSecret)
+  const tokenClaims = await verifySessionToken(token, configSecret)
   if (
     tokenClaims === null ||
     tokenClaims.collection !== "users" ||
