@@ -27,7 +27,10 @@ declare module "bytemd" {
   export class Editor {
     constructor(options: { readonly props?: BytemdEditorProps; readonly target: HTMLElement })
     $destroy(): void
-    $on(name: "change", callback: (event: CustomEvent<string>) => void): () => void
+    $on(
+      name: "change",
+      callback: (event: CustomEvent<{ readonly value: string }>) => void,
+    ): () => void
     $set(props: Partial<BytemdEditorProps>): void
   }
 }
