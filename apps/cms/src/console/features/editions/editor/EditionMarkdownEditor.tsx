@@ -1,36 +1,131 @@
 "use client"
 
-import { useCallback, useRef } from "react"
+import { Editor } from "bytemd"
+import gfm from "@bytemd/plugin-gfm"
+import zhHans from "bytemd/locales/zh_Hans.json"
+import { useCallback, useEffect, useRef, useState } from "react"
 
+import "bytemd/dist/index.min.css"
+
+import "./markdown-editor.css"
 import { useEditionBody } from "../state/edition-editor-context"
 
+type UploadResponse = {
+  readonly doc?: { readonly url?: unknown }
+  readonly errors?: readonly { readonly message?: string }[]
+  readonly message?: string
+}
+
+const uploadFailureText = (payload: UploadResponse): string => {
+  const raw =
+    payload.errors?.find((error) => typeof error.message === "string")?.message ?? payload.message
+  if (raw?.includes("CMS_MEDIA_FILE_TOO_LARGE")) return "图片超过 5 MB 限制。"
+  if (raw?.includes("CMS_MEDIA_TYPE_UNSUPPORTED")) return "只支持 PNG、JPEG、WebP 和 GIF 图片。"
+  return raw ?? "图片上传失败，请稍后重试。"
+}
+
+const plugins = [gfm()]
+
 /**
- * 整篇 Markdown 正文编辑器：一整份连续文档，不再逐块编辑。
- * 工具栏与分屏预览在后续批次接入更重的编辑器组件，这里先保证
- * 连续输入、粘贴与自适应高度的行为正确。
+ * 整篇 Markdown 正文编辑器（bytemd：GitHub 风格工具栏 + 分屏预览）。
+ * 编辑器实例只挂载一次；外部对 markdown 的改动（AI 应用提案、撤销、
+ * 保存后重置）通过 $set 同步回去，避免打字时被重复重渲染打断。
  */
 export const EditionMarkdownEditor = ({ readOnly }: { readonly readOnly: boolean }) => {
   const { markdown, replaceMarkdown, reportSelection } = useEditionBody()
-  const areaRef = useRef<HTMLTextAreaElement>(null)
+  const hostRef = useRef<HTMLDivElement | null>(null)
+  const editorRef = useRef<Editor | null>(null)
+  const syncedValueRef = useRef(markdown)
+  const replaceRef = useRef(replaceMarkdown)
+  replaceRef.current = replaceMarkdown
+  const [uploadError, setUploadError] = useState<string | null>(null)
 
-  const autosize = useCallback(() => {
-    const node = areaRef.current
-    if (node === null) return
-    node.style.height = "auto"
-    node.style.height = `${String(Math.max(node.scrollHeight, 320))}px`
+  const uploadImages = useCallback(async (files: readonly File[]) => {
+    const uploaded: { readonly alt: string; readonly url: string }[] = []
+    for (const file of files) {
+      const form = new FormData()
+      form.append("file", file)
+      form.append("alt", file.name.replace(/\.[^.]+$/, "") || "正文图片")
+      let payload: UploadResponse = {}
+      try {
+        const response = await fetch("/api/media", {
+          body: form,
+          credentials: "same-origin",
+          method: "POST",
+        })
+        payload = (await response.json().catch(() => ({}))) as UploadResponse
+        if (!response.ok || typeof payload.doc?.url !== "string") {
+          setUploadError(uploadFailureText(payload))
+          throw new Error("media upload rejected")
+        }
+      } catch (error) {
+        if (error instanceof Error && error.message === "media upload rejected") throw error
+        setUploadError("暂时无法连接到服务，请稍后重试。")
+        throw error
+      }
+      uploaded.push({ alt: file.name, url: payload.doc.url as string })
+    }
+    return uploaded
   }, [])
 
-  /* 鼠标/键盘选择都会触发 onSelect；折叠光标（start==end）视为无选区。 */
-  const handleSelect = useCallback(() => {
-    const node = areaRef.current
-    if (node === null) return
-    const start = node.selectionStart
-    const end = node.selectionEnd
-    if (readOnly || start >= end) {
-      reportSelection(null)
-      return
+  useEffect(() => {
+    const host = hostRef.current
+    if (host === null) return
+    const editor = new Editor({
+      props: {
+        locale: zhHans,
+        placeholder:
+          "用 Markdown 写正文：## 标题、段落、- 列表、```代码```；图片可直接粘贴或拖入，自动上传媒体库",
+        plugins,
+        uploadImages,
+        value: syncedValueRef.current,
+      },
+      target: host,
+    })
+    editor.$on("change", (event) => {
+      syncedValueRef.current = event.detail
+      replaceRef.current(event.detail)
+    })
+    editorRef.current = editor
+    return () => {
+      editor.$destroy()
+      editorRef.current = null
     }
-    reportSelection({ end, start, text: node.value.slice(start, end) })
+  }, [uploadImages])
+
+  useEffect(() => {
+    const editor = editorRef.current
+    if (editor === null || markdown === syncedValueRef.current) return
+    syncedValueRef.current = markdown
+    editor.$set({ value: markdown })
+  }, [markdown])
+
+  /*
+   * AI 助手只消费选区的文本内容；用 DOM selection 而不是 CodeMirror
+   * 内部状态上报，避免依赖 bytemd 的私有结构。折叠选区视为无选区。
+   */
+  useEffect(() => {
+    const host = hostRef.current
+    if (host === null) return
+    const report = () => {
+      const selection = window.getSelection()
+      if (readOnly || selection === null || selection.rangeCount === 0) {
+        reportSelection(null)
+        return
+      }
+      const text = selection.toString()
+      if (text.length === 0 || !host.contains(selection.anchorNode)) {
+        reportSelection(null)
+        return
+      }
+      reportSelection({ end: text.length, start: 0, text })
+    }
+    host.addEventListener("keyup", report)
+    host.addEventListener("pointerup", report)
+    return () => {
+      host.removeEventListener("keyup", report)
+      host.removeEventListener("pointerup", report)
+    }
   }, [readOnly, reportSelection])
 
   const chars = markdown.length
@@ -43,23 +138,21 @@ export const EditionMarkdownEditor = ({ readOnly }: { readonly readOnly: boolean
         </p>
         <span className="text-xs text-[var(--gf-elevation-600)]">{chars} 字</span>
       </div>
-      <textarea
-        aria-label="正文 Markdown"
-        className="gf-console-focus mt-3 w-full resize-y rounded-xl border border-[var(--gf-elevation-250)] bg-[var(--gf-elevation-50)] p-4 font-mono text-sm leading-7 text-[var(--gf-text)] outline-none focus:border-[var(--gf-accent-400)] focus:ring-2 focus:ring-[var(--gf-accent-200)]"
-        disabled={readOnly}
-        onChange={(event) => {
-          replaceMarkdown(event.target.value)
-          autosize()
-        }}
-        onInput={autosize}
-        onSelect={handleSelect}
-        placeholder={"用 Markdown 写正文：## 标题、段落、- 列表、```代码```、![图片](url)…"}
-        ref={areaRef}
-        spellCheck={false}
-        value={markdown}
+      <div
+        className="gf-md-editor mt-3"
+        data-readonly={readOnly ? "true" : "false"}
+        ref={hostRef}
       />
+      {uploadError !== null && (
+        <p
+          className="m-0 mt-2 rounded-md border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs leading-5 text-rose-700"
+          role="alert"
+        >
+          {uploadError}
+        </p>
+      )}
       <p className="m-0 mt-2 text-xs leading-5 text-[var(--gf-elevation-600)]">
-        支持标题、列表、引用、表格、代码块与图片；保存后发布链路自动渲染。
+        工具栏可切换分屏预览；支持标题、列表、引用、表格、代码块，图片粘贴或拖入后自动上传到媒体库。
       </p>
     </section>
   )

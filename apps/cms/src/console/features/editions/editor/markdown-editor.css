@@ -1,0 +1,190 @@
+/*
+ * bytemd 容器在正文编辑卡片内的呈现：
+ * - 高度默认占满视口剩余空间（此前 textarea 只有 320px 起步）；
+ * - 工具栏/分屏/预览配色对齐 GF 编辑区 token；
+ * - 预览区（.markdown-body）复用 gf-edition-preview 的视觉语言。
+ */
+
+.gf-md-editor .bytemd {
+  border: 1px solid var(--gf-elevation-250);
+  border-radius: 0.75rem;
+  color: var(--gf-text);
+  font-size: 0.875rem;
+  height: clamp(480px, calc(100dvh - 340px), 1200px);
+}
+
+.gf-md-editor .bytemd:focus-within {
+  border-color: var(--gf-accent-400);
+  box-shadow: 0 0 0 2px var(--gf-accent-100);
+}
+
+.gf-md-editor .bytemd-toolbar {
+  background: var(--gf-elevation-50);
+  border-bottom: 1px solid var(--gf-elevation-150);
+  color: var(--gf-elevation-600);
+}
+
+.gf-md-editor .bytemd-toolbar-icon:hover {
+  background: var(--gf-elevation-150);
+  color: var(--gf-text);
+}
+
+.gf-md-editor .bytemd-toolbar-icon.bytemd-tippy-right {
+  color: var(--gf-accent-700);
+}
+
+.gf-md-editor .CodeMirror {
+  background: var(--gf-elevation-50);
+  color: var(--gf-text);
+  font-family: var(--gf-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  line-height: 1.75;
+}
+
+.gf-md-editor .CodeMirror-cursor {
+  border-left-color: var(--gf-accent-600);
+}
+
+.gf-md-editor .CodeMirror-selected {
+  background: var(--gf-accent-100);
+}
+
+.gf-md-editor .CodeMirror-gutters {
+  background: transparent;
+  border-right: 1px solid var(--gf-elevation-150);
+}
+
+.gf-md-editor .bytemd-editor .CodeMirror-scroll {
+  padding: 12px 0;
+}
+
+.gf-md-editor .bytemd-preview {
+  background: var(--gf-surface);
+  border-left: 1px solid var(--gf-elevation-150);
+}
+
+.gf-md-editor .bytemd-preview-close .bytemd-preview {
+  border-left: none;
+}
+
+/* 预览排版：与 gf-edition-preview 同一视觉语言（标题层级/引用/表格/代码）。 */
+.gf-md-editor .markdown-body {
+  color: var(--gf-text);
+  font-size: 0.9rem;
+  line-height: 1.85;
+  max-width: none;
+}
+
+.gf-md-editor .markdown-body h1,
+.gf-md-editor .markdown-body h2,
+.gf-md-editor .markdown-body h3,
+.gf-md-editor .markdown-body h4,
+.gf-md-editor .markdown-body h5,
+.gf-md-editor .markdown-body h6 {
+  border-bottom: 1px solid var(--gf-elevation-150);
+  color: var(--gf-text);
+  font-weight: 700;
+  line-height: 1.4;
+  margin: 1.6em 0 0.7em;
+  padding-bottom: 0.3em;
+}
+
+.gf-md-editor .markdown-body h1 {
+  font-size: 1.5em;
+}
+
+.gf-md-editor .markdown-body h2 {
+  font-size: 1.3em;
+}
+
+.gf-md-editor .markdown-body h3 {
+  font-size: 1.15em;
+}
+
+.gf-md-editor .markdown-body p {
+  margin: 0.75em 0;
+}
+
+.gf-md-editor .markdown-body ul,
+.gf-md-editor .markdown-body ol {
+  margin: 0.75em 0;
+  padding-left: 1.6em;
+}
+
+.gf-md-editor .markdown-body li {
+  margin: 0.3em 0;
+}
+
+.gf-md-editor .markdown-body li > input[type="checkbox"] {
+  margin-right: 0.4em;
+}
+
+.gf-md-editor .markdown-body blockquote {
+  background: var(--gf-tone-accent-bg);
+  border-left: 3px solid var(--gf-accent-500);
+  border-radius: 0 var(--style-radius-s, 6px) var(--style-radius-s, 6px) 0;
+  margin: 1em 0;
+  padding: 0.6em 1em;
+}
+
+.gf-md-editor .markdown-body blockquote > p {
+  margin: 0;
+}
+
+.gf-md-editor .markdown-body a {
+  color: var(--gf-accent-700);
+}
+
+.gf-md-editor .markdown-body img {
+  border-radius: 0.5rem;
+  max-width: 100%;
+}
+
+.gf-md-editor .markdown-body code {
+  background: var(--gf-elevation-150);
+  border-radius: 4px;
+  font-family: var(--gf-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 0.875em;
+  padding: 0.15em 0.4em;
+}
+
+.gf-md-editor .markdown-body pre {
+  background: var(--gf-elevation-100, #f6f8fa);
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  padding: 0.9em 1.1em;
+}
+
+.gf-md-editor .markdown-body pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.gf-md-editor .markdown-body table {
+  border-collapse: collapse;
+  display: block;
+  margin: 1em 0;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.gf-md-editor .markdown-body th,
+.gf-md-editor .markdown-body td {
+  border: 1px solid var(--gf-elevation-250);
+  padding: 0.45em 0.8em;
+}
+
+.gf-md-editor .markdown-body th {
+  background: var(--gf-elevation-50);
+  font-weight: 600;
+}
+
+.gf-md-editor .markdown-body hr {
+  border: 0;
+  border-top: 1px solid var(--gf-elevation-250);
+  margin: 1.6em 0;
+}
+
+/* 查看模式：直接锁掉交互（bytemd 未暴露只读配置）。 */
+.gf-md-editor[data-readonly="true"] .bytemd {
+  pointer-events: none;
+}
