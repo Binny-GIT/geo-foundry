@@ -159,6 +159,12 @@ export const WorkToolbar = ({
     go({ showColumns: applied })
   }
 
+  const selectAllColumns = () => {
+    columnsRef.current = ALL_WORK_COLUMNS
+    setColumns(ALL_WORK_COLUMNS)
+    go({ showColumns: ALL_WORK_COLUMNS })
+  }
+
   const toggleOwner = (id: number) => {
     const current = ownerRef.current
     const next = current.includes(id) ? current.filter((owner) => owner !== id) : [...current, id]
@@ -282,6 +288,13 @@ export const WorkToolbar = ({
                 </span>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-36">
+                <DropdownMenuCheckboxItem
+                  checked={columns.length === ALL_WORK_COLUMNS.length}
+                  onCheckedChange={() => selectAllColumns()}
+                  onSelect={(event) => event.preventDefault()}
+                >
+                  全部状态
+                </DropdownMenuCheckboxItem>
                 {BOARD_COLUMNS.map((column) => (
                   <DropdownMenuCheckboxItem
                     checked={columns.includes(column.key)}
