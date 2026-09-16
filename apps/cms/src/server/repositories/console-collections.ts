@@ -776,6 +776,60 @@ const findOperation = async (db: ServerDb, scope: EntityScope, id: number): Prom
   return rows[0] === undefined ? null : operationDoc(rows[0])
 }
 
+/*
+ * Operations only ever target editions (targetIds.editionId) or sites
+ * (targetIds.siteId / row siteId). Resolve those ids to readable labels in
+ * one batch so the console list/detail can render "发布文章《标题》" instead
+ * of bare ids. Unresolvable ids simply stay absent from the maps.
+ */
+export const operationTargetLabels = async (
+  db: ServerDb,
+  scope: EntityScope,
+  docs: readonly Row[],
+): Promise<{
+  readonly editionTitles: ReadonlyMap<number, string>
+  readonly siteNames: ReadonlyMap<number, string>
+}> => {
+  const editionIds = new Set<number>()
+  const siteIds = new Set<number>()
+  for (const doc of docs) {
+    const targetIds = doc["targetIds"]
+    if (typeof targetIds === "object" && targetIds !== null) {
+      const editionId = (targetIds as Row)["editionId"]
+      if (typeof editionId === "number") editionIds.add(editionId)
+    }
+    if (typeof doc["site"] === "number") siteIds.add(doc["site"])
+  }
+  const [editionRows, siteRows] = await Promise.all([
+    editionIds.size === 0
+      ? Promise.resolve([] as { id: number; title: string | null }[])
+      : db
+          .select({ id: contentEditions.id, title: contentEditions.title })
+          .from(contentEditions)
+          .where(
+            and(inArray(contentEditions.id, [...editionIds]), ...scoped(scope, contentEditions.tenantId)),
+          ),
+    siteIds.size === 0
+      ? Promise.resolve([] as { id: number; name: string | null }[])
+      : db
+          .select({ id: sites.id, name: sites.name })
+          .from(sites)
+          .where(and(inArray(sites.id, [...siteIds]), ...scoped(scope, sites.tenantId))),
+  ])
+  return {
+    editionTitles: new Map(
+      editionRows
+        .filter((row) => typeof row.title === "string" && row.title.length > 0)
+        .map((row) => [row.id, row.title as string]),
+    ),
+    siteNames: new Map(
+      siteRows
+        .filter((row) => typeof row.name === "string" && row.name.length > 0)
+        .map((row) => [row.id, row.name as string]),
+    ),
+  }
+}
+
 /* ---------- 分发 ---------- */
 
 type Lister = (db: ServerDb, scope: EntityScope, input: ConsoleListInput) => Promise<ConsolePage>

@@ -24,7 +24,11 @@ import {
 } from "@/console/lib/resources"
 import { canConsole } from "@/console/lib/session.server"
 import { parseUserListQuery } from "@/console/lib/user-filters"
-import { listConsoleCollection, siteListExtras } from "@/server/repositories/console-collections"
+import {
+  listConsoleCollection,
+  operationTargetLabels,
+  siteListExtras,
+} from "@/server/repositories/console-collections"
 import {
   failedOperationsCount,
   listSiteOptions,
@@ -271,6 +275,12 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
       }),
       failedOperationsCount(context.db, context.scope).catch(() => 0),
     ])
+    const labels = await operationTargetLabels(context.db, context.scope, result.docs).catch(
+      () => ({
+        editionTitles: new Map<number, string>(),
+        siteNames: new Map<number, string>(),
+      }),
+    )
     return (
       <div className="gf-stagger grid gap-6 [&>*]:min-w-0">
         <PageHeader
@@ -287,7 +297,9 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
         />
         <OperationsWorkspace
           docs={result.docs}
+          editionTitles={labels.editionTitles}
           page={result.page}
+          siteNames={labels.siteNames}
           stateFilter={stateFilter}
           totalDocs={result.totalDocs}
           totalPages={result.totalPages}

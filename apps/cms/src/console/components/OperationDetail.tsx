@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/button"
 import { consoleRoute } from "@/console/lib/resources"
 import { requireConsoleContext } from "@/console/lib/console-context.server"
 import { canConsole } from "@/console/lib/session.server"
-import { findConsoleRecord } from "@/server/repositories/console-collections"
+import { findConsoleRecord, operationTargetLabels } from "@/server/repositories/console-collections"
 
 const TYPE_LABELS: Readonly<Record<string, string>> = {
-  evaluate: "评估",
-  generate: "生成",
-  publish: "发布",
-  rollback: "回滚",
+  evaluate: "评估文章",
+  generate: "生成文章",
+  publish: "发布文章",
+  rollback: "回滚站点",
 }
 
 const STATE_LABELS: Readonly<Record<string, string>> = {
@@ -108,6 +108,22 @@ export const OperationDetail = async ({ id }: { readonly id: string }) => {
   const doc = await findConsoleRecord(context.db, context.scope, "operations", numericId)
   if (doc === null) notFound()
 
+  const labels = await operationTargetLabels(context.db, context.scope, [doc]).catch(() => ({
+    editionTitles: new Map<number, string>(),
+    siteNames: new Map<number, string>(),
+  }))
+  const targetIds = doc["targetIds"]
+  const targetEditionId =
+    typeof targetIds === "object" &&
+    targetIds !== null &&
+    typeof (targetIds as Record<string, unknown>)["editionId"] === "number"
+      ? ((targetIds as Record<string, unknown>)["editionId"] as number)
+      : null
+  const editionTitle =
+    targetEditionId === null ? null : (labels.editionTitles.get(targetEditionId) ?? null)
+  const siteName =
+    typeof doc["site"] === "number" ? (labels.siteNames.get(doc["site"]) ?? null) : null
+
   const state = text(doc["state"]) || "queued"
   const operationType = text(doc["operationType"])
   const operationId = text(doc["operationId"])
@@ -117,6 +133,11 @@ export const OperationDetail = async ({ id }: { readonly id: string }) => {
   const errorBody = prettyJson(doc["error"])
   const resultBody = prettyJson(doc["result"])
   const auditLog = Array.isArray(doc["auditLog"]) ? (doc["auditLog"] as readonly unknown[]) : []
+  const typeLabel = TYPE_LABELS[operationType] ?? operationType
+  const heading =
+    targetEditionId === null
+      ? typeLabel
+      : `${typeLabel}${editionTitle === null ? ` #${String(targetEditionId)}` : `《${editionTitle}》`}`
 
   return (
     <div className="grid gap-6 [&>*]:min-w-0">
@@ -127,7 +148,7 @@ export const OperationDetail = async ({ id }: { readonly id: string }) => {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 flex-wrap items-center gap-3">
             <h1 className="m-0 text-2xl font-bold tracking-tight text-[var(--console-ink)]">
-              {TYPE_LABELS[operationType] ?? operationType}操作
+              {heading}
             </h1>
             <span
               className={`inline-block shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${STATE_TONE[state] ?? STATE_TONE["queued"]}`}
@@ -156,9 +177,25 @@ export const OperationDetail = async ({ id }: { readonly id: string }) => {
             {
               label: "站点 / 租户",
               value: [
-                `${siteId === null ? "—" : `#${String(siteId)}`} / ${tenantId === null ? "—" : `#${String(tenantId)}`}`,
+                `${siteId === null ? "—" : (siteName ?? `#${String(siteId)}`)} / ${tenantId === null ? "—" : `#${String(tenantId)}`}`,
               ],
             },
+            ...(targetEditionId === null
+              ? []
+              : [
+                  {
+                    label: "目标文章",
+                    value: [
+                      <Link
+                        className="gf-console-focus font-semibold text-[var(--console-ink)] underline-offset-4 hover:text-[var(--console-accent)] hover:underline"
+                        href={consoleRoute.document("content-editions", String(targetEditionId))}
+                        key="edition"
+                      >
+                        {editionTitle ?? `文章 #${String(targetEditionId)}`}
+                      </Link>,
+                    ],
+                  },
+                ]),
             {
               label: "尝试次数",
               value: [attempt === null ? "—" : `第 ${String(attempt)} 次执行`],

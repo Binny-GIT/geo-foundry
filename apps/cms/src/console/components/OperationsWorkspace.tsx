@@ -70,13 +70,17 @@ export const isOperationState = (value: string | undefined): value is string =>
 
 export const OperationsWorkspace = ({
   docs,
+  editionTitles,
   page,
+  siteNames,
   stateFilter,
   totalDocs,
   totalPages,
 }: {
   readonly docs: readonly RecordLike[]
+  readonly editionTitles: ReadonlyMap<number, string>
   readonly page: number
+  readonly siteNames: ReadonlyMap<number, string>
   readonly stateFilter: string | null
   readonly totalDocs: number
   readonly totalPages: number
@@ -150,6 +154,25 @@ export const OperationsWorkspace = ({
                 const currentStage = text(doc["currentStage"])
                 const attempt = typeof doc["attempt"] === "number" ? doc["attempt"] : null
                 const siteId = typeof doc["site"] === "number" ? doc["site"] : null
+                const targetIds = doc["targetIds"]
+                const targetEditionId =
+                  typeof targetIds === "object" &&
+                  targetIds !== null &&
+                  typeof (targetIds as RecordLike)["editionId"] === "number"
+                    ? ((targetIds as RecordLike)["editionId"] as number)
+                    : null
+                const editionTitle =
+                  targetEditionId === null ? null : (editionTitles.get(targetEditionId) ?? null)
+                const targetLabel =
+                  targetEditionId === null
+                    ? operationType === "rollback"
+                      ? siteId === null
+                        ? "站点"
+                        : (siteNames.get(siteId) ?? `站点 #${String(siteId)}`)
+                      : ""
+                    : editionTitle === null
+                      ? `文章 #${String(targetEditionId)}`
+                      : `《${editionTitle}》`
                 const failure = state === "failed" ? errorSummary(doc["error"]) : ""
                 return (
                   <tr
@@ -168,6 +191,7 @@ export const OperationsWorkspace = ({
                       {id === null ? (
                         <span className="text-sm text-[var(--console-ink)]">
                           {TYPE_LABELS[operationType] ?? operationType}
+                          {targetLabel}
                         </span>
                       ) : (
                         <Link
@@ -176,6 +200,7 @@ export const OperationsWorkspace = ({
                           title={operationId}
                         >
                           {TYPE_LABELS[operationType] ?? operationType}
+                          {targetLabel}
                           {operationId.length > 0 && (
                             <span className="pl-2 font-mono text-xs font-normal text-[var(--console-ink-muted)]">
                               {shortOperationId(operationId)}
@@ -198,7 +223,9 @@ export const OperationsWorkspace = ({
                       )}
                     </td>
                     <td className="border-b border-[var(--console-border)] px-5 py-4 text-sm text-[var(--console-ink)]">
-                      {siteId === null ? "—" : `站点 #${String(siteId)}`}
+                      {siteId === null
+                        ? "—"
+                        : (siteNames.get(siteId) ?? `站点 #${String(siteId)}`)}
                     </td>
                     <td className="whitespace-nowrap border-b border-[var(--console-border)] px-5 py-4 text-sm text-[var(--console-ink)]">
                       {formatInstant(doc["createdAt"])}
