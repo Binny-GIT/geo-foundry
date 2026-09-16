@@ -6,6 +6,7 @@ import { CMS_ROLE } from "@/access/roles"
 import { Button } from "@/components/ui/button"
 import ArticleDetail from "@/console/components/ArticleDetail"
 import { ConsoleUrlRename } from "@/console/components/ConsoleUrlRename"
+import { OperationDetail } from "@/console/components/OperationDetail"
 import SiteDetail from "@/console/components/SiteDetail"
 import {
   requireConsoleContext,
@@ -87,6 +88,10 @@ const ConsoleDocumentPage = async ({ params }: ConsoleDocumentPageProps) => {
 
   if (slug === "content-editions") {
     return <ArticleDetail id={id} />
+  }
+
+  if (slug === "operations") {
+    return <OperationDetail id={id} />
   }
 
   if (slug === "sites") {

@@ -12,6 +12,7 @@ import type { ServerDb } from "../db/client"
 import { contentEditions, editionVersions } from "../db/edition-schema"
 import { media, sites } from "../db/entity-schema"
 import { operations } from "../db/ledger-schema"
+import type { operationState } from "../db/ledger-schema"
 import { tenants, users } from "../db/schema"
 import {
   domains,
@@ -36,13 +37,14 @@ export type ConsolePage = Readonly<{
 export type ConsoleListInput = Readonly<{
   limit: number
   page: number
-  /** users：role / tenant / q；content-editions：site / status / tenant / q。 */
+  /** users：role / tenant / q；content-editions：site / status / tenant / q；operations：state。 */
   q?: string | null
   role?: string | null
   site?: number | null
   /** editor/reviewer/publisher 的站点显示收窄。 */
   siteScope?: readonly number[] | null
   status?: string | null
+  state?: string | null
   tenant?: number | null
 }>
 
@@ -747,7 +749,11 @@ const listOperations = async (
   scope: EntityScope,
   input: ConsoleListInput,
 ): Promise<ConsolePage> => {
-  const where = and(...scoped(scope, operations.tenantId))
+  const filters = [...scoped(scope, operations.tenantId)]
+  if (input.state !== null && input.state !== undefined) {
+    filters.push(eq(operations.state, input.state as (typeof operationState.enumValues)[number]))
+  }
+  const where = and(...filters)
   const [rows, total] = await Promise.all([
     db
       .select()

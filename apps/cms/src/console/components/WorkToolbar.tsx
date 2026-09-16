@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 
 import {
-  AlertTriangleIcon,
   CalendarClockIcon,
   ChevronDownIcon,
   FilePlusIcon,
@@ -21,7 +20,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import DeferredText from "@/console/components/DeferredText"
 import { BOARD_COLUMNS, type BoardColumnKey } from "@/console/lib/board-model"
-import { consoleRoute } from "@/console/lib/resources"
 import {
   ALL_WORK_COLUMNS,
   WORK_RANGES,
@@ -60,13 +58,11 @@ const filterDropdownTriggerClass =
 
 export const WorkToolbar = ({
   canCreate,
-  failedCount,
   owners,
   query,
   sites,
 }: {
   readonly canCreate: boolean
-  readonly failedCount: number
   readonly owners: readonly OwnerOption[]
   readonly query: WorkQuery
   readonly sites: readonly SiteOption[]
@@ -215,14 +211,6 @@ export const WorkToolbar = ({
             ))}
           </select>
         </div>
-        {failedCount > 0 && (
-          <Button asChild type="button" variant="danger">
-            <Link href={consoleRoute.collection("operations")}>
-              <AlertTriangleIcon size={15} />
-              {failedCount} 个失败操作
-            </Link>
-          </Button>
-        )}
         <div className="ml-auto flex items-center gap-2">
           <Button
             aria-label={filterOpen ? "隐藏过滤栏" : "显示过滤栏"}

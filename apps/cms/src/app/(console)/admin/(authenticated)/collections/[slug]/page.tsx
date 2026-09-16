@@ -5,6 +5,7 @@ import { CMS_ROLE } from "@/access/roles"
 import { ChevronDownIcon, NAV_ICON_BY_SLUG } from "@/components/icons"
 import { Button } from "@/components/ui/button"
 import EditionsWorkspace, { type FilterOption } from "@/console/components/EditionsWorkspace"
+import { isOperationState, OperationsWorkspace } from "@/console/components/OperationsWorkspace"
 import { PageHeader } from "@/console/components/PageHeader"
 import { PublicationPlansWorkspace } from "@/console/components/PublicationPlansWorkspace"
 import SitesWorkspace, { type SiteRow } from "@/console/components/SitesWorkspace"
@@ -24,7 +25,11 @@ import {
 import { canConsole } from "@/console/lib/session.server"
 import { parseUserListQuery } from "@/console/lib/user-filters"
 import { listConsoleCollection, siteListExtras } from "@/server/repositories/console-collections"
-import { listSiteOptions, listTenantOptions } from "@/server/repositories/console-reads"
+import {
+  failedOperationsCount,
+  listSiteOptions,
+  listTenantOptions,
+} from "@/server/repositories/console-reads"
 
 const formatValue = (value: unknown, relationship = false): string => {
   if (relationship && (typeof value === "number" || typeof value === "string")) return "受限"
@@ -89,6 +94,7 @@ type CollectionPageProps = {
     readonly q?: string
     readonly role?: string
     readonly site?: string
+    readonly state?: string
     readonly status?: string
     readonly tenant?: string
     readonly view?: string
@@ -247,6 +253,43 @@ const ConsoleCollectionPage = async ({ params, searchParams }: CollectionPagePro
           isSuperAdmin={context.session.role === CMS_ROLE.SUPER_ADMIN}
           page={result.page}
           rows={rows}
+          totalPages={result.totalPages}
+        />
+      </div>
+    )
+  }
+
+  if (slug === "operations") {
+    const context = await requireConsoleContext()
+    requireReadableConsoleResource(context.session, slug)
+    const stateFilter = isOperationState(query.state) ? query.state : null
+    const [result, failedCount] = await Promise.all([
+      listConsoleCollection(context.db, context.scope, slug, {
+        limit: PAGE_SIZE,
+        page,
+        state: stateFilter,
+      }),
+      failedOperationsCount(context.db, context.scope).catch(() => 0),
+    ])
+    return (
+      <div className="gf-stagger grid gap-6 [&>*]:min-w-0">
+        <PageHeader
+          icon={NAV_ICON_BY_SLUG["operations"]}
+          meta={
+            <span className="rounded-full border border-[var(--console-border)] bg-[var(--console-surface)] px-3 py-1 text-xs font-semibold text-[var(--console-ink-muted)]">
+              {result.totalDocs} 条记录
+              {failedCount > 0 && (
+                <span className="pl-1.5 text-rose-600 dark:text-rose-400">{failedCount} 条失败</span>
+              )}
+            </span>
+          }
+          title="操作日志"
+        />
+        <OperationsWorkspace
+          docs={result.docs}
+          page={result.page}
+          stateFilter={stateFilter}
+          totalDocs={result.totalDocs}
           totalPages={result.totalPages}
         />
       </div>

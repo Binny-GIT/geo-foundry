@@ -6,7 +6,6 @@ import { requireConsoleContext } from "@/console/lib/console-context.server"
 import { canConsole } from "@/console/lib/session.server"
 import { parseWorkQuery, workDateRange } from "@/console/lib/work-filters"
 import {
-  failedOperationsCount,
   listOwnerOptions,
   listSiteOptions,
   workBoardEditions,
@@ -37,10 +36,9 @@ const WorkbenchPage = async ({ searchParams }: WorkbenchPageProps) => {
   const { session } = context
   const role = session.role
   const canCreateEdition = canConsole(session, CMS_RESOURCE.EDITIONS, CMS_ACTION.CREATE)
-  const canReadOperations = canConsole(session, CMS_RESOURCE.OPERATIONS, CMS_ACTION.READ)
   const range = workDateRange(query)
 
-  const [editionResult, failedCount, ownerRows, siteRows] = await Promise.all([
+  const [editionResult, ownerRows, siteRows] = await Promise.all([
     workBoardEditions(
       context.db,
       context.scope,
@@ -54,9 +52,6 @@ const WorkbenchPage = async ({ searchParams }: WorkbenchPageProps) => {
       },
       WORK_QUERY_LIMIT,
     ).catch(() => ({ docs: [] as readonly Record<string, unknown>[], totalDocs: 0 })),
-    canReadOperations
-      ? failedOperationsCount(context.db, context.scope).catch(() => 0)
-      : Promise.resolve(0),
     listOwnerOptions(context.db, context.scope).catch(() => []),
     listSiteOptions(context.db, context.scope).catch(() => []),
   ])
@@ -69,13 +64,7 @@ const WorkbenchPage = async ({ searchParams }: WorkbenchPageProps) => {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 [&>*]:min-w-0">
-      <WorkToolbar
-        canCreate={canCreateEdition}
-        failedCount={failedCount}
-        owners={owners}
-        query={query}
-        sites={sites}
-      />
+      <WorkToolbar canCreate={canCreateEdition} owners={owners} query={query} sites={sites} />
 
       <ReviewBoard board={groupBoardCards(editions)} role={role} showColumns={query.showColumns} />
 
