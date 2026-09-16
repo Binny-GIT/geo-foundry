@@ -83,8 +83,12 @@ export const EditionMarkdownEditor = ({ readOnly }: { readonly readOnly: boolean
       target: host,
     })
     editor.$on("change", (event) => {
-      syncedValueRef.current = event.detail
-      replaceRef.current(event.detail)
+      const value = event.detail
+      syncedValueRef.current = value
+      replaceRef.current(value)
+      // 受控回写：bytemd 的预览区只在 value prop 变化时重渲染（对相同
+      // 值 CodeMirror 不会二次触发 change，不会形成循环）。
+      editor.$set({ value })
     })
     editorRef.current = editor
     return () => {
