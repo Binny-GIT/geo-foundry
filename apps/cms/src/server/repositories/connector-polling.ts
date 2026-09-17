@@ -21,12 +21,17 @@ export type RssPollReport = {
 }
 
 /** 到期条件按行内的间隔列计算，SQL 侧一次过滤，避免逐行取回再判断。 */
+/*
+ * 到期条件按行内的间隔列计算，SQL 侧一次过滤，避免逐行取回再判断。
+ * 参数必须显式转型 timestamptz：裸参数在「参数 - interval」里会被推断成
+ * interval，导致 timestamp < interval 运算符不存在（mk-dev 实测 500）。
+ */
 const duePredicate = (now: Date) =>
   or(
     isNull(connectors.lastPolledAt),
     lt(
       connectors.lastPolledAt,
-      sql`${now} - make_interval(mins => ${connectors.pollIntervalMinutes})`,
+      sql`${now}::timestamptz - make_interval(mins => ${connectors.pollIntervalMinutes})`,
     ),
   )
 
