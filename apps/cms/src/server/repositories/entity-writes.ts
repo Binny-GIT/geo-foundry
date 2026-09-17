@@ -113,8 +113,8 @@ const connectorDtoOf = (row: ConnectorRow): Row => ({
   updatedAt: row.updatedAt.toISOString(),
 })
 
-const connectorSiteTenantOf = async (tx: Tx, siteId: number): Promise<number> => {
-  const rows = await tx
+const connectorSiteTenantOf = async (db: ServerDb | Tx, siteId: number): Promise<number> => {
+  const rows = await db
     .select({ tenantId: sites.tenantId })
     .from(sites)
     .where(eq(sites.id, siteId))
