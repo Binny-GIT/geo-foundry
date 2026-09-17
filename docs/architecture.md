@@ -203,6 +203,7 @@ Domain   实际访问地址
 - [产品说明](product.md)
 - [开发计划](development-plan.md)
 - [运行手册](operations.md)
+- [采集工具接入文档](intake-integration.md)
 - [ADR 001：控制面与服务面分离](adr/001-control-plane-serving-plane.md)
 - [ADR 006：控制台负责界面，Payload 作为后端](adr/006-console-owns-ui-payload-headless.md)
 - [ADR 007：内容运营领域模型](adr/007-content-operations-domain-model.md)
