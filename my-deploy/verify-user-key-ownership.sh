@@ -33,17 +33,23 @@ check 201 "$CODE" "创建 editor 用户"
 EID=$(PSQL "SELECT id FROM geo_foundry.users WHERE email='$EEMAIL'")
 [ -n "$EID" ] && ok "editor id=$EID" || bad "editor 未落库"
 
-# 2. editor 登录并自助创建密钥（不带 userId —— 无 users.create 权限也应成功）
-CODE=$(curl -s -o /tmp/gf-uk-issue.json -w '%{http_code}' -c "$ECOOKIE" -H 'content-type: application/json' \
+# 2. editor 登录，然后自助创建密钥（不带 userId —— 无 users.create 权限也应成功）
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -c "$ECOOKIE" -H 'content-type: application/json' \
+  -d "{\"email\":\"$EEMAIL\",\"password\":\"gf-uk-e2e-001\"}" "$BASE/api/users/login")
+check 200 "$CODE" "editor 登录"
+CODE=$(curl -s -o /tmp/gf-uk-issue.json -w '%{http_code}' -b "$ECOOKIE" -H 'content-type: application/json' \
   -d '{"name":"e2e 我的采集流"}' "$BASE/api/api-credentials")
 check 201 "$CODE" "editor 自助创建密钥"
 KEY=$(jqget 'd["apiKey"]' </tmp/gf-uk-issue.json)
 DOCUSER=$(jqget 'd["doc"]["userId"]' </tmp/gf-uk-issue.json)
 check "$EID" "$DOCUSER" "密钥归属 editor 本人"
 
-# 3. editor 视角列表只看到自己的
+# 3. editor 视角列表只看到自己的；页面渲染自助表单且隐藏 admin 区块
 N=$(curl -s -b "$ECOOKIE" "$BASE/api/api-credentials" | jqget 'd["totalDocs"]')
 check 1 "$N" "editor 列表仅含自己的密钥"
+PAGE=$(curl -s -b "$ECOOKIE" "$BASE/admin/integrations")
+echo "$PAGE" | grep -q 我的密钥 && ok "editor 页面显示「我的密钥」" || bad "editor 页面缺自助表单"
+if echo "$PAGE" | grep -q 管理员代签; then bad "editor 页面泄漏 admin 区块"; else ok "editor 页面隐藏 admin 区块"; fi
 
 # 4. 用 editor 的密钥投稿 webhook（应记归属）
 CODE=$(curl -s -o /tmp/gf-uk-post.json -w '%{http_code}' \
@@ -91,7 +97,7 @@ check 403 "$CODE" "回归：跨租户站点仍拒（admin 面）"
 # 清理：文章/版本/来源/稿源/密钥/用户
 ED=$(PSQL "SELECT adopted_edition_id FROM geo_foundry.intake_items WHERE id=$IID")
 PSQL "DELETE FROM geo_foundry.article_sources WHERE edition_id=$ED" >/dev/null
-PSQL "DELETE FROM geo_foundry.edition_versions WHERE parent_id=$ED" >/dev/null
+PSQL "DELETE FROM geo_foundry.edition_revisions WHERE parent_id=$ED" >/dev/null
 PSQL "DELETE FROM geo_foundry.content_editions WHERE id=$ED" >/dev/null
 PSQL "DELETE FROM geo_foundry.intake_items WHERE id=$IID" >/dev/null
 PSQL "DELETE FROM geo_foundry.api_credentials WHERE user_id=$EID" >/dev/null
