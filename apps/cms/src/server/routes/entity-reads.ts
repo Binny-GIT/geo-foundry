@@ -10,7 +10,7 @@ import { authenticateRequest } from "../auth/session"
 import { EntitiesRepository, entityScopeOf, type ListInput } from "../repositories/entities"
 import { serverRuntime } from "../runtime"
 
-const SUPPORTED = {
+export const SUPPORTED = {
   connectors: CMS_RESOURCE.CONNECTORS,
   sites: CMS_RESOURCE.SITES,
   tenants: CMS_RESOURCE.TENANTS,

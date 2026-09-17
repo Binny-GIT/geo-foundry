@@ -8,6 +8,10 @@ const rootTsconfigUrl = new URL("../../../tsconfig.base.json", import.meta.url)
 const cmsTsconfigUrl = new URL("../tsconfig.json", import.meta.url)
 const typecheckExceptionUrl = new URL("../third-party-typecheck-exception.json", import.meta.url)
 const migrationJournalUrl = new URL("../drizzle/meta/_journal.json", import.meta.url)
+const integrationOpenApiFixtureUrl = new URL(
+  "../contracts/integration-openapi.json",
+  import.meta.url,
+)
 const readinessUrl = new URL("../src/readiness/check-readiness.ts", import.meta.url)
 const secureRunUrl = new URL("../scripts/secure-run.mjs", import.meta.url)
 
@@ -46,6 +50,19 @@ test("Given the Drizzle migration workflow, when inspected, then a checked-in jo
   for (const entry of journal.entries) {
     await readFile(new URL(`../drizzle/${entry.tag}.sql`, import.meta.url), "utf8")
   }
+})
+
+test("Given the public intake integration surface, when inspected, then a checked-in OpenAPI fixture documents it", async () => {
+  const document = JSON.parse(await readFile(integrationOpenApiFixtureUrl, "utf8"))
+
+  assert.equal(document.openapi, "3.1.0")
+  assert.equal(document.info.title, "Geo Foundry Integration API")
+  const paths = Object.keys(document.paths ?? {})
+  assert.ok(paths.length >= 5)
+  assert.ok(paths.includes("/intake-operations"))
+  assert.ok(paths.includes("/sites"))
+  assert.ok(paths.includes("/connectors"))
+  assert.ok(paths.some((path) => path.startsWith("/delivery/")))
 })
 
 test("Given strict TypeScript policy, when configs are inspected, then only the documented CMS dependency exception remains", async () => {

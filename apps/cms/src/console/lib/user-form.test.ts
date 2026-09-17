@@ -12,6 +12,7 @@ describe("Console user form rules", () => {
       CMS_ROLE.PUBLISHER,
       CMS_ROLE.REVIEWER,
       CMS_ROLE.CONTENT_SERVICE,
+      CMS_ROLE.AUTOMATION,
     ])
     expect(assignableUserRoles(CMS_ROLE.TENANT_ADMIN)).not.toContain(CMS_ROLE.SUPER_ADMIN)
   })

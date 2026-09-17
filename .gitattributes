@@ -1,2 +1,4 @@
 Makefile text eol=lf
 *.sh text eol=lf
+apps/cms/contracts/*.json text eol=lf
+packages/content-client/contracts/*.json text eol=lf

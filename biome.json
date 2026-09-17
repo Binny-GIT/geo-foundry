@@ -85,6 +85,7 @@
       "!**/coverage",
       "!**/.omo/evidence",
       "!packages/content-client/contracts",
+      "!apps/cms/contracts",
       "!apps/cms/src/app/**/importMap.ts",
       "!**/admin-tailwind.css",
       "!**/console.css"

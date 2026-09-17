@@ -1,32 +1,30 @@
-import {
-  handleApiCredentialGet,
-  handleApiCredentialPost,
-} from "@/server/routes/api-credentials"
+import { logger } from "@/server/observability/logger"
+import { handleApiCredentialGet, handleApiCredentialPost } from "@/server/routes/api-credentials"
+import { handleArticleSourcePost } from "@/server/routes/article-sources"
 import {
   handleAccountAuthPost,
   handleUsersAuthGet,
   handleUsersAuthPost,
 } from "@/server/routes/auth"
+import { handleDeliveryGet } from "@/server/routes/delivery"
+import { handleEditionAiChatPost } from "@/server/routes/edition-ai-chat"
+import { handleEditionOpsPost } from "@/server/routes/edition-ops"
 import { handleEditionDraftGet } from "@/server/routes/edition-reads"
 import { handleEditionVersionGet, handleEditionVersionPost } from "@/server/routes/edition-versions"
-import { handleEditionDraftPatch, handleEditionDraftPost } from "@/server/routes/edition-writes"
 import { handleEditionWorkflowPost } from "@/server/routes/edition-workflow"
-import { handleEditionAiChatPost } from "@/server/routes/edition-ai-chat"
-import { handleInternalRequest } from "@/server/routes/internal"
-import { handleEditionOpsPost } from "@/server/routes/edition-ops"
-import { handleIntakeOpsPost } from "@/server/routes/intake-ops"
+import { handleEditionDraftPatch, handleEditionDraftPost } from "@/server/routes/edition-writes"
 import { handleEntityListGet } from "@/server/routes/entity-reads"
 import { handleEntityCreatePost, handleEntityUpdatePatch } from "@/server/routes/entity-writes"
+import { handleIntakeOpsPost } from "@/server/routes/intake-ops"
+import { handleIntegrationOpenApiGet } from "@/server/routes/integration-openapi"
+import { handleInternalRequest } from "@/server/routes/internal"
 import { handleMediaFileGet, handleMediaUploadPost } from "@/server/routes/media"
-import { handleDeliveryGet } from "@/server/routes/delivery"
-import { handleWorkspaceContextGet } from "@/server/routes/workspace-context"
-import { handleArticleSourcePost } from "@/server/routes/article-sources"
 import { handlePublicationPlanPost } from "@/server/routes/publication-plans"
 import { handleEvaluationPost, handleRollbackIntentPost } from "@/server/routes/release-ops"
-import { handleUrlRecordsPost } from "@/server/routes/url-records"
 import { handleReviewCommentPost } from "@/server/routes/review-comments"
 import { handleReviewerDecisionPost } from "@/server/routes/reviewer-decisions"
-import { logger } from "@/server/observability/logger"
+import { handleUrlRecordsPost } from "@/server/routes/url-records"
+import { handleWorkspaceContextGet } from "@/server/routes/workspace-context"
 
 type RouteContext = { readonly params: Promise<{ readonly slug?: string[] }> }
 
@@ -92,6 +90,7 @@ export const GET = async (request: Request, context: RouteContext): Promise<Resp
     ["workspace-context-get", () => handleWorkspaceContextGet(request, params.slug)],
     ["edition-draft-get", () => handleEditionDraftGet(request, params.slug)],
     ["entity-list-get", () => handleEntityListGet(request, params.slug)],
+    ["integration-openapi-get", () => handleIntegrationOpenApiGet(request, params.slug)],
     ["api-credential-get", () => handleApiCredentialGet(request, params.slug)],
     ["media-file-get", () => handleMediaFileGet(request, params.slug)],
     ["delivery-get", () => handleDeliveryGet(request, params.slug)],
