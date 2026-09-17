@@ -9,9 +9,9 @@ import { z } from "zod"
 import { authenticateRequest } from "../auth/session"
 import { IdempotencyConflictError } from "../errors"
 import {
-  workflowActorOf,
   WorkflowRepository,
   WorkflowRepositoryError,
+  workflowActorOf,
 } from "../repositories/edition-workflow"
 import { entityScopeOf } from "../repositories/entities"
 import { submitEditionPublishOperation } from "../repositories/publish-operations"
@@ -83,6 +83,14 @@ export const handleEditionWorkflowPost = async (
   const auth = await authenticateRequest(request.headers)
   if (auth === null) {
     return json(401, { error: { code: "EDITION_WORKFLOW_UNAUTHENTICATED" } })
+  }
+  /*
+   * 工作流流转对人类角色是自由流转（有意的无角色门禁），但机器身份
+   * （automation 投稿 / content-service Worker）不得触碰：成稿与发布
+   * 始终是人工决定。Worker 的合法回写路径是 /api/internal/*。
+   */
+  if (auth.claims.kind !== "user") {
+    return json(403, { error: { code: "EDITION_WORKFLOW_ACTOR_INVALID" } })
   }
   const scope = entityScopeOf(auth)
   if (scope === null) {

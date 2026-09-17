@@ -1,15 +1,14 @@
 import { z } from "zod"
-
-import { authenticateRequest } from "../auth/session"
-import { logger } from "../observability/logger"
-import { EditionsRepository } from "../repositories/editions"
-import { entityScopeOf } from "../repositories/entities"
-import { serverRuntime } from "../runtime"
 import {
   type ProviderConfig,
   providerConfigOf,
   systemPromptOf,
 } from "../../services/edition-ai-chat-model"
+import { authenticateRequest } from "../auth/session"
+import { logger } from "../observability/logger"
+import { EditionsRepository } from "../repositories/editions"
+import { entityScopeOf } from "../repositories/entities"
+import { serverRuntime } from "../runtime"
 
 const messageSchema = z
   .object({
@@ -132,6 +131,10 @@ const chatHandler = async (request: Request, editionId: number | null): Promise<
   const auth = await authenticateRequest(request.headers)
   if (auth === null) {
     return response(401, { error: { code: "AI_CHAT_UNAUTHENTICATED" } })
+  }
+  /* AI 助手是编辑的人工工具；机器身份不得借它读取草稿或调用上游模型。 */
+  if (auth.claims.kind !== "user") {
+    return response(403, { error: { code: "AI_CHAT_ACTOR_INVALID" } })
   }
   let raw: unknown
   try {

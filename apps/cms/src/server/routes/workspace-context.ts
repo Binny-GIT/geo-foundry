@@ -35,6 +35,10 @@ export const handleWorkspaceContextGet = async (
   }
   const auth = await authenticateRequest(request.headers)
   if (auth === null) return json(401, { error: { code: "EDITION_WORKSPACE_UNAUTHENTICATED" } })
+  /* 编辑工作台是人类界面；机器身份按权限矩阵不持有 editions 读权限。 */
+  if (auth.claims.kind !== "user") {
+    return json(403, { error: { code: "EDITION_WORKSPACE_ACTOR_INVALID" } })
+  }
   const scope = entityScopeOf(auth)
   if (scope === null) return json(404, { error: { code: "EDITION_WORKSPACE_NOT_FOUND" } })
   const tenantPredicate =
