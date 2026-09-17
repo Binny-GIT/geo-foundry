@@ -8,11 +8,13 @@ import { CMS_ACTION, CMS_RESOURCE, type CmsResource, decideAccess } from "../../
 import { authenticateRequest } from "../auth/session"
 import { entityScopeOf } from "../repositories/entities"
 import {
+  createConnector,
   createDomain,
   createSite,
   createTenant,
   createUser,
   EntityWriteError,
+  updateConnector,
   updateDomain,
   updateSite,
   updateTenant,
@@ -21,6 +23,7 @@ import {
 import { serverRuntime } from "../runtime"
 
 const RESOURCE_BY_SLUG = {
+  connectors: CMS_RESOURCE.CONNECTORS,
   domains: CMS_RESOURCE.DOMAINS,
   sites: CMS_RESOURCE.SITES,
   tenants: CMS_RESOURCE.TENANTS,
@@ -83,6 +86,8 @@ export const handleEntityCreatePost = async (
   switch (collection) {
     case "tenants":
       return run(() => createTenant(db, scope, body), 201)
+    case "connectors":
+      return run(() => createConnector(db, scope, auth.claims, body), 201)
     case "domains":
       return run(() => createDomain(db, scope, auth.claims, body), 201)
     case "sites":
@@ -113,6 +118,8 @@ export const handleEntityUpdatePatch = async (
   switch (collection) {
     case "tenants":
       return run(() => updateTenant(db, scope, id, body), 200)
+    case "connectors":
+      return run(() => updateConnector(db, scope, id, body), 200)
     case "domains":
       return run(() => updateDomain(db, scope, id, body), 200)
     case "sites":

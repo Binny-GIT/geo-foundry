@@ -9,7 +9,7 @@ import { and, asc, count, desc, eq, gte, ilike, inArray, lt, or, type SQL, sql }
 
 import type { ServerDb } from "../db/client"
 import { contentEditions, editionVersions } from "../db/edition-schema"
-import { sites } from "../db/entity-schema"
+import { connectors, sites } from "../db/entity-schema"
 import { operations } from "../db/ledger-schema"
 import { apiCredentials, tenants, users } from "../db/schema"
 import { apiUsageDailies, intakeItems, publicationPlans, releases } from "../db/session-schema"
@@ -187,6 +187,33 @@ export const apiUsageSince = async (
     .orderBy(desc(apiUsageDailies.date))
     .limit(500)
   return rows.map((row) => ({ count: row.count ?? 0, date: row.date ?? "", siteId: row.siteId }))
+}
+
+/* ---------- 采集源 ---------- */
+
+export const listConnectorRows = async (
+  db: ServerDb,
+  scope: EntityScope,
+): Promise<readonly Row[]> => {
+  const rows = await db
+    .select()
+    .from(connectors)
+    .where(and(...scoped(scope, connectors.tenantId)))
+    .orderBy(desc(connectors.createdAt))
+    .limit(200)
+  return rows.map((row) => ({
+    createdAt: row.createdAt.toISOString(),
+    id: row.id,
+    lastPolledAt: row.lastPolledAt === null ? null : row.lastPolledAt.toISOString(),
+    name: row.name,
+    pollIntervalMinutes: row.pollIntervalMinutes,
+    site: row.siteId,
+    sourceEndpoint: row.sourceEndpoint,
+    status: row.status,
+    tenant: row.tenantId,
+    type: row.type,
+    updatedAt: row.updatedAt.toISOString(),
+  }))
 }
 
 /* ---------- 集成密钥 ---------- */

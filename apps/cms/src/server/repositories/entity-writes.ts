@@ -17,7 +17,7 @@ import type { SessionClaims } from "../../access/session"
 import { validateUserTenantInvariant } from "../../access/user-tenant-invariant"
 import { hashPassword } from "../auth/password"
 import type { ServerDb } from "../db/client"
-import { sites } from "../db/entity-schema"
+import { connectors, sites } from "../db/entity-schema"
 import { tenants, users } from "../db/schema"
 import { domains } from "../db/session-schema"
 import { findConsoleRecord } from "./console-collections"
@@ -58,6 +58,153 @@ const isUniqueViolation = (error: unknown): boolean => {
     current = (current as { cause?: unknown }).cause
   }
   return false
+}
+
+/* ---------- connectors ---------- */
+
+const connectorSchema = z
+  .object({
+    name: z.string().trim().min(1).max(200),
+    pollIntervalMinutes: z.coerce.number().int().min(5).max(10_080).default(60),
+    site: z.coerce.number().int().positive(),
+    sourceEndpoint: z.string().trim().max(2_000).optional(),
+    status: z.enum(["active", "disabled"]).default("active"),
+    type: z.enum(["manual", "url", "webhook", "rss"]),
+  })
+  .strict()
+
+const connectorUpdateSchema = z
+  .object({
+    name: z.string().trim().min(1).max(200).optional(),
+    pollIntervalMinutes: z.coerce.number().int().min(5).max(10_080).optional(),
+    site: z.coerce.number().int().positive().optional(),
+    /* 空串/null 表示清空端点（停用抓取但保留配置）。 */
+    sourceEndpoint: z.string().trim().max(2_000).nullable().optional(),
+    status: z.enum(["active", "disabled"]).optional(),
+  })
+  .strict()
+
+const connectorEndpointOf = (value: string): string => {
+  let url: URL
+  try {
+    url = new URL(value)
+  } catch {
+    throw fail("CMS_CONNECTOR_ENDPOINT_INVALID", 400, "端点必须是 http/https URL")
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw fail("CMS_CONNECTOR_ENDPOINT_INVALID", 400, "端点必须是 http/https URL")
+  }
+  return url.toString()
+}
+
+type ConnectorRow = typeof connectors.$inferSelect
+
+const connectorDtoOf = (row: ConnectorRow): Row => ({
+  createdAt: row.createdAt.toISOString(),
+  id: row.id,
+  lastPolledAt: row.lastPolledAt === null ? null : row.lastPolledAt.toISOString(),
+  name: row.name,
+  pollIntervalMinutes: row.pollIntervalMinutes,
+  site: row.siteId,
+  sourceEndpoint: row.sourceEndpoint,
+  status: row.status,
+  tenant: row.tenantId,
+  type: row.type,
+  updatedAt: row.updatedAt.toISOString(),
+})
+
+const connectorSiteTenantOf = async (tx: Tx, siteId: number): Promise<number> => {
+  const rows = await tx
+    .select({ tenantId: sites.tenantId })
+    .from(sites)
+    .where(eq(sites.id, siteId))
+    .limit(1)
+  const tenantId = rows[0]?.tenantId
+  if (tenantId === undefined) throw fail("CMS_CONNECTOR_SITE_NOT_FOUND", 400)
+  return tenantId
+}
+
+export const createConnector = async (
+  db: ServerDb,
+  _scope: EntityScope,
+  claims: SessionClaims,
+  input: unknown,
+): Promise<Row> => {
+  const parsed = connectorSchema.safeParse(input)
+  if (!parsed.success) throw fail("CMS_CONNECTOR_INPUT_INVALID")
+  /* 矩阵里只有 tenant-admin 有 connectors.create，租户必来自会话。 */
+  const tenantId = sessionTenantOf(claims)
+  if (tenantId === null) throw fail("CMS_CONNECTOR_TENANT_REQUIRED")
+  const endpoint =
+    parsed.data.sourceEndpoint === undefined || parsed.data.sourceEndpoint.length === 0
+      ? null
+      : connectorEndpointOf(parsed.data.sourceEndpoint)
+  if (parsed.data.type === "rss" && endpoint === null) {
+    throw fail("CMS_CONNECTOR_ENDPOINT_REQUIRED", 400, "RSS 采集源必须配置 feed 端点")
+  }
+  const rows = await db
+    .insert(connectors)
+    .values({
+      name: parsed.data.name,
+      pollIntervalMinutes: parsed.data.pollIntervalMinutes,
+      siteId: parsed.data.site,
+      sourceEndpoint: endpoint,
+      status: parsed.data.status,
+      tenantId,
+      type: parsed.data.type,
+    })
+    .returning()
+  const row = rows[0]
+  if (row === undefined) throw fail("CMS_CONNECTOR_CREATE_FAILED", 500)
+  return connectorDtoOf(row)
+}
+
+export const updateConnector = async (
+  db: ServerDb,
+  scope: EntityScope,
+  id: number,
+  input: unknown,
+): Promise<Row> => {
+  const parsed = connectorUpdateSchema.safeParse(input)
+  if (!parsed.success) throw fail("CMS_CONNECTOR_INPUT_INVALID")
+  const rows = await db.transaction(async (tx) => {
+    const currentRows = await tx.select().from(connectors).where(eq(connectors.id, id)).limit(1)
+    const current = currentRows[0]
+    if (current === undefined) throw fail("CMS_NOT_FOUND", 404)
+    assertScope(scope, current.tenantId)
+    if (parsed.data.site !== undefined && parsed.data.site !== current.siteId) {
+      const siteTenant = await connectorSiteTenantOf(tx, parsed.data.site)
+      if (siteTenant !== current.tenantId) throw fail("CMS_CONNECTOR_TENANT_MISMATCH", 403)
+    }
+    const nextType = current.type
+    const nextEndpoint =
+      parsed.data.sourceEndpoint === undefined
+        ? current.sourceEndpoint
+        : parsed.data.sourceEndpoint === null || parsed.data.sourceEndpoint.length === 0
+          ? null
+          : connectorEndpointOf(parsed.data.sourceEndpoint)
+    if (nextType === "rss" && nextEndpoint === null) {
+      throw fail("CMS_CONNECTOR_ENDPOINT_REQUIRED", 400, "RSS 采集源必须配置 feed 端点")
+    }
+    const updated = await tx
+      .update(connectors)
+      .set({
+        ...(parsed.data.name === undefined ? {} : { name: parsed.data.name }),
+        ...(parsed.data.pollIntervalMinutes === undefined
+          ? {}
+          : { pollIntervalMinutes: parsed.data.pollIntervalMinutes }),
+        ...(parsed.data.site === undefined ? {} : { siteId: parsed.data.site }),
+        ...(parsed.data.sourceEndpoint === undefined ? {} : { sourceEndpoint: nextEndpoint }),
+        ...(parsed.data.status === undefined ? {} : { status: parsed.data.status }),
+        updatedAt: new Date(),
+      })
+      .where(eq(connectors.id, id))
+      .returning()
+    const row = updated[0]
+    if (row === undefined) throw fail("CMS_CONNECTOR_UPDATE_FAILED", 500)
+    return row
+  })
+  return connectorDtoOf(rows)
 }
 
 /* ---------- tenants ---------- */
@@ -448,9 +595,7 @@ export const updateUser = async (
   })
   if (invariant !== true) throw fail("CMS_USER_TENANT_REQUIRED")
   const credentials =
-    parsed.data.password === undefined
-      ? null
-      : await hashPassword(parsed.data.password)
+    parsed.data.password === undefined ? null : await hashPassword(parsed.data.password)
   try {
     await db
       .update(users)

@@ -10,6 +10,7 @@ import {
   LayoutGridIcon,
   LinkIcon,
   PackageIcon,
+  PlugIcon,
   SearchIcon,
   SendIcon,
   UsersIcon,
@@ -249,6 +250,12 @@ export const CONSOLE_NAV: Readonly<{
     { kind: "resource", slug: "users" },
     { kind: "resource", slug: "operations" },
     { kind: "resource", slug: "media" },
+    {
+      href: "/admin/connectors",
+      icon: PlugIcon,
+      kind: "static",
+      label: { en: "Connectors", zh: "采集源" },
+    },
     {
       href: "/admin/integrations",
       icon: KeyRoundIcon,

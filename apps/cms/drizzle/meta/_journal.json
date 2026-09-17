@@ -57,6 +57,13 @@
       "when": 1788999000007,
       "tag": "0007_automation_role",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788999000008,
+      "tag": "0008_connector_poll_interval",
+      "breakpoints": true
     }
   ]
 }

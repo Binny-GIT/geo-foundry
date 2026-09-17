@@ -80,6 +80,8 @@ export const connectors = geo.table(
     tenantId: integer("tenant_id").notNull(),
     sourceEndpoint: varchar("source_endpoint"),
     secretReference: varchar("secret_reference"),
+    /** RSS 轮询间隔（分钟）。默认 60；最小 5 防打爆，最大 10080（一周）。 */
+    pollIntervalMinutes: integer("poll_interval_minutes").default(60).notNull(),
     lastPolledAt: timestamp("last_polled_at", { withTimezone: true, precision: 3 }),
     updatedAt: timestamp("updated_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),

@@ -86,6 +86,16 @@ describe("authorization matrix", () => {
     const tenantAdmin = claimsFor(CMS_ROLE.TENANT_ADMIN)
     expect(decideAccess(tenantAdmin, CMS_RESOURCE.USERS, CMS_ACTION.CREATE)).toBe(true)
     expect(decideAccess(tenantAdmin, CMS_RESOURCE.TENANTS, CMS_ACTION.CREATE)).toBe(false)
+    /* 采集源（connectors）的管理责任在租户管理员；超管只读。 */
+    expect(decideAccess(tenantAdmin, CMS_RESOURCE.CONNECTORS, CMS_ACTION.CREATE)).toBe(true)
+    expect(decideAccess(tenantAdmin, CMS_RESOURCE.CONNECTORS, CMS_ACTION.UPDATE)).toBe(true)
+    expect(
+      decideAccess(
+        claimsFor(CMS_ROLE.SUPER_ADMIN, null),
+        CMS_RESOURCE.CONNECTORS,
+        CMS_ACTION.CREATE,
+      ),
+    ).toBe(false)
 
     const service = claimsFor(CMS_ROLE.CONTENT_SERVICE)
     expect(decideAccess(service, CMS_RESOURCE.EDITIONS, CMS_ACTION.CREATE)).toBe(true)

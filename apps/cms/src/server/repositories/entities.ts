@@ -9,7 +9,7 @@ import { and, asc, desc, eq, inArray, type SQL } from "drizzle-orm"
 import { CMS_ROLE } from "../../access/roles"
 import type { AuthenticatedRequest } from "../auth/session"
 import type { ServerDb } from "../db/client"
-import { sites } from "../db/entity-schema"
+import { connectors, sites } from "../db/entity-schema"
 import { tenants } from "../db/schema"
 
 export type EntityScope =
@@ -118,6 +118,50 @@ export class EntitiesRepository {
       .where(eq(tenants.id, id))
       .limit(1)
     return rows[0]?.name ?? null
+  }
+
+  /** 采集源列表：租户谓词由 scope 强制；轮询类字段原样透出供管理页展示。 */
+  async listConnectors(
+    scope: EntityScope,
+    input: ListInput,
+  ): Promise<PaginatedResult<Record<string, unknown>>> {
+    const tenantId = effectiveTenant(scope, input.tenantId)
+    const predicates = [
+      ...(tenantId === null ? [] : [eq(connectors.tenantId, tenantId)]),
+      ...(input.ids === undefined ? [] : [inArray(connectors.id, [...input.ids])]),
+    ]
+    const where = predicates.length === 0 ? undefined : and(...predicates)
+    const docs = await this.db
+      .select()
+      .from(connectors)
+      .where(where)
+      .orderBy(
+        sortOf(input, {
+          createdAt: connectors.createdAt,
+          name: connectors.name,
+          updatedAt: connectors.updatedAt,
+        }),
+      )
+      .limit(input.limit)
+      .offset((input.page - 1) * input.limit)
+    const all = await this.db.select({ id: connectors.id }).from(connectors).where(where)
+    return pageOf(
+      docs.map((row) => ({
+        createdAt: row.createdAt.toISOString(),
+        id: row.id,
+        lastPolledAt: row.lastPolledAt === null ? null : row.lastPolledAt.toISOString(),
+        name: row.name,
+        pollIntervalMinutes: row.pollIntervalMinutes,
+        site: row.siteId,
+        sourceEndpoint: row.sourceEndpoint,
+        status: row.status,
+        tenant: row.tenantId,
+        type: row.type,
+        updatedAt: row.updatedAt.toISOString(),
+      })),
+      all.length,
+      input,
+    )
   }
 
   async listTenants(

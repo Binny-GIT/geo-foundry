@@ -9,6 +9,7 @@ import {
   LinkIcon,
   PackageIcon,
   PencilIcon,
+  PlugIcon,
   UserIcon,
 } from "@/components/icons"
 import { CONSOLE_RESOURCES, type ConsoleResourceSlug } from "@/console/lib/resources"
@@ -35,6 +36,7 @@ const STATIC_PAGES: readonly { readonly href: string; readonly page: TopbarPage 
   { href: "/admin/api-stats", page: { icon: ChartBarIcon, label: "接口统计" } },
   { href: "/admin/integration-docs", page: { icon: LinkIcon, label: "接入文档" } },
   { href: "/admin/integrations", page: { icon: KeyRoundIcon, label: "集成密钥" } },
+  { href: "/admin/connectors", page: { icon: PlugIcon, label: "采集源" } },
 ]
 
 const COLLECTIONS_PREFIX = "/admin/collections/"

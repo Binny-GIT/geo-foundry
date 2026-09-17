@@ -11,6 +11,7 @@ import { EntitiesRepository, entityScopeOf, type ListInput } from "../repositori
 import { serverRuntime } from "../runtime"
 
 const SUPPORTED = {
+  connectors: CMS_RESOURCE.CONNECTORS,
   sites: CMS_RESOURCE.SITES,
   tenants: CMS_RESOURCE.TENANTS,
 } as const
@@ -103,6 +104,8 @@ export const handleEntityListGet = async (
 
   const repository = new EntitiesRepository(serverRuntime().db)
   switch (collection) {
+    case "connectors":
+      return json(200, await repository.listConnectors(scope, input))
     case "sites":
       return json(200, await repository.listSites(scope, input))
     case "tenants":
