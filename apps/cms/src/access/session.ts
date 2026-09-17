@@ -9,11 +9,17 @@ export type SessionClaims = {
   readonly userId: string
 }
 
-const SERVICE_KIND_ROLE = CMS_ROLE.CONTENT_SERVICE
+/*
+ * 机器身份。两个角色都算 service，但能力完全不同：
+ * - content-service 是 Worker 的零信任身份，可调 /api/internal/*；
+ * - automation 是外部工具的投稿身份，internal 守卫按 role 精确匹配把它挡在外面。
+ * 归为同一 kind 的意义是让「服务身份不得把稿源采纳成文章」只写一次判断。
+ */
+const SERVICE_KIND_ROLES: readonly CmsRole[] = [CMS_ROLE.AUTOMATION, CMS_ROLE.CONTENT_SERVICE]
 const CROSS_TENANT_ROLE = CMS_ROLE.SUPER_ADMIN
 
 const roleKind = (role: CmsRole): SessionClaims["kind"] =>
-  role === SERVICE_KIND_ROLE ? "service" : "user"
+  SERVICE_KIND_ROLES.includes(role) ? "service" : "user"
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null

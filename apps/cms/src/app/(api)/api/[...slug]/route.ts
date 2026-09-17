@@ -1,4 +1,8 @@
 import {
+  handleApiCredentialGet,
+  handleApiCredentialPost,
+} from "@/server/routes/api-credentials"
+import {
   handleAccountAuthPost,
   handleUsersAuthGet,
   handleUsersAuthPost,
@@ -88,6 +92,7 @@ export const GET = async (request: Request, context: RouteContext): Promise<Resp
     ["workspace-context-get", () => handleWorkspaceContextGet(request, params.slug)],
     ["edition-draft-get", () => handleEditionDraftGet(request, params.slug)],
     ["entity-list-get", () => handleEntityListGet(request, params.slug)],
+    ["api-credential-get", () => handleApiCredentialGet(request, params.slug)],
     ["media-file-get", () => handleMediaFileGet(request, params.slug)],
     ["delivery-get", () => handleDeliveryGet(request, params.slug)],
   ])
@@ -112,6 +117,7 @@ export const POST = async (request: Request, context: RouteContext): Promise<Res
     ["reviewer-decision-post", () => handleReviewerDecisionPost(request, params.slug)],
     ["review-comment-post", () => handleReviewCommentPost(request, params.slug)],
     ["edition-draft-post", () => handleEditionDraftPost(request, params.slug)],
+    ["api-credential-post", () => handleApiCredentialPost(request, params.slug)],
     ["entity-create-post", () => handleEntityCreatePost(request, params.slug)],
     ["media-upload-post", () => handleMediaUploadPost(request, params.slug)],
     ["edition-ai-chat-post", () => handleEditionAiChatPost(request, params.slug)],

@@ -4,6 +4,7 @@ import {
   ChartBarIcon,
   FilePlusIcon,
   InboxIcon,
+  KeyRoundIcon,
   LayersIcon,
   LinkIcon,
   PackageIcon,
@@ -33,6 +34,7 @@ const STATIC_PAGES: readonly { readonly href: string; readonly page: TopbarPage 
   { href: "/admin/account", page: { icon: UserIcon, label: "个人与权限" } },
   { href: "/admin/api-stats", page: { icon: ChartBarIcon, label: "接口统计" } },
   { href: "/admin/integration-docs", page: { icon: LinkIcon, label: "接入文档" } },
+  { href: "/admin/integrations", page: { icon: KeyRoundIcon, label: "集成密钥" } },
 ]
 
 const COLLECTIONS_PREFIX = "/admin/collections/"

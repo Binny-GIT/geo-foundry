@@ -5,6 +5,7 @@ import {
   GlobeIcon,
   type IconProps,
   ImageIcon,
+  KeyRoundIcon,
   LayersIcon,
   LayoutGridIcon,
   LinkIcon,
@@ -248,6 +249,12 @@ export const CONSOLE_NAV: Readonly<{
     { kind: "resource", slug: "users" },
     { kind: "resource", slug: "operations" },
     { kind: "resource", slug: "media" },
+    {
+      href: "/admin/integrations",
+      icon: KeyRoundIcon,
+      kind: "static",
+      label: { en: "Integration Keys", zh: "集成密钥" },
+    },
     {
       href: "/admin/integration-docs",
       icon: LinkIcon,

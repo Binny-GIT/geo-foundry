@@ -18,6 +18,7 @@ import {
 export const geo = pgSchema("geo_foundry")
 
 export const usersRole = pgEnum("enum_users_role", [
+  "automation",
   "content-service",
   "editor",
   "publisher",
@@ -76,4 +77,33 @@ export const tenants = geo.table(
     createdAt: timestamp("created_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
   },
   (table) => [uniqueIndex("tenants_name_idx").on(table.name)],
+)
+
+/*
+ * 集成密钥。明文只在创建响应里出现一次，库里只有 HMAC 索引与展示用前缀。
+ * 与 users.api_key_index 的关系：那一列继续服务 Worker keyring（认证回退路径），
+ * 本表服务人工在 Console 里签发给外部工具的密钥，两者互不影响。
+ * 吊销是软删除（revoked_at），保留审计痕迹；认证每次查库，吊销下一请求即生效。
+ */
+export const apiCredentials = geo.table(
+  "api_credentials",
+  {
+    id: serial("id").primaryKey(),
+    tenantId: integer("tenant_id").notNull(),
+    userId: integer("user_id").notNull(),
+    name: varchar("name").notNull(),
+    keyPrefix: varchar("key_prefix").notNull(),
+    keyIndex: varchar("key_index").notNull(),
+    createdById: integer("created_by_id").notNull(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true, precision: 3 }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true, precision: 3 }),
+    expiresAt: timestamp("expires_at", { withTimezone: true, precision: 3 }),
+    updatedAt: timestamp("updated_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("api_credentials_key_index_idx").on(table.keyIndex),
+    index("api_credentials_tenant_idx").on(table.tenantId),
+    index("api_credentials_user_idx").on(table.userId),
+  ],
 )

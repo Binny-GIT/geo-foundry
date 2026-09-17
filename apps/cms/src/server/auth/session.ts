@@ -6,6 +6,7 @@
  */
 
 import { resolveSessionClaims, type SessionClaims } from "../../access/session"
+import { ApiCredentialsRepository } from "../repositories/api-credentials"
 import { type UserAuthRecord, UsersRepository } from "../repositories/users"
 import { serverRuntime } from "../runtime"
 import { apiKeyFromAuthorization, verifySessionToken } from "./compat"
@@ -51,6 +52,20 @@ export const authenticateRequest = async (
 
   const apiKey = apiKeyFromAuthorization(headers.get("authorization"))
   if (apiKey !== null) {
+    /*
+     * 先查 Console 自助签发的集成密钥（可命名、可单把吊销、可设有效期），
+     * 未命中再回退 users.api_key_index —— 后者是 Worker keyring 的路径，
+     * 保持原样不动，所以本改动对 Worker 的影响为零。
+     */
+    const credentials = new ApiCredentialsRepository(db)
+    const issued = await credentials.findActiveByKey(apiKey, configSecret)
+    if (issued !== null) {
+      const user = await repo.findAuthById(issued.userId)
+      if (user === null || user.tenantId !== issued.tenantId) return null
+      /* 最后使用时间不参与认证结果，失败也不能拖垮请求。 */
+      void credentials.touchLastUsed(issued.credentialId).catch(() => undefined)
+      return authenticatedOf(repo, user)
+    }
     const user = await repo.findAuthByApiKey(apiKey, configSecret)
     return user === null ? null : authenticatedOf(repo, user)
   }

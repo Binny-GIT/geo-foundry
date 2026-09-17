@@ -98,6 +98,72 @@ describe("authorization matrix", () => {
   })
 })
 
+describe("automation role boundary", () => {
+  /*
+   * 外部 AI/自动化工具的能力边界。这张白名单是产品决定：机器只能把素材投进
+   * 稿源箱，采纳成文章、编辑、流转、发布一律是人在工作台里做的事。
+   * 任何让这个测试变红的矩阵改动都必须先确认是不是在扩大对外暴露面。
+   */
+  const ALLOWED: readonly (readonly [
+    (typeof CMS_RESOURCES)[number],
+    (typeof CMS_ACTIONS)[number],
+  ])[] = [
+    [CMS_RESOURCE.INTAKE_ITEMS, CMS_ACTION.CREATE],
+    [CMS_RESOURCE.INTAKE_ITEMS, CMS_ACTION.READ],
+    [CMS_RESOURCE.SITES, CMS_ACTION.READ],
+    [CMS_RESOURCE.CONNECTORS, CMS_ACTION.READ],
+  ]
+
+  it("Given the automation role, when the whole matrix is swept, then only intake submission is permitted", () => {
+    const automation = claimsFor(CMS_ROLE.AUTOMATION)
+    for (const resource of CMS_RESOURCES) {
+      for (const action of CMS_ACTIONS) {
+        const expected = ALLOWED.some(([r, a]) => r === resource && a === action)
+        expect({ action, allowed: decideAccess(automation, resource, action), resource }).toEqual({
+          action,
+          allowed: expected,
+          resource,
+        })
+      }
+    }
+  })
+
+  it("Given the automation role, when publishing-chain resources are checked, then every action is denied", () => {
+    const automation = claimsFor(CMS_ROLE.AUTOMATION)
+    for (const resource of [
+      CMS_RESOURCE.EDITIONS,
+      CMS_RESOURCE.MEDIA,
+      CMS_RESOURCE.OPERATIONS,
+      CMS_RESOURCE.RELEASES,
+      CMS_RESOURCE.PUBLICATION_PLANS,
+      CMS_RESOURCE.URL_RECORDS,
+      CMS_RESOURCE.REVIEW_COMMENTS,
+      CMS_RESOURCE.TENANTS,
+      CMS_RESOURCE.USERS,
+      CMS_RESOURCE.DOMAINS,
+    ]) {
+      for (const action of CMS_ACTIONS) {
+        expect(decideAccess(automation, resource, action)).toBe(false)
+      }
+    }
+  })
+
+  it("Given the automation role, when claims are resolved, then it is a service identity bound to one tenant", () => {
+    const automation = claimsFor(CMS_ROLE.AUTOMATION, 413)
+    expect(automation?.kind).toBe("service")
+    expect(automation?.tenantId).toBe(413)
+    /* 服务身份同样不得跨租户：没有租户绑定就不是合法会话。 */
+    expect(claimsFor(CMS_ROLE.AUTOMATION, null)).toBeNull()
+  })
+
+  it("Given both machine roles, when kinds are compared, then content-service and automation are both services", () => {
+    expect(claimsFor(CMS_ROLE.CONTENT_SERVICE)?.kind).toBe("service")
+    expect(claimsFor(CMS_ROLE.AUTOMATION)?.kind).toBe("service")
+    expect(claimsFor(CMS_ROLE.EDITOR)?.kind).toBe("user")
+    expect(claimsFor(CMS_ROLE.TENANT_ADMIN)?.kind).toBe("user")
+  })
+})
+
 describe("read scope", () => {
   it("Given a tenant-bound reader, when scope is computed, then queries are constrained to its tenant", () => {
     const scope = readScope(claimsFor(CMS_ROLE.EDITOR, 5), CMS_RESOURCE.EDITIONS)

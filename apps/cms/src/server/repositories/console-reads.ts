@@ -11,7 +11,7 @@ import type { ServerDb } from "../db/client"
 import { contentEditions, editionVersions } from "../db/edition-schema"
 import { sites } from "../db/entity-schema"
 import { operations } from "../db/ledger-schema"
-import { tenants, users } from "../db/schema"
+import { apiCredentials, tenants, users } from "../db/schema"
 import { apiUsageDailies, intakeItems, publicationPlans, releases } from "../db/session-schema"
 import type { EntityScope } from "./entities"
 
@@ -187,6 +187,51 @@ export const apiUsageSince = async (
     .orderBy(desc(apiUsageDailies.date))
     .limit(500)
   return rows.map((row) => ({ count: row.count ?? 0, date: row.date ?? "", siteId: row.siteId }))
+}
+
+/* ---------- 集成密钥 ---------- */
+
+/** 可被签发密钥的 automation 身份。Worker 的 content-service 不在此列。 */
+export const listAutomationIdentities = async (
+  db: ServerDb,
+  scope: EntityScope,
+): Promise<readonly Row[]> => {
+  const rows = await db
+    .select({ email: users.email, id: users.id, tenantId: users.tenantId })
+    .from(users)
+    .where(and(eq(users.role, "automation"), ...scoped(scope, users.tenantId)))
+    .orderBy(asc(users.email))
+    .limit(100)
+  return rows.map((row) => ({ email: row.email, id: row.id, tenant: row.tenantId }))
+}
+
+export const listApiCredentials = async (
+  db: ServerDb,
+  scope: EntityScope,
+): Promise<readonly Row[]> => {
+  const rows = await db
+    .select()
+    .from(apiCredentials)
+    .where(and(...scoped(scope, apiCredentials.tenantId)))
+    .orderBy(desc(apiCredentials.createdAt))
+    .limit(200)
+  const now = Date.now()
+  return rows.map((row) => ({
+    createdAt: row.createdAt.toISOString(),
+    expiresAt: row.expiresAt === null ? null : row.expiresAt.toISOString(),
+    id: row.id,
+    keyPrefix: row.keyPrefix,
+    lastUsedAt: row.lastUsedAt === null ? null : row.lastUsedAt.toISOString(),
+    name: row.name,
+    status:
+      row.revokedAt !== null
+        ? "revoked"
+        : row.expiresAt !== null && row.expiresAt.getTime() <= now
+          ? "expired"
+          : "active",
+    tenant: row.tenantId,
+    user: row.userId,
+  }))
 }
 
 /* ---------- 稿源收件箱 ---------- */

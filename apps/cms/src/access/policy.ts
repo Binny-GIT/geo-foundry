@@ -46,6 +46,9 @@ type ActionMatrix = Readonly<Record<CmsAction, boolean>>
  * - reviewer: approve/reject Editions, inspect immutable quality evidence
  * - publisher: publish/supersede/rollback; cannot edit content
  * - content-service: service identity; write generated Edition versions and assessments only
+ * - automation: external AI/automation identity; may only push material into the
+ *   intake inbox. It deliberately holds no editions/media/operations rights, so
+ *   turning a submission into an article stays a human decision in the workspace.
  */
 const POLICY: Readonly<Record<CmsRole, Readonly<Record<CmsResource, ActionMatrix>>>> = {
   [CMS_ROLE.SUPER_ADMIN]: {
@@ -155,6 +158,28 @@ const POLICY: Readonly<Record<CmsRole, Readonly<Record<CmsResource, ActionMatrix
     "intake-items": { create: true, read: true, update: true, delete: false },
     "source-snapshots": { create: true, read: true, update: false, delete: false },
     "article-sources": { create: false, read: true, update: false, delete: false },
+    "review-comments": { create: false, read: false, update: false, delete: false },
+    "publication-plans": { create: false, read: false, update: false, delete: false },
+  },
+  [CMS_ROLE.AUTOMATION]: {
+    tenants: { create: false, read: false, update: false, delete: false },
+    users: { create: false, read: false, update: false, delete: false },
+    /* 投稿需要 suggestedSiteId，因此只读站点。 */
+    sites: { create: false, read: true, update: false, delete: false },
+    domains: { create: false, read: false, update: false, delete: false },
+    /* 采纳成文章是人的决定：不给任何 editions 权限。 */
+    editions: { create: false, read: false, update: false, delete: false },
+    media: { create: false, read: false, update: false, delete: false },
+    "url-records": { create: false, read: false, update: false, delete: false },
+    operations: { create: false, read: false, update: false, delete: false },
+    assessments: { create: false, read: false, update: false, delete: false },
+    releases: { create: false, read: false, update: false, delete: false },
+    /* webhook/rss 通道投稿要带 connectorId，因此只读采集源。 */
+    connectors: { create: false, read: true, update: false, delete: false },
+    /* 唯一的写权限：把素材送进稿源箱。update 留给人做 retry。 */
+    "intake-items": { create: true, read: true, update: false, delete: false },
+    "source-snapshots": { create: false, read: false, update: false, delete: false },
+    "article-sources": { create: false, read: false, update: false, delete: false },
     "review-comments": { create: false, read: false, update: false, delete: false },
     "publication-plans": { create: false, read: false, update: false, delete: false },
   },

@@ -3,6 +3,7 @@ import { CMS_ROLE, CMS_ROLES, type CmsRole, isCmsRole } from "../../access/roles
 export type UserFormActorRole = typeof CMS_ROLE.SUPER_ADMIN | typeof CMS_ROLE.TENANT_ADMIN
 
 export const USER_ROLE_LABEL: Readonly<Record<CmsRole, string>> = {
+  [CMS_ROLE.AUTOMATION]: "自动化投稿",
   [CMS_ROLE.CONTENT_SERVICE]: "内容服务",
   [CMS_ROLE.EDITOR]: "编辑",
   [CMS_ROLE.PUBLISHER]: "发布",
@@ -27,12 +28,14 @@ export type UserFormPayload = Readonly<{
   readonly tenant?: string
 }>
 
+/* automation 可分配：租户管理员要先建出这个身份，才能给它签发集成密钥。 */
 const TENANT_ADMIN_ASSIGNABLE_ROLES: readonly CmsRole[] = [
   CMS_ROLE.TENANT_ADMIN,
   CMS_ROLE.EDITOR,
   CMS_ROLE.PUBLISHER,
   CMS_ROLE.REVIEWER,
   CMS_ROLE.CONTENT_SERVICE,
+  CMS_ROLE.AUTOMATION,
 ]
 
 export const assignableUserRoles = (actorRole: UserFormActorRole): readonly CmsRole[] =>

@@ -1,4 +1,6 @@
 export const CMS_ROLE = {
+  /** 外部 AI/自动化工具的投稿身份：只能把素材送进稿源箱，不能成稿、不能发布。 */
+  AUTOMATION: "automation",
   CONTENT_SERVICE: "content-service",
   EDITOR: "editor",
   PUBLISHER: "publisher",
@@ -10,6 +12,7 @@ export const CMS_ROLE = {
 export type CmsRole = (typeof CMS_ROLE)[keyof typeof CMS_ROLE]
 
 export const CMS_ROLES: readonly CmsRole[] = [
+  CMS_ROLE.AUTOMATION,
   CMS_ROLE.CONTENT_SERVICE,
   CMS_ROLE.EDITOR,
   CMS_ROLE.PUBLISHER,
