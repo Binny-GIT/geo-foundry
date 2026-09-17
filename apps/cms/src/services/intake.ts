@@ -8,6 +8,7 @@ export type IntakeChannel = "manual" | "url" | "webhook" | "rss"
 type IntakeId = number
 
 export type IntakeInput = {
+  readonly bodyMarkdown?: string
   readonly channel: IntakeChannel
   readonly connectorId?: IntakeId
   readonly contentHash?: string
@@ -19,15 +20,16 @@ export type IntakeInput = {
 }
 
 export type NormalizedIntakeInput = Readonly<{
+  readonly bodyMarkdown?: string
   channel: IntakeChannel
-  connectorId?: IntakeId
-  contentHash?: string
-  normalizedUrl?: string
-  sourceUrl?: string
-  suggestedSiteId?: IntakeId
-  summary?: string
-  tenantId: number
-  title: string
+  readonly connectorId?: IntakeId
+  readonly contentHash?: string
+  readonly normalizedUrl?: string
+  readonly sourceUrl?: string
+  readonly suggestedSiteId?: IntakeId
+  readonly summary?: string
+  readonly tenantId: number
+  readonly title: string
 }>
 
 export class IntakeError extends Error {
@@ -95,14 +97,29 @@ const normalizeForChannel = (
   if (title === undefined) throw fail("INTAKE_TITLE_REQUIRED")
   const sourceUrl = text(input.sourceUrl)
   if (channel === "url" && sourceUrl === undefined) throw fail("INTAKE_SOURCE_URL_REQUIRED")
-  if ((channel === "webhook" || channel === "rss") && input.connectorId === undefined) {
+  if (channel === "rss" && input.connectorId === undefined) {
     throw fail("INTAKE_CONNECTOR_REQUIRED")
+  }
+  /*
+   * webhook 是外部工具的直投通道：内容已经在请求体里，不需要 connector，
+   * 但必须带 suggestedSiteId —— 否则条目进了稿源箱，Console 的采纳操作
+   * 解析不出目标站点，等于白投。
+   */
+  if (channel === "webhook") {
+    if (input.suggestedSiteId === undefined) throw fail("INTAKE_SUGGESTED_SITE_REQUIRED")
+    if (input.bodyMarkdown !== undefined && input.bodyMarkdown.trim().length === 0) {
+      throw fail("INTAKE_BODY_MARKDOWN_EMPTY")
+    }
+  }
+  if (input.bodyMarkdown !== undefined && channel !== "webhook") {
+    throw fail("INTAKE_BODY_MARKDOWN_CHANNEL_INVALID")
   }
 
   const summary = text(input.summary)
   const contentHash = normalizedHash(input.contentHash)
   const normalizedUrl = sourceUrl === undefined ? undefined : normalizeIntakeUrl(sourceUrl)
   return Object.freeze({
+    ...(input.bodyMarkdown === undefined ? {} : { bodyMarkdown: input.bodyMarkdown }),
     channel,
     ...(input.connectorId === undefined ? {} : { connectorId: input.connectorId }),
     ...(contentHash === undefined ? {} : { contentHash }),

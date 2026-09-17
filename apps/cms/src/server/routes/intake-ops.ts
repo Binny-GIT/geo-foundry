@@ -1,19 +1,28 @@
 /*
- * 稿源操作路由：ignore / merge / retry / adopt。
- * create/ignore/merge/retry/adopt 均由自建路由与 Drizzle 仓储处理。
- * adopt 用事务包住 editions+article_sources+intake 写入（旧实现无事务）。
+ * 稿源操作路由：create / ignore / merge / retry / adopt。
+ * adopt 用事务包住 editions+article_sources+intake 写入。
+ * create 对 webhook 通道支持直投正文（bodyMarkdown），并对外部工具的
+ * API-Key 请求施加集成守卫（限流 / 请求体上限 / 幂等）。
  */
 
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { z } from "zod"
 
-import { blocksToMarkdown } from "../../editor/block-markdown"
+import { CMS_ACTION, CMS_RESOURCE, decideAccess } from "../../access/policy"
+import { blocksToMarkdown, markdownToBlocks } from "../../editor/block-markdown"
+import { validateEditionBody } from "../../editor/validate-body"
 import { IntakeError, normalizeIntakeInput } from "../../services/intake"
 import { enqueueIntakeFetchFromEnvironment } from "../../services/intake-queue"
 import { authenticateRequest } from "../auth/session"
 import { contentEditions, editionVersions } from "../db/edition-schema"
 import { sites } from "../db/entity-schema"
 import { articleSources, intakeItems } from "../db/session-schema"
+import {
+  derivedIdempotencyHashOf,
+  INTEGRATION_REQUEST_ID_PATTERN,
+  integrationGuardOf,
+  isDerivedIdempotencyHash,
+} from "../http/integration-guards"
 import { entityScopeOf } from "../repositories/entities"
 import { serverRuntime } from "../runtime"
 
@@ -46,8 +55,21 @@ const idOf = (slug: readonly string[] | undefined): number | null => {
   return id !== undefined && /^\d+$/.test(id) && Number(id) > 0 ? Number(id) : null
 }
 
-const editable = (role: string): boolean =>
-  role === "editor" || role === "tenant-admin" || role === "content-service"
+/*
+ * 门禁走权限矩阵（policy.ts 是唯一权威）。四个角色的实际结果与旧的
+ * editable() 硬编码完全一致：editor / tenant-admin / content-service
+ * 通过，super-admin / publisher / reviewer 拒绝——这里是把矩阵变回权威，
+ * 不是行为变更。
+ */
+const canOperateIntake = (
+  claims: Parameters<typeof decideAccess>[0],
+  action: "create" | "update",
+): boolean =>
+  decideAccess(
+    claims,
+    CMS_RESOURCE.INTAKE_ITEMS,
+    action === "create" ? CMS_ACTION.CREATE : CMS_ACTION.UPDATE,
+  )
 
 const loadItem = async (
   tx: Parameters<Parameters<ReturnType<typeof serverRuntime>["db"]["transaction"]>[0]>[0],
@@ -94,7 +116,23 @@ export const intakeOpsActionOf = (
   return null
 }
 
+const withEchoedRequestId = (request: Request, response: Response): Response => {
+  const requestId = request.headers.get("x-request-id")
+  if (requestId === null || !INTEGRATION_REQUEST_ID_PATTERN.test(requestId)) return response
+  const headers = new Headers(response.headers)
+  headers.set("x-request-id", requestId)
+  return new Response(response.body, { headers, status: response.status })
+}
+
 export const handleIntakeOpsPost = async (
+  request: Request,
+  slug: readonly string[] | undefined,
+): Promise<Response | null> => {
+  const response = await handleIntakeOpsAction(request, slug)
+  return response === null ? null : withEchoedRequestId(request, response)
+}
+
+const handleIntakeOpsAction = async (
   request: Request,
   slug: readonly string[] | undefined,
 ): Promise<Response | null> => {
@@ -102,7 +140,9 @@ export const handleIntakeOpsPost = async (
   if (action === null) return null
   const auth = await authenticateRequest(request.headers)
   if (auth === null) return json(401, { error: { code: "INTAKE_UNAUTHENTICATED" } })
-  if (!editable(auth.claims.role)) return json(403, { error: { code: "INTAKE_EDITOR_REQUIRED" } })
+  if (!canOperateIntake(auth.claims, action === "create" ? "create" : "update")) {
+    return json(403, { error: { code: "INTAKE_EDITOR_REQUIRED" } })
+  }
   const scope = entityScopeOf(auth)
   if (scope === null) return json(403, { error: { code: "INTAKE_ACTOR_INVALID" } })
   const tenantId = scope.kind === "global" ? null : scope.tenantId
@@ -111,10 +151,27 @@ export const handleIntakeOpsPost = async (
     return json(400, { error: { code: "INTAKE_ITEM_ID_INVALID" } })
   }
 
+  /*
+   * API-Key 请求（session 为 null）走集成守卫：请求体上限、幂等键格式、
+   * 每身份限流。Cookie 会话完全绕过，Console 行为不变。机器请求体只读
+   * 一次，后续动作从缓存文本解析。
+   */
+  const machineBody = auth.session === null ? await request.text() : null
+  if (machineBody !== null) {
+    const guard = integrationGuardOf({
+      actorKey: auth.claims.userId,
+      bodyBytes: Buffer.byteLength(machineBody),
+      idempotencyKey: request.headers.get("idempotency-key"),
+    })
+    if (guard !== null) return guard
+  }
+  const readBody = async (): Promise<unknown> =>
+    machineBody !== null ? JSON.parse(machineBody) : request.json()
+
   let raw: unknown = {}
   if (action === "merge" || action === "adopt") {
     try {
-      raw = await request.json()
+      raw = await readBody()
     } catch {
       return json(400, { error: { code: "INTAKE_OPS_BODY_INVALID" } })
     }
@@ -124,12 +181,13 @@ export const handleIntakeOpsPost = async (
   try {
     if (action === "create") {
       try {
-        raw = await request.json()
+        raw = await readBody()
       } catch {
         return json(400, { error: { code: "INTAKE_CREATE_BODY_INVALID" } })
       }
       const createSchema = z
         .object({
+          bodyMarkdown: z.string().max(200_000).optional(),
           channel: z.enum(["manual", "url", "webhook", "rss"]),
           connectorId: z.coerce.number().int().positive().optional(),
           contentHash: z.string().trim().min(1).max(512).optional(),
@@ -146,6 +204,9 @@ export const handleIntakeOpsPost = async (
       }
       try {
         const normalized = normalizeIntakeInput({
+          ...(parsed.data.bodyMarkdown === undefined
+            ? {}
+            : { bodyMarkdown: parsed.data.bodyMarkdown }),
           channel: parsed.data.channel,
           ...(parsed.data.connectorId === undefined
             ? {}
@@ -161,7 +222,40 @@ export const handleIntakeOpsPost = async (
           tenantId,
           title: parsed.data.title,
         })
+        const bodyMarkdown = normalized.bodyMarkdown
+        /* 直投正文按文章正文的同一套规则校验，坏内容在入口就拒掉。 */
+        if (bodyMarkdown !== undefined && bodyMarkdown.length > 0) {
+          const validation = validateEditionBody(markdownToBlocks(bodyMarkdown))
+          if (validation !== true) {
+            return json(400, { errors: [{ message: validation }], error: { code: validation } })
+          }
+        }
+        /*
+         * 幂等派生哈希：外部工具的重试不应在稿源箱留下重复行。优先级是
+         * 调用方 contentHash（内容寻址）> webhook 正文哈希 > Idempotency-Key。
+         * 派生值在事务里走「查到即原样返回、不插入」的快速路径。
+         */
+        const effectiveHash = derivedIdempotencyHashOf({
+          ...(bodyMarkdown === undefined ? {} : { bodyMarkdown }),
+          ...(normalized.contentHash === undefined ? {} : { contentHash: normalized.contentHash }),
+          idempotencyKey: request.headers.get("idempotency-key"),
+        })
+        const hashForInsert = normalized.contentHash ?? effectiveHash
+        const directDrop = bodyMarkdown !== undefined && bodyMarkdown.length > 0
         const result = await db.transaction(async (tx) => {
+          if (isDerivedIdempotencyHash(hashForInsert)) {
+            const replayRows = await tx
+              .select()
+              .from(intakeItems)
+              .where(
+                and(eq(intakeItems.tenantId, tenantId), eq(intakeItems.contentHash, hashForInsert)),
+              )
+              .limit(1)
+            const existing = replayRows[0]
+            if (existing !== undefined) {
+              return { duplicates: [existing], item: existing, replay: true }
+            }
+          }
           const lowerTitle = normalized.title.trim().replace(/\s+/g, " ").toLocaleLowerCase()
           const candidates = await tx
             .select()
@@ -172,21 +266,19 @@ export const handleIntakeOpsPost = async (
             (item) =>
               (normalized.normalizedUrl !== undefined &&
                 item.normalizedUrl === normalized.normalizedUrl) ||
-              (normalized.contentHash !== undefined &&
-                item.contentHash === normalized.contentHash) ||
+              (hashForInsert !== undefined && item.contentHash === hashForInsert) ||
               (item.title ?? "").trim().replace(/\s+/g, " ").toLocaleLowerCase() === lowerTitle,
           )
           const duplicateOf = duplicates[0]
           const inserted = await tx
             .insert(intakeItems)
             .values({
+              ...(directDrop ? { contentBlocks: markdownToBlocks(bodyMarkdown) } : {}),
               channel: normalized.channel,
+              ...(hashForInsert === undefined ? {} : { contentHash: hashForInsert }),
               ...(normalized.connectorId === undefined
                 ? {}
                 : { connectorId: normalized.connectorId }),
-              ...(normalized.contentHash === undefined
-                ? {}
-                : { contentHash: normalized.contentHash }),
               ...(duplicateOf === undefined ? {} : { duplicateOfId: duplicateOf.id }),
               duplicateStatus: duplicateOf === undefined ? "unique" : "duplicate",
               ...(normalized.normalizedUrl === undefined
@@ -197,14 +289,15 @@ export const handleIntakeOpsPost = async (
                 ? {}
                 : { suggestedSiteId: normalized.suggestedSiteId }),
               ...(normalized.summary === undefined ? {} : { summary: normalized.summary }),
-              status: duplicateOf === undefined ? "new" : "duplicate",
+              /* webhook 直投：内容已在手，直接进 ready，跳过抓取队列。 */
+              status: duplicateOf === undefined ? (directDrop ? "ready" : "new") : "duplicate",
               tenantId,
               title: normalized.title,
             })
             .returning()
           const item = inserted[0]
           if (item === undefined) throw new IntakeOpsError("INTAKE_CREATE_FAILED")
-          return { duplicates, item }
+          return { duplicates, item, replay: false }
         })
         const shouldFetch =
           result.duplicates.length === 0 &&
@@ -213,6 +306,7 @@ export const handleIntakeOpsPost = async (
           return json(result.duplicates.length === 0 ? 201 : 200, {
             duplicateIds: result.duplicates.map((item) => item.id),
             fetchQueued: false,
+            idempotentReplay: result.replay === true,
             intakeItem: rowOf(result.item),
           })
         }
@@ -317,7 +411,12 @@ export const handleIntakeOpsPost = async (
 
     const parsed = adoptSchema.safeParse(raw)
     if (!parsed.success) return json(400, { error: { code: "INTAKE_OPS_BODY_INVALID" } })
-    if (auth.claims.role === "content-service") {
+    /*
+     * 采纳成文章是人的决定。所有 service 身份（Worker 的 content-service、
+     * 外部工具的 automation）都在这里被拒——automation 还会被矩阵的
+     * update=false 挡在前面，这里是纵深防御的第二层。
+     */
+    if (auth.claims.kind === "service") {
       throw new IntakeOpsError("INTAKE_EDITOR_REQUIRED")
     }
     const result = await db.transaction(async (tx) => {

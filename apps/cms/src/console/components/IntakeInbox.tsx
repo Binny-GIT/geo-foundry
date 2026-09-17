@@ -62,10 +62,16 @@ export const IntakeInbox = ({
   const [sites, setSites] = useState<readonly SiteOption[]>([])
   const [importError, setImportError] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
+  const [adoptSiteId, setAdoptSiteId] = useState("")
   const selected = useMemo(
     () => initialItems.find((item) => String(item["id"]) === selectedId) ?? initialItems[0] ?? null,
     [initialItems, selectedId],
   )
+
+  /* 切换选中条目时，采纳站点跟随条目自带的建议站点，可手动改。 */
+  useEffect(() => {
+    setAdoptSiteId(selected === null ? "" : String(selected["suggestedSite"] ?? ""))
+  }, [selected])
 
   useEffect(() => {
     if (!canManage) return
@@ -143,7 +149,9 @@ export const IntakeInbox = ({
       action === "merge"
         ? JSON.stringify({ targetIntakeItemId: mergeTarget.trim() })
         : action === "adopt"
-          ? JSON.stringify({})
+          ? JSON.stringify(
+              adoptSiteId.trim().length > 0 ? { siteId: Number(adoptSiteId.trim()) } : {},
+            )
           : null
     const response = await fetch(
       `/api/intake-operations/${encodeURIComponent(String(selected["id"]))}/${action}`,
@@ -154,7 +162,18 @@ export const IntakeInbox = ({
       },
     )
     if (!response.ok) {
-      setNotice(`Could not ${action} this intake item. Please try again.`)
+      let code = ""
+      try {
+        const payload = (await response.json()) as { readonly error?: { readonly code?: string } }
+        code = payload.error?.code ?? ""
+      } catch {
+        code = ""
+      }
+      if (code === "INTAKE_ADOPTION_SITE_REQUIRED") {
+        setNotice("采纳需要目标站点：请先在下拉框选择一个站点再点 Adopt。")
+        return
+      }
+      setNotice(`Could not ${action} this intake item (${code || response.status}).`)
       return
     }
     setNotice(
@@ -408,7 +427,24 @@ export const IntakeInbox = ({
               {canManage && (
                 <div className="border-t border-[var(--console-border)] pt-5">
                   <p className="m-0 text-sm font-semibold text-[var(--console-ink)]">Actions</p>
-                  <div className="flex flex-wrap gap-2 pt-3">
+                  <div className="flex flex-wrap items-center gap-2 pt-3">
+                    <label className="sr-only" htmlFor="adopt-site">
+                      Adopt to site
+                    </label>
+                    <select
+                      aria-label="Adopt to site"
+                      className="gf-console-focus h-9 rounded-md border border-[var(--console-border)] bg-[var(--console-surface)] px-3 text-sm text-[var(--console-ink)]"
+                      id="adopt-site"
+                      onChange={(event) => setAdoptSiteId(event.target.value)}
+                      value={adoptSiteId}
+                    >
+                      <option value="">选择采纳站点…</option>
+                      {sites.map((site) => (
+                        <option key={String(site.id)} value={String(site.id)}>
+                          {String(site.name ?? site.id)}
+                        </option>
+                      ))}
+                    </select>
                     <Button
                       disabled={isPending}
                       onClick={() => void operate("adopt")}
