@@ -183,7 +183,12 @@ const ReviewBoard = ({
       )}
 
       <section className="min-h-0 flex-1 overflow-auto pb-2 pr-1">
-        <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-[repeat(6,minmax(180px,1fr))]">
+        {/* 六列恒一行:列数按当前筛选输出,每列保底 200px;容器放不下时
+         * 由本节点的 overflow-auto 出横向滚动条,而不是断点换行。 */}
+        <div
+          className="grid gap-4"
+          style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(200px, 1fr))` }}
+        >
           {columns.map((column) => {
             const cards = board[column.key]
             return (
