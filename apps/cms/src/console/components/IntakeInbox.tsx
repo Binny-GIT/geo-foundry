@@ -392,6 +392,17 @@ export const IntakeInbox = ({
                     {text(selected["duplicateStatus"])}
                   </dd>
                 </div>
+                {typeof selected["submitterEmail"] === "string" &&
+                  selected["submitterEmail"].length > 0 && (
+                    <div>
+                      <dt className="text-xs font-semibold text-[var(--console-ink-muted)]">
+                        Submitted by
+                      </dt>
+                      <dd className="m-0 pt-1 text-[var(--console-ink)]">
+                        {selected["submitterEmail"]}
+                      </dd>
+                    </div>
+                  )}
               </dl>
               <div>
                 <h3 className="m-0 text-sm font-semibold text-[var(--console-ink)]">Summary</h3>

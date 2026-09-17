@@ -32,7 +32,7 @@ export const INTEGRATION_OPERATIONS: readonly IntegrationOperationDescriptor[] =
 ]
 
 const AUTH_DESCRIPTION =
-  "Authorization: users API-Key gfa_xxx（租户管理员在 Console「集成密钥」页签发）。密钥只绑本租户；吊销或过期立即失效。"
+  "Authorization: users API-Key gfa_xxx（任何真人在 Console「集成密钥」页自助创建；管理员可代签）。密钥跟创建者走：用它投稿的条目归属创建者，采纳成文章后作者归属创建者并标注「AI 生成」来源。密钥只绑本租户；吊销或过期立即失效；无论绑定用户角色为何，权限面一律只有投稿。"
 
 const INTAKE_REQUEST_SCHEMA = {
   additionalProperties: false,
@@ -82,6 +82,10 @@ const INTAKE_ITEM_SCHEMA = {
   properties: {
     channel: { type: "string" },
     contentHash: { type: "string" },
+    createdBy: {
+      description: "投稿归属用户 id（gfa_ 密钥投稿时为密钥创建者；Console 手动登记为 null）。",
+      type: "integer",
+    },
     duplicateOf: { description: "重复判定命中的既有条目 id。", type: "integer" },
     duplicateStatus: { enum: ["unique", "duplicate"], type: "string" },
     failureCode: { type: "string" },
@@ -386,7 +390,7 @@ export const integrationOpenApiDocument = {
   },
   info: {
     description:
-      "Geo Foundry 采集投稿面：外部自动化工具（n8n / Dify / 脚本 / AI agent）向租户稿源箱投稿。能力边界：automation API-Key 只能投稿、读稿源箱引用数据（sites/connectors）与公开 delivery 只读接口；不能采纳成草稿、不能创建或编辑文章、不能发布、不能访问任何 internal 端点。投稿产出一律进入稿源箱等待人工处理。",
+      "Geo Foundry 采集投稿面：外部自动化工具（n8n / Dify / 脚本 / AI agent）以某个真人用户的身份向租户稿源箱投稿——密钥由用户自助创建，投稿归属创建者，采纳成文章后作者归属该用户并标注「AI 生成」来源。能力边界：集成密钥只能投稿、读稿源箱引用数据（sites/connectors）与公开 delivery 只读接口（无论绑定用户角色为何）；不能采纳成草稿、不能创建或编辑文章、不能发布、不能访问任何 internal 端点。投稿产出一律进入稿源箱等待人工处理。",
     title: "Geo Foundry Integration API",
     version: INTEGRATION_API_VERSION,
   },

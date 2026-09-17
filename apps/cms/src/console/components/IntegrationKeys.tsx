@@ -11,9 +11,14 @@ type CredentialRow = Readonly<Record<string, unknown>>
 type IdentityRow = Readonly<Record<string, unknown>>
 
 type IntegrationKeysProps = {
-  readonly canManage: boolean
+  /** admin 代签可选的 automation 身份；普通用户视角为空数组。 */
+  readonly adminIdentities: readonly IdentityRow[]
+  /** 是否具备代签能力（users 资源 create）。 */
+  readonly canDelegate: boolean
+  /** server 已按视角过滤：admin 见本租户全部，普通用户只见自己的。 */
   readonly credentials: readonly CredentialRow[]
-  readonly identities: readonly IdentityRow[]
+  /** automation 身份登录时不出自助表单（密钥只跟真人走）。 */
+  readonly viewerIsService: boolean
 }
 
 const STATUS_LABEL: Readonly<Record<string, string>> = {
@@ -36,7 +41,12 @@ const dateLabel = (value: unknown): string => {
     : new Intl.DateTimeFormat("zh-CN", { dateStyle: "medium", timeStyle: "short" }).format(date)
 }
 
-export const IntegrationKeys = ({ canManage, credentials, identities }: IntegrationKeysProps) => {
+export const IntegrationKeys = ({
+  adminIdentities,
+  canDelegate,
+  credentials,
+  viewerIsService,
+}: IntegrationKeysProps) => {
   const router = useRouter()
   const [, startTransition] = useTransition()
   const [issuedKey, setIssuedKey] = useState<string | null>(null)
@@ -45,46 +55,81 @@ export const IntegrationKeys = ({ canManage, credentials, identities }: Integrat
   const [busy, setBusy] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  const issue = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    const form = new FormData(event.currentTarget)
-    const name = String(form.get("name") ?? "").trim()
-    const userId = String(form.get("userId") ?? "").trim()
-    const expiresAt = String(form.get("expiresAt") ?? "").trim()
-    if (name.length === 0 || userId.length === 0) {
-      setError("请填写密钥名称并选择一个自动化身份。")
-      return
-    }
+  const issue = async (
+    payload: Readonly<Record<string, unknown>>,
+    form: HTMLFormElement,
+  ): Promise<void> => {
     setBusy(true)
     setError(null)
     setNotice(null)
     try {
       const response = await fetch("/api/api-credentials", {
-        body: JSON.stringify({
-          name,
-          userId: Number(userId),
-          ...(expiresAt.length > 0
-            ? { expiresAt: new Date(`${expiresAt}T23:59:59Z`).toISOString() }
-            : {}),
-        }),
+        body: JSON.stringify(payload),
         credentials: "same-origin",
         headers: { "content-type": "application/json" },
         method: "POST",
       })
       if (!response.ok) {
-        setError("签发失败。请确认所选身份属于当前租户，且有效期晚于今天。")
+        const body = (await response.json().catch(() => ({}))) as {
+          readonly error?: { readonly code?: string }
+        }
+        setError(
+          body.error?.code === "API_CREDENTIAL_EXPIRY_INVALID"
+            ? "签发失败：有效期必须晚于现在。"
+            : "签发失败，请稍后重试。",
+        )
         return
       }
-      const payload = (await response.json()) as { readonly apiKey?: string }
-      setIssuedKey(payload.apiKey ?? null)
+      const body = (await response.json()) as { readonly apiKey?: string }
+      setIssuedKey(body.apiKey ?? null)
       setCopied(false)
-      event.currentTarget.reset()
+      form.reset()
       startTransition(() => router.refresh())
     } catch {
       setError("暂时无法连接到服务，请稍后重试。")
     } finally {
       setBusy(false)
     }
+  }
+
+  const issueSelf = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const form = event.currentTarget
+    const data = new FormData(form)
+    const name = String(data.get("name") ?? "").trim()
+    const expiresAt = String(data.get("expiresAt") ?? "").trim()
+    if (name.length === 0) return
+    await issue(
+      {
+        name,
+        ...(expiresAt.length > 0
+          ? { expiresAt: new Date(`${expiresAt}T23:59:59Z`).toISOString() }
+          : {}),
+      },
+      form,
+    )
+  }
+
+  const issueDelegate = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const form = event.currentTarget
+    const name = String(new FormData(form).get("name") ?? "").trim()
+    const userId = String(new FormData(form).get("userId") ?? "").trim()
+    const expiresAt = String(new FormData(form).get("expiresAt") ?? "").trim()
+    if (name.length === 0 || userId.length === 0) {
+      setError("请填写密钥名称并选择一个自动化身份。")
+      return
+    }
+    await issue(
+      {
+        name,
+        userId: Number(userId),
+        ...(expiresAt.length > 0
+          ? { expiresAt: new Date(`${expiresAt}T23:59:59Z`).toISOString() }
+          : {}),
+      },
+      form,
+    )
   }
 
   const revoke = async (id: unknown, name: unknown) => {
@@ -168,20 +213,77 @@ export const IntegrationKeys = ({ canManage, credentials, identities }: Integrat
         </p>
       ) : null}
 
-      {canManage ? (
-        <section className="gf-console-card grid gap-4 p-5 sm:p-6">
+      {viewerIsService ? (
+        <section className="gf-console-card grid gap-2 p-5 sm:p-6">
           <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">
-            新建密钥
+            我的密钥
           </h2>
-          {identities.length === 0 ? (
+          <p className="m-0 text-sm leading-6 text-[var(--console-ink-muted)]">
+            集成密钥跟真人用户走，用于把自动化工具的投稿归属到人；机器身份不签发个人密钥。请用你的个人账号创建。
+          </p>
+        </section>
+      ) : (
+        <section className="gf-console-card grid gap-4 p-5 sm:p-6">
+          <div className="grid gap-1">
+            <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">
+              我的密钥
+            </h2>
             <p className="m-0 text-sm leading-6 text-[var(--console-ink-muted)]">
-              当前租户还没有「自动化投稿」身份。请先到「用户」页面新建一个角色为
+              为自己创建一把密钥，交给 n8n / Dify /
+              脚本等自动化工具。用这把密钥采集的投稿会记在你的名下，采纳成文章后
+              <strong>作者归属是你</strong>，并标注「AI 生成」来源。
+            </p>
+          </div>
+          <form
+            className="grid gap-3 sm:grid-cols-[2fr_1fr_auto] sm:items-end"
+            onSubmit={issueSelf}
+          >
+            <label className="grid gap-1.5 text-sm text-[var(--console-ink-muted)]">
+              密钥名称
+              <input
+                className="h-9 rounded-md border border-[var(--console-border)] bg-[var(--console-surface)] px-3 text-sm text-[var(--console-ink)]"
+                maxLength={200}
+                name="name"
+                placeholder="例如：我的 n8n 采集流"
+                required
+                type="text"
+              />
+            </label>
+            <label className="grid gap-1.5 text-sm text-[var(--console-ink-muted)]">
+              有效期至（可选）
+              <input
+                className="h-9 rounded-md border border-[var(--console-border)] bg-[var(--console-surface)] px-3 text-sm text-[var(--console-ink)]"
+                name="expiresAt"
+                type="date"
+              />
+            </label>
+            <Button disabled={busy} type="submit">
+              <PlusIcon />
+              创建
+            </Button>
+          </form>
+        </section>
+      )}
+
+      {canDelegate ? (
+        <section className="gf-console-card grid gap-4 p-5 sm:p-6">
+          <div className="grid gap-1">
+            <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">
+              管理员代签
+            </h2>
+            <p className="m-0 text-sm leading-6 text-[var(--console-ink-muted)]">
+              为租户内的「自动化投稿」身份代签密钥（兼容共享机器身份的用法）。
+            </p>
+          </div>
+          {adminIdentities.length === 0 ? (
+            <p className="m-0 text-sm leading-6 text-[var(--console-ink-muted)]">
+              当前租户还没有「自动化投稿」身份。需要共享身份时，可先到「用户」页新建一个角色为
               <strong>自动化投稿</strong>的用户，再回来为它签发密钥。
             </p>
           ) : (
             <form
               className="grid gap-3 sm:grid-cols-[2fr_2fr_1fr_auto] sm:items-end"
-              onSubmit={issue}
+              onSubmit={issueDelegate}
             >
               <label className="grid gap-1.5 text-sm text-[var(--console-ink-muted)]">
                 密钥名称
@@ -189,7 +291,7 @@ export const IntegrationKeys = ({ canManage, credentials, identities }: Integrat
                   className="h-9 rounded-md border border-[var(--console-border)] bg-[var(--console-surface)] px-3 text-sm text-[var(--console-ink)]"
                   maxLength={200}
                   name="name"
-                  placeholder="例如：n8n 自动投稿"
+                  placeholder="例如：共享 RSS 投稿"
                   required
                   type="text"
                 />
@@ -201,7 +303,7 @@ export const IntegrationKeys = ({ canManage, credentials, identities }: Integrat
                   name="userId"
                   required
                 >
-                  {identities.map((identity) => (
+                  {adminIdentities.map((identity) => (
                     <option key={String(identity["id"])} value={String(identity["id"])}>
                       {String(identity["email"])}
                     </option>
@@ -218,7 +320,7 @@ export const IntegrationKeys = ({ canManage, credentials, identities }: Integrat
               </label>
               <Button disabled={busy} type="submit">
                 <PlusIcon />
-                签发
+                代签
               </Button>
             </form>
           )}
@@ -227,7 +329,7 @@ export const IntegrationKeys = ({ canManage, credentials, identities }: Integrat
 
       <section className="gf-console-card grid gap-4 p-5 sm:p-6">
         <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">
-          已签发的密钥
+          {canDelegate ? "租户内已签发的密钥" : "我已签发的密钥"}
         </h2>
         {credentials.length === 0 ? (
           <p className="m-0 text-sm leading-6 text-[var(--console-ink-muted)]">
@@ -239,10 +341,11 @@ export const IntegrationKeys = ({ canManage, credentials, identities }: Integrat
               <thead>
                 <tr className="text-left text-xs text-[var(--console-ink-muted)]">
                   <th className="pb-2 pr-4 font-medium">名称</th>
+                  {canDelegate ? <th className="pb-2 pr-4 font-medium">归属</th> : null}
                   <th className="pb-2 pr-4 font-medium">前缀</th>
                   <th className="pb-2 pr-4 font-medium">最后使用</th>
                   <th className="pb-2 pr-4 font-medium">状态</th>
-                  {canManage ? <th className="pb-2 font-medium">操作</th> : null}
+                  <th className="pb-2 font-medium">操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -254,6 +357,13 @@ export const IntegrationKeys = ({ canManage, credentials, identities }: Integrat
                       key={String(credential["id"])}
                     >
                       <td className="py-3 pr-4">{String(credential["name"])}</td>
+                      {canDelegate ? (
+                        <td className="py-3 pr-4 text-[var(--console-ink-muted)]">
+                          {typeof credential["ownerEmail"] === "string"
+                            ? credential["ownerEmail"]
+                            : `#${String(credential["user"])}`}
+                        </td>
+                      ) : null}
                       <td className="py-3 pr-4 font-mono text-xs text-[var(--console-ink-muted)]">
                         {String(credential["keyPrefix"])}…
                       </td>
@@ -268,22 +378,20 @@ export const IntegrationKeys = ({ canManage, credentials, identities }: Integrat
                           {STATUS_LABEL[status] ?? status}
                         </span>
                       </td>
-                      {canManage ? (
-                        <td className="py-3">
-                          {status === "revoked" ? null : (
-                            <Button
-                              disabled={busy}
-                              onClick={() => void revoke(credential["id"], credential["name"])}
-                              size="xs"
-                              type="button"
-                              variant="destructive"
-                            >
-                              <TrashIcon />
-                              吊销
-                            </Button>
-                          )}
-                        </td>
-                      ) : null}
+                      <td className="py-3">
+                        {status === "revoked" ? null : (
+                          <Button
+                            disabled={busy}
+                            onClick={() => void revoke(credential["id"], credential["name"])}
+                            size="xs"
+                            type="button"
+                            variant="destructive"
+                          >
+                            <TrashIcon />
+                            吊销
+                          </Button>
+                        )}
+                      </td>
                     </tr>
                   )
                 })}

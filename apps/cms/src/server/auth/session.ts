@@ -5,6 +5,7 @@
  * 不变量，避免认证切换出现第二套规则。
  */
 
+import { CMS_ROLE } from "../../access/roles"
 import { resolveSessionClaims, type SessionClaims } from "../../access/session"
 import { ApiCredentialsRepository } from "../repositories/api-credentials"
 import { type UserAuthRecord, UsersRepository } from "../repositories/users"
@@ -64,7 +65,14 @@ export const authenticateRequest = async (
       if (user === null || user.tenantId !== issued.tenantId) return null
       /* 最后使用时间不参与认证结果，失败也不能拖垮请求。 */
       void credentials.touchLastUsed(issued.credentialId).catch(() => undefined)
-      return authenticatedOf(repo, user)
+      /*
+       * 密钥的权限面与绑定用户的角色解耦：无论密钥属于谁（automation
+       * 身份或自助创建的真人用户），gfa_ 密钥一律按 automation 角色出
+       * claims —— 投稿面权限 + service kind（adopt/工作流/内部面全部
+       * 自动拒绝）。归属由 userId 保留：投稿记 createdById、采纳后文章
+       * owner 是密钥创建者。绑定用户转岗/升权不影响既有密钥的权限面。
+       */
+      return authenticatedOf(repo, { ...user, role: CMS_ROLE.AUTOMATION })
     }
     const user = await repo.findAuthByApiKey(apiKey, configSecret)
     return user === null ? null : authenticatedOf(repo, user)

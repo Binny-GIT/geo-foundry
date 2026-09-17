@@ -88,6 +88,7 @@ const loadItem = async (
 const rowOf = (item: typeof intakeItems.$inferSelect): Record<string, unknown> => ({
   channel: item.channel,
   contentHash: item.contentHash,
+  createdBy: item.createdById,
   duplicateOf: item.duplicateOfId,
   duplicateStatus: item.duplicateStatus,
   failureCode: item.failureCode,
@@ -273,6 +274,12 @@ const handleIntakeOpsAction = async (
           const inserted = await tx
             .insert(intakeItems)
             .values({
+              /*
+               * 机器投稿记归属：gfa_ 密钥绑定的是密钥创建者（认证层已
+               * 覆写为 automation claims，userId 仍是真人）。Console 会话
+               * 创建保持 NULL，与既有行为一致。
+               */
+              ...(auth.session === null ? { createdById: Number(auth.claims.userId) } : {}),
               ...(directDrop ? { contentBlocks: markdownToBlocks(bodyMarkdown) } : {}),
               channel: normalized.channel,
               ...(hashForInsert === undefined ? {} : { contentHash: hashForInsert }),
@@ -448,6 +455,13 @@ const handleIntakeOpsAction = async (
           ? []
           : [{ id: `intake-${item.id}`, title, url: item.sourceUrl }]
       const now = new Date()
+      /*
+       * 归属与来源：机器（gfa_ 密钥）采集的条目，文章 owner 落密钥创建者，
+       * creationOrigin 标 'ai'（Console 文章详情显示「AI 生成」）；人工
+       * 登记的线索保持无 owner + 人工创作，与既有行为一致。
+       */
+      const ownerId = item.createdById
+      const creationOrigin = item.createdById === null ? "human" : "ai"
       const rootRows = await tx
         .insert(contentEditions)
         .values({
@@ -457,10 +471,10 @@ const handleIntakeOpsAction = async (
           citations,
           compiledRelease: null,
           contentModifiedAt: now,
-          creationOrigin: "human",
+          creationOrigin,
           editorialStatus: "unassigned",
           entities: [],
-          ownerId: null,
+          ownerId,
           primaryTopic: title,
           secondaryTopics: [],
           priority: "normal",
@@ -484,11 +498,11 @@ const handleIntakeOpsAction = async (
           citations,
           compiledRelease: null,
           contentModifiedAt: now,
-          creationOrigin: "human",
+          creationOrigin,
           editorialStatus: "unassigned",
           entities: [],
           latest: true,
-          ownerId: null,
+          ownerId,
           parentId: editionId,
           primaryTopic: title,
           secondaryTopics: [],

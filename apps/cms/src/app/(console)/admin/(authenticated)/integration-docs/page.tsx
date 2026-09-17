@@ -77,9 +77,12 @@ const IntegrationDocsPage = async () => {
       <section className="gf-console-card grid gap-4 p-5 sm:p-6">
         <SectionTitle>接入模型：外部工具只投稿，发布始终是人</SectionTitle>
         <Muted>
-          自动化工具（n8n / Dify / 脚本 / AI agent）用 API-Key
-          把内容投进「收件箱」；采纳成草稿、编辑、流转、发布全部由人在 Console 完成。API
-          身份没有这些权限——即使密钥泄露，影响面也只有「向收件箱投稿」。
+          自动化工具（n8n / Dify / 脚本 / AI agent）用你个人的 API-Key
+          把内容投进「收件箱」，投稿记在你的名下；采纳成草稿后文章
+          <strong className="text-[var(--console-ink)]">作者归属是你</strong>
+          ，并标注「AI 生成」来源。采纳、编辑、流转、发布全部由人在 Console
+          完成。密钥的权限面与你的账号角色无关——
+          只有投稿：即使密钥泄露，影响面也只是「向收件箱投稿」。
         </Muted>
         <Muted>
           投稿三条通道：<strong className="text-[var(--console-ink)]">webhook</strong>
@@ -108,8 +111,12 @@ const IntegrationDocsPage = async () => {
           <Link className="underline" href="/admin/integrations">
             集成密钥
           </Link>
-          」页为「自动化投稿」身份签发密钥（明文以 <code className="font-mono">gfa_</code>{" "}
-          开头，只在签发时展示一次，请立即复制到你的工具）。可设有效期，随时吊销。
+          」页<strong className="text-[var(--console-ink)]">为自己创建</strong>一把密钥（明文以{" "}
+          <code className="font-mono">gfa_</code>{" "}
+          开头，只在创建时展示一次，请立即复制到你的工具）。可设有效期，随时吊销。
+          密钥跟创建者走：用它投稿的条目记在你名下，采纳成文章后
+          <strong className="text-[var(--console-ink)]">作者归属是你</strong>
+          ，并标注「AI 生成」来源。
         </Muted>
         <CodeBlock>{`# 所有请求带同一个认证头（注意 users 和 API-Key 之间的空格）：
 Authorization: users API-Key gfa_xxxxxxxxxxxxxxxxxxxxxxxx`}</CodeBlock>

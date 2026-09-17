@@ -237,27 +237,61 @@ export const listApiCredentials = async (
   scope: EntityScope,
 ): Promise<readonly Row[]> => {
   const rows = await db
-    .select()
+    .select({ cred: apiCredentials, ownerEmail: users.email })
     .from(apiCredentials)
+    .leftJoin(users, eq(users.id, apiCredentials.userId))
     .where(and(...scoped(scope, apiCredentials.tenantId)))
     .orderBy(desc(apiCredentials.createdAt))
     .limit(200)
   const now = Date.now()
-  return rows.map((row) => ({
-    createdAt: row.createdAt.toISOString(),
-    expiresAt: row.expiresAt === null ? null : row.expiresAt.toISOString(),
-    id: row.id,
-    keyPrefix: row.keyPrefix,
-    lastUsedAt: row.lastUsedAt === null ? null : row.lastUsedAt.toISOString(),
-    name: row.name,
+  return rows.map(({ cred, ownerEmail }) => ({
+    createdAt: cred.createdAt.toISOString(),
+    expiresAt: cred.expiresAt === null ? null : cred.expiresAt.toISOString(),
+    id: cred.id,
+    keyPrefix: cred.keyPrefix,
+    lastUsedAt: cred.lastUsedAt === null ? null : cred.lastUsedAt.toISOString(),
+    name: cred.name,
+    ownerEmail,
     status:
-      row.revokedAt !== null
+      cred.revokedAt !== null
         ? "revoked"
-        : row.expiresAt !== null && row.expiresAt.getTime() <= now
+        : cred.expiresAt !== null && cred.expiresAt.getTime() <= now
           ? "expired"
           : "active",
-    tenant: row.tenantId,
-    user: row.userId,
+    tenant: cred.tenantId,
+    user: cred.userId,
+  }))
+}
+
+/** 普通用户视角：只看自己的密钥（页面不暴露租户内其他人的密钥）。 */
+export const listMyApiCredentials = async (
+  db: ServerDb,
+  userId: number,
+): Promise<readonly Row[]> => {
+  const rows = await db
+    .select({ cred: apiCredentials, ownerEmail: users.email })
+    .from(apiCredentials)
+    .leftJoin(users, eq(users.id, apiCredentials.userId))
+    .where(eq(apiCredentials.userId, userId))
+    .orderBy(desc(apiCredentials.createdAt))
+    .limit(200)
+  const now = Date.now()
+  return rows.map(({ cred, ownerEmail }) => ({
+    createdAt: cred.createdAt.toISOString(),
+    expiresAt: cred.expiresAt === null ? null : cred.expiresAt.toISOString(),
+    id: cred.id,
+    keyPrefix: cred.keyPrefix,
+    lastUsedAt: cred.lastUsedAt === null ? null : cred.lastUsedAt.toISOString(),
+    name: cred.name,
+    ownerEmail,
+    status:
+      cred.revokedAt !== null
+        ? "revoked"
+        : cred.expiresAt !== null && cred.expiresAt.getTime() <= now
+          ? "expired"
+          : "active",
+    tenant: cred.tenantId,
+    user: cred.userId,
   }))
 }
 
@@ -271,8 +305,9 @@ export const listInboxItems = async (
   type Channel = (typeof intakeItems.$inferSelect)["channel"]
   type Status = (typeof intakeItems.$inferSelect)["status"]
   const rows = await db
-    .select()
+    .select({ item: intakeItems, submitterEmail: users.email })
     .from(intakeItems)
+    .leftJoin(users, eq(users.id, intakeItems.createdById))
     .where(
       and(
         ...(filter.channel.length === 0
@@ -284,13 +319,14 @@ export const listInboxItems = async (
     )
     .orderBy(desc(intakeItems.receivedAt))
     .limit(50)
-  return rows.map((row) => ({
+  return rows.map(({ item: row, submitterEmail }) => ({
     adoptedEdition: row.adoptedEditionId,
     assignedTo: row.assignedToId,
     channel: row.channel,
     connector: row.connectorId,
     contentHash: row.contentHash,
     createdAt: row.createdAt.toISOString(),
+    createdBy: row.createdById,
     duplicateOf: row.duplicateOfId,
     duplicateStatus: row.duplicateStatus,
     failureCode: row.failureCode,
@@ -302,6 +338,7 @@ export const listInboxItems = async (
     snapshot: row.snapshotId,
     sourceUrl: row.sourceUrl,
     status: row.status,
+    submitterEmail,
     suggestedSite: row.suggestedSiteId,
     summary: row.summary,
     tenant: row.tenantId,

@@ -1,18 +1,23 @@
 /*
  * 集成密钥的 Console 管理端点：列出 / 签发 / 吊销。
  *
- * 权限沿用 users 资源（签发密钥本质是管理一个机器身份），因此只有
- * tenant-admin 与 super-admin 可用。密钥明文只在签发响应里出现一次。
+ * 两种签发路径：
+ * - 自助：任何真人用户（human 身份）不带 userId 即为自己签发，密钥跟
+ *   着用户走——用它采集的投稿记 createdById，采纳后文章归属创建者。
+ *   权限面由认证层兜底（gfa_ 密钥一律按 automation 角色出 claims），
+ *   所以自助签发不放大任何权限，无需 users 资源权限。
+ * - 代签：users 资源 create 权限（tenant-admin / super-admin）可为本
+ *   租户任意真人或 automation 身份签发。
  *
- * 只签发给 automation 身份：Worker 的 content-service 密钥由
- * provision-worker-keyring.mjs 管理，两条路径不交叉，避免一次误操作
- * 同时打断外部工具和 Worker。
+ * Worker 的 content-service 密钥由 provision-worker-keyring.mjs 管理，
+ * 两条路径不交叉，避免一次误操作同时打断外部工具和 Worker。
  */
 
 import { z } from "zod"
 
 import { CMS_ACTION, CMS_RESOURCE, decideAccess } from "../../access/policy"
 import { CMS_ROLE } from "../../access/roles"
+import { isCrossTenantClaims } from "../../access/session"
 import { authenticateRequest } from "../auth/session"
 import { ApiCredentialsRepository } from "../repositories/api-credentials"
 import { entityScopeOf } from "../repositories/entities"
@@ -23,7 +28,7 @@ const issueSchema = z
   .object({
     expiresAt: z.string().datetime().nullable().optional(),
     name: z.string().trim().min(1).max(200),
-    userId: z.coerce.number().int().positive(),
+    userId: z.coerce.number().int().positive().optional(),
   })
   .strict()
 
@@ -71,14 +76,19 @@ export const handleApiCredentialGet = async (
   if (slug?.length !== 1 || slug[0] !== "api-credentials") return null
   const auth = await authenticateRequest(request.headers)
   if (auth === null) return errorJson(401, "CMS_UNAUTHENTICATED")
-  if (!decideAccess(auth.claims, CMS_RESOURCE.USERS, CMS_ACTION.READ)) {
-    return errorJson(403, "CMS_FORBIDDEN")
-  }
   const scope = entityScopeOf(auth)
   if (scope === null) return errorJson(403, "CMS_FORBIDDEN")
   const repo = new ApiCredentialsRepository(serverRuntime().db)
+  const canListTenant = decideAccess(auth.claims, CMS_RESOURCE.USERS, CMS_ACTION.READ)
+  const viewerId = Number(auth.claims.userId)
+  /* global 视角（super-admin）见全部；其余按租户取，再按权限决定是否收窄到自己。 */
+  const tenantScope = scope.kind === "global" ? null : scope.tenantId
   const records =
-    scope.kind === "global" ? await repo.listAll() : await repo.listByTenant(scope.tenantId)
+    tenantScope === null
+      ? await repo.listAll()
+      : canListTenant
+        ? await repo.listByTenant(tenantScope)
+        : (await repo.listByTenant(tenantScope)).filter((row) => row.userId === viewerId)
   return json(200, { docs: records.map(publicRecord), totalDocs: records.length })
 }
 
@@ -98,14 +108,19 @@ export const handleApiCredentialPost = async (
   const repo = new ApiCredentialsRepository(db)
 
   if (isRevoke) {
-    if (!decideAccess(auth.claims, CMS_RESOURCE.USERS, CMS_ACTION.UPDATE)) {
-      return errorJson(403, "CMS_FORBIDDEN")
-    }
     const id = idOf(slug?.[1])
     if (id === null) return errorJson(400, "API_CREDENTIAL_ID_INVALID")
+    const canManageTenant = decideAccess(auth.claims, CMS_RESOURCE.USERS, CMS_ACTION.UPDATE)
     const existing = await repo.findById(id)
-    /* 跨租户一律按「不存在」处理，不泄漏他租户密钥的存在性。 */
-    if (existing === null || (scope.kind !== "global" && existing.tenantId !== scope.tenantId)) {
+    /*
+     * 跨租户与别人的密钥一律按「不存在」处理，不泄漏存在性；
+     * 自己的密钥自己可吊销（无需 admin 权限）。
+     */
+    if (
+      existing === null ||
+      (scope.kind !== "global" && existing.tenantId !== scope.tenantId) ||
+      (!canManageTenant && existing.userId !== Number(auth.claims.userId))
+    ) {
       return errorJson(404, "API_CREDENTIAL_NOT_FOUND")
     }
     const revoked = await repo.revoke(id)
@@ -116,9 +131,6 @@ export const handleApiCredentialPost = async (
       : json(200, { doc: publicRecord(updated) })
   }
 
-  if (!decideAccess(auth.claims, CMS_RESOURCE.USERS, CMS_ACTION.CREATE)) {
-    return errorJson(403, "CMS_FORBIDDEN")
-  }
   let raw: unknown
   try {
     raw = await request.json()
@@ -128,9 +140,30 @@ export const handleApiCredentialPost = async (
   const parsed = issueSchema.safeParse(raw)
   if (!parsed.success) return errorJson(400, "API_CREDENTIAL_BODY_INVALID")
 
-  const target = await new UsersRepository(db).findAuthById(parsed.data.userId)
+  let targetId: number
+  if (parsed.data.userId === undefined) {
+    /* 自助签发：密钥跟当前真人用户走，权限面已由认证层固定为投稿面。 */
+    if (auth.claims.kind !== "user") return errorJson(403, "API_CREDENTIAL_SELF_SERVICE_DENIED")
+    if (isCrossTenantClaims(auth.claims)) {
+      return errorJson(400, "API_CREDENTIAL_TENANT_SCOPE_REQUIRED")
+    }
+    targetId = Number(auth.claims.userId)
+  } else {
+    if (!decideAccess(auth.claims, CMS_RESOURCE.USERS, CMS_ACTION.CREATE)) {
+      return errorJson(403, "CMS_FORBIDDEN")
+    }
+    targetId = parsed.data.userId
+  }
+
+  const target = await new UsersRepository(db).findAuthById(targetId)
   if (target === null) return errorJson(404, "API_CREDENTIAL_USER_NOT_FOUND")
-  if (target.role !== CMS_ROLE.AUTOMATION) return errorJson(400, "API_CREDENTIAL_ROLE_UNSUPPORTED")
+  /*
+   * 绑定用户必须有租户（密钥认证按 tenant 出 claims）；content-service
+   * 的 Worker 密钥不走这里。automation 身份与各真人角色都允许。
+   */
+  if (target.role === CMS_ROLE.CONTENT_SERVICE) {
+    return errorJson(400, "API_CREDENTIAL_ROLE_UNSUPPORTED")
+  }
   if (target.tenantId === null) return errorJson(400, "API_CREDENTIAL_USER_TENANT_INVALID")
   if (scope.kind !== "global" && target.tenantId !== scope.tenantId) {
     return errorJson(403, "API_CREDENTIAL_TENANT_SCOPE_DENIED")

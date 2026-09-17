@@ -92,6 +92,8 @@ export const intakeItems = geo.table(
     mergedIntoId: integer("merged_into_id"),
     suggestedSiteId: integer("suggested_site_id"),
     assignedToId: integer("assigned_to_id"),
+    /* 机器投稿（gfa_ 密钥）时的归属用户；Console 会话创建保持 NULL。 */
+    createdById: integer("created_by_id"),
     receivedAt: timestamp("received_at", { withTimezone: true, precision: 3 })
       .defaultNow()
       .notNull(),
