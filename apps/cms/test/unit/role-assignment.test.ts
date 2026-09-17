@@ -58,6 +58,22 @@ describe("resolveRoleAssignment", () => {
         incoming: CMS_ROLE.SUPER_ADMIN,
       }),
     ).toBeNull()
+    // tenant-admin can mint the automation identity for integration keys
+    expect(
+      resolveRoleAssignment({
+        ...base,
+        claims: claimsOf(CMS_ROLE.TENANT_ADMIN, "1"),
+        incoming: CMS_ROLE.AUTOMATION,
+      }),
+    ).toBe(CMS_ROLE.AUTOMATION)
+    // editors cannot mint machine identities
+    expect(
+      resolveRoleAssignment({
+        ...base,
+        claims: claimsOf(CMS_ROLE.EDITOR, "1"),
+        incoming: CMS_ROLE.AUTOMATION,
+      }),
+    ).toBeNull()
   })
 
   it("denies editor self-service writes except re-asserting its own stored role", () => {

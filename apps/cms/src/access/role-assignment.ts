@@ -1,12 +1,18 @@
 import { CMS_ROLE, type CmsRole, isCmsRole } from "./roles"
 import type { SessionClaims } from "./session"
 
+/*
+ * tenant-admin 可分配的角色。automation 在列：租户管理员要先建出这个
+ * 机器身份，才能在集成密钥页为它签发 gfa_ 密钥（见 role-assignment 与
+ * console/lib/user-form 的两份列表，增删角色时必须同步）。
+ */
 const ASSIGNABLE_BY_TENANT_ADMIN: readonly CmsRole[] = [
   CMS_ROLE.TENANT_ADMIN,
   CMS_ROLE.EDITOR,
   CMS_ROLE.REVIEWER,
   CMS_ROLE.PUBLISHER,
   CMS_ROLE.CONTENT_SERVICE,
+  CMS_ROLE.AUTOMATION,
 ]
 
 export type RoleAssignmentInput = {
