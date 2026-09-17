@@ -135,6 +135,12 @@ export const createConnector = async (
   /* 矩阵里只有 tenant-admin 有 connectors.create，租户必来自会话。 */
   const tenantId = sessionTenantOf(claims)
   if (tenantId === null) throw fail("CMS_CONNECTOR_TENANT_REQUIRED")
+  /*
+   * 站点必须先验证：表上有 Payload 时代的物理外键（site→sites、tenant→tenants），
+   * 不校验就插入会以外键冲突炸成 500 而不是干净的 400/403（mk-dev 实测）。
+   */
+  const siteTenant = await connectorSiteTenantOf(db, parsed.data.site)
+  if (siteTenant !== tenantId) throw fail("CMS_CONNECTOR_TENANT_MISMATCH", 403)
   const endpoint =
     parsed.data.sourceEndpoint === undefined || parsed.data.sourceEndpoint.length === 0
       ? null
