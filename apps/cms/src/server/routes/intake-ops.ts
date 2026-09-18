@@ -570,6 +570,7 @@ const handleIntakeOpsAction = async (
             .set({ status: "fetching", updatedAt: new Date() })
             .where(eq(intakeItems.id, result.item.id))
           return json(201, {
+            autoAdopted: false,
             duplicateIds: [],
             fetchQueued: true,
             intakeItem: rowOf({ ...result.item, status: "fetching" }),
@@ -586,6 +587,7 @@ const handleIntakeOpsAction = async (
             })
             .where(eq(intakeItems.id, result.item.id))
           return json(202, {
+            autoAdopted: false,
             duplicateIds: [],
             fetchQueued: false,
             intakeItem: rowOf({ ...result.item, status: "new" }),
