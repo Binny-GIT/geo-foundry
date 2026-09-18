@@ -47,7 +47,7 @@ sequenceDiagram
     participant DB as api_credentials 表
     actor T as 外部工具<br/>n8n / Dify / 脚本 / agent
 
-    U->>C: 打开「集成密钥」页 → 「我的密钥」
+    U->>C: 打开「集成密钥」页 → 顶部创建表单
     U->>C: 填名称 + 可选有效期 → 创建
     C->>API: POST {name, expiresAt?}（不带 userId = 给自己）
     API->>API: 校验真人身份 + 有租户<br/>（权限面由认证层固定，无需管理权限）
@@ -59,7 +59,7 @@ sequenceDiagram
     Note over T: Authorization: users API-Key gfa_xxx
 ```
 
-管理员代签（兼容共享机器身份的用法）：tenant-admin 在同页「管理员代签」区块，可为租户内的「自动化投稿」身份或任意真人签发。
+管理员代签（兼容共享机器身份的用法）：tenant-admin 在同页展开「管理员代签」折叠区，可为租户内的「自动化投稿」身份或任意真人签发。
 
 ### 3.1 每次请求的认证路径
 
@@ -87,7 +87,7 @@ flowchart TB
 ```mermaid
 flowchart TB
     subgraph ADM["⓪ 准备（人工 · 一次性）"]
-        K["任意用户<br/>/admin/integrations<br/>自助创建我的密钥"]
+        K["任意用户<br/>/admin/integrations<br/>自助创建密钥"]
         CN["tenant-admin<br/>/admin/connectors<br/>配 RSS 采集源与轮询间隔"]
     end
 
@@ -209,8 +209,8 @@ stateDiagram-v2
 
 | 操作 | 谁可以 | 入口 |
 |---|---|---|
-| 创建自己的密钥 | 任何真人用户（机器身份不行） | `/admin/integrations`「我的密钥」 |
-| 代签（任意真人 / automation 身份） | tenant-admin、super-admin | 同页「管理员代签」 |
+| 创建自己的密钥 | 任何真人用户（机器身份不行） | `/admin/integrations` 顶部创建表单 |
+| 代签（任意真人 / automation 身份） | tenant-admin、super-admin | 同页「管理员代签」折叠区 |
 | 查看 | admin 见租户全部；普通用户只见自己的 | 同页列表（含归属、最后使用、状态） |
 | 吊销 | 自己的密钥自己吊销；admin 吊销任意本租户的 | 列表「吊销」按钮 |
 
