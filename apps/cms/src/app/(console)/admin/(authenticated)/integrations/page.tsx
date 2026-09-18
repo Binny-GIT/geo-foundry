@@ -36,23 +36,11 @@ const IntegrationsPage = async () => {
         icon={KeyRoundIcon}
         meta={
           <span className="rounded-full border border-[var(--console-border)] bg-[var(--console-surface)] px-3 py-1 text-xs font-semibold text-[var(--console-ink-muted)]">
-            仅投稿权限 · 采集归属创建者 · 明文只显示一次 · 可随时吊销
+            {credentials.length} 把密钥
           </span>
         }
         title="集成密钥"
       />
-      <section className="gf-console-card grid gap-2 p-5 sm:p-6">
-        <p className="m-0 text-sm leading-6 text-[var(--console-ink-muted)]">
-          集成密钥用于让外部 AI / 自动化工具（n8n、Dify、脚本等）把素材投进
-          <strong>稿源收件箱</strong>。密钥跟创建者走：用它投稿的条目记在你的名下，
-          <strong>采纳成文章后作者归属是你，并标注「AI 生成」来源</strong>。持有密钥只能投稿，
-          <strong>不能把稿源采纳成文章，也不能编辑、流转或发布任何内容</strong>
-          —— 采纳与发布始终是工作台里的人工决定。
-        </p>
-        <p className="m-0 text-sm leading-6 text-[var(--console-ink-muted)]">
-          请求头格式：<code>Authorization: users API-Key gfa_…</code>
-        </p>
-      </section>
       <IntegrationKeys
         adminIdentities={identities}
         canDelegate={canConsole(context.session, CMS_RESOURCE.USERS, CMS_ACTION.CREATE)}

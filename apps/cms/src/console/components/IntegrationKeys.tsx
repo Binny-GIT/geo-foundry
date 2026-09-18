@@ -1,9 +1,17 @@
 "use client"
 
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
 
-import { AlertTriangleIcon, CopyIcon, KeyRoundIcon, PlusIcon, TrashIcon } from "@/components/icons"
+import {
+  AlertTriangleIcon,
+  CopyIcon,
+  HelpCircleIcon,
+  KeyRoundIcon,
+  PlusIcon,
+  TrashIcon,
+} from "@/components/icons"
 import { Button } from "@/components/ui/button"
 
 type CredentialRow = Readonly<Record<string, unknown>>
@@ -41,6 +49,9 @@ const dateLabel = (value: unknown): string => {
     : new Intl.DateTimeFormat("zh-CN", { dateStyle: "medium", timeStyle: "short" }).format(date)
 }
 
+const inputClass =
+  "gf-console-focus h-10 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3 text-sm text-[var(--console-ink)] outline-none"
+
 export const IntegrationKeys = ({
   adminIdentities,
   canDelegate,
@@ -54,6 +65,7 @@ export const IntegrationKeys = ({
   const [notice, setNotice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [showHelp, setShowHelp] = useState(false)
 
   const issue = async (
     payload: Readonly<Record<string, unknown>>,
@@ -167,6 +179,20 @@ export const IntegrationKeys = ({
     }
   }
 
+  const helpButton = (
+    <Button
+      aria-expanded={showHelp}
+      aria-label="集成密钥说明"
+      onClick={() => setShowHelp(!showHelp)}
+      size="md"
+      type="button"
+      variant="secondary"
+    >
+      <HelpCircleIcon size={15} />
+      说明
+    </Button>
+  )
+
   return (
     <div className="grid gap-6 [&>*]:min-w-0">
       {issuedKey !== null ? (
@@ -213,164 +239,177 @@ export const IntegrationKeys = ({
         </p>
       ) : null}
 
-      {viewerIsService ? (
-        <section className="gf-console-card grid gap-2 p-5 sm:p-6">
-          <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">
-            我的密钥
-          </h2>
-          <p className="m-0 text-sm leading-6 text-[var(--console-ink-muted)]">
-            集成密钥跟真人用户走，用于把自动化工具的投稿归属到人；机器身份不签发个人密钥。请用你的个人账号创建。
-          </p>
-        </section>
-      ) : (
-        <section className="gf-console-card grid gap-4 p-5 sm:p-6">
-          <div className="grid gap-1">
-            <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">
-              我的密钥
-            </h2>
+      <section className="gf-console-card overflow-hidden">
+        {viewerIsService ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--console-border)] px-5 py-4">
             <p className="m-0 text-sm leading-6 text-[var(--console-ink-muted)]">
-              为自己创建一把密钥，交给 n8n / Dify /
-              脚本等自动化工具。用这把密钥采集的投稿会记在你的名下，采纳成文章后
-              <strong>作者归属是你</strong>，并标注「AI 生成」来源。
+              集成密钥跟真人走，机器身份不签发个人密钥；请用个人账号登录后创建。
             </p>
+            {helpButton}
           </div>
+        ) : (
           <form
-            className="grid gap-3 sm:grid-cols-[2fr_1fr_auto] sm:items-end"
+            className="grid gap-3 border-b border-[var(--console-border)] px-5 py-4 lg:grid-cols-[minmax(0,1fr)_170px_auto_auto] lg:items-center"
             onSubmit={issueSelf}
           >
-            <label className="grid gap-1.5 text-sm text-[var(--console-ink-muted)]">
-              密钥名称
-              <input
-                className="h-9 rounded-md border border-[var(--console-border)] bg-[var(--console-surface)] px-3 text-sm text-[var(--console-ink)]"
-                maxLength={200}
-                name="name"
-                placeholder="例如：我的 n8n 采集流"
-                required
-                type="text"
-              />
-            </label>
-            <label className="grid gap-1.5 text-sm text-[var(--console-ink-muted)]">
-              有效期至（可选）
-              <input
-                className="h-9 rounded-md border border-[var(--console-border)] bg-[var(--console-surface)] px-3 text-sm text-[var(--console-ink)]"
-                name="expiresAt"
-                type="date"
-              />
-            </label>
+            <input
+              aria-label="密钥名称"
+              className={inputClass}
+              maxLength={200}
+              name="name"
+              placeholder="新建密钥，如：我的 n8n 采集流"
+              required
+              type="text"
+            />
+            <input
+              aria-label="有效期至（可选）"
+              className={inputClass}
+              name="expiresAt"
+              type="date"
+            />
             <Button disabled={busy} type="submit">
-              <PlusIcon />
+              <PlusIcon size={15} />
               创建
             </Button>
+            {helpButton}
           </form>
-        </section>
-      )}
+        )}
 
-      {canDelegate ? (
-        <section className="gf-console-card grid gap-4 p-5 sm:p-6">
-          <div className="grid gap-1">
-            <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">
-              管理员代签
-            </h2>
-            <p className="m-0 text-sm leading-6 text-[var(--console-ink-muted)]">
-              为租户内的「自动化投稿」身份代签密钥（兼容共享机器身份的用法）。
+        {showHelp ? (
+          <div className="grid gap-1.5 border-b border-[var(--console-border)] bg-[var(--console-surface-muted)] px-5 py-4 text-sm leading-6 text-[var(--console-ink-muted)]">
+            <p className="m-0">
+              <strong className="text-[var(--console-ink)]">密钥跟创建者走。</strong>
+              用它投稿的素材记在你名下，采纳成文章后作者归属是你，并标注「AI 生成」来源。
+            </p>
+            <p className="m-0">
+              <strong className="text-[var(--console-ink)]">只有投稿权限。</strong>
+              密钥只能把素材投进稿源收件箱，不能采纳成文章，也不能编辑、流转或发布任何内容——
+              采纳与发布始终是工作台里的人工决定。明文只显示一次，可随时吊销。
+            </p>
+            <p className="m-0">
+              请求头格式：
+              <code className="rounded bg-[var(--console-surface)] px-1.5 py-0.5 font-mono text-xs text-[var(--console-ink)]">
+                Authorization: users API-Key gfa_…
+              </code>
+              　完整接入说明与 curl 示例见
+              <Link
+                className="gf-console-focus font-medium text-[var(--console-accent)] underline"
+                href="/admin/integration-docs"
+              >
+                集成文档
+              </Link>
+              。
             </p>
           </div>
-          {adminIdentities.length === 0 ? (
-            <p className="m-0 text-sm leading-6 text-[var(--console-ink-muted)]">
-              当前租户还没有「自动化投稿」身份。需要共享身份时，可先到「用户」页新建一个角色为
-              <strong>自动化投稿</strong>的用户，再回来为它签发密钥。
-            </p>
-          ) : (
-            <form
-              className="grid gap-3 sm:grid-cols-[2fr_2fr_1fr_auto] sm:items-end"
-              onSubmit={issueDelegate}
-            >
-              <label className="grid gap-1.5 text-sm text-[var(--console-ink-muted)]">
-                密钥名称
+        ) : null}
+
+        {canDelegate ? (
+          <details className="border-b border-[var(--console-border)]">
+            <summary className="cursor-pointer select-none list-none px-5 py-3 text-sm text-[var(--console-ink-muted)] hover:text-[var(--console-ink)]">
+              管理员代签 · 为共享「自动化投稿」身份签发密钥
+            </summary>
+            {adminIdentities.length === 0 ? (
+              <p className="m-0 px-5 pb-4 text-sm leading-6 text-[var(--console-ink-muted)]">
+                当前租户还没有「自动化投稿」身份。需要共享身份时，可先到「用户」页新建一个角色为
+                <strong>自动化投稿</strong>的用户，再回来为它代签。
+              </p>
+            ) : (
+              <form
+                className="grid gap-3 px-5 pb-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_170px_auto] lg:items-center"
+                onSubmit={issueDelegate}
+              >
                 <input
-                  className="h-9 rounded-md border border-[var(--console-border)] bg-[var(--console-surface)] px-3 text-sm text-[var(--console-ink)]"
+                  aria-label="密钥名称"
+                  className={inputClass}
                   maxLength={200}
                   name="name"
-                  placeholder="例如：共享 RSS 投稿"
+                  placeholder="密钥名称，如：共享 RSS 投稿"
                   required
                   type="text"
                 />
-              </label>
-              <label className="grid gap-1.5 text-sm text-[var(--console-ink-muted)]">
-                自动化身份
-                <select
-                  className="h-9 rounded-md border border-[var(--console-border)] bg-[var(--console-surface)] px-3 text-sm text-[var(--console-ink)]"
-                  name="userId"
-                  required
-                >
+                <select aria-label="自动化身份" className={inputClass} name="userId" required>
                   {adminIdentities.map((identity) => (
                     <option key={String(identity["id"])} value={String(identity["id"])}>
                       {String(identity["email"])}
                     </option>
                   ))}
                 </select>
-              </label>
-              <label className="grid gap-1.5 text-sm text-[var(--console-ink-muted)]">
-                有效期至（可选）
                 <input
-                  className="h-9 rounded-md border border-[var(--console-border)] bg-[var(--console-surface)] px-3 text-sm text-[var(--console-ink)]"
+                  aria-label="有效期至（可选）"
+                  className={inputClass}
                   name="expiresAt"
                   type="date"
                 />
-              </label>
-              <Button disabled={busy} type="submit">
-                <PlusIcon />
-                代签
-              </Button>
-            </form>
-          )}
-        </section>
-      ) : null}
+                <Button disabled={busy} type="submit">
+                  <PlusIcon size={15} />
+                  代签
+                </Button>
+              </form>
+            )}
+          </details>
+        ) : null}
 
-      <section className="gf-console-card grid gap-4 p-5 sm:p-6">
-        <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">
-          {canDelegate ? "租户内已签发的密钥" : "我已签发的密钥"}
-        </h2>
         {credentials.length === 0 ? (
-          <p className="m-0 text-sm leading-6 text-[var(--console-ink-muted)]">
-            还没有签发过任何集成密钥。
-          </p>
+          <div className="grid min-h-64 place-items-center px-5 text-center">
+            <div className="grid max-w-sm gap-2">
+              <strong className="text-sm text-[var(--console-ink)]">
+                {canDelegate ? "租户内还没有签发过密钥" : "你还没有签发过密钥"}
+              </strong>
+              <span className="text-sm leading-6 text-[var(--console-ink-muted)]">
+                在上方填一个名称即可创建；密钥交给 n8n / Dify
+                等自动化工具，用来把采集的素材投进稿源收件箱。
+              </span>
+            </div>
+          </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="text-left text-xs text-[var(--console-ink-muted)]">
-                  <th className="pb-2 pr-4 font-medium">名称</th>
-                  {canDelegate ? <th className="pb-2 pr-4 font-medium">归属</th> : null}
-                  <th className="pb-2 pr-4 font-medium">前缀</th>
-                  <th className="pb-2 pr-4 font-medium">最后使用</th>
-                  <th className="pb-2 pr-4 font-medium">状态</th>
-                  <th className="pb-2 font-medium">操作</th>
+            <table className="w-full min-w-[720px] border-collapse text-left">
+              <thead className="bg-[var(--console-surface-muted)]">
+                <tr>
+                  {["名称", ...(canDelegate ? ["归属"] : []), "前缀", "最后使用", "状态"].map(
+                    (label) => (
+                      <th
+                        className="whitespace-nowrap border-b border-[var(--console-border)] px-5 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--console-ink-muted)]"
+                        key={label}
+                        scope="col"
+                      >
+                        {label}
+                      </th>
+                    ),
+                  )}
+                  <th
+                    aria-label="操作"
+                    className="border-b border-[var(--console-border)] px-5 py-3"
+                    scope="col"
+                  />
                 </tr>
               </thead>
               <tbody>
-                {credentials.map((credential) => {
+                {credentials.map((credential, index) => {
                   const status = String(credential["status"] ?? "active")
                   return (
                     <tr
-                      className="border-t border-[var(--console-border)] text-[var(--console-ink)]"
+                      className="gf-row transition-colors hover:bg-[var(--console-surface-muted)]"
                       key={String(credential["id"])}
+                      style={{ animationDelay: `${Math.min(index, 8) * 35}ms` }}
                     >
-                      <td className="py-3 pr-4">{String(credential["name"])}</td>
+                      <td className="max-w-[280px] border-b border-[var(--console-border)] px-5 py-4 text-sm font-semibold text-[var(--console-ink)]">
+                        <span className="block truncate">{String(credential["name"])}</span>
+                      </td>
                       {canDelegate ? (
-                        <td className="py-3 pr-4 text-[var(--console-ink-muted)]">
+                        <td className="border-b border-[var(--console-border)] px-5 py-4 text-sm text-[var(--console-ink-muted)]">
                           {typeof credential["ownerEmail"] === "string"
                             ? credential["ownerEmail"]
                             : `#${String(credential["user"])}`}
                         </td>
                       ) : null}
-                      <td className="py-3 pr-4 font-mono text-xs text-[var(--console-ink-muted)]">
+                      <td className="border-b border-[var(--console-border)] px-5 py-4 font-mono text-xs text-[var(--console-ink-muted)]">
                         {String(credential["keyPrefix"])}…
                       </td>
-                      <td className="py-3 pr-4 text-[var(--console-ink-muted)]">
+                      <td className="border-b border-[var(--console-border)] px-5 py-4 text-sm text-[var(--console-ink-muted)]">
                         {dateLabel(credential["lastUsedAt"])}
                       </td>
-                      <td className="py-3 pr-4">
+                      <td className="border-b border-[var(--console-border)] px-5 py-4 text-sm text-[var(--console-ink)]">
                         <span className="inline-flex items-center gap-1.5">
                           <span
                             className={`inline-block size-2 rounded-full ${STATUS_TONE[status] ?? "bg-slate-400"}`}
@@ -378,7 +417,7 @@ export const IntegrationKeys = ({
                           {STATUS_LABEL[status] ?? status}
                         </span>
                       </td>
-                      <td className="py-3">
+                      <td className="whitespace-nowrap border-b border-[var(--console-border)] px-5 py-4">
                         {status === "revoked" ? null : (
                           <Button
                             disabled={busy}
@@ -387,7 +426,7 @@ export const IntegrationKeys = ({
                             type="button"
                             variant="destructive"
                           >
-                            <TrashIcon />
+                            <TrashIcon size={13} />
                             吊销
                           </Button>
                         )}

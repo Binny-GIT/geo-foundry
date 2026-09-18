@@ -48,7 +48,7 @@ check "$EID" "$DOCUSER" "密钥归属 editor 本人"
 N=$(curl -s -b "$ECOOKIE" "$BASE/api/api-credentials" | jqget 'd["totalDocs"]')
 check 1 "$N" "editor 列表仅含自己的密钥"
 PAGE=$(curl -s -b "$ECOOKIE" "$BASE/admin/integrations")
-echo "$PAGE" | grep -q 我的密钥 && ok "editor 页面显示「我的密钥」" || bad "editor 页面缺自助表单"
+echo "$PAGE" | grep -q 新建密钥 && ok "editor 页面显示自助创建表单" || bad "editor 页面缺自助表单"
 if echo "$PAGE" | grep -q 管理员代签; then bad "editor 页面泄漏 admin 区块"; else ok "editor 页面隐藏 admin 区块"; fi
 
 # 4. 用 editor 的密钥投稿 webhook（应记归属）
