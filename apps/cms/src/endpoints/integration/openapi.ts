@@ -37,7 +37,7 @@ const AUTH_DESCRIPTION =
 const INTAKE_REQUEST_SCHEMA = {
   additionalProperties: false,
   description:
-    "投稿入稿源箱。channel=webhook 直投正文：bodyMarkdown 与 suggestedSiteId 必填，校验通过直接 ready 等人工采纳；channel=url/rss 只投 URL：填 sourceUrl（rss 可带 connectorId），平台排队抓取。",
+    "投稿入稿源箱。channel=webhook 直投正文：bodyMarkdown 必填，suggestedSiteId 可选（缺省回落密钥默认站点，两者都没有才报 INTAKE_SUGGESTED_SITE_REQUIRED），校验通过直接 ready 等人工采纳；channel=url/rss 只投 URL：填 sourceUrl（rss 可带 connectorId），平台排队抓取。",
   properties: {
     bodyMarkdown: {
       description:
@@ -68,7 +68,7 @@ const INTAKE_REQUEST_SCHEMA = {
     },
     suggestedSiteId: {
       description:
-        "建议采纳站点 id（webhook 通道必填；GET /sites 可查本租户可选值）。入口即校验：站点不存在返回 400 INTAKE_SITE_NOT_FOUND，站点不属于本租户返回 403 INTAKE_SITE_TENANT_MISMATCH。",
+        "建议采纳站点 id（可选）：payload 显式值优先，缺省回落到密钥配置的默认站点（Console「集成密钥」页设置），两者都没有时 webhook 通道报 INTAKE_SUGGESTED_SITE_REQUIRED。GET /sites 可查本租户可选值。入口即校验：站点不存在返回 400 INTAKE_SITE_NOT_FOUND，站点不属于本租户返回 403 INTAKE_SITE_TENANT_MISMATCH。",
       type: "integer",
     },
     summary: { description: "摘要（可选）。", maxLength: 20_000, type: "string" },

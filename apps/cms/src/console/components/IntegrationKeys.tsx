@@ -19,6 +19,11 @@ type CredentialRow = Readonly<Record<string, unknown>>
 
 type IdentityRow = Readonly<Record<string, unknown>>
 
+type SiteOption = {
+  readonly id: number
+  readonly name: string
+}
+
 type IntegrationKeysProps = {
   /** admin 代签可选的 automation 身份；普通用户视角为空数组。 */
   readonly adminIdentities: readonly IdentityRow[]
@@ -26,6 +31,8 @@ type IntegrationKeysProps = {
   readonly canDelegate: boolean
   /** server 已按视角过滤：admin 见本租户全部，普通用户只见自己的。 */
   readonly credentials: readonly CredentialRow[]
+  /** 本租户可选的默认站点（各真人角色对站点均只读可见）。 */
+  readonly siteOptions: readonly SiteOption[]
   /** automation 身份登录时不出自助表单（密钥只跟真人走）。 */
   readonly viewerIsService: boolean
 }
@@ -57,6 +64,7 @@ export const IntegrationKeys = ({
   adminIdentities,
   canDelegate,
   credentials,
+  siteOptions,
   viewerIsService,
 }: IntegrationKeysProps) => {
   const router = useRouter()
@@ -110,11 +118,13 @@ export const IntegrationKeys = ({
     const form = event.currentTarget
     const data = new FormData(form)
     const name = String(data.get("name") ?? "").trim()
+    const defaultSiteId = String(data.get("defaultSiteId") ?? "").trim()
     const expiresAt = String(data.get("expiresAt") ?? "").trim()
     if (name.length === 0) return
     await issue(
       {
         name,
+        ...(defaultSiteId.length > 0 ? { defaultSiteId: Number(defaultSiteId) } : {}),
         ...(expiresAt.length > 0
           ? { expiresAt: new Date(`${expiresAt}T23:59:59Z`).toISOString() }
           : {}),
@@ -126,9 +136,11 @@ export const IntegrationKeys = ({
   const issueDelegate = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const form = event.currentTarget
-    const name = String(new FormData(form).get("name") ?? "").trim()
-    const userId = String(new FormData(form).get("userId") ?? "").trim()
-    const expiresAt = String(new FormData(form).get("expiresAt") ?? "").trim()
+    const data = new FormData(form)
+    const name = String(data.get("name") ?? "").trim()
+    const userId = String(data.get("userId") ?? "").trim()
+    const defaultSiteId = String(data.get("defaultSiteId") ?? "").trim()
+    const expiresAt = String(data.get("expiresAt") ?? "").trim()
     if (name.length === 0 || userId.length === 0) {
       setError("请填写密钥名称并选择一个自动化身份。")
       return
@@ -137,6 +149,7 @@ export const IntegrationKeys = ({
       {
         name,
         userId: Number(userId),
+        ...(defaultSiteId.length > 0 ? { defaultSiteId: Number(defaultSiteId) } : {}),
         ...(expiresAt.length > 0
           ? { expiresAt: new Date(`${expiresAt}T23:59:59Z`).toISOString() }
           : {}),
@@ -250,7 +263,7 @@ export const IntegrationKeys = ({
           </div>
         ) : (
           <form
-            className="grid gap-3 border-b border-[var(--console-border)] px-5 py-4 lg:grid-cols-[minmax(0,1fr)_170px_auto_auto] lg:items-center"
+            className="grid gap-3 border-b border-[var(--console-border)] px-5 py-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_170px_auto_auto] lg:items-center"
             onSubmit={issueSelf}
           >
             <input
@@ -262,6 +275,14 @@ export const IntegrationKeys = ({
               required
               type="text"
             />
+            <select aria-label="默认站点（可选）" className={inputClass} name="defaultSiteId">
+              <option value="">默认站点：不设</option>
+              {siteOptions.map((site) => (
+                <option key={site.id} value={String(site.id)}>
+                  {site.name}
+                </option>
+              ))}
+            </select>
             <input
               aria-label="有效期至（可选）"
               className={inputClass}
@@ -317,7 +338,7 @@ export const IntegrationKeys = ({
               </p>
             ) : (
               <form
-                className="grid gap-3 px-5 pb-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_170px_auto] lg:items-center"
+                className="grid gap-3 px-5 pb-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_170px_auto] lg:items-center"
                 onSubmit={issueDelegate}
               >
                 <input
@@ -333,6 +354,14 @@ export const IntegrationKeys = ({
                   {adminIdentities.map((identity) => (
                     <option key={String(identity["id"])} value={String(identity["id"])}>
                       {String(identity["email"])}
+                    </option>
+                  ))}
+                </select>
+                <select aria-label="默认站点（可选）" className={inputClass} name="defaultSiteId">
+                  <option value="">默认站点：不设</option>
+                  {siteOptions.map((site) => (
+                    <option key={site.id} value={String(site.id)}>
+                      {site.name}
                     </option>
                   ))}
                 </select>
@@ -368,17 +397,22 @@ export const IntegrationKeys = ({
             <table className="w-full min-w-[720px] border-collapse text-left">
               <thead className="bg-[var(--console-surface-muted)]">
                 <tr>
-                  {["名称", ...(canDelegate ? ["归属"] : []), "前缀", "最后使用", "状态"].map(
-                    (label) => (
-                      <th
-                        className="whitespace-nowrap border-b border-[var(--console-border)] px-5 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--console-ink-muted)]"
-                        key={label}
-                        scope="col"
-                      >
-                        {label}
-                      </th>
-                    ),
-                  )}
+                  {[
+                    "名称",
+                    ...(canDelegate ? ["归属"] : []),
+                    "默认站点",
+                    "前缀",
+                    "最后使用",
+                    "状态",
+                  ].map((label) => (
+                    <th
+                      className="whitespace-nowrap border-b border-[var(--console-border)] px-5 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--console-ink-muted)]"
+                      key={label}
+                      scope="col"
+                    >
+                      {label}
+                    </th>
+                  ))}
                   <th
                     aria-label="操作"
                     className="border-b border-[var(--console-border)] px-5 py-3"
@@ -405,6 +439,13 @@ export const IntegrationKeys = ({
                             : `#${String(credential["user"])}`}
                         </td>
                       ) : null}
+                      <td className="border-b border-[var(--console-border)] px-5 py-4 text-sm text-[var(--console-ink-muted)]">
+                        {typeof credential["defaultSiteName"] === "string" ? (
+                          credential["defaultSiteName"]
+                        ) : (
+                          <span title="投稿需显式带 suggestedSiteId">—</span>
+                        )}
+                      </td>
                       <td className="border-b border-[var(--console-border)] px-5 py-4 font-mono text-xs text-[var(--console-ink-muted)]">
                         {String(credential["keyPrefix"])}…
                       </td>

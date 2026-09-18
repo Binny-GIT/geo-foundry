@@ -71,6 +71,13 @@
       "when": 1788999000009,
       "tag": "0009_intake_created_by",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788999000010,
+      "tag": "0010_api_credentials_default_site",
+      "breakpoints": true
     }
   ]
 }

@@ -95,6 +95,8 @@ export const apiCredentials = geo.table(
     keyPrefix: varchar("key_prefix").notNull(),
     keyIndex: varchar("key_index").notNull(),
     createdById: integer("created_by_id").notNull(),
+    /* 密钥默认站点：投稿不带 suggestedSiteId 时回落（显式值优先）。 */
+    defaultSiteId: integer("default_site_id"),
     lastUsedAt: timestamp("last_used_at", { withTimezone: true, precision: 3 }),
     revokedAt: timestamp("revoked_at", { withTimezone: true, precision: 3 }),
     expiresAt: timestamp("expires_at", { withTimezone: true, precision: 3 }),

@@ -15,6 +15,7 @@ const authOf = (
     tenantId,
     userId: "1",
   },
+  credential: null,
   session: null,
   siteIds,
   user: {

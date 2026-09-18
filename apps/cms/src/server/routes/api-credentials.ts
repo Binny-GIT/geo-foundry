@@ -13,19 +13,23 @@
  * 两条路径不交叉，避免一次误操作同时打断外部工具和 Worker。
  */
 
+import { eq } from "drizzle-orm"
 import { z } from "zod"
 
 import { CMS_ACTION, CMS_RESOURCE, decideAccess } from "../../access/policy"
 import { CMS_ROLE } from "../../access/roles"
 import { isCrossTenantClaims } from "../../access/session"
 import { authenticateRequest } from "../auth/session"
+import { sites } from "../db/entity-schema"
 import { ApiCredentialsRepository } from "../repositories/api-credentials"
 import { entityScopeOf } from "../repositories/entities"
 import { UsersRepository } from "../repositories/users"
 import { serverRuntime } from "../runtime"
+import { intakeSiteScopeErrorOf } from "./intake-ops"
 
 const issueSchema = z
   .object({
+    defaultSiteId: z.coerce.number().int().positive().nullable().optional(),
     expiresAt: z.string().datetime().nullable().optional(),
     name: z.string().trim().min(1).max(200),
     userId: z.coerce.number().int().positive().optional(),
@@ -46,6 +50,7 @@ const idOf = (value: string | undefined): number | null =>
 
 const publicRecord = (record: {
   readonly createdAt: Date
+  readonly defaultSiteId: number | null
   readonly expiresAt: Date | null
   readonly id: number
   readonly keyPrefix: string
@@ -55,6 +60,7 @@ const publicRecord = (record: {
   readonly userId: number
 }) => ({
   createdAt: record.createdAt.toISOString(),
+  defaultSiteId: record.defaultSiteId,
   expiresAt: record.expiresAt === null ? null : record.expiresAt.toISOString(),
   id: record.id,
   keyPrefix: record.keyPrefix,
@@ -177,9 +183,27 @@ export const handleApiCredentialPost = async (
     return errorJson(400, "API_CREDENTIAL_EXPIRY_INVALID")
   }
 
+  /*
+   * 默认站点：不填=无回落；填了必须存在且属于密钥租户（与投稿入口
+   * 同一套规则）。跨租户/不存在的站点在签发时就拒，不让坏配置等
+   * 到第一次投稿才爆。
+   */
+  let defaultSiteId: number | null = null
+  if (parsed.data.defaultSiteId !== undefined && parsed.data.defaultSiteId !== null) {
+    const siteRows = await db
+      .select({ tenantId: sites.tenantId })
+      .from(sites)
+      .where(eq(sites.id, parsed.data.defaultSiteId))
+      .limit(1)
+    const siteError = intakeSiteScopeErrorOf(siteRows[0]?.tenantId, target.tenantId)
+    if (siteError !== null) return errorJson(400, "API_CREDENTIAL_SITE_INVALID")
+    defaultSiteId = parsed.data.defaultSiteId
+  }
+
   const issued = await repo.issue({
     configSecret,
     createdById: Number(auth.claims.userId),
+    defaultSiteId,
     expiresAt,
     name: parsed.data.name,
     tenantId: target.tenantId,

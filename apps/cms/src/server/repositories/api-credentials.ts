@@ -25,6 +25,7 @@ const DISPLAY_PREFIX_LENGTH = API_KEY_PREFIX.length + 8
 export type ApiCredentialRecord = Readonly<{
   createdAt: Date
   createdById: number
+  defaultSiteId: number | null
   expiresAt: Date | null
   id: number
   keyPrefix: string
@@ -43,6 +44,8 @@ export type IssuedApiCredential = Readonly<{
 
 export type ApiCredentialAuth = Readonly<{
   credentialId: number
+  /** 投稿缺省站点：payload 不带 suggestedSiteId 时回落到这里。 */
+  defaultSiteId: number | null
   tenantId: number
   userId: number
 }>
@@ -52,6 +55,7 @@ type CredentialRow = typeof apiCredentials.$inferSelect
 const recordOf = (row: CredentialRow): ApiCredentialRecord => ({
   createdAt: row.createdAt,
   createdById: row.createdById,
+  defaultSiteId: row.defaultSiteId,
   expiresAt: row.expiresAt,
   id: row.id,
   keyPrefix: row.keyPrefix,
@@ -78,6 +82,7 @@ export class ApiCredentialsRepository {
   async issue(input: {
     readonly configSecret: string
     readonly createdById: number
+    readonly defaultSiteId: number | null
     readonly expiresAt: Date | null
     readonly name: string
     readonly tenantId: number
@@ -89,6 +94,7 @@ export class ApiCredentialsRepository {
       .insert(apiCredentials)
       .values({
         createdById: input.createdById,
+        defaultSiteId: input.defaultSiteId,
         expiresAt: input.expiresAt,
         keyIndex,
         keyPrefix: displayPrefixOf(apiKey),
@@ -111,6 +117,7 @@ export class ApiCredentialsRepository {
     const [, keyIndex] = apiKeyIndexesOf(apiKey, configSecret)
     const rows = await this.db
       .select({
+        defaultSiteId: apiCredentials.defaultSiteId,
         id: apiCredentials.id,
         tenantId: apiCredentials.tenantId,
         userId: apiCredentials.userId,
@@ -127,7 +134,12 @@ export class ApiCredentialsRepository {
     const row = rows[0]
     return row === undefined
       ? null
-      : { credentialId: row.id, tenantId: row.tenantId, userId: row.userId }
+      : {
+          credentialId: row.id,
+          defaultSiteId: row.defaultSiteId,
+          tenantId: row.tenantId,
+          userId: row.userId,
+        }
   }
 
   /** 最后使用时间。调用方以 fire-and-forget 方式使用，失败不得阻断请求。 */

@@ -122,6 +122,16 @@ export const intakeSiteScopeErrorOf = (
       ? "INTAKE_SITE_TENANT_MISMATCH"
       : null
 
+/*
+ * 纯决策：投稿站点的最终取值。payload 显式值始终优先；缺失时回落到
+ * 密钥默认站点；两者都没有则保持 undefined（由 normalize 按通道规则
+ * 决定是否必填报错）。
+ */
+export const resolveSuggestedSiteId = (
+  payloadSiteId: number | undefined,
+  credentialDefaultSiteId: number | null,
+): number | undefined => payloadSiteId ?? credentialDefaultSiteId ?? undefined
+
 export const intakeOpsActionOf = (
   slug: readonly string[] | undefined,
 ): "create" | "ignore" | "merge" | "retry" | "adopt" | null => {
@@ -220,6 +230,15 @@ const handleIntakeOpsAction = async (
         return json(400, { error: { code: "INTAKE_CREATE_BODY_INVALID" } })
       }
       try {
+        /*
+         * 站点来源优先级：payload 显式值 > 密钥默认站点。回落只对
+         * API-Key 身份生效（Console 会话 credential 为 null，行为不变）；
+         * 合并后统一走 normalize 必填校验与入口站点校验。
+         */
+        const effectiveSuggestedSiteId = resolveSuggestedSiteId(
+          parsed.data.suggestedSiteId,
+          auth.credential?.defaultSiteId ?? null,
+        )
         const normalized = normalizeIntakeInput({
           ...(parsed.data.bodyMarkdown === undefined
             ? {}
@@ -232,9 +251,9 @@ const handleIntakeOpsAction = async (
             ? {}
             : { contentHash: parsed.data.contentHash }),
           ...(parsed.data.sourceUrl === undefined ? {} : { sourceUrl: parsed.data.sourceUrl }),
-          ...(parsed.data.suggestedSiteId === undefined
+          ...(effectiveSuggestedSiteId === undefined
             ? {}
-            : { suggestedSiteId: parsed.data.suggestedSiteId }),
+            : { suggestedSiteId: effectiveSuggestedSiteId }),
           ...(parsed.data.summary === undefined ? {} : { summary: parsed.data.summary }),
           tenantId,
           title: parsed.data.title,

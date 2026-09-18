@@ -9,6 +9,7 @@ import {
   listApiCredentials,
   listAutomationIdentities,
   listMyApiCredentials,
+  listSiteOptions,
 } from "@/server/repositories/console-reads"
 
 export const metadata = { title: "集成密钥 | Geo Foundry" }
@@ -21,13 +22,17 @@ export const metadata = { title: "集成密钥 | Geo Foundry" }
 const IntegrationsPage = async () => {
   const context = await requireConsoleContext()
   const canListTenant = canConsole(context.session, CMS_RESOURCE.USERS, CMS_ACTION.READ)
-  const [credentials, identities] = await Promise.all([
+  const [credentials, identities, siteOptions] = await Promise.all([
     canListTenant
       ? listApiCredentials(context.db, context.scope)
       : listMyApiCredentials(context.db, Number(context.session.id)),
     canListTenant
       ? listAutomationIdentities(context.db, context.scope)
       : Promise.resolve([] as readonly Record<string, unknown>[]),
+    /* 各真人角色对站点均只读可见，密钥默认站点下拉无需额外权限门。 */
+    listSiteOptions(context.db, context.scope).catch(
+      () => [] as readonly { id: number; name: string }[],
+    ),
   ])
 
   return (
@@ -45,6 +50,7 @@ const IntegrationsPage = async () => {
         adminIdentities={identities}
         canDelegate={canConsole(context.session, CMS_RESOURCE.USERS, CMS_ACTION.CREATE)}
         credentials={credentials}
+        siteOptions={siteOptions}
         viewerIsService={context.session.role === CMS_ROLE.AUTOMATION}
       />
     </div>

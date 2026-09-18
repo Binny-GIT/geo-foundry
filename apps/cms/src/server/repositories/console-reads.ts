@@ -237,15 +237,18 @@ export const listApiCredentials = async (
   scope: EntityScope,
 ): Promise<readonly Row[]> => {
   const rows = await db
-    .select({ cred: apiCredentials, ownerEmail: users.email })
+    .select({ cred: apiCredentials, ownerEmail: users.email, siteName: sites.name })
     .from(apiCredentials)
     .leftJoin(users, eq(users.id, apiCredentials.userId))
+    .leftJoin(sites, eq(sites.id, apiCredentials.defaultSiteId))
     .where(and(...scoped(scope, apiCredentials.tenantId)))
     .orderBy(desc(apiCredentials.createdAt))
     .limit(200)
   const now = Date.now()
-  return rows.map(({ cred, ownerEmail }) => ({
+  return rows.map(({ cred, ownerEmail, siteName }) => ({
     createdAt: cred.createdAt.toISOString(),
+    defaultSiteId: cred.defaultSiteId,
+    defaultSiteName: siteName,
     expiresAt: cred.expiresAt === null ? null : cred.expiresAt.toISOString(),
     id: cred.id,
     keyPrefix: cred.keyPrefix,
@@ -269,15 +272,18 @@ export const listMyApiCredentials = async (
   userId: number,
 ): Promise<readonly Row[]> => {
   const rows = await db
-    .select({ cred: apiCredentials, ownerEmail: users.email })
+    .select({ cred: apiCredentials, ownerEmail: users.email, siteName: sites.name })
     .from(apiCredentials)
     .leftJoin(users, eq(users.id, apiCredentials.userId))
+    .leftJoin(sites, eq(sites.id, apiCredentials.defaultSiteId))
     .where(eq(apiCredentials.userId, userId))
     .orderBy(desc(apiCredentials.createdAt))
     .limit(200)
   const now = Date.now()
-  return rows.map(({ cred, ownerEmail }) => ({
+  return rows.map(({ cred, ownerEmail, siteName }) => ({
     createdAt: cred.createdAt.toISOString(),
+    defaultSiteId: cred.defaultSiteId,
+    defaultSiteName: siteName,
     expiresAt: cred.expiresAt === null ? null : cred.expiresAt.toISOString(),
     id: cred.id,
     keyPrefix: cred.keyPrefix,

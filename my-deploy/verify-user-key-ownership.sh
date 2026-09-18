@@ -18,7 +18,9 @@ jqget() { python3 -c "import json,sys;d=json.load(sys.stdin);print($1)"; }
 
 TENANT=413
 SITE=$(PSQL "SELECT id FROM geo_foundry.sites WHERE tenant_id=$TENANT AND status='active' ORDER BY id LIMIT 1")
+SITE2=$(PSQL "SELECT id FROM geo_foundry.sites WHERE tenant_id=$TENANT AND status='active' ORDER BY id OFFSET 1 LIMIT 1")
 [ -n "$SITE" ] && ok "fixture site=$SITE" || { bad "no site in tenant $TENANT"; exit 1; }
+[ -n "$SITE2" ] && ok "fixture site2=$SITE2" || { bad "need 2 active sites in tenant $TENANT"; exit 1; }
 
 # 0. tenant-admin 登录（建用户 + 采纳接力）
 CODE=$(curl -s -o /dev/null -w '%{http_code}' -c "$TACOOKIE" -H 'content-type: application/json' \
@@ -38,11 +40,13 @@ CODE=$(curl -s -o /dev/null -w '%{http_code}' -c "$ECOOKIE" -H 'content-type: ap
   -d "{\"email\":\"$EEMAIL\",\"password\":\"gf-uk-e2e-001\"}" "$BASE/api/users/login")
 check 200 "$CODE" "editor 登录"
 CODE=$(curl -s -o /tmp/gf-uk-issue.json -w '%{http_code}' -b "$ECOOKIE" -H 'content-type: application/json' \
-  -d '{"name":"e2e 我的采集流"}' "$BASE/api/api-credentials")
+  -d "{\"name\":\"e2e 我的采集流\",\"defaultSiteId\":$SITE}" "$BASE/api/api-credentials")
 check 201 "$CODE" "editor 自助创建密钥"
 KEY=$(jqget 'd["apiKey"]' </tmp/gf-uk-issue.json)
 DOCUSER=$(jqget 'd["doc"]["userId"]' </tmp/gf-uk-issue.json)
 check "$EID" "$DOCUSER" "密钥归属 editor 本人"
+DOCSITE=$(jqget 'd["doc"]["defaultSiteId"]' </tmp/gf-uk-issue.json)
+check "$SITE" "$DOCSITE" "密钥默认站点落库"
 
 # 3. editor 视角列表只看到自己的；页面渲染自助表单且隐藏 admin 区块
 N=$(curl -s -b "$ECOOKIE" "$BASE/api/api-credentials" | jqget 'd["totalDocs"]')
@@ -51,15 +55,27 @@ PAGE=$(curl -s -b "$ECOOKIE" "$BASE/admin/integrations")
 echo "$PAGE" | grep -q 新建密钥 && ok "editor 页面显示自助创建表单" || bad "editor 页面缺自助表单"
 if echo "$PAGE" | grep -q 管理员代签; then bad "editor 页面泄漏 admin 区块"; else ok "editor 页面隐藏 admin 区块"; fi
 
-# 4. 用 editor 的密钥投稿 webhook（应记归属）
+# 4. 用 editor 的密钥投稿 webhook，不带 siteId —— 应回落到密钥默认站点
 CODE=$(curl -s -o /tmp/gf-uk-post.json -w '%{http_code}' \
   -H "Authorization: users API-Key $KEY" -H 'content-type: application/json' \
-  -d "{\"channel\":\"webhook\",\"title\":\"UK-$STAMP 归属链样例\",\"bodyMarkdown\":\"# 标题\n\n正文。\",\"suggestedSiteId\":$SITE}" \
+  -d "{\"channel\":\"webhook\",\"title\":\"UK-$STAMP 归属链样例\",\"bodyMarkdown\":\"# 标题\n\n正文。\"}" \
   "$BASE/api/intake-operations")
-check 201 "$CODE" "editor 密钥 webhook 直投"
+check 201 "$CODE" "editor 密钥 webhook 直投（无 siteId）"
 IID=$(jqget 'd["intakeItem"]["id"]' </tmp/gf-uk-post.json)
 CREATEDBY=$(jqget 'd["intakeItem"]["createdBy"]' </tmp/gf-uk-post.json)
 check "$EID" "$CREATEDBY" "投稿归属记为 editor"
+SUGG=$(jqget 'd["intakeItem"]["suggestedSite"]' </tmp/gf-uk-post.json)
+check "$SITE" "$SUGG" "无显式站点回落密钥默认站点"
+
+# 4c. 显式 siteId 优先于密钥默认站点
+CODE=$(curl -s -o /tmp/gf-uk-post2.json -w '%{http_code}' \
+  -H "Authorization: users API-Key $KEY" -H 'content-type: application/json' \
+  -d "{\"channel\":\"webhook\",\"title\":\"UK-$STAMP 显式站点优先\",\"bodyMarkdown\":\"# 标题\n\n正文。\",\"suggestedSiteId\":$SITE2}" \
+  "$BASE/api/intake-operations")
+check 201 "$CODE" "显式站点投稿"
+IID2=$(jqget 'd["intakeItem"]["id"]' </tmp/gf-uk-post2.json)
+SUGG2=$(jqget 'd["intakeItem"]["suggestedSite"]' </tmp/gf-uk-post2.json)
+check "$SITE2" "$SUGG2" "显式站点优先于密钥默认"
 
 # 4b. 站点校验前移：入口即拒，不再等人工采纳兜底
 XSITE=$(PSQL "SELECT id FROM geo_foundry.sites WHERE tenant_id<>$TENANT AND status='active' ORDER BY id LIMIT 1")
@@ -114,7 +130,7 @@ ED=$(PSQL "SELECT adopted_edition_id FROM geo_foundry.intake_items WHERE id=$IID
 PSQL "DELETE FROM geo_foundry.article_sources WHERE edition_id=$ED" >/dev/null
 PSQL "DELETE FROM geo_foundry.edition_revisions WHERE parent_id=$ED" >/dev/null
 PSQL "DELETE FROM geo_foundry.content_editions WHERE id=$ED" >/dev/null
-PSQL "DELETE FROM geo_foundry.intake_items WHERE id=$IID" >/dev/null
+PSQL "DELETE FROM geo_foundry.intake_items WHERE id IN ($IID,$IID2)" >/dev/null
 PSQL "DELETE FROM geo_foundry.api_credentials WHERE user_id=$EID" >/dev/null
 PSQL "DELETE FROM geo_foundry.users WHERE id=$EID" >/dev/null
 LEFT=$(PSQL "SELECT count(*) FROM geo_foundry.intake_items WHERE title LIKE 'UK-$STAMP%'")
