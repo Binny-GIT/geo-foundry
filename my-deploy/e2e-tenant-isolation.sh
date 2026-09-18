@@ -58,8 +58,8 @@ login() { # email password jar outfile
     -H 'content-type: application/json' -d "{\"email\":\"$1\",\"password\":\"$2\"}" -c "$3"
 }
 
-expect_denied() { # name url jar expected [method body]
-  local name=$1 url=$2 jar=$3 want=$4 method=${5:-GET} body=${6:-}
+expect_denied() { # name url jar expected [method body expectedCode]
+  local name=$1 url=$2 jar=$3 want=$4 method=${5:-GET} body=${6:-} expected_code=${7:-}
   local outfile="$TMP/denied-${#PASS[@]}-${#FAIL[@]}.json"
   local args=(-sS -o "$outfile" -w '%{http_code}' -X "$method")
   [ -n "$jar" ] && args+=(-b "$jar")
@@ -72,6 +72,12 @@ expect_denied() { # name url jar expected [method body]
     ok "$name -> $code"
   else
     bad "$name -> $code (want $want; $(cut -c1-160 "$outfile"))"
+    return
+  fi
+  if [ -n "$expected_code" ]; then
+    local actual_code
+    actual_code=$(jget "$outfile" error.code 2>/dev/null || true)
+    check "$expected_code" "$actual_code" "$name stable code"
   fi
 }
 
@@ -158,8 +164,8 @@ check API_ROUTE_NOT_FOUND "$(jget "$TMP/intake-get.json" error.code)" "absent in
 
 # ---------- 3. 既有详情/写路径全拒 ----------
 expect_denied "editor foreign draft read" "$BASE/api/content-editions/$FE?draft=true&depth=0" "$ECOOKIE" 404
-expect_denied "editor foreign patch" "$BASE/api/content-editions/$FE?draft=true&depth=0" "$ECOOKIE" 404 PATCH '{"title":"leak"}'
-expect_denied "editor foreign transition" "$BASE/api/editions/$FE/workflow-transitions" "$ECOOKIE" 404 POST '{"target":"review"}'
+expect_denied "editor foreign patch" "$BASE/api/content-editions/$FE?draft=true&depth=0" "$ECOOKIE" 403 PATCH '{"title":"leak"}' TENANT_SCOPE_DENIED
+expect_denied "editor foreign transition" "$BASE/api/editions/$FE/workflow-transitions" "$ECOOKIE" 403 POST '{"target":"review"}' EDITION_WORKFLOW_TENANT_MISMATCH
 
 CODE=$(curl -sS -o "$TMP/evaluation.json" -w '%{http_code}' -X POST \
   "$BASE/api/workspaces/editor/editions/$FE/evaluation-operations" -b "$ECOOKIE" \
@@ -172,7 +178,7 @@ CODE=$(curl -sS -o "$TMP/restore.json" -w '%{http_code}' -X POST \
   -d '{"expectedRevision":0,"expectedUpdatedAt":"2026-09-09T00:00:00.000Z","reason":"probe","versionId":1}')
 case "$CODE" in 403|404) ok "editor foreign restore -> $CODE";; *) bad "editor foreign restore -> $CODE";; esac
 
-expect_denied "admin foreign reviewer approve" "$BASE/api/workspaces/reviewer/editions/$FE/approve" "$ACOOKIE" 404 POST '{"expectedRevision":0}'
+expect_denied "admin foreign reviewer approve" "$BASE/api/workspaces/reviewer/editions/$FE/approve" "$ACOOKIE" 403 POST '{"expectedRevision":0}' REVIEWER_EDITION_REVIEWER_REQUIRED
 expect_denied "admin foreign review comment" "$BASE/api/editions/$FE/review-comments" "$ACOOKIE" 40x POST '{"body":"cross-tenant probe"}'
 expect_denied "admin foreign publication plan" "$BASE/api/publication-plan-operations" "$ACOOKIE" 40x POST "{\"editionId\":$FE,\"scheduledFor\":\"2026-09-09T00:00:00.000Z\",\"timezone\":\"UTC\"}"
 expect_denied "admin foreign rollback intent" "$BASE/api/rollback-operations/intents" "$ECOOKIE" 40x POST "{\"siteId\":$FS,\"expectedCurrentReleaseId\":\"rel-x-$TS\",\"expectedCurrentManifestSha256\":\"$(python3 -c 'print("0"*64)')\",\"targetReleaseId\":\"rel-y-$TS\",\"expectedManifestSha256\":\"$(python3 -c 'print("0"*64)')\"}"
