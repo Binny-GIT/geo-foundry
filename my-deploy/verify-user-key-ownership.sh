@@ -67,10 +67,10 @@ check "$EID" "$CREATEDBY" "投稿归属记为 editor"
 SUGG=$(jqget 'd["intakeItem"]["suggestedSite"]' </tmp/gf-uk-post.json)
 check "$SITE" "$SUGG" "无显式站点回落密钥默认站点"
 
-# 4c. 显式 siteId 优先于密钥默认站点
+# 4c. 显式 siteId 优先于密钥默认站点（正文与 4 不同，避免内容哈希幂等合并）
 CODE=$(curl -s -o /tmp/gf-uk-post2.json -w '%{http_code}' \
   -H "Authorization: users API-Key $KEY" -H 'content-type: application/json' \
-  -d "{\"channel\":\"webhook\",\"title\":\"UK-$STAMP 显式站点优先\",\"bodyMarkdown\":\"# 标题\n\n正文。\",\"suggestedSiteId\":$SITE2}" \
+  -d "{\"channel\":\"webhook\",\"title\":\"UK-$STAMP 显式站点优先\",\"bodyMarkdown\":\"# 标题\n\n正文 B。\",\"suggestedSiteId\":$SITE2}" \
   "$BASE/api/intake-operations")
 check 201 "$CODE" "显式站点投稿"
 IID2=$(jqget 'd["intakeItem"]["id"]' </tmp/gf-uk-post2.json)
