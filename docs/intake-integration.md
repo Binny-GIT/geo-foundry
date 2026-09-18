@@ -230,7 +230,7 @@ stateDiagram-v2
 | `rss` | 平台按采集源定时轮询，通常无需外部工具触发 | `connectorId`（配采集源时用） | 同 url，父稿批量管理 |
 | `manual` | Console 人工登记线索 | — | `new` |
 
-webhook 直投的正文按文章正文的同一套块规则校验（坏内容入口即 400，错误码 `INTAKE_BODY_BLOCKS_INVALID`），并转 `contentBlocks` 存储。`suggestedSiteId` 缺省时回落密钥默认站点，两者都没有才报 `INTAKE_SUGGESTED_SITE_REQUIRED`——投前用 `GET /api/sites` 取本租户可选值。入口即校验站点：不存在报 `INTAKE_SITE_NOT_FOUND`（400），跨租户报 `INTAKE_SITE_TENANT_MISMATCH`（403）。
+webhook 直投的正文按文章正文的同一套块规则校验（坏内容入口即 400，错误码 `INTAKE_BODY_BLOCKS_INVALID`），并转 `contentBlocks` 存储。`suggestedSiteId` 缺省时回落密钥默认站点，两者都没有才报 `INTAKE_SUGGESTED_SITE_REQUIRED`——投前用 `GET /api/sites` 取本租户可选值。入口即校验站点：不存在报 `INTAKE_SITE_NOT_FOUND`（400），跨租户报 `INTAKE_SITE_TENANT_MISMATCH`（403）。RSS 的 `connectorId` 同样在入口校验：只有 rss 通道允许携带，connector 必须存在、属于本租户、类型为 rss 且处于 active；不存在/无效返回 400，跨租户返回 `INTAKE_CONNECTOR_TENANT_MISMATCH`（403），不会先落稿源再等 Worker 拒绝。
 
 ## 6. API 参考
 
@@ -245,7 +245,7 @@ webhook 直投的正文按文章正文的同一套块规则校验（坏内容入
 | `bodyMarkdown` | string ≤200000 | webhook 推荐 | Markdown 正文，仅 webhook 允许 |
 | `suggestedSiteId` | integer | 可选 | 建议采纳站点 id；缺省回落密钥默认站点，显式值优先 |
 | `sourceUrl` | string ≤4000 | url 必填 | 来源链接；utm/fbclid 等追踪参数自动去除后判重 |
-| `connectorId` | integer | rss 必填 | 关联采集源 |
+| `connectorId` | integer | rss 必填 | 仅 rss 允许；必须是本租户 active 的 rss 采集源 |
 | `contentHash` | string ≤512 | 可选 | 内容寻址哈希，同哈希重投直接命中幂等 |
 | `summary` | string ≤20000 | 可选 | 摘要 |
 
@@ -269,7 +269,7 @@ webhook 直投的正文按文章正文的同一套块规则校验（坏内容入
 
 - **幂等**（重试安全）：优先 `contentHash`，其次 webhook 正文哈希，再次 `Idempotency-Key`（`[A-Za-z0-9._-]{8,128}`）。重试返回首次结果（`idempotentReplay=true` 或 duplicateIds），不会塞满收件箱。网络超时直接重试是安全的。
 - **守卫**（仅 API-Key 请求，Console 会话不受影响）：每身份 120 次/分钟（429 `INTEGRATION_RATE_LIMITED`）、请求体上限 1MiB（413 `INTEGRATION_BODY_TOO_LARGE`）。
-- **常见错误码**：`INTAKE_SUGGESTED_SITE_REQUIRED`（webhook 既无显式站点也无密钥默认站点）、`INTAKE_SITE_NOT_FOUND`（站点不存在，400）、`INTAKE_SITE_TENANT_MISMATCH`（站点属其他租户，403）、`INTAKE_BODY_BLOCKS_INVALID`（正文块结构不合法）、`INTAKE_BODY_MARKDOWN_EMPTY`（正文空白）、`INTAKE_BODY_MARKDOWN_CHANNEL_INVALID`（非 webhook 带正文）、`INTAKE_URL_INVALID`（链接非 http/https）、`INTAKE_EDITOR_REQUIRED`（越权操作，如用密钥 adopt）。
+- **常见错误码**：`INTAKE_SUGGESTED_SITE_REQUIRED`（webhook 既无显式站点也无密钥默认站点）、`INTAKE_SITE_NOT_FOUND`（站点不存在，400）、`INTAKE_SITE_TENANT_MISMATCH`（站点属其他租户，403）、`INTAKE_CONNECTOR_REQUIRED`（rss 缺 connectorId）、`INTAKE_CONNECTOR_CHANNEL_INVALID`（非 rss 通道携带 connectorId）、`INTAKE_CONNECTOR_NOT_FOUND` / `INTAKE_CONNECTOR_INVALID`（采集源不存在、类型错误或已停用，400）、`INTAKE_CONNECTOR_TENANT_MISMATCH`（采集源属于其他租户，403）、`INTAKE_BODY_BLOCKS_INVALID`（正文块结构不合法）、`INTAKE_BODY_MARKDOWN_EMPTY`（正文空白）、`INTAKE_BODY_MARKDOWN_CHANNEL_INVALID`（非 webhook 带正文）、`INTAKE_URL_INVALID`（链接非 http/https）、`INTAKE_EDITOR_REQUIRED`（越权操作，如用密钥 adopt）。
 - 自带 `X-Request-Id` 会原样回显在响应头，便于对账。
 
 ## 8. 归属与来源标注
