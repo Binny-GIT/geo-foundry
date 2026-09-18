@@ -61,6 +61,21 @@ IID=$(jqget 'd["intakeItem"]["id"]' </tmp/gf-uk-post.json)
 CREATEDBY=$(jqget 'd["intakeItem"]["createdBy"]' </tmp/gf-uk-post.json)
 check "$EID" "$CREATEDBY" "投稿归属记为 editor"
 
+# 4b. 站点校验前移：入口即拒，不再等人工采纳兜底
+XSITE=$(PSQL "SELECT id FROM geo_foundry.sites WHERE tenant_id<>$TENANT AND status='active' ORDER BY id LIMIT 1")
+CODE=$(curl -s -o /tmp/gf-uk-xsite.json -w '%{http_code}' \
+  -H "Authorization: users API-Key $KEY" -H 'content-type: application/json' \
+  -d "{\"channel\":\"webhook\",\"title\":\"UK-$STAMP 跨租户站点\",\"bodyMarkdown\":\"# 标题\n\n正文。\",\"suggestedSiteId\":$XSITE}" \
+  "$BASE/api/intake-operations")
+check 403 "$CODE" "跨租户站点投稿被拒"
+check INTAKE_SITE_TENANT_MISMATCH "$(jqget 'd["error"]["code"]' </tmp/gf-uk-xsite.json)" "错误码=SITE_TENANT_MISMATCH"
+CODE=$(curl -s -o /tmp/gf-uk-nsite.json -w '%{http_code}' \
+  -H "Authorization: users API-Key $KEY" -H 'content-type: application/json' \
+  -d "{\"channel\":\"webhook\",\"title\":\"UK-$STAMP 不存在站点\",\"bodyMarkdown\":\"# 标题\n\n正文。\",\"suggestedSiteId\":999999}" \
+  "$BASE/api/intake-operations")
+check 400 "$CODE" "不存在站点投稿被拒"
+check INTAKE_SITE_NOT_FOUND "$(jqget 'd["error"]["code"]' </tmp/gf-uk-nsite.json)" "错误码=SITE_NOT_FOUND"
+
 # 5. 安全负例：密钥权限面与 editor 角色无关（editor 本有 editions 写权限）
 CODE=$(curl -s -o /dev/null -w '%{http_code}' \
   -H "Authorization: users API-Key $KEY" -H 'content-type: application/json' \
