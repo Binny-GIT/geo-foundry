@@ -44,7 +44,8 @@ const statusOf = (code: string): number =>
     ? 404
     : code === "INTAKE_TENANT_MISMATCH" ||
         code === "INTAKE_EDITOR_REQUIRED" ||
-        code === "INTAKE_ACTOR_INVALID"
+        code === "INTAKE_ACTOR_INVALID" ||
+        code === "INTAKE_SITE_TENANT_MISMATCH"
       ? 403
       : code === "INTAKE_MERGE_SELF_REFERENCE" || code === "INTAKE_FETCH_STATE_INVALID"
         ? 409
@@ -105,6 +106,21 @@ const rowOf = (item: typeof intakeItems.$inferSelect): Record<string, unknown> =
 
 const mergeSchema = z.object({ targetIntakeItemId: z.coerce.number().int().positive() }).strict()
 const adoptSchema = z.object({ siteId: z.coerce.number().int().positive().optional() }).strict()
+
+/*
+ * 纯决策：投稿携带的 suggestedSiteId 是否可用。站点行缺失（undefined）
+ * 与租户不符是两种错误：前者是站点不存在，后者是站点存在但不属于
+ * 投稿租户——后者按越权处理给 403。
+ */
+export const intakeSiteScopeErrorOf = (
+  siteTenantId: number | undefined,
+  tenantId: number,
+): "INTAKE_SITE_NOT_FOUND" | "INTAKE_SITE_TENANT_MISMATCH" | null =>
+  siteTenantId === undefined
+    ? "INTAKE_SITE_NOT_FOUND"
+    : siteTenantId !== tenantId
+      ? "INTAKE_SITE_TENANT_MISMATCH"
+      : null
 
 export const intakeOpsActionOf = (
   slug: readonly string[] | undefined,
@@ -229,6 +245,23 @@ const handleIntakeOpsAction = async (
           const validation = validateEditionBody(markdownToBlocks(bodyMarkdown))
           if (validation !== true) {
             return json(400, { errors: [{ message: validation }], error: { code: validation } })
+          }
+        }
+        /*
+         * 站点校验前移：显式带 suggestedSiteId 的投稿（任意通道）在入口
+         * 就校验站点存在性与租户归属。此前这道校验只在人工采纳时兜底，
+         * 条目能带着跨租户的站点 id 躺进稿源箱；后续的自动成稿会跳过
+         * 人工采纳，防线必须建在这里。采纳分支的原校验保留（纵深防御）。
+         */
+        if (normalized.suggestedSiteId !== undefined) {
+          const siteRows = await db
+            .select({ tenantId: sites.tenantId })
+            .from(sites)
+            .where(eq(sites.id, normalized.suggestedSiteId))
+            .limit(1)
+          const siteError = intakeSiteScopeErrorOf(siteRows[0]?.tenantId, tenantId)
+          if (siteError !== null) {
+            return json(statusOf(siteError), { error: { code: siteError } })
           }
         }
         /*

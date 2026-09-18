@@ -67,7 +67,8 @@ const INTAKE_REQUEST_SCHEMA = {
       type: "string",
     },
     suggestedSiteId: {
-      description: "建议采纳站点 id（webhook 通道必填；GET /sites 可查本租户可选值）。",
+      description:
+        "建议采纳站点 id（webhook 通道必填；GET /sites 可查本租户可选值）。入口即校验：站点不存在返回 400 INTAKE_SITE_NOT_FOUND，站点不属于本租户返回 403 INTAKE_SITE_TENANT_MISMATCH。",
       type: "integer",
     },
     summary: { description: "摘要（可选）。", maxLength: 20_000, type: "string" },
@@ -264,7 +265,7 @@ const documentPaths = (): Record<string, Record<string, Record<string, unknown>>
           },
           "400": {
             description:
-              "结构校验失败：INTAKE_CREATE_BODY_INVALID / INTAKE_SUGGESTED_SITE_REQUIRED / INTAKE_BODY_MARKDOWN_EMPTY / INTAKE_BODY_MARKDOWN_CHANNEL_INVALID / INTEGRATION_IDEMPOTENCY_KEY_INVALID，或正文块校验错误码。",
+              "结构校验失败：INTAKE_CREATE_BODY_INVALID / INTAKE_SUGGESTED_SITE_REQUIRED / INTAKE_BODY_MARKDOWN_EMPTY / INTAKE_BODY_MARKDOWN_CHANNEL_INVALID / INTEGRATION_IDEMPOTENCY_KEY_INVALID / INTAKE_SITE_NOT_FOUND（站点不存在），或正文块校验错误码。",
             ...ERROR_SCHEMA_REF,
           },
           "401": {
@@ -272,7 +273,8 @@ const documentPaths = (): Record<string, Record<string, Record<string, unknown>>
             ...ERROR_SCHEMA_REF,
           },
           "403": {
-            description: "身份不是编辑/automation 投稿身份（INTAKE_EDITOR_REQUIRED）。",
+            description:
+              "身份不是编辑/automation 投稿身份（INTAKE_EDITOR_REQUIRED），或 suggestedSiteId 指向其他租户的站点（INTAKE_SITE_TENANT_MISMATCH）。",
             ...ERROR_SCHEMA_REF,
           },
           "413": {
