@@ -15,7 +15,7 @@ import { IntakeError, normalizeIntakeInput } from "../../services/intake"
 import { enqueueIntakeFetchFromEnvironment } from "../../services/intake-queue"
 import { authenticateRequest } from "../auth/session"
 import { contentEditions, editionVersions } from "../db/edition-schema"
-import { sites } from "../db/entity-schema"
+import { connectors, sites } from "../db/entity-schema"
 import { articleSources, intakeItems } from "../db/session-schema"
 import {
   derivedIdempotencyHashOf,
@@ -45,7 +45,8 @@ const statusOf = (code: string): number =>
     : code === "INTAKE_TENANT_MISMATCH" ||
         code === "INTAKE_EDITOR_REQUIRED" ||
         code === "INTAKE_ACTOR_INVALID" ||
-        code === "INTAKE_SITE_TENANT_MISMATCH"
+        code === "INTAKE_SITE_TENANT_MISMATCH" ||
+        code === "INTAKE_CONNECTOR_TENANT_MISMATCH"
       ? 403
       : code === "INTAKE_MERGE_SELF_REFERENCE" || code === "INTAKE_FETCH_STATE_INVALID"
         ? 409
@@ -270,6 +271,28 @@ export const resolveSuggestedSiteId = (
   credentialDefaultSiteId: number | null,
 ): number | undefined => payloadSiteId ?? credentialDefaultSiteId ?? undefined
 
+/*
+ * RSS connector 在投稿入口完成存在性、租户、类型与启用状态校验；Worker
+ * 的同款校验继续保留为纵深防御。跨租户单独返回 403，其余坏配置是 400。
+ */
+export const intakeConnectorErrorOf = (
+  connector:
+    | Readonly<{ status: "active" | "disabled"; tenantId: number; type: string }>
+    | undefined,
+  tenantId: number,
+):
+  | "INTAKE_CONNECTOR_NOT_FOUND"
+  | "INTAKE_CONNECTOR_TENANT_MISMATCH"
+  | "INTAKE_CONNECTOR_INVALID"
+  | null =>
+  connector === undefined
+    ? "INTAKE_CONNECTOR_NOT_FOUND"
+    : connector.tenantId !== tenantId
+      ? "INTAKE_CONNECTOR_TENANT_MISMATCH"
+      : connector.type !== "rss" || connector.status !== "active"
+        ? "INTAKE_CONNECTOR_INVALID"
+        : null
+
 export const intakeOpsActionOf = (
   slug: readonly string[] | undefined,
 ): "create" | "ignore" | "merge" | "retry" | "adopt" | null => {
@@ -397,6 +420,30 @@ const handleIntakeOpsAction = async (
           title: parsed.data.title,
         })
         const bodyMarkdown = normalized.bodyMarkdown
+        /*
+         * Public 投稿只有 RSS 通道允许 connectorId。RSS 在入口完成完整
+         * 校验，不再把跨租户/错误类型/停用 connector 的拒绝推迟给 Worker。
+         * 内部 RSS 子稿（channel=url + connectorId）不走本 public 路由，
+         * 所以不会被这条外部契约误伤。
+         */
+        if (normalized.connectorId !== undefined && normalized.channel !== "rss") {
+          return json(400, { error: { code: "INTAKE_CONNECTOR_CHANNEL_INVALID" } })
+        }
+        if (normalized.channel === "rss" && normalized.connectorId !== undefined) {
+          const connectorRows = await db
+            .select({
+              status: connectors.status,
+              tenantId: connectors.tenantId,
+              type: connectors.type,
+            })
+            .from(connectors)
+            .where(eq(connectors.id, normalized.connectorId))
+            .limit(1)
+          const connectorError = intakeConnectorErrorOf(connectorRows[0], tenantId)
+          if (connectorError !== null) {
+            return json(statusOf(connectorError), { error: { code: connectorError } })
+          }
+        }
         /* 直投正文按文章正文的同一套规则校验，坏内容在入口就拒掉。 */
         if (bodyMarkdown !== undefined && bodyMarkdown.length > 0) {
           const validation = validateEditionBody(markdownToBlocks(bodyMarkdown))

@@ -52,7 +52,8 @@ const INTAKE_REQUEST_SCHEMA = {
       type: "string",
     },
     connectorId: {
-      description: "关联采集源 id（可选，一般由平台轮询使用，外部工具通常不填）。",
+      description:
+        "RSS 通道必填，其他通道禁止携带。入口即校验 connector 存在、属于本租户、type=rss 且 status=active；不存在/无效返回 400，跨租户返回 403。",
       type: "integer",
     },
     contentHash: {
@@ -265,7 +266,7 @@ const documentPaths = (): Record<string, Record<string, Record<string, unknown>>
           },
           "400": {
             description:
-              "结构校验失败：INTAKE_CREATE_BODY_INVALID / INTAKE_SUGGESTED_SITE_REQUIRED / INTAKE_BODY_MARKDOWN_EMPTY / INTAKE_BODY_MARKDOWN_CHANNEL_INVALID / INTEGRATION_IDEMPOTENCY_KEY_INVALID / INTAKE_SITE_NOT_FOUND（站点不存在），或正文块校验错误码。",
+              "结构校验失败：INTAKE_CREATE_BODY_INVALID / INTAKE_SUGGESTED_SITE_REQUIRED / INTAKE_BODY_MARKDOWN_EMPTY / INTAKE_BODY_MARKDOWN_CHANNEL_INVALID / INTEGRATION_IDEMPOTENCY_KEY_INVALID / INTAKE_SITE_NOT_FOUND / INTAKE_CONNECTOR_REQUIRED / INTAKE_CONNECTOR_CHANNEL_INVALID / INTAKE_CONNECTOR_NOT_FOUND / INTAKE_CONNECTOR_INVALID，或正文块校验错误码。",
             ...ERROR_SCHEMA_REF,
           },
           "401": {
@@ -274,7 +275,7 @@ const documentPaths = (): Record<string, Record<string, Record<string, unknown>>
           },
           "403": {
             description:
-              "身份不是编辑/automation 投稿身份（INTAKE_EDITOR_REQUIRED），或 suggestedSiteId 指向其他租户的站点（INTAKE_SITE_TENANT_MISMATCH）。",
+              "身份不是编辑/automation 投稿身份（INTAKE_EDITOR_REQUIRED），或 suggestedSiteId / connectorId 指向其他租户（INTAKE_SITE_TENANT_MISMATCH / INTAKE_CONNECTOR_TENANT_MISMATCH）。",
             ...ERROR_SCHEMA_REF,
           },
           "413": {
