@@ -6,6 +6,7 @@ import { useState, useTransition } from "react"
 
 import {
   AlertTriangleIcon,
+  ChevronDownIcon,
   CopyIcon,
   HelpCircleIcon,
   KeyRoundIcon,
@@ -304,8 +305,9 @@ export const IntegrationKeys = ({
         ) : null}
 
         {canDelegate ? (
-          <details className="border-b border-[var(--console-border)]">
-            <summary className="cursor-pointer select-none list-none px-5 py-3 text-sm text-[var(--console-ink-muted)] hover:text-[var(--console-ink)]">
+          <details className="group border-b border-[var(--console-border)]">
+            <summary className="flex cursor-pointer select-none list-none items-center gap-1.5 px-5 py-3 text-sm text-[var(--console-ink-muted)] hover:text-[var(--console-ink)] [&>svg]:transition-transform group-open:[&>svg]:rotate-180">
+              <ChevronDownIcon size={14} />
               管理员代签 · 为共享「自动化投稿」身份签发密钥
             </summary>
             {adminIdentities.length === 0 ? (
