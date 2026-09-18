@@ -6,7 +6,7 @@
 
 - **密钥跟用户走**：任何真人在 Console「集成密钥」页（`/admin/integrations`）即可为自己创建密钥，无需管理员。用这把密钥采集的投稿记在你名下，采纳成文章后**作者归属是你**，并标注「AI 生成」来源。
 - **权限面与角色无关**：不管绑定用户是 editor 还是 admin，`gfa_` 密钥的权限一律只有投稿（稿源箱 create/read、sites/connectors 只读）。密钥泄露的最坏影响是「向收件箱塞稿」。
-- **外部工具明确没有权限**：采纳成草稿、创建/编辑文章、工作流流转、发布、传媒体、访问任何 `/api/internal/*` 端点——全部 403。发布链路（review → publish → delivery）只由人在 Console 驱动。
+- **外部工具明确没有权限**：创建/编辑文章、工作流流转、发布、传媒体、访问任何 `/api/internal/*` 端点——全部 403。密钥默认只投稿进稿源箱；在 Console 给密钥开启「**自动成稿**」后，webhook 直投校验通过会直接生成工作台草稿（发布链路 review → publish → delivery 仍只由人在 Console 驱动）。
 
 ## 2. 快速开始
 
@@ -29,10 +29,10 @@ curl -X POST "https://<本站域名>/api/intake-operations" \
     "bodyMarkdown": "# 标题\n\n正文 markdown…",
     "suggestedSiteId": 374
   }'
-# → 201 { intakeItem: { status: "ready", createdBy: <你的用户id>, … } }
+# → 201 { autoAdopted: false, intakeItem: { status: "ready", createdBy: <你的用户id>, … } }
 ```
 
-之后在 Console「收件箱」（`/admin/inbox`）里看到这条稿源，人工点采纳即成文章草稿。
+之后在 Console「收件箱」（`/admin/inbox`）里看到这条稿源，人工点采纳即成文章草稿。若这把密钥配置了默认站点，投稿可不带 `suggestedSiteId`（显式值优先）；开启「自动成稿」后，webhook 直投直接返回 `autoAdopted: true` + `editionId`，草稿已在工作台，无需人工采纳。
 
 ## 3. 流程图
 
@@ -184,7 +184,8 @@ sequenceDiagram
 stateDiagram-v2
     [*] --> new: 创建（无重复）
     [*] --> duplicate: 创建（命中判重）
-    [*] --> ready: webhook 直投正文
+    [*] --> ready: webhook 直投正文（未开自动成稿）
+    [*] --> adopted: 自动成稿密钥 webhook 直投（校验通过直接建稿）
 
     new --> fetching: 入队成功 / retry
     fetching --> ready: fetch-complete
@@ -217,17 +218,19 @@ stateDiagram-v2
 - 明文以 `gfa_` 开头，只在创建时展示一次，服务端只存 HMAC 索引；遗失只能吊销重建。
 - 可设有效期，到期自动失效；吊销/过期在下一次请求即 401。
 - 每次成功认证异步记 `last_used_at`，页面上可见密钥是否在被使用。
+- **默认站点**（可选）：投稿不带 `suggestedSiteId` 时回落到这里（payload 显式值始终优先）。签发时校验站点必须属于本租户；要改默认站点只能吊销重建。
+- **自动成稿**（默认关，需配默认站点）：开启后该密钥的 webhook 直投在校验全部通过时直接生成工作台草稿（`workflow_status=draft`，归属与「AI 生成」标注不变），跳过收件箱；审核、流转、发布仍是人工。幂等重放/重复投稿不产生第二篇文章；url/rss 抓取通道不受此开关影响，始终走收件箱。
 
 ## 5. 三条投稿通道
 
 | 通道 | 语义 | 必填 | 入箱状态 |
 |---|---|---|---|
-| `webhook` | **直投正文**（推荐自动化工具）：内容已在手，平台不抓取 | `bodyMarkdown`、`suggestedSiteId` | `ready`（内容就绪等人工采纳） |
+| `webhook` | **直投正文**（推荐自动化工具）：内容已在手，平台不抓取 | `bodyMarkdown`（`suggestedSiteId` 可选，缺省用密钥默认站点） | 未开自动成稿 → `ready`；已开且校验通过 → 直接 `adopted` |
 | `url` | 投链接，平台排队抓取全文 | `sourceUrl` | `new` → `fetching` → `ready/failed` |
 | `rss` | 平台按采集源定时轮询，通常无需外部工具触发 | `connectorId`（配采集源时用） | 同 url，父稿批量管理 |
 | `manual` | Console 人工登记线索 | — | `new` |
 
-webhook 直投的正文按文章正文的同一套块规则校验（坏内容入口即 400），并转 `contentBlocks` 存储；`suggestedSiteId` 必填是因为 Console 的采纳操作靠它解析目标站点——投前用 `GET /api/sites` 取本租户可选值。
+webhook 直投的正文按文章正文的同一套块规则校验（坏内容入口即 400，错误码 `INTAKE_BODY_BLOCKS_INVALID`），并转 `contentBlocks` 存储。`suggestedSiteId` 缺省时回落密钥默认站点，两者都没有才报 `INTAKE_SUGGESTED_SITE_REQUIRED`——投前用 `GET /api/sites` 取本租户可选值。入口即校验站点：不存在报 `INTAKE_SITE_NOT_FOUND`（400），跨租户报 `INTAKE_SITE_TENANT_MISMATCH`（403）。
 
 ## 6. API 参考
 
@@ -240,7 +243,7 @@ webhook 直投的正文按文章正文的同一套块规则校验（坏内容入
 | `title` | string ≤1000 | 全部通道 | 标题，去重判定键之一 |
 | `channel` | enum | 必填 | `webhook` / `url` / `rss` / `manual` |
 | `bodyMarkdown` | string ≤200000 | webhook 推荐 | Markdown 正文，仅 webhook 允许 |
-| `suggestedSiteId` | integer | webhook 必填 | 建议采纳站点 id |
+| `suggestedSiteId` | integer | 可选 | 建议采纳站点 id；缺省回落密钥默认站点，显式值优先 |
 | `sourceUrl` | string ≤4000 | url 必填 | 来源链接；utm/fbclid 等追踪参数自动去除后判重 |
 | `connectorId` | integer | rss 必填 | 关联采集源 |
 | `contentHash` | string ≤512 | 可选 | 内容寻址哈希，同哈希重投直接命中幂等 |
@@ -266,7 +269,7 @@ webhook 直投的正文按文章正文的同一套块规则校验（坏内容入
 
 - **幂等**（重试安全）：优先 `contentHash`，其次 webhook 正文哈希，再次 `Idempotency-Key`（`[A-Za-z0-9._-]{8,128}`）。重试返回首次结果（`idempotentReplay=true` 或 duplicateIds），不会塞满收件箱。网络超时直接重试是安全的。
 - **守卫**（仅 API-Key 请求，Console 会话不受影响）：每身份 120 次/分钟（429 `INTEGRATION_RATE_LIMITED`）、请求体上限 1MiB（413 `INTEGRATION_BODY_TOO_LARGE`）。
-- **常见错误码**：`INTAKE_SUGGESTED_SITE_REQUIRED`（webhook 缺站点）、`INTAKE_BODY_MARKDOWN_EMPTY`（正文空白）、`INTAKE_BODY_MARKDOWN_CHANNEL_INVALID`（非 webhook 带正文）、`INTAKE_URL_INVALID`（链接非 http/https）、`INTAKE_EDITOR_REQUIRED`（越权操作，如用密钥 adopt）。
+- **常见错误码**：`INTAKE_SUGGESTED_SITE_REQUIRED`（webhook 既无显式站点也无密钥默认站点）、`INTAKE_SITE_NOT_FOUND`（站点不存在，400）、`INTAKE_SITE_TENANT_MISMATCH`（站点属其他租户，403）、`INTAKE_BODY_BLOCKS_INVALID`（正文块结构不合法）、`INTAKE_BODY_MARKDOWN_EMPTY`（正文空白）、`INTAKE_BODY_MARKDOWN_CHANNEL_INVALID`（非 webhook 带正文）、`INTAKE_URL_INVALID`（链接非 http/https）、`INTAKE_EDITOR_REQUIRED`（越权操作，如用密钥 adopt）。
 - 自带 `X-Request-Id` 会原样回显在响应头，便于对账。
 
 ## 8. 归属与来源标注

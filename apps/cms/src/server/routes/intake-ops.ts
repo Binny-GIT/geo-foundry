@@ -86,6 +86,144 @@ const loadItem = async (
   return item
 }
 
+/*
+ * 采纳成稿事务：人工采纳（Console 收件箱）与自动成稿（autoAdopt 密钥
+ * 的 webhook 直投）共用同一份建稿规则——owner=投稿归属者、来源标注、
+ * 版本快照、来源关联，两条路径永远一致。
+ * siteIdOverride 是人工采纳对话框的显式站点选择；自动成稿不传，用
+ * 条目自带的建议站点（create 阶段已做过入口校验与密钥默认站点回落）。
+ */
+const adoptIntakeItem = async (
+  tx: Parameters<Parameters<ReturnType<typeof serverRuntime>["db"]["transaction"]>[0]>[0],
+  intakeItemId: number,
+  tenantId: number | null,
+  siteIdOverride?: number,
+): Promise<{ editionId: number; intakeItem: typeof intakeItems.$inferSelect }> => {
+  const item = await loadItem(tx, intakeItemId, tenantId)
+  const siteId = siteIdOverride ?? item.suggestedSiteId ?? null
+  if (siteId === null) throw new IntakeOpsError("INTAKE_ADOPTION_SITE_REQUIRED")
+  const siteRows = await tx
+    .select({ tenantId: sites.tenantId })
+    .from(sites)
+    .where(eq(sites.id, siteId))
+    .limit(1)
+  const siteTenant = siteRows[0]?.tenantId
+  if (siteTenant === undefined || siteTenant !== item.tenantId) {
+    throw new IntakeOpsError("INTAKE_TENANT_MISMATCH")
+  }
+  const title = item.title ?? "Untitled intake"
+  const summary = item.summary ?? title
+  const blocks = Array.isArray(item.contentBlocks)
+    ? (item.contentBlocks as unknown[]).filter(
+        (block): block is Record<string, unknown> =>
+          typeof block === "object" &&
+          block !== null &&
+          typeof (block as Record<string, unknown>)["blockType"] === "string",
+      )
+    : []
+  const markdown = blocks.length > 0 ? blocksToMarkdown(blocks) : summary
+  const citations =
+    item.sourceUrl === null || item.sourceUrl === undefined
+      ? []
+      : [{ id: `intake-${item.id}`, title, url: item.sourceUrl }]
+  const now = new Date()
+  /*
+   * 归属与来源：机器（gfa_ 密钥）采集的条目，文章 owner 落密钥创建者，
+   * creationOrigin 标 'ai'（Console 文章详情显示「AI 生成」）；人工
+   * 登记的线索保持无 owner + 人工创作，与既有行为一致。
+   */
+  const ownerId = item.createdById
+  const creationOrigin = item.createdById === null ? "human" : "ai"
+  const rootRows = await tx
+    .insert(contentEditions)
+    .values({
+      angle: title,
+      auditLog: [],
+      bodyMarkdown: markdown,
+      citations,
+      compiledRelease: null,
+      contentModifiedAt: now,
+      creationOrigin,
+      editorialStatus: "unassigned",
+      entities: [],
+      ownerId,
+      primaryTopic: title,
+      secondaryTopics: [],
+      priority: "normal",
+      siteId,
+      sites: [siteId],
+      summary,
+      tenantId: item.tenantId,
+      title,
+      workflowRevision: 0,
+      workflowStatus: "draft",
+    })
+    .returning({ id: contentEditions.id })
+  const editionId = rootRows[0]?.id
+  if (editionId === undefined) throw new IntakeOpsError("INTAKE_ADOPTION_FAILED")
+  const versionRows = await tx
+    .insert(editionVersions)
+    .values({
+      angle: title,
+      auditLog: [],
+      bodyMarkdown: markdown,
+      citations,
+      compiledRelease: null,
+      contentModifiedAt: now,
+      creationOrigin,
+      editorialStatus: "unassigned",
+      entities: [],
+      latest: true,
+      ownerId,
+      parentId: editionId,
+      primaryTopic: title,
+      secondaryTopics: [],
+      priority: "normal",
+      siteId,
+      sites: [siteId],
+      summary,
+      tenantId: item.tenantId,
+      title,
+      versionCreatedAt: now,
+      versionUpdatedAt: now,
+      workflowRevision: 0,
+      workflowStatus: "draft",
+    })
+    .returning({ id: editionVersions.id })
+  if (versionRows[0]?.id === undefined) throw new IntakeOpsError("INTAKE_ADOPTION_FAILED")
+  await tx.insert(articleSources).values({
+    editionId,
+    intakeItemId: item.id,
+    note: summary,
+    role: "primary",
+    tenantId: item.tenantId,
+  })
+  await tx
+    .update(intakeItems)
+    .set({ adoptedEditionId: editionId, status: "adopted", updatedAt: new Date() })
+    .where(eq(intakeItems.id, item.id))
+  return { editionId, intakeItem: item }
+}
+
+/*
+ * 纯决策：webhook 直投是否触发自动成稿。四个条件缺一不可——密钥
+ * 显式开启、直投正文（url/rss 抓取质量未验不直通）、非幂等重放
+ * （重放不产生第二篇文章）、非重复、且站点已解析（显式值或密钥
+ * 默认站点）。校验失败的请求在此之前已被 400 拒绝，不会走到这里。
+ */
+export const shouldAutoAdopt = (input: {
+  readonly autoAdopt: boolean
+  readonly directDrop: boolean
+  readonly duplicate: boolean
+  readonly replay: boolean
+  readonly resolvedSiteId: number | undefined
+}): boolean =>
+  input.autoAdopt &&
+  input.directDrop &&
+  !input.replay &&
+  !input.duplicate &&
+  input.resolvedSiteId !== undefined
+
 const rowOf = (item: typeof intakeItems.$inferSelect): Record<string, unknown> => ({
   channel: item.channel,
   contentHash: item.contentHash,
@@ -263,7 +401,14 @@ const handleIntakeOpsAction = async (
         if (bodyMarkdown !== undefined && bodyMarkdown.length > 0) {
           const validation = validateEditionBody(markdownToBlocks(bodyMarkdown))
           if (validation !== true) {
-            return json(400, { errors: [{ message: validation }], error: { code: validation } })
+            /*
+             * code 是稳定错误码（外部工具按它分支）；validateEditionBody
+             * 返回的本地化句子降级为 message。
+             */
+            return json(400, {
+              error: { code: "INTAKE_BODY_BLOCKS_INVALID", message: validation },
+              errors: [{ message: validation }],
+            })
           }
         }
         /*
@@ -362,8 +507,54 @@ const handleIntakeOpsAction = async (
           result.duplicates.length === 0 &&
           (parsed.data.channel === "url" || parsed.data.channel === "rss")
         if (!shouldFetch) {
+          /*
+           * 自动成稿：autoAdopt 密钥的 webhook 直投在校验全过后直通
+           * 工作台草稿。这是 intake 管道内部的系统事务（与人工采纳
+           * 共用 adoptIntakeItem），automation 的权限面不因此扩大——
+           * adopt 端点对密钥依然是 403，审核/发布仍是人工。
+           * 成稿失败不吞投稿：条目留在收件箱 ready 等人工采纳。
+           */
+          const triggered = shouldAutoAdopt({
+            autoAdopt: auth.credential?.autoAdopt === true,
+            directDrop,
+            duplicate: result.duplicates.length > 0,
+            replay: result.replay === true,
+            resolvedSiteId: normalized.suggestedSiteId,
+          })
+          if (triggered) {
+            try {
+              const adopted = await db.transaction((tx) =>
+                adoptIntakeItem(tx, result.item.id, result.item.tenantId),
+              )
+              return json(201, {
+                autoAdopted: true,
+                duplicateIds: [],
+                editionId: adopted.editionId,
+                fetchQueued: false,
+                idempotentReplay: false,
+                intakeItem: rowOf({
+                  ...adopted.intakeItem,
+                  adoptedEditionId: adopted.editionId,
+                  status: "adopted",
+                }),
+              })
+            } catch {
+              await db
+                .update(intakeItems)
+                .set({
+                  failureCode: "INTAKE_AUTO_ADOPT_FAILED",
+                  failureReason:
+                    "Auto-adopt failed; the item stays in the intake inbox for manual adoption.",
+                  updatedAt: new Date(),
+                })
+                .where(eq(intakeItems.id, result.item.id))
+            }
+          }
           return json(result.duplicates.length === 0 ? 201 : 200, {
+            autoAdopted: result.item.status === "adopted",
             duplicateIds: result.duplicates.map((item) => item.id),
+            editionId:
+              result.item.adoptedEditionId === null ? undefined : result.item.adoptedEditionId,
             fetchQueued: false,
             idempotentReplay: result.replay === true,
             intakeItem: rowOf(result.item),
@@ -473,117 +664,16 @@ const handleIntakeOpsAction = async (
     /*
      * 采纳成文章是人的决定。所有 service 身份（Worker 的 content-service、
      * 外部工具的 automation）都在这里被拒——automation 还会被矩阵的
-     * update=false 挡在前面，这里是纵深防御的第二层。
+     * update=false 挡在前面，这里是纵深防御的第二层。autoAdopt 密钥的
+     * 自动成稿不走这个端点：它是 create 管道内部的系统事务（见上），
+     * 权限矩阵不变，automation 调这里仍然是 403。
      */
     if (auth.claims.kind === "service") {
       throw new IntakeOpsError("INTAKE_EDITOR_REQUIRED")
     }
-    const result = await db.transaction(async (tx) => {
-      const item = await loadItem(tx, itemId, tenantId)
-      const siteId = parsed.data.siteId ?? item.suggestedSiteId ?? null
-      if (siteId === null) throw new IntakeOpsError("INTAKE_ADOPTION_SITE_REQUIRED")
-      const siteRows = await tx
-        .select({ tenantId: sites.tenantId })
-        .from(sites)
-        .where(eq(sites.id, siteId))
-        .limit(1)
-      const siteTenant = siteRows[0]?.tenantId
-      if (siteTenant === undefined || siteTenant !== item.tenantId) {
-        throw new IntakeOpsError("INTAKE_TENANT_MISMATCH")
-      }
-      const title = item.title ?? "Untitled intake"
-      const summary = item.summary ?? title
-      const blocks = Array.isArray(item.contentBlocks)
-        ? (item.contentBlocks as unknown[]).filter(
-            (block): block is Record<string, unknown> =>
-              typeof block === "object" &&
-              block !== null &&
-              typeof (block as Record<string, unknown>)["blockType"] === "string",
-          )
-        : []
-      const markdown = blocks.length > 0 ? blocksToMarkdown(blocks) : summary
-      const citations =
-        item.sourceUrl === null || item.sourceUrl === undefined
-          ? []
-          : [{ id: `intake-${item.id}`, title, url: item.sourceUrl }]
-      const now = new Date()
-      /*
-       * 归属与来源：机器（gfa_ 密钥）采集的条目，文章 owner 落密钥创建者，
-       * creationOrigin 标 'ai'（Console 文章详情显示「AI 生成」）；人工
-       * 登记的线索保持无 owner + 人工创作，与既有行为一致。
-       */
-      const ownerId = item.createdById
-      const creationOrigin = item.createdById === null ? "human" : "ai"
-      const rootRows = await tx
-        .insert(contentEditions)
-        .values({
-          angle: title,
-          auditLog: [],
-          bodyMarkdown: markdown,
-          citations,
-          compiledRelease: null,
-          contentModifiedAt: now,
-          creationOrigin,
-          editorialStatus: "unassigned",
-          entities: [],
-          ownerId,
-          primaryTopic: title,
-          secondaryTopics: [],
-          priority: "normal",
-          siteId,
-          sites: [siteId],
-          summary,
-          tenantId: item.tenantId,
-          title,
-          workflowRevision: 0,
-          workflowStatus: "draft",
-        })
-        .returning({ id: contentEditions.id })
-      const editionId = rootRows[0]?.id
-      if (editionId === undefined) throw new IntakeOpsError("INTAKE_ADOPTION_FAILED")
-      const versionRows = await tx
-        .insert(editionVersions)
-        .values({
-          angle: title,
-          auditLog: [],
-          bodyMarkdown: markdown,
-          citations,
-          compiledRelease: null,
-          contentModifiedAt: now,
-          creationOrigin,
-          editorialStatus: "unassigned",
-          entities: [],
-          latest: true,
-          ownerId,
-          parentId: editionId,
-          primaryTopic: title,
-          secondaryTopics: [],
-          priority: "normal",
-          siteId,
-          sites: [siteId],
-          summary,
-          tenantId: item.tenantId,
-          title,
-          versionCreatedAt: now,
-          versionUpdatedAt: now,
-          workflowRevision: 0,
-          workflowStatus: "draft",
-        })
-        .returning({ id: editionVersions.id })
-      if (versionRows[0]?.id === undefined) throw new IntakeOpsError("INTAKE_ADOPTION_FAILED")
-      await tx.insert(articleSources).values({
-        editionId,
-        intakeItemId: item.id,
-        note: summary,
-        role: "primary",
-        tenantId: item.tenantId,
-      })
-      await tx
-        .update(intakeItems)
-        .set({ adoptedEditionId: editionId, status: "adopted", updatedAt: new Date() })
-        .where(eq(intakeItems.id, item.id))
-      return { editionId, intakeItem: item }
-    })
+    const result = await db.transaction((tx) =>
+      adoptIntakeItem(tx, itemId, tenantId, parsed.data.siteId),
+    )
     return json(200, {
       editionId: result.editionId,
       intakeItem: rowOf(result.intakeItem),

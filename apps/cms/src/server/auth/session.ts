@@ -14,8 +14,8 @@ import { apiKeyFromAuthorization, verifySessionToken } from "./compat"
 
 export type AuthenticatedRequest = Readonly<{
   claims: SessionClaims
-  /** gfa_ 密钥身份的凭据配置（投稿缺省站点等）；Cookie 会话为 null。 */
-  credential: Readonly<{ defaultSiteId: number | null }> | null
+  /** gfa_ 密钥身份的凭据配置（投稿缺省站点、自动成稿）；Cookie 会话为 null。 */
+  credential: Readonly<{ autoAdopt: boolean; defaultSiteId: number | null }> | null
   /** Cookie JWT 元数据；API-Key 身份不具有浏览器会话。 */
   session: Readonly<{ exp: number; sid: string; token: string }> | null
   siteIds: readonly number[]
@@ -74,9 +74,11 @@ export const authenticateRequest = async (
        * claims —— 投稿面权限 + service kind（adopt/工作流/内部面全部
        * 自动拒绝）。归属由 userId 保留：投稿记 createdById、采纳后文章
        * owner 是密钥创建者。绑定用户转岗/升权不影响既有密钥的权限面。
-       * credential 携带密钥的投稿配置（默认站点），只作为数据不作为权限。
+       * credential 携带密钥的投稿配置（默认站点、自动成稿），只作为
+       * 数据不作为权限。
        */
       return authenticatedOf(repo, { ...user, role: CMS_ROLE.AUTOMATION }, null, {
+        autoAdopt: issued.autoAdopt,
         defaultSiteId: issued.defaultSiteId,
       })
     }

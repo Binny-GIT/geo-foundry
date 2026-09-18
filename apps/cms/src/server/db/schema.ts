@@ -97,6 +97,8 @@ export const apiCredentials = geo.table(
     createdById: integer("created_by_id").notNull(),
     /* 密钥默认站点：投稿不带 suggestedSiteId 时回落（显式值优先）。 */
     defaultSiteId: integer("default_site_id"),
+    /* 自动成稿：webhook 直投校验通过直接建工作台草稿，跳过收件箱采纳。 */
+    autoAdopt: boolean("auto_adopt").notNull().default(false),
     lastUsedAt: timestamp("last_used_at", { withTimezone: true, precision: 3 }),
     revokedAt: timestamp("revoked_at", { withTimezone: true, precision: 3 }),
     expiresAt: timestamp("expires_at", { withTimezone: true, precision: 3 }),

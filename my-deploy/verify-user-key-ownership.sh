@@ -91,6 +91,54 @@ CODE=$(curl -s -o /tmp/gf-uk-nsite.json -w '%{http_code}' \
   "$BASE/api/intake-operations")
 check 400 "$CODE" "不存在站点投稿被拒"
 check INTAKE_SITE_NOT_FOUND "$(jqget 'd["error"]["code"]' </tmp/gf-uk-nsite.json)" "错误码=SITE_NOT_FOUND"
+# 未开自动成稿的密钥：直投只进收件箱
+STATUS0=$(jqget 'd["intakeItem"]["status"]' </tmp/gf-uk-post2.json)
+check ready "$STATUS0" "未开自动成稿 → 收件箱 ready"
+
+# 4d. 自动成稿密钥：webhook 直投直通工作台草稿
+CODE=$(curl -s -o /tmp/gf-uk-issue2.json -w '%{http_code}' -b "$ECOOKIE" -H 'content-type: application/json' \
+  -d "{\"name\":\"e2e 直通流\",\"defaultSiteId\":$SITE,\"autoAdopt\":true}" "$BASE/api/api-credentials")
+check 201 "$CODE" "签发自动成稿密钥"
+KEY2=$(jqget 'd["apiKey"]' </tmp/gf-uk-issue2.json)
+check True "$(jqget 'd["doc"]["autoAdopt"]' </tmp/gf-uk-issue2.json)" "密钥 autoAdopt=true"
+CODE=$(curl -s -o /tmp/gf-uk-auto.json -w '%{http_code}' \
+  -H "Authorization: users API-Key $KEY2" -H 'content-type: application/json' \
+  -d "{\"channel\":\"webhook\",\"title\":\"UK-$STAMP 自动成稿样例\",\"bodyMarkdown\":\"# 标题\n\n直通正文。\"}" \
+  "$BASE/api/intake-operations")
+check 201 "$CODE" "自动成稿密钥 webhook 直投"
+check True "$(jqget 'd["autoAdopted"]' </tmp/gf-uk-auto.json)" "autoAdopted=true"
+ED2=$(jqget 'd["editionId"]' </tmp/gf-uk-auto.json)
+[ -n "$ED2" ] && [ "$ED2" != "None" ] && ok "直通文章 editionId=$ED2" || bad "缺 editionId"
+IID3=$(jqget 'd["intakeItem"]["id"]' </tmp/gf-uk-auto.json)
+ROW=$(PSQL "SELECT owner_id||'|'||creation_origin||'|'||workflow_status FROM geo_foundry.content_editions WHERE id=$ED2")
+check "$EID|ai|draft" "$ROW" "直通文章 owner/来源/工作流"
+SRCCNT=$(PSQL "SELECT count(*) FROM geo_foundry.article_sources WHERE edition_id=$ED2 AND intake_item_id=$IID3 AND role='primary'")
+check 1 "$SRCCNT" "来源关联 primary 回指"
+ASTATUS=$(jqget 'd["intakeItem"]["status"]' </tmp/gf-uk-auto.json)
+check adopted "$ASTATUS" "稿源条目 status=adopted"
+# 幂等重放：同正文重投不产生第二篇文章
+CODE=$(curl -s -o /tmp/gf-uk-replay.json -w '%{http_code}' \
+  -H "Authorization: users API-Key $KEY2" -H 'content-type: application/json' \
+  -d "{\"channel\":\"webhook\",\"title\":\"UK-$STAMP 自动成稿样例\",\"bodyMarkdown\":\"# 标题\n\n直通正文。\"}" \
+  "$BASE/api/intake-operations")
+check 200 "$CODE" "同正文重放 200"
+check True "$(jqget 'd["idempotentReplay"]' </tmp/gf-uk-replay.json)" "idempotentReplay=true"
+check "$ED2" "$(jqget 'd["editionId"]' </tmp/gf-uk-replay.json)" "重放返回同一 editionId"
+EDCNT=$(PSQL "SELECT count(*) FROM geo_foundry.content_editions WHERE title='UK-$STAMP 自动成稿样例'")
+check 1 "$EDCNT" "重放不产生第二篇文章"
+# 自动成稿密钥调 adopt 端点仍然 403（权限面不因开关扩大）
+CODE=$(curl -s -o /dev/null -w '%{http_code}' \
+  -H "Authorization: users API-Key $KEY2" -H 'content-type: application/json' -d '{}' \
+  "$BASE/api/intake-operations/$IID3/adopt")
+check 403 "$CODE" "自动成稿密钥 adopt 仍被拒"
+# url 通道不受开关影响：仍走抓取队列，不直通
+CODE=$(curl -s -o /tmp/gf-uk-url.json -w '%{http_code}' \
+  -H "Authorization: users API-Key $KEY2" -H 'content-type: application/json' \
+  -d "{\"channel\":\"url\",\"title\":\"UK-$STAMP url 通道\",\"sourceUrl\":\"https://example.com/uk-$STAMP\"}" \
+  "$BASE/api/intake-operations")
+case "$CODE" in 201|202) ok "url 通道投稿 ($CODE)";; *) bad "url 通道投稿 (want 201/202 got $CODE)";; esac
+check False "$(jqget 'd["autoAdopted"]' </tmp/gf-uk-url.json)" "url 通道不直通"
+IID4=$(jqget 'd["intakeItem"]["id"]' </tmp/gf-uk-url.json)
 
 # 5. 安全负例：密钥权限面与 editor 角色无关（editor 本有 editions 写权限）
 CODE=$(curl -s -o /dev/null -w '%{http_code}' \
@@ -127,10 +175,10 @@ check 403 "$CODE" "回归：跨租户站点仍拒（admin 面）"
 
 # 清理：文章/版本/来源/稿源/密钥/用户
 ED=$(PSQL "SELECT adopted_edition_id FROM geo_foundry.intake_items WHERE id=$IID")
-PSQL "DELETE FROM geo_foundry.article_sources WHERE edition_id=$ED" >/dev/null
-PSQL "DELETE FROM geo_foundry.edition_revisions WHERE parent_id=$ED" >/dev/null
-PSQL "DELETE FROM geo_foundry.content_editions WHERE id=$ED" >/dev/null
-PSQL "DELETE FROM geo_foundry.intake_items WHERE id IN ($IID,$IID2)" >/dev/null
+PSQL "DELETE FROM geo_foundry.article_sources WHERE edition_id IN ($ED,$ED2)" >/dev/null
+PSQL "DELETE FROM geo_foundry.edition_revisions WHERE parent_id IN ($ED,$ED2)" >/dev/null
+PSQL "DELETE FROM geo_foundry.content_editions WHERE id IN ($ED,$ED2)" >/dev/null
+PSQL "DELETE FROM geo_foundry.intake_items WHERE id IN ($IID,$IID2,$IID3,$IID4)" >/dev/null
 PSQL "DELETE FROM geo_foundry.api_credentials WHERE user_id=$EID" >/dev/null
 PSQL "DELETE FROM geo_foundry.users WHERE id=$EID" >/dev/null
 LEFT=$(PSQL "SELECT count(*) FROM geo_foundry.intake_items WHERE title LIKE 'UK-$STAMP%'")

@@ -246,6 +246,7 @@ export const listApiCredentials = async (
     .limit(200)
   const now = Date.now()
   return rows.map(({ cred, ownerEmail, siteName }) => ({
+    autoAdopt: cred.autoAdopt,
     createdAt: cred.createdAt.toISOString(),
     defaultSiteId: cred.defaultSiteId,
     defaultSiteName: siteName,
@@ -281,6 +282,7 @@ export const listMyApiCredentials = async (
     .limit(200)
   const now = Date.now()
   return rows.map(({ cred, ownerEmail, siteName }) => ({
+    autoAdopt: cred.autoAdopt,
     createdAt: cred.createdAt.toISOString(),
     defaultSiteId: cred.defaultSiteId,
     defaultSiteName: siteName,

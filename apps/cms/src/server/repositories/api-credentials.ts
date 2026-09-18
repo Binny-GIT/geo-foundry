@@ -23,6 +23,7 @@ export const API_KEY_PREFIX = "gfa_"
 const DISPLAY_PREFIX_LENGTH = API_KEY_PREFIX.length + 8
 
 export type ApiCredentialRecord = Readonly<{
+  autoAdopt: boolean
   createdAt: Date
   createdById: number
   defaultSiteId: number | null
@@ -43,6 +44,8 @@ export type IssuedApiCredential = Readonly<{
 }>
 
 export type ApiCredentialAuth = Readonly<{
+  /** 自动成稿：webhook 直投校验通过直接建工作台草稿。 */
+  autoAdopt: boolean
   credentialId: number
   /** 投稿缺省站点：payload 不带 suggestedSiteId 时回落到这里。 */
   defaultSiteId: number | null
@@ -53,6 +56,7 @@ export type ApiCredentialAuth = Readonly<{
 type CredentialRow = typeof apiCredentials.$inferSelect
 
 const recordOf = (row: CredentialRow): ApiCredentialRecord => ({
+  autoAdopt: row.autoAdopt,
   createdAt: row.createdAt,
   createdById: row.createdById,
   defaultSiteId: row.defaultSiteId,
@@ -80,6 +84,7 @@ export class ApiCredentialsRepository {
    * 不得回写日志或再次持久化。
    */
   async issue(input: {
+    readonly autoAdopt: boolean
     readonly configSecret: string
     readonly createdById: number
     readonly defaultSiteId: number | null
@@ -93,6 +98,7 @@ export class ApiCredentialsRepository {
     const rows = await this.db
       .insert(apiCredentials)
       .values({
+        autoAdopt: input.autoAdopt,
         createdById: input.createdById,
         defaultSiteId: input.defaultSiteId,
         expiresAt: input.expiresAt,
@@ -117,6 +123,7 @@ export class ApiCredentialsRepository {
     const [, keyIndex] = apiKeyIndexesOf(apiKey, configSecret)
     const rows = await this.db
       .select({
+        autoAdopt: apiCredentials.autoAdopt,
         defaultSiteId: apiCredentials.defaultSiteId,
         id: apiCredentials.id,
         tenantId: apiCredentials.tenantId,
@@ -135,6 +142,7 @@ export class ApiCredentialsRepository {
     return row === undefined
       ? null
       : {
+          autoAdopt: row.autoAdopt,
           credentialId: row.id,
           defaultSiteId: row.defaultSiteId,
           tenantId: row.tenantId,

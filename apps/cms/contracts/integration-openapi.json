@@ -38,12 +38,20 @@
       },
       "IntakeCreateResponse": {
         "properties": {
+          "autoAdopted": {
+            "description": "true 表示条目已成稿（自动成稿密钥直通，或重放/重复命中的条目此前已成稿）。",
+            "type": "boolean"
+          },
           "duplicateIds": {
             "description": "重复判定命中的既有条目 id。",
             "items": {
               "type": "integer"
             },
             "type": "array"
+          },
+          "editionId": {
+            "description": "成稿后的文章 id（autoAdopted=true 时必有，幂等重放返回同一篇）。",
+            "type": "integer"
           },
           "fetchQueued": {
             "description": "是否已入抓取队列（url/rss 通道）。",
@@ -93,7 +101,7 @@
                 "type": "string"
               },
               "status": {
-                "description": "new=待处理；fetching=抓取中；ready=内容就绪等人工采纳；failed=抓取失败；duplicate/ignored/merged/adopted=终态。",
+                "description": "new=待处理；fetching=抓取中；ready=内容就绪等人工采纳；failed=抓取失败；duplicate/ignored/merged=终态；adopted=已成稿（人工采纳，或自动成稿密钥直通）。自动成稿密钥的 webhook 直投不经过 ready，直接 adopted。",
                 "type": "string"
               },
               "suggestedSite": {
@@ -182,7 +190,7 @@
     }
   },
   "info": {
-    "description": "Geo Foundry 采集投稿面：外部自动化工具（n8n / Dify / 脚本 / AI agent）以某个真人用户的身份向租户稿源箱投稿——密钥由用户自助创建，投稿归属创建者，采纳成文章后作者归属该用户并标注「AI 生成」来源。能力边界：集成密钥只能投稿、读稿源箱引用数据（sites/connectors）与公开 delivery 只读接口（无论绑定用户角色为何）；不能采纳成草稿、不能创建或编辑文章、不能发布、不能访问任何 internal 端点。投稿产出一律进入稿源箱等待人工处理。",
+    "description": "Geo Foundry 采集投稿面：外部自动化工具（n8n / Dify / 脚本 / AI agent）以某个真人用户的身份向租户稿源箱投稿——密钥由用户自助创建，投稿归属创建者，采纳成文章后作者归属该用户并标注「AI 生成」来源。能力边界：集成密钥只能投稿、读稿源箱引用数据（sites/connectors）与公开 delivery 只读接口（无论绑定用户角色为何）；不能采纳成草稿、不能创建或编辑文章、不能发布、不能访问任何 internal 端点。密钥可在 Console 配置默认站点（投稿缺省回落）与「自动成稿」（webhook 直投校验通过直接建工作台草稿，autoAdopted=true 返回 editionId；幂等重放不产生第二篇）；未开启自动成稿的投稿一律进入稿源箱等待人工处理，审核、流转、发布始终由人完成。",
     "title": "Geo Foundry Integration API",
     "version": "1.0.0"
   },
@@ -352,7 +360,7 @@
     },
     "/intake-operations": {
       "post": {
-        "description": "向稿源箱投稿。守卫：API-Key 请求限 120 次/分钟/身份、请求体上限 1MiB。幂等：优先 contentHash，其次 webhook 正文哈希，再次 Idempotency-Key；重试返回首次结果（idempotentReplay=true 或 duplicateIds 指向既有行），不新增稿源。投稿只进稿源箱——采纳成草稿、编辑、发布始终由人在 Console 完成，API 身份无这些权限。",
+        "description": "向稿源箱投稿。守卫：API-Key 请求限 120 次/分钟/身份、请求体上限 1MiB。幂等：优先 contentHash，其次 webhook 正文哈希，再次 Idempotency-Key；重试返回首次结果（idempotentReplay=true 或 duplicateIds 指向既有行），不新增稿源。默认只进稿源箱，采纳成草稿、编辑、发布由人在 Console 完成；密钥可在 Console 配置默认站点与「自动成稿」——开启后 webhook 直投校验通过直接建工作台草稿（autoAdopted=true + editionId），审核与发布仍是人工。",
         "operationId": "createIntakeItem",
         "parameters": [
           {

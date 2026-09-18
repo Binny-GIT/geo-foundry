@@ -125,6 +125,7 @@ export const IntegrationKeys = ({
       {
         name,
         ...(defaultSiteId.length > 0 ? { defaultSiteId: Number(defaultSiteId) } : {}),
+        ...(data.get("autoAdopt") === "on" ? { autoAdopt: true } : {}),
         ...(expiresAt.length > 0
           ? { expiresAt: new Date(`${expiresAt}T23:59:59Z`).toISOString() }
           : {}),
@@ -150,6 +151,7 @@ export const IntegrationKeys = ({
         name,
         userId: Number(userId),
         ...(defaultSiteId.length > 0 ? { defaultSiteId: Number(defaultSiteId) } : {}),
+        ...(data.get("autoAdopt") === "on" ? { autoAdopt: true } : {}),
         ...(expiresAt.length > 0
           ? { expiresAt: new Date(`${expiresAt}T23:59:59Z`).toISOString() }
           : {}),
@@ -289,6 +291,15 @@ export const IntegrationKeys = ({
               name="expiresAt"
               type="date"
             />
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--console-ink-muted)] lg:col-span-full">
+              <input
+                className="size-4 accent-[var(--console-accent)]"
+                name="autoAdopt"
+                type="checkbox"
+              />
+              自动成稿 —— webhook
+              投稿校验通过直接生成工作台草稿，跳过收件箱（审核与发布仍是人工；需配默认站点）
+            </label>
             <Button disabled={busy} type="submit">
               <PlusIcon size={15} />
               创建
@@ -305,8 +316,8 @@ export const IntegrationKeys = ({
             </p>
             <p className="m-0">
               <strong className="text-[var(--console-ink)]">只有投稿权限。</strong>
-              密钥只能把素材投进稿源收件箱，不能采纳成文章，也不能编辑、流转或发布任何内容——
-              采纳与发布始终是工作台里的人工决定。明文只显示一次，可随时吊销。
+              密钥默认只把素材投进稿源收件箱，等人工采纳；勾选「自动成稿」的密钥会直接生成工作台草稿（归属与「AI
+              生成」标注不变），但审核、流转、发布始终是工作台里的人工决定，密钥本身不能编辑或发布任何内容。明文只显示一次，可随时吊销。
             </p>
             <p className="m-0">
               请求头格式：
@@ -371,6 +382,15 @@ export const IntegrationKeys = ({
                   name="expiresAt"
                   type="date"
                 />
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--console-ink-muted)] lg:col-span-full">
+                  <input
+                    className="size-4 accent-[var(--console-accent)]"
+                    name="autoAdopt"
+                    type="checkbox"
+                  />
+                  自动成稿 —— webhook
+                  投稿校验通过直接生成工作台草稿，跳过收件箱（审核与发布仍是人工；需配默认站点）
+                </label>
                 <Button disabled={busy} type="submit">
                   <PlusIcon size={15} />
                   代签
@@ -441,7 +461,14 @@ export const IntegrationKeys = ({
                       ) : null}
                       <td className="border-b border-[var(--console-border)] px-5 py-4 text-sm text-[var(--console-ink-muted)]">
                         {typeof credential["defaultSiteName"] === "string" ? (
-                          credential["defaultSiteName"]
+                          <span className="inline-flex items-center gap-1.5">
+                            {credential["defaultSiteName"]}
+                            {credential["autoAdopt"] === true ? (
+                              <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700">
+                                直通
+                              </span>
+                            ) : null}
+                          </span>
                         ) : (
                           <span title="投稿需显式带 suggestedSiteId">—</span>
                         )}

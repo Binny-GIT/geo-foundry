@@ -29,6 +29,7 @@ import { intakeSiteScopeErrorOf } from "./intake-ops"
 
 const issueSchema = z
   .object({
+    autoAdopt: z.coerce.boolean().optional(),
     defaultSiteId: z.coerce.number().int().positive().nullable().optional(),
     expiresAt: z.string().datetime().nullable().optional(),
     name: z.string().trim().min(1).max(200),
@@ -49,6 +50,7 @@ const idOf = (value: string | undefined): number | null =>
   value !== undefined && /^\d+$/.test(value) && Number(value) > 0 ? Number(value) : null
 
 const publicRecord = (record: {
+  readonly autoAdopt: boolean
   readonly createdAt: Date
   readonly defaultSiteId: number | null
   readonly expiresAt: Date | null
@@ -59,6 +61,7 @@ const publicRecord = (record: {
   readonly revokedAt: Date | null
   readonly userId: number
 }) => ({
+  autoAdopt: record.autoAdopt,
   createdAt: record.createdAt.toISOString(),
   defaultSiteId: record.defaultSiteId,
   expiresAt: record.expiresAt === null ? null : record.expiresAt.toISOString(),
@@ -199,8 +202,18 @@ export const handleApiCredentialPost = async (
     if (siteError !== null) return errorJson(400, "API_CREDENTIAL_SITE_INVALID")
     defaultSiteId = parsed.data.defaultSiteId
   }
+  /*
+   * 自动成稿必须配默认站点：开关的意义就是「不带 siteId 也能直通
+   * 工作台」，缺省站点解析不出目标时行为会不稳定，签发时就拦下。
+   * 投稿时 payload 显式带 siteId 依然优先于默认站点。
+   */
+  const autoAdopt = parsed.data.autoAdopt === true
+  if (autoAdopt && defaultSiteId === null) {
+    return errorJson(400, "API_CREDENTIAL_AUTO_ADOPT_SITE_REQUIRED")
+  }
 
   const issued = await repo.issue({
+    autoAdopt,
     configSecret,
     createdById: Number(auth.claims.userId),
     defaultSiteId,
