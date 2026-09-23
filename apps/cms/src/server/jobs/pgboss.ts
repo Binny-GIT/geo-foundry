@@ -10,6 +10,11 @@
  * created 态不可重复入队（等价旧 BullMQ 稳定 jobId 语义）。
  */
 
+import {
+  type OperationType,
+  operationJobDataOf,
+  parseOperationJobPayload,
+} from "@geo/content-client"
 import { sql } from "drizzle-orm"
 import type { Pool, QueryResult } from "pg"
 import { fromDrizzle, PgBoss } from "pg-boss"
@@ -59,16 +64,6 @@ export const QUEUE_CREATION_OPTIONS = {
   retryLimit: 3,
 } as const
 
-export type OperationJobData = Readonly<{
-  kind: "operation"
-  operationId: string
-  operationType: string
-  payload: Record<string, unknown>
-  /** worker 侧终端阶段名（publish 队列用它分派 publish-gate/rollback-gate）。 */
-  stage: string
-  tenantId: number
-}>
-
 export type IntakeJobData = Readonly<{
   intakeItemId: number
   kind: "intake"
@@ -102,14 +97,31 @@ export const cmsBoss = (): Promise<PgBoss> => {
 
 export const sendOperationJobWithin = async (
   tx: TxLike,
-  input: Omit<OperationJobData, "stage">,
+  input: Readonly<{
+    operationId: string
+    operationType: OperationType
+    payload: unknown
+    tenantId: number
+  }>,
 ): Promise<string | null> => {
   const boss = await cmsBoss()
   const stage = OPERATION_STAGE_OF[input.operationType]
   if (stage === undefined) throw new Error(`JOB_OPERATION_TYPE_INVALID:${input.operationType}`)
+  // 入队端契约校验（与 worker 解析共用同一 schema）：形状不对就让整个事务
+  // 回滚，而不是入队一条 worker 必然解析失败的任务。
+  const parsed = parseOperationJobPayload(input.payload, input.operationType)
+  if (!parsed.success) {
+    throw new Error(`JOB_OPERATION_PAYLOAD_INVALID:${input.operationType}`)
+  }
   return boss.send(
     JOB_QUEUE[operationQueueOf(input.operationType)],
-    { ...input, stage },
+    operationJobDataOf({
+      body: parsed.data,
+      operationId: input.operationId,
+      operationType: input.operationType,
+      stage,
+      tenantId: input.tenantId,
+    }),
     {
       db: fromDrizzle(tx, sql),
       singletonKey: input.operationId,

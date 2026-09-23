@@ -201,11 +201,11 @@ export const handleRollbackIntentPost = async (
         tenantId,
         uniqueKey,
       })
+      // 队列载荷即台账 requestPayload（含 body 包装，共享契约）。
       await sendOperationJobWithin(tx, {
-        kind: "operation",
         operationId,
         operationType: "rollback",
-        payload: (requestPayload["body"] ?? {}) as Record<string, unknown>,
+        payload: requestPayload,
         tenantId,
       })
       return { intentId, operationId, runtimeSiteId }

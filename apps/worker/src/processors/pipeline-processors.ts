@@ -1,4 +1,4 @@
-import { evaluateRequestSchema, generateRequestSchema } from "@geo/content-client"
+import { operationJobPayloadIssueText, parseOperationJobPayload } from "@geo/content-client"
 import {
   draftDocumentOf,
   runEvaluationOperation,
@@ -7,19 +7,7 @@ import {
 } from "@geo/content-pipeline"
 
 import { operationProcessor } from "./operation-processor.js"
-import { TerminalJobError, type ProcessorContext, type WorkJob, type WorkJobData } from "./types.js"
-
-const bodyOf = (job: WorkJob<WorkJobData>): Record<string, unknown> => {
-  const payload = job.data.payload ?? {}
-  return typeof payload["body"] === "object" && payload["body"] !== null
-    ? (payload["body"] as Record<string, unknown>)
-    : {}
-}
-
-const issueTextOf = (
-  issues: readonly { message: string; path: (number | string | symbol)[] }[],
-): string =>
-  issues.map((issue) => `${issue.path.map(String).join(".")}: ${issue.message}`).join("; ")
+import { TerminalJobError, type ProcessorContext } from "./types.js"
 
 /** Generation stage: operator brief -> staged pipeline (Todo 23) for every target. */
 export const createGenerationProcessor = (context: ProcessorContext, provider: LLMProvider) =>
@@ -28,9 +16,12 @@ export const createGenerationProcessor = (context: ProcessorContext, provider: L
     {
       stage: "generation",
       work: async (ctx, job) => {
-        const parsed = generateRequestSchema.safeParse(bodyOf(job))
+        const parsed = parseOperationJobPayload(job.data.payload, "generate")
         if (!parsed.success) {
-          throw new TerminalJobError("GENERATION_PAYLOAD_INVALID", issueTextOf(parsed.error.issues))
+          throw new TerminalJobError(
+            "GENERATION_PAYLOAD_INVALID",
+            operationJobPayloadIssueText(parsed.error),
+          )
         }
         const operation = await ctx.client.getOperation(job.data.operationId)
         const result = await runGenerationOperation(
@@ -76,9 +67,12 @@ export const createEvaluationProcessor = (context: ProcessorContext, provider: L
     {
       stage: "evaluation",
       work: async (ctx, job) => {
-        const parsed = evaluateRequestSchema.safeParse(bodyOf(job))
+        const parsed = parseOperationJobPayload(job.data.payload, "evaluate")
         if (!parsed.success) {
-          throw new TerminalJobError("EVALUATION_PAYLOAD_INVALID", issueTextOf(parsed.error.issues))
+          throw new TerminalJobError(
+            "EVALUATION_PAYLOAD_INVALID",
+            operationJobPayloadIssueText(parsed.error),
+          )
         }
         const evaluation = await runEvaluationOperation(
           { client: ctx.client, provider },

@@ -86,11 +86,14 @@ export const submitEditionPublishOperation = async (
     uniqueKey: operationUniqueKeyOf(tenantId, endpoint, idempotencyKey),
     outbox: {
       aggregateId: input.editionId,
+      // 队列任务 body（共享契约，worker 按 editionId 编译发布；siteId 供
+      // 多站扇出使用，见 operation-job.ts）。releaseId 不入载荷：worker 从
+      // operationId 确定性推导，台账行里已有权威值。
       eventPayload: {
-        editionId: input.editionId,
-        operationType: "publish",
-        releaseId: compiledRelease ?? releaseIdForOperation(operationId),
-        ...(siteId === null ? {} : { siteId }),
+        body: {
+          editionId: input.editionId,
+          ...(siteId === null ? {} : { siteId }),
+        },
       },
       type: "publish.requested",
     },

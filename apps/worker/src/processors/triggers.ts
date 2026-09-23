@@ -1,4 +1,4 @@
-import { rollbackRequestSchema } from "@geo/content-client"
+import { operationJobPayloadIssueText, parseOperationJobPayload } from "@geo/content-client"
 import { type LLMProvider, sha256Hex } from "@geo/content-pipeline"
 import { RollbackError, rollbackRelease, StalePointerEtagError } from "@geo/publisher"
 import { AuditActorSchema, CanonicalTimestampSchema } from "@geo/schema/release/v1"
@@ -12,15 +12,6 @@ import {
   publishPlannedRelease,
 } from "./release-pipeline.js"
 import { type ProcessorContext, TerminalJobError } from "./types.js"
-
-const editionIdOfJob = (payload: Record<string, unknown> | undefined): number => {
-  const raw = payload?.["editionId"]
-  const parsed = Number(raw)
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    throw new TerminalJobError("RELEASE_PAYLOAD_INVALID", "editionId must be a positive integer")
-  }
-  return parsed
-}
 
 export const terminalPublishErrorOf = (error: unknown): TerminalJobError | null =>
   error instanceof StalePointerEtagError ? new TerminalJobError(error.code, error.message) : null
@@ -38,9 +29,14 @@ export const createCompileTriggerProcessor = (context: ProcessorContext) =>
     {
       stage: "compile-trigger",
       work: async (ctx, job) => {
-        const editionId = editionIdOfJob(
-          job.data.payload?.["body"] as Record<string, unknown> | undefined,
-        )
+        const parsed = parseOperationJobPayload(job.data.payload, "publish")
+        if (!parsed.success) {
+          throw new TerminalJobError(
+            "RELEASE_PAYLOAD_INVALID",
+            operationJobPayloadIssueText(parsed.error),
+          )
+        }
+        const editionId = parsed.data.editionId
         const planned = await compileAndPlanRelease(context, {
           editionId,
           operationId: job.data.operationId,
@@ -76,9 +72,12 @@ export const createRollbackGateProcessor = (context: ProcessorContext) =>
     {
       stage: "rollback-gate",
       work: async (_ctx, job) => {
-        const parsed = rollbackRequestSchema.safeParse(job.data.payload?.["body"])
+        const parsed = parseOperationJobPayload(job.data.payload, "rollback")
         if (!parsed.success) {
-          throw new TerminalJobError("ROLLBACK_PAYLOAD_INVALID", "rollback request body is invalid")
+          throw new TerminalJobError(
+            "ROLLBACK_PAYLOAD_INVALID",
+            operationJobPayloadIssueText(parsed.error),
+          )
         }
         await context.client.consumeRollbackIntent({
           expectedCurrentManifestSha256: parsed.data.expectedCurrentManifestSha256,
@@ -127,9 +126,14 @@ export const createPublishGateProcessor = (context: ProcessorContext) =>
     {
       stage: "publish-gate",
       work: async (_ctx, job) => {
-        const editionId = editionIdOfJob(
-          job.data.payload?.["body"] as Record<string, unknown> | undefined,
-        )
+        const parsed = parseOperationJobPayload(job.data.payload, "publish")
+        if (!parsed.success) {
+          throw new TerminalJobError(
+            "RELEASE_PAYLOAD_INVALID",
+            operationJobPayloadIssueText(parsed.error),
+          )
+        }
+        const editionId = parsed.data.editionId
         const planned = await compileAndPlanRelease(context, {
           editionId,
           operationId: job.data.operationId,

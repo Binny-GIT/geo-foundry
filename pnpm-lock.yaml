@@ -74,6 +74,9 @@ importers:
       '@geo/compiler':
         specifier: workspace:*
         version: link:../../packages/compiler
+      '@geo/content-client':
+        specifier: workspace:*
+        version: link:../../packages/content-client
       '@geo/domain':
         specifier: workspace:*
         version: link:../../packages/domain

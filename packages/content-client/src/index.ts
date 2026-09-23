@@ -32,6 +32,13 @@ export type {
   WorkflowStatus,
   WriteDraftVersionRequest,
 } from "./schemas.js"
+export type {
+  OperationJobBody,
+  OperationJobData,
+  OperationJobPayloadIssue,
+  OperationJobPayloadParse,
+  PublishRequest,
+} from "./operation-job.js"
 export {
   type CompileSnapshot,
   compileSnapshotSchema,
@@ -51,3 +58,11 @@ export {
   recordReleaseReceiptSchema,
   rollbackRequestSchema,
 } from "./schemas.js"
+export {
+  operationJobBodySchema,
+  operationJobDataOf,
+  operationJobPayloadIssueText,
+  operationJobPayloadSchema,
+  parseOperationJobPayload,
+  publishRequestSchema,
+} from "./operation-job.js"

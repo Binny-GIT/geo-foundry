@@ -116,7 +116,6 @@ export class OperationsRepository {
       if (input.outbox !== undefined) {
         // operation 与队列任务在同一事务内提交。
         await sendOperationJobWithin(tx, {
-          kind: "operation",
           operationId: input.operationId,
           operationType: input.operationType,
           payload: input.outbox.eventPayload,
