@@ -1,9 +1,9 @@
 import { parseOperationJobPayload } from "@geo/content-client"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const sendCalls = vi.hoisted(
-  () => [] as { data: Record<string, unknown>; opts: Record<string, unknown>; queue: string }[],
-)
+type SendCall = { data: Record<string, unknown>; opts: Record<string, unknown>; queue: string }
+
+const sendCalls = vi.hoisted(() => [] as SendCall[])
 
 const send = vi.hoisted(() =>
   vi.fn(async (queue: string, data: Record<string, unknown>, opts: Record<string, unknown>) => {
@@ -27,6 +27,12 @@ vi.mock("../../src/server/runtime", () => ({
 import { sendOperationJobWithin } from "../../src/server/jobs/pgboss"
 
 const tx = {} as never
+
+const sendCall = (): SendCall => {
+  const call = sendCalls[sendCalls.length - 1]
+  if (call === undefined) throw new Error("send 未被调用")
+  return call
+}
 
 const rollbackBody = {
   expectedCurrentManifestSha256: "b".repeat(64),
@@ -52,7 +58,7 @@ describe("sendOperationJobWithin 入队契约", () => {
     })
 
     expect(send).toHaveBeenCalledTimes(1)
-    const call = sendCalls[0]
+    const call = sendCall()
     expect(call.queue).toBe("operation-publish")
     expect(call.data).toEqual({
       kind: "operation",
@@ -64,7 +70,7 @@ describe("sendOperationJobWithin 入队契约", () => {
     })
     expect(call.opts).toMatchObject({ singletonKey: "op-publish" })
 
-    const parsed = parseOperationJobPayload(call.data.payload, "publish")
+    const parsed = parseOperationJobPayload(call.data["payload"], "publish")
     expect(parsed.success).toBe(true)
     if (parsed.success) expect(parsed.data).toEqual({ editionId: 42, siteId: 375 })
   })
@@ -78,12 +84,12 @@ describe("sendOperationJobWithin 入队契约", () => {
       tenantId: 413,
     })
 
-    const call = sendCalls[0]
+    const call = sendCall()
     expect(call.queue).toBe("operation-publish")
-    expect(call.data.stage).toBe("rollback-gate")
-    expect(call.data.payload).toEqual(requestPayload)
+    expect(call.data["stage"]).toBe("rollback-gate")
+    expect(call.data["payload"]).toEqual(requestPayload)
 
-    const parsed = parseOperationJobPayload(call.data.payload, "rollback")
+    const parsed = parseOperationJobPayload(call.data["payload"], "rollback")
     expect(parsed.success).toBe(true)
   })
 
@@ -95,8 +101,8 @@ describe("sendOperationJobWithin 入队契约", () => {
       tenantId: 413,
     })
 
-    expect(sendCalls[0].queue).toBe("operation-evaluation")
-    const parsed = parseOperationJobPayload(sendCalls[0].data.payload, "evaluate")
+    expect(sendCall().queue).toBe("operation-evaluation")
+    const parsed = parseOperationJobPayload(sendCall().data["payload"], "evaluate")
     expect(parsed.success).toBe(true)
   })
 
