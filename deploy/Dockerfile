@@ -16,11 +16,12 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/package.json apps/
 COPY apps/cms/package.json apps/cms/
 COPY apps/worker/package.json apps/worker/
+COPY apps/delivery/package.json apps/delivery/
 COPY packages/package.json packages/
 COPY packages/*/package.json packages/
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm config set registry https://registry.npmmirror.com && \
-    pnpm install --frozen-lockfile --filter @geo/cms... --filter @geo/worker...
+    pnpm install --frozen-lockfile --filter @geo/cms... --filter @geo/worker... --filter @geo/delivery...
 
 # ---- builder stage ----
 FROM node:24-alpine AS builder
@@ -32,8 +33,10 @@ COPY --from=deps /app ./
 COPY . .
 RUN pnpm --filter @geo/cms... build && \
     pnpm --filter @geo/worker... build && \
+    pnpm --filter @geo/delivery... build && \
     pnpm --filter @geo/cms build && \
-    pnpm deploy --legacy --filter @geo/worker --prod /worker
+    pnpm deploy --legacy --filter @geo/worker --prod /worker && \
+    pnpm deploy --legacy --filter @geo/delivery --prod /delivery
 
 # ---- runner stage ----
 FROM node:24-alpine AS runner
@@ -50,10 +53,11 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=builder --chown=nextjs:nodejs /app/apps/cms/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/cms/.next/static ./apps/cms/.next/static
 COPY --from=builder --chown=nextjs:nodejs /worker /worker
+COPY --from=builder --chown=nextjs:nodejs /delivery /delivery
 
 USER nextjs
 
-EXPOSE 3090
+EXPOSE 3090 3091
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3090/api/health || exit 1

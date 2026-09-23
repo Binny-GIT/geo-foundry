@@ -3,9 +3,12 @@ set -euo pipefail
 
 CMS_CONTAINER="${CMS_CONTAINER:-geo-foundry-cms-mk-dev}"
 WORKER_CONTAINER="${WORKER_CONTAINER:-geo-foundry-worker-mk-dev}"
+DELIVERY_CONTAINER="${DELIVERY_CONTAINER:-geo-foundry-delivery-mk-dev}"
 POSTGRES_CONTAINER="${POSTGRES_CONTAINER:-pg-server}"
 LOCAL_BASE="${LOCAL_BASE:-http://127.0.0.1:3090}"
 PUBLIC_BASE="${PUBLIC_BASE:-https://geo-foundry-mk-dev.aixllent.com}"
+DELIVERY_LOCAL_BASE="${DELIVERY_LOCAL_BASE:-http://127.0.0.1:3091}"
+DELIVERY_PUBLIC_BASE="${DELIVERY_PUBLIC_BASE:-https://geo-delivery-mk-dev.aixllent.com}"
 BACKUP_DIRECTORY="${BACKUP_DIRECTORY:-/var/backups/geo-foundry}"
 BACKUP_MAX_AGE_HOURS="${BACKUP_MAX_AGE_HOURS:-30}"
 MAX_RESTART_COUNT="${MAX_RESTART_COUNT:-3}"
@@ -34,14 +37,19 @@ query_scalar() {
 
 require_running "$CMS_CONTAINER"
 require_running "$WORKER_CONTAINER"
+require_running "$DELIVERY_CONTAINER"
 
 cms_health_status="$(sudo -n docker inspect --format '{{.State.Health.Status}}' "$CMS_CONTAINER")"
 cms_restart_count="$(sudo -n docker inspect --format '{{.RestartCount}}' "$CMS_CONTAINER")"
 worker_restart_count="$(sudo -n docker inspect --format '{{.RestartCount}}' "$WORKER_CONTAINER")"
+delivery_health_status="$(sudo -n docker inspect --format '{{.State.Health.Status}}' "$DELIVERY_CONTAINER")"
+delivery_restart_count="$(sudo -n docker inspect --format '{{.RestartCount}}' "$DELIVERY_CONTAINER")"
 printf 'CMS_DOCKER_HEALTH=%s\n' "$cms_health_status"
 printf 'CMS_RESTART_COUNT=%s\n' "$cms_restart_count"
 printf 'WORKER_RESTART_COUNT=%s\n' "$worker_restart_count"
-if [[ "$cms_health_status" != "healthy" ]] || (( cms_restart_count > MAX_RESTART_COUNT || worker_restart_count > MAX_RESTART_COUNT )); then
+printf 'DELIVERY_DOCKER_HEALTH=%s\n' "$delivery_health_status"
+printf 'DELIVERY_RESTART_COUNT=%s\n' "$delivery_restart_count"
+if [[ "$cms_health_status" != "healthy" || "$delivery_health_status" != "healthy" ]] || (( cms_restart_count > MAX_RESTART_COUNT || worker_restart_count > MAX_RESTART_COUNT || delivery_restart_count > MAX_RESTART_COUNT )); then
   printf 'RUNTIME_CONTAINER_HEALTH_ATTENTION_REQUIRED\n' >&2
   exit 1
 fi
@@ -49,15 +57,21 @@ fi
 health="$(curl -4 -fsS --max-time 20 "${LOCAL_BASE}/api/health")"
 readiness="$(curl -4 -fsS --max-time 20 "${LOCAL_BASE}/api/readiness")"
 public_health="$(curl -4 --retry 2 --retry-all-errors --retry-delay 1 -fsS --max-time 20 "${PUBLIC_BASE}/api/health")"
+delivery_health="$(curl -4 -fsS --max-time 20 "${DELIVERY_LOCAL_BASE}/healthz")"
+delivery_public_health="$(curl -4 --retry 2 --retry-all-errors --retry-delay 1 -fsS --max-time 20 "${DELIVERY_PUBLIC_BASE}/healthz")"
 printf 'CMS_HEALTH=%s\n' "$(printf '%s' "$health" | tr -d '\n')"
 printf 'CMS_READINESS=%s\n' "$(printf '%s' "$readiness" | tr -d '\n')"
 printf 'PUBLIC_HEALTH=%s\n' "$(printf '%s' "$public_health" | tr -d '\n')"
+printf 'DELIVERY_HEALTH=%s\n' "$(printf '%s' "$delivery_health" | tr -d '\n')"
+printf 'DELIVERY_PUBLIC_HEALTH=%s\n' "$(printf '%s' "$delivery_public_health" | tr -d '\n')"
 
 cms_image="$(sudo -n docker inspect --format '{{.Image}}' "$CMS_CONTAINER")"
 worker_image="$(sudo -n docker inspect --format '{{.Image}}' "$WORKER_CONTAINER")"
+delivery_image="$(sudo -n docker inspect --format '{{.Image}}' "$DELIVERY_CONTAINER")"
 printf 'CMS_IMAGE=%s\n' "$cms_image"
 printf 'WORKER_IMAGE=%s\n' "$worker_image"
-if [[ "$cms_image" != "$worker_image" ]]; then
+printf 'DELIVERY_IMAGE=%s\n' "$delivery_image"
+if [[ "$cms_image" != "$worker_image" || "$cms_image" != "$delivery_image" ]]; then
   printf 'RUNTIME_IMAGE_DIGEST_MISMATCH\n' >&2
   exit 1
 fi

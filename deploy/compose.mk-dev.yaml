@@ -49,6 +49,27 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  delivery:
+    profiles: !override []
+    container_name: geo-foundry-delivery-mk-dev
+    ports:
+      - "127.0.0.1:3091:3091"
+    environment:
+      GEO_FOUNDRY_S3_ENDPOINT: rustfs-server
+    networks:
+      - rustfs-shared
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+          pids: 100
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 networks:
   pg_default:
     external: true
