@@ -18,7 +18,7 @@ export const main = (): void => {
   const app = createDeliveryApp({
     runtime,
     siteKeyring,
-    ...(environment.publicOrigin === null ? {} : { publicOrigin: environment.publicOrigin }),
+    publicOrigin: environment.publicOrigin,
   })
 
   const server = app.listen(environment.port, environment.hostname)

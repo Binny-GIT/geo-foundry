@@ -18,6 +18,8 @@
  * runtime.resolve/resolveSitemap/resolveMedia 各自的 unknown-host 分支，
  * 在鉴权通过之后才会被观察到，两层互不依赖对方的判断依据。
  */
+import { createHash, timingSafeEqual } from "node:crypto"
+
 import type { SiteKeyEntry, SiteKeyring } from "../config/site-keyring.js"
 
 export type SiteAuthDecision =
@@ -28,6 +30,8 @@ export type SiteAuthDecision =
   | { readonly kind: "revoked" }
 
 const BEARER_PATTERN = /^Bearer\s+(\S+)$/
+
+const digestOf = (value: string): Buffer => createHash("sha256").update(value).digest()
 
 export const bearerTokenOf = (authorizationHeader: string | undefined | null): string | null => {
   if (authorizationHeader === undefined || authorizationHeader === null) return null
@@ -44,14 +48,21 @@ export const authorizeSiteRequest = (
   const token = bearerTokenOf(authorizationHeader)
   if (token === null) return { kind: "missing-credentials" }
   const entries = keyring.get(host.trim().toLowerCase()) ?? []
-  const matched = entries.find((entry) => entry.key === token)
+  const tokenDigest = digestOf(token)
+  let matched: SiteKeyEntry | undefined
+  for (const entry of entries) {
+    const equal = timingSafeEqual(digestOf(entry.key), tokenDigest)
+    if (equal) matched = entry
+  }
   if (matched === undefined) return { kind: "invalid-key" }
   if (matched.status === "revoked") return { kind: "revoked" }
   if (matched.expiresAt !== null && Date.parse(matched.expiresAt) <= now) return { kind: "expired" }
   return { entry: matched, kind: "ok" }
 }
 
-export type QuotaCheck = { readonly allowed: true } | { readonly allowed: false; readonly retryAfterSeconds: number }
+export type QuotaCheck =
+  | { readonly allowed: true }
+  | { readonly allowed: false; readonly retryAfterSeconds: number }
 
 /** 简单的固定窗口配额计数器，按任意字符串 bucket key 分桶（这里用 `host\0key`）。 */
 export class QuotaTracker {
@@ -70,7 +81,10 @@ export class QuotaTracker {
     }
     bucket.count += 1
     if (bucket.count > limitPerWindow) {
-      return { allowed: false, retryAfterSeconds: Math.max(1, Math.ceil((bucket.resetAt - now) / 1000)) }
+      return {
+        allowed: false,
+        retryAfterSeconds: Math.max(1, Math.ceil((bucket.resetAt - now) / 1000)),
+      }
     }
     return { allowed: true }
   }

@@ -54,9 +54,7 @@ export const syncEditionSitesWithinTx = async (
     .where(
       and(
         eq(editionSites.editionId, input.editionId),
-        ...(desired.length === 0
-          ? []
-          : [notInArray(editionSites.siteId, desired)]),
+        ...(desired.length === 0 ? [] : [notInArray(editionSites.siteId, desired)]),
         eq(editionSites.publishState, "pending"),
       ),
     )
@@ -82,6 +80,14 @@ export type EditionSitePatch = Partial<
   Pick<EditionSiteRow, "publishState" | "releaseId" | "urlRecordId" | "publishedAt">
 >
 
+export const compileSitePatchOf = (
+  row: Pick<EditionSiteRow, "publishState" | "releaseId">,
+  releaseId: string,
+): EditionSitePatch =>
+  row.publishState === "published" && row.releaseId !== releaseId
+    ? { publishState: "pending", publishedAt: null, releaseId, urlRecordId: null }
+    : { releaseId }
+
 /** 按 (editionId, siteId) 更新行；行不存在是静默 no-op（调用方已先行校验成员性）。 */
 export const updateEditionSiteRow = async (
   db: ServerDb | EditionSitesTx,
@@ -98,6 +104,14 @@ export const updateEditionSiteRow = async (
  * edition_sites 有行且未撤下（publish_state <> 'unpublished'）的站点，
  * 顺序与 desired 一致。发布扇出与审批 URL 预留共用它。
  */
+export const activeMemberSiteIdsOf = (
+  desired: readonly number[],
+  rows: readonly { readonly publishState: string; readonly siteId: number }[],
+): number[] => {
+  const stateBySite = new Map(rows.map((row) => [row.siteId, row.publishState]))
+  return desired.filter((id) => stateBySite.has(id) && stateBySite.get(id) !== "unpublished")
+}
+
 export const memberSiteIdsOf = async (
   db: ServerDb | EditionSitesTx,
   editionId: number,
@@ -108,8 +122,7 @@ export const memberSiteIdsOf = async (
     .select({ publishState: editionSites.publishState, siteId: editionSites.siteId })
     .from(editionSites)
     .where(and(eq(editionSites.editionId, editionId), inArray(editionSites.siteId, desired)))
-  const stateBySite = new Map(rows.map((row) => [row.siteId, row.publishState]))
-  return desired.filter((id) => stateBySite.get(id) !== "unpublished")
+  return activeMemberSiteIdsOf(desired, rows)
 }
 
 /** 编译快照选文谓词：该站成员（未撤下）且 latest 版本行可编译。 */

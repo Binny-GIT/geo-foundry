@@ -200,16 +200,9 @@ const advanceEditionToPublished = async (
   if (row === null || row.publishState === "unpublished") {
     throw new ReleaseRegistryError("RELEASE_EDITION_SITE_MISMATCH", String(input.editionId))
   }
-  if (row.publishState === "published") {
-    if (row.releaseId !== input.receipt.releaseId) {
-      throw new ReleaseRegistryError("RELEASE_EDITION_NOT_COMPILED", String(input.editionId))
-    }
-    return
-  }
   if (row.releaseId !== input.receipt.releaseId) {
     throw new ReleaseRegistryError("RELEASE_EDITION_NOT_COMPILED", String(input.editionId))
   }
-  const status = version.workflowStatus ?? "draft"
   const creator = await loadPublishOperationCreator(tx, input.operationId)
   const creatorTenant =
     typeof creator.actor.tenantId === "number"
@@ -227,6 +220,8 @@ const advanceEditionToPublished = async (
   ) {
     throw new ReleaseRegistryError("RELEASE_PUBLISH_AUTHORIZATION_INVALID", input.operationId)
   }
+  if (row.publishState === "published") return
+  const status = version.workflowStatus ?? "draft"
   if (status === "published") {
     // 他站已先发布：本站只更新行与 URL，文章级状态不动。
     await updateEditionSiteRow(tx, {

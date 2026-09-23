@@ -12,8 +12,6 @@
     "lint": "biome lint --config-path ../../biome.json .",
     "start": "node dist/main.js",
     "test": "vitest run --configLoader runner test/unit",
-    "test:integration": "node --input-type=module --eval \"\"",
-    "test:e2e": "node --input-type=module --eval \"\"",
     "typecheck": "tsc --noEmit --project tsconfig.json"
   },
   "dependencies": {

@@ -28,13 +28,8 @@ import type { DeliveryRuntime } from "./runtime/delivery-runtime.js"
 export type CreateDeliveryAppOptions = {
   /** 测试用可注入时钟；生产默认 Date.now。 */
   readonly clock?: () => number
-  /**
-   * 对外公网地址（如 `https://geo-delivery-mk-dev.aixllent.com`），用于把
-   * JSON/HTML 里的站内媒体引用改写为绝对地址。不传时按请求的
-   * X-Forwarded-Proto / X-Forwarded-Host / Host 头即时推导，兼容直连
-   * 与经 Cloudflare 隧道两种拓扑。
-   */
-  readonly publicOrigin?: string
+  /** 对外公网地址，用于把 JSON/HTML 里的站内媒体引用改写为绝对地址。 */
+  readonly publicOrigin: string
   /** 测试用可注入配额计数器；生产默认新建一个进程内单例。 */
   readonly quota?: QuotaTracker
   readonly runtime: DeliveryRuntime
@@ -60,18 +55,6 @@ const decodeSegment = (value: string): string => {
 const firstHeaderValue = (value: string | readonly string[] | undefined): string | undefined => {
   if (value === undefined) return undefined
   return Array.isArray(value) ? value[0] : (value as string)
-}
-
-const originOf = (request: Request, publicOrigin: string | undefined): string => {
-  if (publicOrigin !== undefined) return publicOrigin
-  const forwardedProto = firstHeaderValue(request.headers["x-forwarded-proto"])?.split(",")[0]?.trim()
-  const forwardedHost = firstHeaderValue(request.headers["x-forwarded-host"])?.split(",")[0]?.trim()
-  const scheme = forwardedProto !== undefined && forwardedProto.length > 0 ? forwardedProto : "http"
-  const host =
-    forwardedHost !== undefined && forwardedHost.length > 0
-      ? forwardedHost
-      : (firstHeaderValue(request.headers["host"]) ?? "localhost")
-  return `${scheme}://${host}`
 }
 
 const mediaBaseUrlOf = (origin: string, host: string): string =>
@@ -152,18 +135,25 @@ const authorizeOrRespond = (
   respondUnauthorized: (status: number, code: string, extra?: Record<string, string>) => void,
 ): AuthOutcome => {
   const decision = authorizeSiteRequest(siteKeyring, host, authorizationHeader, now)
+  if (decision.kind !== "ok") {
+    const normalizedHost = host.trim().toLowerCase()
+    const failureBucket = siteKeyring.has(normalizedHost) ? normalizedHost : "unknown-host"
+    const check = quota.consume(`auth-failure\u0000${failureBucket}`, 30, now)
+    if (!check.allowed) {
+      respondUnauthorized(429, "DELIVERY_AUTH_RATE_LIMITED", {
+        "Retry-After": String(check.retryAfterSeconds),
+      })
+      return { ok: false }
+    }
+  }
   switch (decision.kind) {
     case "missing-credentials":
       respondUnauthorized(401, "DELIVERY_AUTH_REQUIRED", { "WWW-Authenticate": "Bearer" })
       return { ok: false }
     case "invalid-key":
-      respondUnauthorized(403, "DELIVERY_AUTH_KEY_INVALID")
-      return { ok: false }
     case "revoked":
-      respondUnauthorized(403, "DELIVERY_AUTH_KEY_REVOKED")
-      return { ok: false }
     case "expired":
-      respondUnauthorized(403, "DELIVERY_AUTH_KEY_EXPIRED")
+      respondUnauthorized(403, "DELIVERY_AUTH_KEY_INVALID")
       return { ok: false }
     case "ok": {
       const bucketKey = quotaBucketKeyOf(host, decision.entry)
@@ -203,7 +193,12 @@ export const createDeliveryApp = (options: CreateDeliveryAppOptions): Applicatio
         sendJson(
           response,
           result.status,
-          { bodyHtml: renderBodyHtml(renderPage(document)), document, releaseId: result.releaseId, siteId: result.siteId },
+          {
+            bodyHtml: renderBodyHtml(renderPage(document)),
+            document,
+            releaseId: result.releaseId,
+            siteId: result.siteId,
+          },
           REVALIDATE,
           { "X-Geo-Release-Id": result.releaseId },
         )
@@ -230,7 +225,11 @@ export const createDeliveryApp = (options: CreateDeliveryAppOptions): Applicatio
         sendJson(
           response,
           result.status,
-          { error: { code: "DELIVERY_PAGE_GONE" }, releaseId: result.releaseId, siteId: result.siteId },
+          {
+            error: { code: "DELIVERY_PAGE_GONE" },
+            releaseId: result.releaseId,
+            siteId: result.siteId,
+          },
           NO_STORE,
           { "X-Geo-Release-Id": result.releaseId },
         )
@@ -341,7 +340,10 @@ export const createDeliveryApp = (options: CreateDeliveryAppOptions): Applicatio
           response,
           result.status,
           { "Cache-Control": NO_STORE },
-          statusShellNode("Temporarily unavailable", "The published site is temporarily unavailable."),
+          statusShellNode(
+            "Temporarily unavailable",
+            "The published site is temporarily unavailable.",
+          ),
         )
         return
     }
@@ -366,8 +368,11 @@ export const createDeliveryApp = (options: CreateDeliveryAppOptions): Applicatio
 
       const now = clock()
       const authorizationHeader = firstHeaderValue(request.headers["authorization"])
-      const respondUnauthorized = (status: number, code: string, extra?: Record<string, string>): void =>
-        sendJson(response, status, { error: { code } }, NO_STORE, extra)
+      const respondUnauthorized = (
+        status: number,
+        code: string,
+        extra?: Record<string, string>,
+      ): void => sendJson(response, status, { error: { code } }, NO_STORE, extra)
 
       const jsonPageMatch = JSON_PAGE_PATTERN.exec(pathname)
       if (jsonPageMatch !== null) {
@@ -383,7 +388,7 @@ export const createDeliveryApp = (options: CreateDeliveryAppOptions): Applicatio
         if (!outcome.ok) return
         const rest = jsonPageMatch[2]
         const sitePathname = rest === undefined || rest.length === 0 ? "/" : rest
-        await handleJsonPage(response, host, sitePathname, originOf(request, options.publicOrigin))
+        await handleJsonPage(response, host, sitePathname, options.publicOrigin)
         return
       }
 
@@ -432,7 +437,7 @@ export const createDeliveryApp = (options: CreateDeliveryAppOptions): Applicatio
         respondUnauthorized,
       )
       if (!outcome.ok) return
-      await handleHtmlFallback(response, host, pathname, originOf(request, options.publicOrigin))
+      await handleHtmlFallback(response, host, pathname, options.publicOrigin)
     } catch {
       if (response.headersSent) {
         response.end()

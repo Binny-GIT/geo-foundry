@@ -11,7 +11,12 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import { createDeliveryApp } from "../../src/app.js"
 import { parseSiteKeyring } from "../../src/config/site-keyring.js"
 import { createDeliveryRuntime } from "../../src/runtime/delivery-runtime.js"
-import { buildSiteRelease, fixtureMediaBytes, installRouting, MemoryObjectReader } from "./fixtures.js"
+import {
+  buildSiteRelease,
+  fixtureMediaBytes,
+  installRouting,
+  MemoryObjectReader,
+} from "./fixtures.js"
 
 const VALID_KEY = "valid-site-a-key-0000000000"
 const REVOKED_KEY = "revoked-site-a-key-000000000"
@@ -25,7 +30,12 @@ const keyring = parseSiteKeyring({
       keys: [
         { expiresAt: null, key: VALID_KEY, quotaPerMinute: 1000, status: "active" },
         { expiresAt: null, key: REVOKED_KEY, quotaPerMinute: 1000, status: "revoked" },
-        { expiresAt: "2020-01-01T00:00:00.000Z", key: EXPIRED_KEY, quotaPerMinute: 1000, status: "active" },
+        {
+          expiresAt: "2020-01-01T00:00:00.000Z",
+          key: EXPIRED_KEY,
+          quotaPerMinute: 1000,
+          status: "active",
+        },
         { expiresAt: null, key: LOW_QUOTA_KEY, quotaPerMinute: 1, status: "active" },
       ],
     },
@@ -46,10 +56,16 @@ const setup = async () => {
     store,
   })
   store.put(release.pointerKey, release.pointerBody)
-  await installRouting(store, "routing-v1", [{ canonical: true, host: "site-a.test", siteId: "site-a" }])
+  await installRouting(store, "routing-v1", [
+    { canonical: true, host: "site-a.test", siteId: "site-a" },
+  ])
 
   const runtime = createDeliveryRuntime({ store })
-  const app = createDeliveryApp({ publicOrigin: "https://geo-delivery.test", runtime, siteKeyring: keyring })
+  const app = createDeliveryApp({
+    publicOrigin: "https://geo-delivery.test",
+    runtime,
+    siteKeyring: keyring,
+  })
   const server = app.listen(0, "127.0.0.1")
   await new Promise<void>((resolveReady) => server.once("listening", () => resolveReady()))
   const address = server.address()
@@ -79,6 +95,20 @@ describe("createDeliveryApp routes", () => {
     expect(await response.json()).toEqual({ status: "ok" })
   })
 
+  it("uses the configured media origin even when forwarded headers are forged", async () => {
+    const response = await fetch(`${baseUrl()}/v1/sites/site-a.test/pages/guides/article`, {
+      headers: {
+        ...authed(),
+        "X-Forwarded-Host": "attacker.test",
+        "X-Forwarded-Proto": "https",
+      },
+    })
+    expect(response.status).toBe(200)
+    const body = (await response.json()) as { bodyHtml: string }
+    expect(body.bodyHtml).toContain("https://geo-delivery.test/v1/sites/site-a.test/media/map.webp")
+    expect(body.bodyHtml).not.toContain("attacker.test")
+  })
+
   it("serves the JSON page export with the PageDocument, rendered body HTML, and absolute media URLs", async () => {
     const response = await fetch(`${baseUrl()}/v1/sites/site-a.test/pages/guides/article`, {
       headers: authed(),
@@ -100,7 +130,9 @@ describe("createDeliveryApp routes", () => {
   })
 
   it("returns 410 for a gone pathname and 404 with a rendered not-found document for an unmapped one", async () => {
-    const gone = await fetch(`${baseUrl()}/v1/sites/site-a.test/pages/retired`, { headers: authed() })
+    const gone = await fetch(`${baseUrl()}/v1/sites/site-a.test/pages/retired`, {
+      headers: authed(),
+    })
     expect(gone.status).toBe(410)
 
     const missing = await fetch(`${baseUrl()}/v1/sites/site-a.test/pages/does-not-exist`, {
@@ -112,14 +144,18 @@ describe("createDeliveryApp routes", () => {
   })
 
   it("serves the sitemap with the release id and XML content type", async () => {
-    const response = await fetch(`${baseUrl()}/v1/sites/site-a.test/sitemap.xml`, { headers: authed() })
+    const response = await fetch(`${baseUrl()}/v1/sites/site-a.test/sitemap.xml`, {
+      headers: authed(),
+    })
     expect(response.status).toBe(200)
     expect(response.headers.get("content-type")).toBe("application/xml")
     expect(await response.text()).toContain('data-release="release-a-v1"')
   })
 
   it("serves a media object byte-for-byte with a long cache header once the manifest hash verifies", async () => {
-    const response = await fetch(`${baseUrl()}/v1/sites/site-a.test/media/map.webp`, { headers: authed() })
+    const response = await fetch(`${baseUrl()}/v1/sites/site-a.test/media/map.webp`, {
+      headers: authed(),
+    })
     expect(response.status).toBe(200)
     expect(response.headers.get("content-type")).toBe("image/webp")
     expect(response.headers.get("cache-control")).toBe("public, max-age=31536000, immutable")
@@ -150,18 +186,18 @@ describe("createDeliveryApp routes", () => {
     expect(response.status).toBe(403)
   })
 
-  it("rejects a revoked key as 403 per the credential file's status field", async () => {
-    const response = await fetch(`${baseUrl()}/v1/sites/site-a.test/pages/guides/article`, {
-      headers: authed(REVOKED_KEY),
-    })
-    expect(response.status).toBe(403)
-  })
-
-  it("rejects an expired key as 403 per the credential file's expiresAt field", async () => {
-    const response = await fetch(`${baseUrl()}/v1/sites/site-a.test/pages/guides/article`, {
-      headers: authed(EXPIRED_KEY),
-    })
-    expect(response.status).toBe(403)
+  it("does not reveal whether a rejected key is unknown, revoked or expired", async () => {
+    const responses = await Promise.all(
+      ["not-a-real-key", REVOKED_KEY, EXPIRED_KEY].map((token) =>
+        fetch(`${baseUrl()}/v1/sites/site-a.test/pages/guides/article`, {
+          headers: authed(token),
+        }),
+      ),
+    )
+    for (const response of responses) {
+      expect(response.status).toBe(403)
+      expect(await response.json()).toEqual({ error: { code: "DELIVERY_AUTH_KEY_INVALID" } })
+    }
   })
 
   it("returns 404 for a host the release store does not know, even with a key the keyring accepts", async () => {
@@ -173,8 +209,24 @@ describe("createDeliveryApp routes", () => {
     expect(body.error.code).toBe("DELIVERY_UNKNOWN_HOST")
   })
 
+  it("limits failed authentication attempts per known site", async () => {
+    const responses = []
+    for (let attempt = 0; attempt < 31; attempt += 1) {
+      responses.push(
+        await fetch(`${baseUrl()}/v1/sites/site-a.test/sitemap.xml`, {
+          headers: authed(`invalid-${attempt}`),
+        }),
+      )
+    }
+    expect(responses[0]?.status).toBe(403)
+    expect(responses[30]?.status).toBe(429)
+    expect(responses[30]?.headers.get("retry-after")).not.toBeNull()
+  })
+
   it("enforces the per-key quota from the credential file and returns 429 once exceeded", async () => {
-    const first = await fetch(`${baseUrl()}/v1/sites/site-a.test/sitemap.xml`, { headers: authed(LOW_QUOTA_KEY) })
+    const first = await fetch(`${baseUrl()}/v1/sites/site-a.test/sitemap.xml`, {
+      headers: authed(LOW_QUOTA_KEY),
+    })
     expect(first.status).toBe(200)
     const second = await fetch(`${baseUrl()}/v1/sites/site-a.test/sitemap.xml`, {
       headers: authed(LOW_QUOTA_KEY),

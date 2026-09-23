@@ -47,6 +47,7 @@ SITE_C=""
 # 必须先删依赖表行（仅按夹具站 id 精确删除，不碰业务行）。
 purge_fixture_site() {
   PSQL "DELETE FROM geo_foundry.url_records WHERE site_id=$1" >/dev/null
+  PSQL "DELETE FROM geo_foundry.edition_sites WHERE site_id=$1" >/dev/null
   PSQL "DELETE FROM geo_foundry.operations WHERE site_id=$1" >/dev/null
   PSQL "DELETE FROM geo_foundry.releases WHERE site_id=$1" >/dev/null
   PSQL "DELETE FROM geo_foundry.domains WHERE site_id=$1" >/dev/null
@@ -61,26 +62,18 @@ trap cleanup_site_c EXIT
 DOMAIN=$(Q "hostname FROM geo_foundry.domains WHERE site_id=$SITE AND role='canonical' AND status='active' LIMIT 1")
 [ -n "$DOMAIN" ] && ok "site $SITE canonical domain=$DOMAIN" || { bad "site $SITE 无 canonical 域名"; exit 1; }
 
-# 上一轮中断残留自清理（按夹具命名精确删除，不碰业务行）
-for ID in $(PSQL "SELECT id FROM geo_foundry.sites WHERE name='E2E A2 NoDomain'"); do
-  purge_fixture_site "$ID"
-done
+# 仅清理本次创建的站点；历史夹具无法证明归属时必须中止。
+OLD_FIXTURES=$(PSQL "SELECT id FROM geo_foundry.sites WHERE name='E2E A2 NoDomain'")
+[ -z "$OLD_FIXTURES" ] || { bad "old fixture sites need manual review: $OLD_FIXTURES"; exit 1; }
 
-# 与 e2e-real-publish 相同的幂等预清理：375 站内无 passed 评估的
-# approved/compiled/published 文章会卡整站编译质量门禁。
+# 站点内其他未评估文章会阻断整站编译；只报错，不替用户改动其工作流。
 STALE=$(Q "ce.id FROM geo_foundry.content_editions ce
   JOIN geo_foundry.edition_revisions ev ON ev.parent_id = ce.id AND ev.latest
   WHERE ev.site_id = $SITE AND ev.workflow_status IN ('approved','compiled','published')
     AND NOT EXISTS (SELECT 1 FROM geo_foundry.quality_assessments qa
       WHERE qa.edition_id = ce.id AND qa.state = 'passed')
   ORDER BY ce.id")
-for ID in $STALE; do
-  CODE=$(curl -s -o /tmp/ms-stale.json -w '%{http_code}' \
-    -X POST "$BASE/api/editions/$ID/workflow-transitions" -b /tmp/ms-r.jar \
-    -H 'Content-Type: application/json' \
-    -d '{"target":"archived","reason":"E2E 多站发布：清理无评估旧夹具"}')
-  [ "$CODE" = "200" ] && ok "stale fixture $ID archived" || bad "stale fixture $ID code=$CODE $(cat /tmp/ms-stale.json)"
-done
+[ -z "$STALE" ] || { bad "site $SITE has unassessed editions: $STALE"; exit 1; }
 
 SITE_C=$(PSQL "INSERT INTO geo_foundry.sites (name, tenant_id, locale, timezone, status)
   VALUES ('E2E A2 NoDomain', $TENANT, 'sv-SE', 'UTC', 'active') RETURNING id")
@@ -215,7 +208,7 @@ print("ok")' "$SLUG375" 2>/dev/null)
   [ "$DOC_OK" = "ok" ] && ok "375 manifest: article doc present + objects well-formed ($SLUG375)" \
     || bad "manifest doc/structure check failed for $SLUG375"
 else
-  echo "SKIP: object store manifest check (no aws CLI / S3 credentials)"
+  bad "object store manifest unavailable (check S3 reader and credentials)"
 fi
 
 # ---------- 5. 修复 C 站 canonical 域名 → 单站重试 ----------
@@ -224,10 +217,11 @@ PSQL "INSERT INTO geo_foundry.domains (hostname, site_id, tenant_id, role, statu
 ok "canonical domain added for site C"
 
 # 非成员站重试必须被拒
-PR=$(curl -s -X POST "$BASE/api/editions/$ED/publish-operations" -b /tmp/ms-p.jar \
+PR=$(curl -s -w '\n%{http_code}' -X POST "$BASE/api/editions/$ED/publish-operations" -b /tmp/ms-p.jar \
   -H 'Content-Type: application/json' -d '{"siteId":999999}')
-echo "$PR" | python3 -c 'import json,sys;assert json.load(sys.stdin)["error"]["code"]=="EDITION_WORKFLOW_SITE_NOT_ASSIGNED"' \
-  && ok "retry to non-member site rejected" || bad "non-member $PR"
+[ "$(echo "$PR" | tail -1)" = "409" ] && echo "$PR" | sed '$d' | \
+  python3 -c 'import json,sys;assert json.load(sys.stdin)["error"]["code"]=="EDITION_WORKFLOW_SITE_NOT_ASSIGNED"' \
+  && ok "retry to non-member site rejected (409)" || bad "non-member $PR"
 
 P2=$(curl -s -X POST "$BASE/api/editions/$ED/publish-operations" -b /tmp/ms-p.jar \
   -H 'Content-Type: application/json' -d "{\"siteId\":$SITE_C}")
@@ -265,6 +259,60 @@ OP_C2_SHA=$(Q "coalesce(result->>'manifestSha256','') FROM geo_foundry.operation
   && ok "C manifest sha consistent" || bad "sha mismatch C op=$OP_C2_SHA rel=$REL_C2_SHA"
 ROOT_ST2=$(Q "workflow_status FROM geo_foundry.content_editions WHERE id=$ED")
 [ "$ROOT_ST2" = "published" ] && ok "article stays published (second site did not re-transition)" || bad "root2=$ROOT_ST2"
+
+# ---------- 5.5. 两站重发布：后续站点也必须复位旧 published 行 ----------
+OLD_A_TIME=$(Q "extract(epoch from published_at) FROM geo_foundry.edition_sites WHERE edition_id=$ED AND site_id=$SITE")
+OLD_C_TIME=$(Q "extract(epoch from published_at) FROM geo_foundry.edition_sites WHERE edition_id=$ED AND site_id=$SITE_C")
+DM=$(curl -s -X POST "$BASE/api/editions/$ED/draft-from-published" -b /tmp/ms-e.jar \
+  -H 'Content-Type: application/json' -d '{"reason":"E2E multi-site republish"}')
+[ "$(st_of "$DM")" = "draft" ] && ok "two-site republish: draft created" || bad "two-site dfp $DM"
+curl -s -o /dev/null -X POST "$BASE/api/editions/$ED/workflow-transitions" -b /tmp/ms-e.jar \
+  -H 'Content-Type: application/json' -d '{"target":"review"}'
+RM=$(rev_of "$(draft "$ED")")
+AM=$(curl -s -X POST "$BASE/api/workspaces/reviewer/editions/$ED/approve" -b /tmp/ms-r.jar \
+  -H 'Content-Type: application/json' -H "x-request-id: ms-am-$TS" -H "idempotency-key: ms-approve-m-$TS" \
+  -d "{\"expectedRevision\":$RM}")
+[ "$(st_of "$AM")" = "approved" ] && ok "two-site republish: first approval" || bad "two-site approve $AM"
+# dfp 复位 revision 后仍会撞首条发布键；回弹一次使新周期的键不同。
+curl -s -o /dev/null -X POST "$BASE/api/editions/$ED/workflow-transitions" -b /tmp/ms-e.jar \
+  -H 'Content-Type: application/json' -d '{"target":"review"}'
+RM2=$(rev_of "$(draft "$ED")")
+AM2=$(curl -s -X POST "$BASE/api/workspaces/reviewer/editions/$ED/approve" -b /tmp/ms-r.jar \
+  -H 'Content-Type: application/json' -H "x-request-id: ms-am2-$TS" -H "idempotency-key: ms-approve-m2-$TS" \
+  -d "{\"expectedRevision\":$RM2}")
+[ "$(st_of "$AM2")" = "approved" ] && ok "two-site republish: revision bumped" || bad "two-site reapprove $AM2"
+IM=$(curl -s -H "$(auth)" "$BASE/api/internal/editions/$ED/input" | python3 -c 'import json,sys;print(json.load(sys.stdin)["inputHash"])')
+ASM=$(curl -s -X POST "$BASE/api/internal/editions/$ED/assessments" -H "$(auth)" \
+  -H 'Content-Type: application/json' -H "x-request-id: ms-asm-$TS" \
+  -d "{\"inputHash\":\"$IM\",\"issues\":[],\"modelId\":\"e2e-multi-site\",\"overall\":90,\"dimensions\":{\"content\":90,\"seo\":90,\"structure\":90},\"promptVersion\":\"e2e-1\",\"provider\":\"e2e\",\"state\":\"passed\",\"thresholdsHash\":\"$THRESH_HASH\"}")
+[ "$(echo "$ASM" | python3 -c 'import json,sys;print(json.load(sys.stdin)["assessmentId"]>0)')" = "True" ] \
+  && ok "two-site republish: assessment passed" || bad "two-site assessment $ASM"
+PM=$(curl -s -X POST "$BASE/api/editions/$ED/publish-operations" -b /tmp/ms-p.jar \
+  -H 'Content-Type: application/json' -d '{}')
+echo "publish-op(two-site republish): $PM"
+OP_AM=$(echo "$PM" | python3 -c 'import json,sys;d=json.load(sys.stdin);print([o for o in d["operations"] if o["siteId"]=='"$SITE"'][0]["operationId"])')
+OP_CM=$(echo "$PM" | python3 -c 'import json,sys;d=json.load(sys.stdin);print([o for o in d["operations"] if o["siteId"]=='"$SITE_C"'][0]["operationId"])')
+REL_AM=$(echo "$PM" | python3 -c 'import json,sys;d=json.load(sys.stdin);print([o for o in d["operations"] if o["siteId"]=='"$SITE"'][0]["releaseId"])')
+REL_CM=$(echo "$PM" | python3 -c 'import json,sys;d=json.load(sys.stdin);print([o for o in d["operations"] if o["siteId"]=='"$SITE_C"'][0]["releaseId"])')
+[ "$REL_AM" != "$REL375" ] && [ "$REL_CM" != "$REL_C2" ] \
+  && ok "two-site republish: both releases fresh" || bad "two-site releases $REL_AM $REL_CM"
+SM_A=""; SM_C=""
+for i in $(seq 1 40); do
+  SM_A=$(Q "state FROM geo_foundry.operations WHERE operation_id='$OP_AM'")
+  SM_C=$(Q "state FROM geo_foundry.operations WHERE operation_id='$OP_CM'")
+  { [ "$SM_A" = "succeeded" ] || [ "$SM_A" = "failed" ]; } && { [ "$SM_C" = "succeeded" ] || [ "$SM_C" = "failed" ]; } && break
+  sleep 3
+done
+[ "$SM_A" = "succeeded" ] && [ "$SM_C" = "succeeded" ] \
+  && ok "two-site republish: both operations succeeded" || bad "two-site states $SM_A $SM_C"
+for PAIR in "$SITE:$REL_AM:$OLD_A_TIME" "$SITE_C:$REL_CM:$OLD_C_TIME"; do
+  IFS=: read -r S R T <<< "$PAIR"
+  ROW=$(Q "publish_state||'|'||coalesce(release_id,'')||'|'||(extract(epoch from published_at) > $T)::text FROM geo_foundry.edition_sites WHERE edition_id=$ED AND site_id=$S")
+  [ "$ROW" = "published|$R|true" ] \
+    && ok "two-site republish: site $S status, release and time refreshed" || bad "two-site row $S=$ROW"
+done
+ST_M=$(Q "workflow_status FROM geo_foundry.edition_revisions WHERE parent_id=$ED AND latest=true")
+[ "$ST_M" = "published" ] && ok "two-site republish: latest article published" || bad "two-site latest=$ST_M"
 
 # ---------- 6. 单站文章 × 基线对照 ----------
 C2=$(python3 -c 'import json,sys;print(json.dumps({"title":sys.argv[1],"bodyMarkdown":sys.argv[2],"site":int(sys.argv[3])},ensure_ascii=False))' \
@@ -340,7 +388,7 @@ print("ok")' "$SLUG2" "$SITE" 2>/dev/null)
   [ "$DOC_OK2" = "ok" ] && ok "single manifest structural invariants hold (doc=$SLUG2)" \
     || bad "single manifest structure check failed"
 else
-  echo "SKIP: object store manifest check (no aws CLI / S3 credentials)"
+  bad "object store manifest unavailable (check S3 reader and credentials)"
 fi
 
 BASELINE=$(ls /tmp/a2-baseline-*.json 2>/dev/null | head -1)

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest"
 
-import { authorizeSiteRequest, bearerTokenOf, QuotaTracker, quotaBucketKeyOf } from "../../src/auth/site-auth.js"
+import {
+  authorizeSiteRequest,
+  bearerTokenOf,
+  QuotaTracker,
+  quotaBucketKeyOf,
+} from "../../src/auth/site-auth.js"
 import { parseSiteKeyring } from "../../src/config/site-keyring.js"
 
 const NOW = Date.parse("2026-09-23T00:00:00.000Z")
@@ -10,7 +15,12 @@ const keyring = parseSiteKeyring({
     "site-a.test": {
       keys: [
         { expiresAt: null, key: "active-key-for-site-a-0000", quotaPerMinute: 5, status: "active" },
-        { expiresAt: null, key: "revoked-key-for-site-a-0000", quotaPerMinute: 5, status: "revoked" },
+        {
+          expiresAt: null,
+          key: "revoked-key-for-site-a-0000",
+          quotaPerMinute: 5,
+          status: "revoked",
+        },
         {
           expiresAt: "2020-01-01T00:00:00.000Z",
           key: "expired-key-for-site-a-0000",
@@ -47,6 +57,11 @@ describe("authorizeSiteRequest", () => {
     expect(authorizeSiteRequest(keyring, "site-a.test", "Bearer nope", NOW)).toEqual({
       kind: "invalid-key",
     })
+    expect(
+      authorizeSiteRequest(keyring, "site-a.test", "Bearer active-key-for-site-a-0001", NOW),
+    ).toEqual({
+      kind: "invalid-key",
+    })
   })
 
   it("rejects a token for a host that has no keyring entry at all", () => {
@@ -56,19 +71,28 @@ describe("authorizeSiteRequest", () => {
   })
 
   it("rejects a revoked key per the credential file's own status field", () => {
-    expect(authorizeSiteRequest(keyring, "site-a.test", "Bearer revoked-key-for-site-a-0000", NOW)).toEqual({
+    expect(
+      authorizeSiteRequest(keyring, "site-a.test", "Bearer revoked-key-for-site-a-0000", NOW),
+    ).toEqual({
       kind: "revoked",
     })
   })
 
   it("rejects a key past its expiresAt", () => {
-    expect(authorizeSiteRequest(keyring, "site-a.test", "Bearer expired-key-for-site-a-0000", NOW)).toEqual({
+    expect(
+      authorizeSiteRequest(keyring, "site-a.test", "Bearer expired-key-for-site-a-0000", NOW),
+    ).toEqual({
       kind: "expired",
     })
   })
 
   it("accepts an active, unexpired key and is case-insensitive on the host", () => {
-    const decision = authorizeSiteRequest(keyring, "SITE-A.TEST", "Bearer active-key-for-site-a-0000", NOW)
+    const decision = authorizeSiteRequest(
+      keyring,
+      "SITE-A.TEST",
+      "Bearer active-key-for-site-a-0000",
+      NOW,
+    )
     expect(decision.kind).toBe("ok")
     if (decision.kind !== "ok") throw new Error("expected ok")
     expect(decision.entry.quotaPerMinute).toBe(5)

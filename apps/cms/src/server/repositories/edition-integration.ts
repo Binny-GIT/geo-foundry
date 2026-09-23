@@ -22,7 +22,7 @@ import {
   type WorkflowClaims,
   workflowActorOf,
 } from "./edition-workflow"
-import { editionSiteRowOf, updateEditionSiteRow } from "./edition-sites"
+import { compileSitePatchOf, editionSiteRowOf, updateEditionSiteRow } from "./edition-sites"
 import type { EntityScope } from "./entities"
 
 /* guards 的错误映射已覆盖 EditionWorkflowError；沿用保证状态码契约不变。 */
@@ -201,10 +201,10 @@ export const writeGeneratedDraft = async (
  * - 证据（edition.compile.recorded 审计 detail，含 siteId）命中同 (站点, release)
  *   且哈希全匹配 → 幂等返回，不动任何行；
  * - 首个站点（文章 approved）→ 证据版本行 + 文章级 approved→compiled 转移，
- *   并复位本站行（publish_state 回 pending、清 url_record_id/published_at）——
- *   新编译周期边界，保证重发布周期能完整重走 published；
+ *   并复位本站行（publish_state 回 pending、清 url_record_id/published_at）；
  * - 后续站点（文章 compiled，或他站已 published 的单站重试）→ 只落证据版本行
- *   （单值 compiledRelease 写最近一次，兼容旧读取方），文章状态/修订不动。
+ *   （单值 compiledRelease 写最近一次，兼容旧读取方），文章状态/修订不动；
+ *   若本站旧行已 published 且 release 变化，也要复位本站行。
  * 每站的 release 记在 edition_sites 行上，发布回执段按该行守卫。
  */
 export const recordCompileResult = async (
@@ -318,7 +318,7 @@ export const recordCompileResult = async (
     }
     await updateEditionSiteRow(tx, {
       editionId: input.editionId,
-      patch: { releaseId: input.releaseId },
+      patch: compileSitePatchOf(row, input.releaseId),
       siteId: input.siteId,
     })
     return { releaseId: input.releaseId, workflowStatus: status as ContentEditionState }

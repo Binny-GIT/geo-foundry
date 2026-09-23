@@ -21,7 +21,7 @@ export type DeliveryS3Options = {
 export type DeliveryEnvironment = {
   readonly hostname: string
   readonly port: number
-  readonly publicOrigin: string | null
+  readonly publicOrigin: string
   readonly s3: DeliveryS3Options
   readonly siteKeyringFile: string
 }
@@ -59,7 +59,10 @@ export const parseDeliveryS3Options = (
   accessKeyId: requiredCredentialOf(environment, "GEO_FOUNDRY_S3_ACCESS_KEY"),
   bucket: environment["GEO_FOUNDRY_S3_BUCKET"]?.trim() || "geo-foundry",
   endpointHost: environment["GEO_FOUNDRY_S3_ENDPOINT"]?.trim() || "127.0.0.1",
-  endpointPort: positiveIntOf(environment["GEO_FOUNDRY_S3_PORT"]?.trim() || "9000", "GEO_FOUNDRY_S3_PORT"),
+  endpointPort: positiveIntOf(
+    environment["GEO_FOUNDRY_S3_PORT"]?.trim() || "9000",
+    "GEO_FOUNDRY_S3_PORT",
+  ),
   keyPrefix: (environment["GEO_FOUNDRY_S3_KEY_PREFIX"]?.trim() || "objects").replace(/\/+$/, ""),
   secretAccessKey: requiredCredentialOf(environment, "GEO_FOUNDRY_S3_SECRET_KEY"),
   timeoutMs: timeoutMsOf(environment["GEO_FOUNDRY_S3_TIMEOUT_MS"]?.trim() || "5000"),
@@ -69,13 +72,22 @@ export const parseDeliveryS3Options = (
 export const parseDeliveryEnvironment = (
   environment: Record<string, string | undefined>,
 ): DeliveryEnvironment => {
-  const publicOrigin = environment["GEO_FOUNDRY_DELIVERY_PUBLIC_ORIGIN"]?.trim()
+  const publicOrigin = required(environment, "GEO_FOUNDRY_DELIVERY_PUBLIC_ORIGIN")
+  let normalizedOrigin: string
+  try {
+    const url = new URL(publicOrigin)
+    if (url.protocol !== "https:" && url.protocol !== "http:") throw new Error("invalid origin")
+    if (url.username || url.password || url.pathname !== "/" || url.search || url.hash) {
+      throw new Error("invalid origin")
+    }
+    normalizedOrigin = url.origin
+  } catch {
+    throw new Error("DELIVERY_ENV_INVALID:GEO_FOUNDRY_DELIVERY_PUBLIC_ORIGIN")
+  }
   return {
     hostname: environment["HOSTNAME"]?.trim() || "127.0.0.1",
     port: positiveIntOf(environment["PORT"]?.trim() || "3091", "PORT"),
-    publicOrigin: publicOrigin === undefined || publicOrigin.length === 0
-      ? null
-      : publicOrigin.replace(/\/+$/, ""),
+    publicOrigin: normalizedOrigin,
     s3: parseDeliveryS3Options(environment),
     siteKeyringFile: required(environment, "GEO_FOUNDRY_DELIVERY_SITE_KEYRING_FILE"),
   }
