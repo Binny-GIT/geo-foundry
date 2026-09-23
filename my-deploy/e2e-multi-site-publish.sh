@@ -43,9 +43,17 @@ rev_of() { echo "$1" | python3 -c 'import json,sys;print(json.load(sys.stdin)["w
 draft() { curl -s -b /tmp/ms-e.jar "$BASE/api/content-editions/$1?draft=true&depth=0"; }
 
 SITE_C=""
+# 夹具站删除：sites 被 domains/url_records/releases/operations 外键引用，
+# 必须先删依赖表行（仅按夹具站 id 精确删除，不碰业务行）。
+purge_fixture_site() {
+  PSQL "DELETE FROM geo_foundry.url_records WHERE site_id=$1" >/dev/null
+  PSQL "DELETE FROM geo_foundry.operations WHERE site_id=$1" >/dev/null
+  PSQL "DELETE FROM geo_foundry.releases WHERE site_id=$1" >/dev/null
+  PSQL "DELETE FROM geo_foundry.domains WHERE site_id=$1" >/dev/null
+  PSQL "DELETE FROM geo_foundry.sites WHERE id=$1 AND name='E2E A2 NoDomain'" >/dev/null
+}
 cleanup_site_c() {
-  [ -n "$SITE_C" ] && PSQL "DELETE FROM geo_foundry.domains WHERE site_id=$SITE_C AND hostname LIKE 'e2e-a2-%'" >/dev/null
-  [ -n "$SITE_C" ] && PSQL "DELETE FROM geo_foundry.sites WHERE id=$SITE_C AND name='E2E A2 NoDomain'" >/dev/null
+  [ -n "$SITE_C" ] && purge_fixture_site "$SITE_C"
 }
 trap cleanup_site_c EXIT
 
@@ -54,8 +62,9 @@ DOMAIN=$(Q "hostname FROM geo_foundry.domains WHERE site_id=$SITE AND role='cano
 [ -n "$DOMAIN" ] && ok "site $SITE canonical domain=$DOMAIN" || { bad "site $SITE 无 canonical 域名"; exit 1; }
 
 # 上一轮中断残留自清理（按夹具命名精确删除，不碰业务行）
-PSQL "DELETE FROM geo_foundry.domains WHERE hostname LIKE 'e2e-a2-%'" >/dev/null
-PSQL "DELETE FROM geo_foundry.sites WHERE name='E2E A2 NoDomain'" >/dev/null
+for ID in $(PSQL "SELECT id FROM geo_foundry.sites WHERE name='E2E A2 NoDomain'"); do
+  purge_fixture_site "$ID"
+done
 
 # 与 e2e-real-publish 相同的幂等预清理：375 站内无 passed 评估的
 # approved/compiled/published 文章会卡整站编译质量门禁。
@@ -96,7 +105,7 @@ s3_get() { # key out-file
 
 # ---------- 1. 两站文章到 approved ----------
 C1=$(python3 -c 'import json,sys;print(json.dumps({"title":sys.argv[1],"bodyMarkdown":sys.argv[2],"site":int(sys.argv[3]),"sites":[int(sys.argv[4])]},ensure_ascii=False))' \
-  "E2E A2 多站发布 $TS" "A2 多站扇出验证正文：两站各一条发布操作。" "$SITE" "$SITE_C" | \
+  "E2E A2 多站发布 MS $TS" "A2 多站扇出验证正文：两站各一条发布操作。" "$SITE" "$SITE_C" | \
   curl -s -X POST "$BASE/api/content-editions?draft=true&depth=0" -b /tmp/ms-e.jar \
     -H 'Content-Type: application/json' -d @-)
 ED=$(echo "$C1" | python3 -c 'import json,sys;print(json.load(sys.stdin)["doc"]["id"])')
@@ -259,7 +268,7 @@ ROOT_ST2=$(Q "workflow_status FROM geo_foundry.content_editions WHERE id=$ED")
 
 # ---------- 6. 单站文章 × 基线对照 ----------
 C2=$(python3 -c 'import json,sys;print(json.dumps({"title":sys.argv[1],"bodyMarkdown":sys.argv[2],"site":int(sys.argv[3])},ensure_ascii=False))' \
-  "E2E A2 单站基线对照 $TS" "A2 单站行为必须与基线一致。" "$SITE" | \
+  "E2E A2 单站基线对照 SS $TS" "A2 单站行为必须与基线一致。" "$SITE" | \
   curl -s -X POST "$BASE/api/content-editions?draft=true&depth=0" -b /tmp/ms-e.jar \
     -H 'Content-Type: application/json' -d @-)
 ED2=$(echo "$C2" | python3 -c 'import json,sys;print(json.load(sys.stdin)["doc"]["id"])')

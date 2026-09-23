@@ -86,7 +86,7 @@ REL="rel-e2e-sp-$TS"
 SHA=$(python3 -c "import hashlib;print(hashlib.sha256(b'e2e-scheduled-publish-$TS').hexdigest())")
 CR=$(curl -s -X POST "$BASE/api/internal/editions/$ED/compile-results" -H "$(auth)" \
   -H 'Content-Type: application/json' -H "x-request-id: sp-c1-$TS" -H "x-operation-id: $OP" \
-  -d "{\"manifestSha256\":\"$SHA\",\"objectCount\":2,\"releaseId\":\"$REL\",\"totalBytes\":2048}")
+  -d "{\"manifestSha256\":\"$SHA\",\"objectCount\":2,\"releaseId\":\"$REL\",\"siteId\":$SITE,\"totalBytes\":2048}")
 echo "$CR" | python3 -c '
 import json,sys
 d=json.load(sys.stdin)
