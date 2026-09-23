@@ -2,8 +2,8 @@
  * 发布回执登记的 Drizzle 实现（worker 上传成功 / 回滚成功后调用）。
  * 与旧 services/release-registry.ts 相同的不变量：
  * - release 行 revision CAS，状态 current/superseded/rolled_back；
- * - 文章 compiled→published 由 publish operation 的**创建者**（publisher）执行，
- *   而非上报回执的 content-service；
+ * - 文章 compiled→published 由 publish operation 的**创建者**（publisher /
+ *   super-admin，两者不区分）执行，而非上报回执的 content-service；
  * - 已预留 URL 在同一事务内激活。
  */
 
@@ -132,7 +132,7 @@ const assertReleaseIdentity = (
 
 type CreatorActor = { kind: unknown; role: unknown; tenantId: unknown; userId: unknown }
 
-/** 从 operation 审计中恢复最初授权发布的身份（publisher），不是上报回执的服务身份。 */
+/** 从 operation 审计中恢复最初授权发布的身份（publisher / super-admin），不是上报回执的服务身份。 */
 const loadPublishOperationCreator = async (
   tx: Tx,
   operationId: string,
@@ -153,6 +153,27 @@ const loadPublishOperationCreator = async (
     throw new ReleaseRegistryError("RELEASE_PUBLISH_AUTHORIZATION_INVALID", operationId)
   }
   return { actor: actor as CreatorActor, operationType: row.operationType }
+}
+
+/**
+ * 发布回执段的创建者授权规则（2026-09-23 Mark 定调：publisher /
+ * super-admin 不区分）：操作类型必须是 publish，创建者角色必须是
+ * publisher（租户绑定，须与文章同租户）或 super-admin（跨租户、无
+ * 租户绑定）。机器身份与其他真人角色一律拒绝。
+ */
+export const publishCreatorAuthorized = (input: {
+  readonly creatorRole: unknown
+  readonly creatorTenant: number | null
+  readonly editionTenantId: number | null
+  readonly operationType: string
+}): boolean => {
+  const isSuperAdmin = input.creatorRole === "super-admin"
+  const isPublisher = input.creatorRole === "publisher"
+  return (
+    input.operationType === "publish" &&
+    (isPublisher || isSuperAdmin) &&
+    (isSuperAdmin || String(input.creatorTenant) === String(input.editionTenantId))
+  )
 }
 
 const advanceEditionToPublished = async (
@@ -185,17 +206,21 @@ const advanceEditionToPublished = async (
         ? Number(creator.actor.tenantId)
         : null
   if (
-    creator.operationType !== "publish" ||
-    creator.actor.role !== "publisher" ||
-    String(creatorTenant) !== String(version.tenantId)
+    !publishCreatorAuthorized({
+      creatorRole: creator.actor.role,
+      creatorTenant,
+      editionTenantId: version.tenantId,
+      operationType: creator.operationType,
+    })
   ) {
     throw new ReleaseRegistryError("RELEASE_PUBLISH_AUTHORIZATION_INVALID", input.operationId)
   }
+  const creatorIsSuperAdmin = creator.actor.role === "super-admin"
   await transitionEditionWithinTx(tx, {
     actor: workflowActorOf({
       kind: "user",
-      role: "publisher",
-      tenantId: creatorTenant,
+      role: creatorIsSuperAdmin ? "super-admin" : "publisher",
+      tenantId: creatorIsSuperAdmin ? null : creatorTenant,
       userId: String(creator.actor.userId),
     }),
     editionId: input.editionId,

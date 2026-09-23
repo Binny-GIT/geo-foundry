@@ -5,10 +5,12 @@
 #   台账 manifest 哈希与 releases 行一致；
 # → 0b：图片上传 /api/media，正文引用 /api/media/file/<f>，
 #   release manifest 必须含 media/<f> 对象且哈希与上传字节一致。
+# → 追加：super-admin 提交的第二个发布周期（回执段角色不区分回归：
+#   publisher / super-admin 都放行，2026-09-23 定调），
 # 收尾用 draft-from-published → archived 还原现场（文章退出 delivery 列表），
 # 并清理媒体行与媒体对象。
 # 在 mk-dev 宿主机运行；需要 GF_E2E_EDITOR_PASSWORD / GF_E2E_ROOT_PASSWORD /
-# GF_E2E_PUBLISHER_PASSWORD（发布操作创建者必须是 publisher）。
+# GF_E2E_PUBLISHER_PASSWORD。
 # 前提：SITE 站点必须有 active canonical 域名（编译快照硬依赖）。
 set -uo pipefail
 BASE=http://127.0.0.1:3090
@@ -99,8 +101,8 @@ AS=$(curl -s -X POST "$BASE/api/internal/editions/$ED/assessments" -H "$(auth)" 
   && ok "quality assessment passed recorded" || bad "assessment $AS"
 
 # ---------- 3. 提交 publish operation（真实路径起点，worker 不经模拟） ----------
-# 创建者必须是 publisher：回执段 advanceEditionToPublished 按 operation 审计
-# 恢复创建者身份并断言 role=publisher（super-admin 提交会在回执段 403）。
+# 创建者用 publisher；回执段 advanceEditionToPublished 按 operation 审计恢复
+# 创建者身份，断言 publisher / super-admin（不区分，见 5.5 周期）。
 P1=$(curl -s -X POST "$BASE/api/editions/$ED/publish-operations" -b /tmp/rp-p.jar \
   -H 'Content-Type: application/json' -d '{}')
 echo "publish-op: $P1"
@@ -205,7 +207,59 @@ else
   echo "SKIP: object store manifest check (no aws CLI / S3 credentials)"
 fi
 
-# ---------- 6. 还原现场（文章 + 媒体） ----------
+# ---------- 5.5. super-admin 提交发布（回执段角色不区分回归） ----------
+# 历史问题：入口放行 super-admin，但回执段只认 publisher → super-admin 发布
+# 先入队、再由 worker 以 RELEASE_PUBLISH_AUTHORIZATION_INVALID 终态失败。
+# 2026-09-23 定调不区分后用独立纯文本文章验证 super-admin 全链路。
+# 必须在第 6 节清理之前：此时第 1 篇仍在 published（有 passed 评估、URL
+# active），不会卡第二个周期的整站编译质量门禁。
+C2=$(python3 -c 'import json,sys;print(json.dumps({"title":sys.argv[1],"bodyMarkdown":sys.argv[2],"site":int(sys.argv[3])},ensure_ascii=False))' \
+  "E2E super-admin 发布 $TS" "super-admin 发布回执段回归正文。" "$SITE" | \
+  curl -s -X POST "$BASE/api/content-editions?draft=true&depth=0" -b /tmp/rp-e.jar \
+    -H 'Content-Type: application/json' -d @-)
+ED2=$(echo "$C2" | python3 -c 'import json,sys;print(json.load(sys.stdin)["doc"]["id"])')
+[ -n "$ED2" ] && ok "sa draft created (edition=$ED2)" || { bad "sa create $C2"; exit 1; }
+curl -s -o /dev/null -X POST "$BASE/api/editions/$ED2/workflow-transitions" -b /tmp/rp-e.jar \
+  -H 'Content-Type: application/json' -d '{"target":"review"}'
+R2=$(rev_of "$(draft "$ED2")")
+A2=$(curl -s -X POST "$BASE/api/workspaces/reviewer/editions/$ED2/approve" -b /tmp/rp-r.jar \
+  -H 'Content-Type: application/json' -H "x-request-id: rp-sa-a-$TS" -H "idempotency-key: rp-sa-approve-$TS" \
+  -d "{\"expectedRevision\":$R2}")
+[ "$(st_of "$A2")" = "approved" ] && ok "sa approve -> approved" || bad "sa approve $A2"
+IH2=$(curl -s -H "$(auth)" "$BASE/api/internal/editions/$ED2/input" | python3 -c 'import json,sys;print(json.load(sys.stdin)["inputHash"])')
+AS2=$(curl -s -X POST "$BASE/api/internal/editions/$ED2/assessments" -H "$(auth)" \
+  -H 'Content-Type: application/json' -H "x-request-id: rp-sa-as-$TS" \
+  -d "{\"inputHash\":\"$IH2\",\"issues\":[],\"modelId\":\"e2e-real-publish\",\"overall\":90,\"dimensions\":{\"content\":90,\"seo\":90,\"structure\":90},\"promptVersion\":\"e2e-1\",\"provider\":\"e2e\",\"state\":\"passed\",\"thresholdsHash\":\"$THRESH_HASH\"}")
+[ "$(echo "$AS2" | python3 -c 'import json,sys;print(json.load(sys.stdin)["assessmentId"]>0)')" = "True" ] \
+  && ok "sa assessment passed" || bad "sa assessment $AS2"
+P2=$(curl -s -X POST "$BASE/api/editions/$ED2/publish-operations" -b /tmp/rp-r.jar \
+  -H 'Content-Type: application/json' -d '{}')
+echo "publish-op(sa): $P2"
+OP2=$(echo "$P2" | python3 -c 'import json,sys;print(json.load(sys.stdin)["operation"]["operationId"])')
+echo "$P2" | python3 -c '
+import json,sys
+o=json.load(sys.stdin)["operation"]
+assert o["created"] is True and o["state"]=="queued", o' \
+  && ok "sa publish-op created (op=$OP2)" || bad "sa publish-op $P2"
+
+STATE2=""
+for i in $(seq 1 40); do
+  STATE2=$(Q "state FROM geo_foundry.operations WHERE operation_id='$OP2'")
+  { [ "$STATE2" = "succeeded" ] || [ "$STATE2" = "failed" ]; } && break
+  sleep 3
+done
+if [ "$STATE2" = "succeeded" ]; then
+  ok "sa real worker consumed, operation succeeded"
+else
+  ERR2=$(Q "coalesce(error->>'code','') FROM geo_foundry.operations WHERE operation_id='$OP2'")
+  bad "sa operation state=$STATE2 error=$ERR2"
+fi
+SA_ST=$(Q "workflow_status FROM geo_foundry.content_editions WHERE id=$ED2")
+[ "$SA_ST" = "published" ] && ok "sa edition published (receipt accepted super-admin)" || bad "sa status=$SA_ST"
+SA_URL=$(Q "state FROM geo_foundry.url_records WHERE edition_id=$ED2 AND site_id=$SITE")
+[ "$SA_URL" = "active" ] && ok "sa URL active" || bad "sa url=$SA_URL"
+
+# ---------- 6. 还原现场（两篇文章 + 媒体） ----------
 D1=$(curl -s -X POST "$BASE/api/editions/$ED/draft-from-published" -b /tmp/rp-e.jar \
   -H 'Content-Type: application/json' -d '{"reason":"E2E real publish cleanup"}')
 [ "$(st_of "$D1")" = "draft" ] && ok "cleanup draft-from-published -> draft" || bad "dfp $D1"
@@ -213,8 +267,17 @@ S=$(curl -s -w '\n%{http_code}' -X POST "$BASE/api/editions/$ED/workflow-transit
   -H 'Content-Type: application/json' -d '{"target":"archived","reason":"E2E real publish cleanup"}')
 [ "$(echo "$S" | tail -1)" = "200" ] && ok "cleanup -> archived" || bad "archive $(echo "$S"|tail -2)"
 
+D2=$(curl -s -X POST "$BASE/api/editions/$ED2/draft-from-published" -b /tmp/rp-e.jar \
+  -H 'Content-Type: application/json' -d '{"reason":"E2E real publish cleanup"}')
+[ "$(st_of "$D2")" = "draft" ] && ok "cleanup sa draft-from-published -> draft" || bad "sa dfp $D2"
+S2=$(curl -s -w '\n%{http_code}' -X POST "$BASE/api/editions/$ED2/workflow-transitions" -b /tmp/rp-e.jar \
+  -H 'Content-Type: application/json' -d '{"target":"archived","reason":"E2E real publish cleanup"}')
+[ "$(echo "$S2" | tail -1)" = "200" ] && ok "cleanup sa -> archived" || bad "sa archive $(echo "$S2"|tail -2)"
+
 FINAL_ST=$(Q "workflow_status FROM geo_foundry.content_editions WHERE id=$ED")
 [ "$FINAL_ST" = "archived" ] && ok "fixture archived ($FINAL_ST)" || bad "final status=$FINAL_ST"
+FINAL_ST2=$(Q "workflow_status FROM geo_foundry.content_editions WHERE id=$ED2")
+[ "$FINAL_ST2" = "archived" ] && ok "sa fixture archived ($FINAL_ST2)" || bad "sa final status=$FINAL_ST2"
 
 # 清理一次性媒体：删 S3 对象 + media 行（自创建自清理，不碰 Mark 业务数据）
 MT=$(Q "coalesce(tenant_id::text,'') FROM geo_foundry.media WHERE filename='$IMG_FILE'")
