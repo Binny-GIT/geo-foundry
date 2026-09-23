@@ -32,6 +32,7 @@ import type { ServerDb } from "../db/client"
 import { contentEditions, editionVersions } from "../db/edition-schema"
 import { sites } from "../db/entity-schema"
 import { urlRecords } from "../db/workflow-schema"
+import { desiredEditionSiteIdsOf } from "./edition-sites"
 import type { EntityScope } from "./entities"
 
 export class WorkflowRepositoryError extends Error {
@@ -393,12 +394,20 @@ export const transitionEditionWithinTx = async (
   }
   const editionTenantId = current.tenantId ?? -1
   if (input.target === "approved") {
-    await reserveEditionUrlWithinTx(tx, {
-      editionId: input.editionId,
-      siteId: current.siteId ?? -1,
-      tenantId: editionTenantId,
-      title: current.title ?? "",
-    })
+    // A2 多站：为每个成员站点各预留一条 URL（reserve 对已有 active/reserved
+    // 行幂等复用，重复审批不会撞唯一键）。单站文章 desired 就是 [site_id]，
+    // 行为与旧的单站预留完全一致。
+    for (const memberSiteId of desiredEditionSiteIdsOf({
+      siteId: current.siteId,
+      sites: current.sites,
+    })) {
+      await reserveEditionUrlWithinTx(tx, {
+        editionId: input.editionId,
+        siteId: memberSiteId,
+        tenantId: editionTenantId,
+        title: current.title ?? "",
+      })
+    }
   }
   const compiledRelease =
     typeof current.compiledRelease === "string" && current.compiledRelease.length > 0

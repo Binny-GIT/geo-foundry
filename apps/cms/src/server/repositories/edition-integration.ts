@@ -22,6 +22,7 @@ import {
   type WorkflowClaims,
   workflowActorOf,
 } from "./edition-workflow"
+import { editionSiteRowOf, updateEditionSiteRow } from "./edition-sites"
 import type { EntityScope } from "./entities"
 
 /* guards 的错误映射已覆盖 EditionWorkflowError；沿用保证状态码契约不变。 */
@@ -195,6 +196,15 @@ export const writeGeneratedDraft = async (
   })
 }
 
+/**
+ * 编译回执（A2 按"文章 × 站点 × release"记录）：
+ * - 证据（edition.compile.recorded 审计 detail，含 siteId）命中同 (站点, release)
+ *   且哈希全匹配 → 幂等返回，不动任何行；
+ * - 首个站点（文章 approved）→ 证据版本行 + 文章级 approved→compiled 转移；
+ * - 后续站点（文章 compiled，或他站已 published 的单站重试）→ 只落证据版本行
+ *   （单值 compiledRelease 写最近一次，兼容旧读取方），文章状态/修订不动。
+ * 每站的 release 记在 edition_sites 行上，发布回执段按该行守卫。
+ */
 export const recordCompileResult = async (
   db: ServerDb,
   input: {
@@ -204,6 +214,7 @@ export const recordCompileResult = async (
     readonly operationId?: string
     readonly releaseId: string
     readonly requestId?: string
+    readonly siteId: number
     readonly totalBytes: number
     readonly user: unknown
   },
@@ -212,35 +223,37 @@ export const recordCompileResult = async (
   return db.transaction(async (tx) => {
     const { version } = await loadCurrentVersion(tx, scope, input.editionId)
     const status = version.workflowStatus ?? "draft"
-    if (status !== "approved" && status !== "compiled") {
+    if (status !== "approved" && status !== "compiled" && status !== "published") {
       throw fail("EDITION_WORKFLOW_NOT_APPROVED")
     }
+    const row = await editionSiteRowOf(tx, input.editionId, input.siteId)
+    if (row === null || row.publishState === "unpublished") {
+      throw fail("EDITION_WORKFLOW_SITE_NOT_ASSIGNED")
+    }
     const existingAudit = Array.isArray(version.auditLog) ? version.auditLog : []
-    if (status === "compiled") {
-      const evidence = [...existingAudit]
-        .reverse()
-        .map((entry) =>
-          typeof entry === "object" &&
-          entry !== null &&
-          (entry as Record<string, unknown>)["action"] === "edition.compile.recorded"
-            ? (((entry as Record<string, unknown>)["detail"] as
-                | Record<string, unknown>
-                | undefined) ?? null)
-            : null,
-        )
-        .find((detail) => detail?.["releaseId"] === version.compiledRelease)
-      if (
-        version.compiledRelease === input.releaseId &&
-        evidence !== undefined &&
-        evidence !== null &&
-        evidence["manifestSha256"] === input.manifestSha256 &&
-        evidence["objectCount"] === input.objectCount &&
-        evidence["releaseId"] === input.releaseId &&
-        evidence["totalBytes"] === input.totalBytes
-      ) {
-        return { releaseId: input.releaseId, workflowStatus: "compiled" as const }
-      }
-      throw fail("EDITION_WORKFLOW_COMPILE_CONFLICT")
+    const evidence = existingAudit
+      .map((entry) =>
+        typeof entry === "object" &&
+        entry !== null &&
+        (entry as Record<string, unknown>)["action"] === "edition.compile.recorded"
+          ? (((entry as Record<string, unknown>)["detail"] as
+              | Record<string, unknown>
+              | undefined) ?? null)
+          : null,
+      )
+      .find(
+        (detail) =>
+          detail !== null &&
+          detail["releaseId"] === input.releaseId &&
+          detail["siteId"] === input.siteId &&
+          detail["manifestSha256"] === input.manifestSha256 &&
+          detail["objectCount"] === input.objectCount &&
+          detail["totalBytes"] === input.totalBytes,
+      )
+    if (evidence !== undefined) {
+      // 幂等重放：该站该 release 的证据已记录；行上的 release 不在此回写
+      // （旧操作重放晚于同站新编译时，回写会把行指回旧 release）。
+      return { releaseId: input.releaseId, workflowStatus: status as ContentEditionState }
     }
     const actor = claimsOfActor(input.user)
     const auditEntry = {
@@ -251,29 +264,53 @@ export const recordCompileResult = async (
         manifestSha256: input.manifestSha256,
         objectCount: input.objectCount,
         releaseId: input.releaseId,
+        siteId: input.siteId,
         totalBytes: input.totalBytes,
       },
       from: status,
       tenantId: version.tenantId ?? -1,
-      to: "compiled",
+      to: status === "published" ? "published" : "compiled",
     }
-    // 与旧实现同构：先落证据版本行，再由转移追加 approved→compiled 版本行。
-    await insertLatestVersion(tx, version, {
-      auditLog: [...existingAudit, auditEntry],
-      compiledRelease: version.compiledRelease,
-      workflowRevision: version.workflowRevision ?? 0,
-      workflowStatus: version.workflowStatus ?? "draft",
-    })
-    await transitionEditionWithinTx(tx, {
-      actor: workflowActorOf(actor),
-      compiledReleaseId: input.releaseId,
+    if (status === "approved") {
+      // 首个站点：先落证据版本行，再由转移追加 approved→compiled 版本行。
+      await insertLatestVersion(tx, version, {
+        auditLog: [...existingAudit, auditEntry],
+        compiledRelease: version.compiledRelease,
+        workflowRevision: version.workflowRevision ?? 0,
+        workflowStatus: version.workflowStatus ?? "draft",
+      })
+      await transitionEditionWithinTx(tx, {
+        actor: workflowActorOf(actor),
+        compiledReleaseId: input.releaseId,
+        editionId: input.editionId,
+        ...(input.operationId === undefined ? {} : { operationId: input.operationId }),
+        ...(input.requestId === undefined ? {} : { requestId: input.requestId }),
+        scope,
+        target: "compiled",
+      })
+      await updateEditionSiteRow(tx, {
+        editionId: input.editionId,
+        patch: { releaseId: input.releaseId },
+        siteId: input.siteId,
+      })
+      return { releaseId: input.releaseId, workflowStatus: "compiled" as const }
+    }
+    if (status === "compiled" || status === "published") {
+      // 后续站点 / 他站已发布后的单站重试：证据版本行不推进文章状态，
+      // 单值 compiledRelease 写最近一次的 release。
+      await insertLatestVersion(tx, version, {
+        auditLog: [...existingAudit, auditEntry],
+        compiledRelease: input.releaseId,
+        workflowRevision: version.workflowRevision ?? 0,
+        workflowStatus: status,
+      })
+    }
+    await updateEditionSiteRow(tx, {
       editionId: input.editionId,
-      ...(input.operationId === undefined ? {} : { operationId: input.operationId }),
-      ...(input.requestId === undefined ? {} : { requestId: input.requestId }),
-      scope,
-      target: "compiled",
+      patch: { releaseId: input.releaseId },
+      siteId: input.siteId,
     })
-    return { releaseId: input.releaseId, workflowStatus: "compiled" as const }
+    return { releaseId: input.releaseId, workflowStatus: status as ContentEditionState }
   })
 }
 

@@ -19,35 +19,19 @@ import {
   parseWorkerMediaOptions,
   mediaObjectKeyOf,
   publishPlannedRelease,
-  releaseIdentityFor,
+  releaseIdOf,
   type WorkerMediaOptions,
 } from "../../src/processors/release-pipeline.js"
 import { TerminalJobError } from "../../src/processors/types.js"
 
 describe("release identity", () => {
-  it("mints a fresh deterministic release id when the edition has no compiled release yet", () => {
-    const releaseId = releaseIdentityFor("op-approve-and-compile", {
-      compiledRelease: null,
-      workflowStatus: "approved",
-    })
-    expect(releaseId).toBe(releaseIdentityFor("op-approve-and-compile", {
-      compiledRelease: null,
-      workflowStatus: "approved",
-    }))
-    expect(releaseId).not.toBe(
-      releaseIdentityFor("op-different-operation", {
-        compiledRelease: null,
-        workflowStatus: "approved",
-      }),
-    )
-  })
-
-  it("reuses the persisted compiled release instead of minting a new one from the publish operation", () => {
-    const releaseId = releaseIdentityFor("op-publish-gate", {
-      compiledRelease: "rel-already-compiled-evidence",
-      workflowStatus: "compiled",
-    })
-    expect(releaseId).toBe("rel-already-compiled-evidence")
+  it("derives the release id deterministically from the operation id (one operation one release)", () => {
+    const releaseId = releaseIdOf("op-approve-and-compile")
+    expect(releaseId).toBe(releaseIdOf("op-approve-and-compile"))
+    expect(releaseId).not.toBe(releaseIdOf("op-different-operation"))
+    // A2：不再复用文章持久化的 compiledRelease——多站后该单值属于另一个
+    // 站点的 release；重试同一条操作必得同一 release，台账与回执天然对齐。
+    expect(releaseId).toMatch(/^rel-[0-9a-f]{24}$/)
   })
 })
 
@@ -236,6 +220,7 @@ describe("publish replay after control-plane failure", () => {
       editionId: 1,
       operationId: "11111111-2222-3333-4444-555555555555",
       planned,
+      siteId: 1,
       store,
     }
 

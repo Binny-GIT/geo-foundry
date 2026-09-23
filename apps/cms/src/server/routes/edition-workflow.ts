@@ -28,7 +28,12 @@ const transitionSchema = z
   .strict()
 
 const draftSchema = z.object({ reason: reasonSchema.optional() }).strict()
-const publishSchema = z.object({ reason: reasonSchema.optional() }).strict()
+const publishSchema = z
+  .object({
+    reason: reasonSchema.optional(),
+    siteId: z.number().int().positive().optional(),
+  })
+  .strict()
 
 const json = (status: number, body: unknown): Response =>
   new Response(JSON.stringify(body), {
@@ -158,19 +163,32 @@ export const handleEditionWorkflowPost = async (
     return json(400, { error: { code: "EDITION_WORKFLOW_BODY_INVALID" } })
   }
   try {
-    const outcome = await submitEditionPublishOperation(serverRuntime().db, {
+    const outcomes = await submitEditionPublishOperation(serverRuntime().db, {
       claims,
       editionId,
       ...(parsed.data.reason === undefined ? {} : { reason: parsed.data.reason }),
+      ...(parsed.data.siteId === undefined ? {} : { siteId: parsed.data.siteId }),
     })
-    return json(outcome.created ? 202 : 200, {
+    // A2 扇出：单站（含单站文章）保持旧响应形状（operation 单数，基线兼容）；
+    // 多站返回 operations 数组。全部 created 才 202，含重放则 200。
+    const operationOf = (outcome: (typeof outcomes)[number]) => ({
+      created: outcome.created,
+      operationId: outcome.operationId,
+      releaseId: outcome.releaseId,
+      siteId: outcome.siteId,
+      state: outcome.state,
+    })
+    if (outcomes.length === 1) {
+      const single = outcomes[0]
+      if (single === undefined) throw new Error("publish fan-out returned no operations")
+      return json(single.created ? 202 : 200, {
+        editionId,
+        operation: operationOf(single),
+      })
+    }
+    return json(outcomes.every((outcome) => outcome.created) ? 202 : 200, {
       editionId,
-      operation: {
-        created: outcome.created,
-        operationId: outcome.operationId,
-        releaseId: outcome.releaseId,
-        state: outcome.state,
-      },
+      operations: outcomes.map(operationOf),
     })
   } catch (error) {
     return workflowErrorResponse(error)

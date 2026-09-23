@@ -29,24 +29,14 @@ import { TerminalJobError, type ProcessorContext } from "./types.js"
 
 const COMPILER_VERSION = "1.0.0"
 
+/**
+ * A2 多站：release id 恒由 operationId 确定性推导（一站一条操作、一条操作
+ * 一个 release）。重试/重放同一条操作必得同一 release，台账证据与发布回执
+ * 因此天然对齐；不再复用"文章最近一次 compiledRelease"（多站后该单值
+ * 属于另一个站点的 release）。
+ */
 export const releaseIdOf = (operationId: string): string =>
   `rel-${createHash("sha256").update(operationId).digest("hex").slice(0, 24)}`
-
-/**
- * Release identity for one compile: a fresh compile of an approved edition
- * mints a new deterministic id from its operation; recompiling an edition
- * that is already compiled (the publish-gate re-derives the same artifact
- * before uploading) MUST reuse the persisted release id, or the publish
- * receipt would report a release the compile-results evidence never agreed
- * to.
- */
-export const releaseIdentityFor = (
-  operationId: string,
-  edition: { readonly compiledRelease: string | null; readonly workflowStatus: string },
-): string =>
-  edition.workflowStatus === "compiled" && edition.compiledRelease !== null
-    ? edition.compiledRelease
-    : releaseIdOf(operationId)
 
 export type WorkerS3Options = {
   readonly accessKeyId: string
@@ -212,28 +202,35 @@ export type PlannedSiteRelease = {
   readonly objectCount: number
   readonly plan: Awaited<ReturnType<typeof planRelease>>
   readonly releaseId: string
+  /** A2：本条操作编译发布的目标站点（任务 siteId 或文章单数站点回退）。 */
+  readonly siteId: number
   readonly verifiedManifest: Awaited<ReturnType<typeof verifyManifest>>
 }
 
 /**
- * Deterministic release identity: initial compilation derives the release id
- * from its operation; publication of an already compiled edition reuses that
- * persisted release id. The content clock remains the edition's modifiedAt,
- * so retries rebuild byte-identical plans before the staged directory is
- * verified and handed on.
+ * A2 多站：按任务载荷里的 siteId 编译发布（缺省时回退文章单数站点，
+ * 兼容旧在途任务）；release id 恒由 operationId 确定性推导。内容时钟
+ * 仍是文章 modifiedAt，重试重建字节一致的 plan。
  */
 export const compileAndPlanRelease = async (
   context: ProcessorContext,
-  input: { readonly editionId: number; readonly operationId: string },
+  input: { readonly editionId: number; readonly operationId: string; readonly siteId?: number },
 ): Promise<PlannedSiteRelease> => {
   const edition = await context.client.getEditionInput(input.editionId)
-  if (edition.workflowStatus !== "approved" && edition.workflowStatus !== "compiled") {
+  // 他站已发布后的单站重试：文章已 published 但目标站行未发布，允许。
+  const isPublishedSiteRetry = edition.workflowStatus === "published" && input.siteId !== undefined
+  if (
+    edition.workflowStatus !== "approved" &&
+    edition.workflowStatus !== "compiled" &&
+    !isPublishedSiteRetry
+  ) {
     throw new TerminalJobError(
       "RELEASE_EDITION_NOT_APPROVED",
       `edition ${input.editionId} is ${edition.workflowStatus}`,
     )
   }
-  const snapshot = await context.client.getCompileSnapshot(edition.siteId)
+  const siteId = input.siteId ?? edition.siteId
+  const snapshot = await context.client.getCompileSnapshot(siteId)
   let compileOutput: Awaited<ReturnType<typeof compileSite>>
   try {
     compileOutput = await compileSite({
@@ -247,8 +244,8 @@ export const compileAndPlanRelease = async (
     }
     throw error
   }
-  const releaseId = releaseIdentityFor(input.operationId, edition)
-  const siteKey = `site-${edition.siteId}`
+  const releaseId = releaseIdOf(input.operationId)
+  const siteKey = `site-${siteId}`
   const routingManifest = {
     hosts: [
       {
@@ -285,6 +282,7 @@ export const compileAndPlanRelease = async (
     objectCount: verified.manifest.objects.length,
     plan,
     releaseId,
+    siteId,
     verifiedManifest,
   }
 }
@@ -295,6 +293,7 @@ export const publishPlannedRelease = async (
     readonly editionId: number
     readonly operationId: string
     readonly planned: PlannedSiteRelease
+    readonly siteId?: number
     readonly store: ArtifactStore
   },
 ): Promise<PublishReceipt> => {
@@ -304,8 +303,10 @@ export const publishPlannedRelease = async (
     store: input.store,
     verifiedManifest: input.planned.verifiedManifest,
   })
-  const edition = await context.client.getEditionInput(input.editionId)
-  await context.client.recordPublishedRelease(edition.siteId, {
+  // 回执登记的任务站点；旧载荷无 siteId 时回退文章单数站点。
+  const siteId =
+    input.siteId ?? (await context.client.getEditionInput(input.editionId)).siteId
+  await context.client.recordPublishedRelease(siteId, {
     editionId: input.editionId,
     operationId: input.operationId,
     receipt: result.receipt,

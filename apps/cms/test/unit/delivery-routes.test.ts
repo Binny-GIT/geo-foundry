@@ -55,11 +55,12 @@ describe("delivery 路由", () => {
     expect(deliveryRouteOf(["delivery", "sites", "site.test"])).toBeNull()
   })
 
-  it("返回已发布详情 200", async () => {
+  it("返回已发布详情 200（A2：已发布站点读 edition_sites，响应带 sites 数组）", async () => {
     const selected = query([
       [edition()],
+      [{ siteId: 7 }],
       [{ id: 7, locale: "zh-CN", tenantId: 3 }],
-      [{ editionId: 42, pathname: "/已发布文章" }],
+      [{ pathname: "/已发布文章", siteId: 7 }],
     ])
     const db = {
       insert: vi.fn(() => ({
@@ -72,7 +73,30 @@ describe("delivery 路由", () => {
     const response = await get(["delivery", "articles", "42"])
 
     expect(response?.status).toBe(200)
-    await expect(response?.json()).resolves.toMatchObject({ id: 42, locale: "zh-CN", title: "标题" })
+    await expect(response?.json()).resolves.toMatchObject({
+      id: 42,
+      locale: "zh-CN",
+      title: "标题",
+      pathname: "/已发布文章",
+      sites: [{ locale: "zh-CN", pathname: "/已发布文章", siteId: 7, url: "/已发布文章" }],
+    })
+  })
+
+  it("文章级已发布但无已发布站点行时返回 404", async () => {
+    const selected = query([
+      [edition()],
+      [],
+      [],
+    ])
+    const db = { select: vi.fn(() => selected) }
+    serverRuntime.mockReturnValue({ db })
+
+    const response = await get(["delivery", "articles", "42"])
+
+    expect(response?.status).toBe(404)
+    await expect(response?.json()).resolves.toEqual({
+      error: { code: "DELIVERY_ARTICLE_NOT_FOUND" },
+    })
   })
 
   it("对未发布详情返回 404", async () => {

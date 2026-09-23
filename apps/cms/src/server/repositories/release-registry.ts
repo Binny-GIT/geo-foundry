@@ -25,6 +25,7 @@ import { operations } from "../db/ledger-schema"
 import { domains, releases } from "../db/session-schema"
 import { urlRecords } from "../db/workflow-schema"
 import { loadCurrentVersion, transitionEditionWithinTx, workflowActorOf } from "./edition-workflow"
+import { editionSiteRowOf, updateEditionSiteRow } from "./edition-sites"
 
 export class ReleaseRegistryError extends Error {
   override readonly name = "ReleaseRegistryError"
@@ -176,6 +177,15 @@ export const publishCreatorAuthorized = (input: {
   )
 }
 
+/**
+ * 发布回执段（A2 按站）：守卫从"文章单数站点 + 单值 compiledRelease"换成
+ * edition_sites 行（文章 × 站点 × release）。
+ * - 行不存在/已撤下 → RELEASE_EDITION_SITE_MISMATCH（保持旧错误码）；
+ * - 行已 published 且 release 匹配 → 幂等返回；release 不匹配 → NOT_COMPILED
+ *   （旧操作的重放晚于同站新 release 时不得再激活）；
+ * - 文章级 workflow_status 只在第一个站点成功时 compiled→published；
+ *   他站已先发布时只更新本站行。创建者授权两个分支都查。
+ */
 const advanceEditionToPublished = async (
   tx: Tx,
   input: {
@@ -186,18 +196,20 @@ const advanceEditionToPublished = async (
   },
 ): Promise<void> => {
   const { version } = await loadCurrentVersion(tx, { kind: "global" }, input.editionId)
-  if (version.siteId !== input.siteId) {
+  const row = await editionSiteRowOf(tx, input.editionId, input.siteId)
+  if (row === null || row.publishState === "unpublished") {
     throw new ReleaseRegistryError("RELEASE_EDITION_SITE_MISMATCH", String(input.editionId))
   }
-  const status = version.workflowStatus ?? "draft"
-  const compiledRelease =
-    typeof version.compiledRelease === "string" && version.compiledRelease.length > 0
-      ? version.compiledRelease
-      : null
-  if (status === "published" && compiledRelease === input.receipt.releaseId) return
-  if (status !== "compiled" || compiledRelease !== input.receipt.releaseId) {
+  if (row.publishState === "published") {
+    if (row.releaseId !== input.receipt.releaseId) {
+      throw new ReleaseRegistryError("RELEASE_EDITION_NOT_COMPILED", String(input.editionId))
+    }
+    return
+  }
+  if (row.releaseId !== input.receipt.releaseId) {
     throw new ReleaseRegistryError("RELEASE_EDITION_NOT_COMPILED", String(input.editionId))
   }
+  const status = version.workflowStatus ?? "draft"
   const creator = await loadPublishOperationCreator(tx, input.operationId)
   const creatorTenant =
     typeof creator.actor.tenantId === "number"
@@ -215,6 +227,18 @@ const advanceEditionToPublished = async (
   ) {
     throw new ReleaseRegistryError("RELEASE_PUBLISH_AUTHORIZATION_INVALID", input.operationId)
   }
+  if (status === "published") {
+    // 他站已先发布：本站只更新行与 URL，文章级状态不动。
+    await updateEditionSiteRow(tx, {
+      editionId: input.editionId,
+      patch: { publishedAt: new Date(), publishState: "published" },
+      siteId: input.siteId,
+    })
+    return
+  }
+  if (status !== "compiled") {
+    throw new ReleaseRegistryError("RELEASE_EDITION_NOT_COMPILED", String(input.editionId))
+  }
   const creatorIsSuperAdmin = creator.actor.role === "super-admin"
   await transitionEditionWithinTx(tx, {
     actor: workflowActorOf({
@@ -229,14 +253,23 @@ const advanceEditionToPublished = async (
       creatorTenant === null ? { kind: "global" } : { kind: "tenant", tenantId: creatorTenant },
     target: "published",
   })
+  await updateEditionSiteRow(tx, {
+    editionId: input.editionId,
+    patch: { publishedAt: new Date(), publishState: "published" },
+    siteId: input.siteId,
+  })
 }
 
-/** 已预留（reserved）的 URL 在真实发布回执后激活；没有预留行则静默跳过。 */
+/**
+ * 已预留（reserved）的 URL 在真实发布回执后激活；返回 URL 行 ID 供
+ * edition_sites 回填 url_record_id。重放时行已是 active（没有 reserved 行）：
+ * 取 active 行 ID 同样回填，其余静默跳过。
+ */
 const activatePublishedEditionUrl = async (
   tx: Tx,
   editionId: number,
   siteId: number,
-): Promise<void> => {
+): Promise<number | null> => {
   const reserved = await tx
     .select({ id: urlRecords.id, revision: urlRecords.revision })
     .from(urlRecords)
@@ -249,7 +282,20 @@ const activatePublishedEditionUrl = async (
     )
     .limit(1)
   const url = reserved[0]
-  if (url === undefined) return
+  if (url === undefined) {
+    const active = await tx
+      .select({ id: urlRecords.id })
+      .from(urlRecords)
+      .where(
+        and(
+          eq(urlRecords.editionId, editionId),
+          eq(urlRecords.siteId, siteId),
+          eq(urlRecords.state, "active"),
+        ),
+      )
+      .limit(1)
+    return active[0]?.id ?? null
+  }
   const domainRows = await tx
     .select({ hostname: domains.hostname })
     .from(domains)
@@ -298,6 +344,7 @@ const activatePublishedEditionUrl = async (
       updatedAt: new Date(),
     })
     .where(eq(urlRecords.id, url.id))
+  return url.id
 }
 
 export type RecordPublishedReleaseInput = {
@@ -370,7 +417,14 @@ export const recordPublishedRelease = async (
         receipt,
         siteId: site.id,
       })
-      await activatePublishedEditionUrl(tx, input.editionId, site.id)
+      const urlRecordId = await activatePublishedEditionUrl(tx, input.editionId, site.id)
+      if (urlRecordId !== null) {
+        await updateEditionSiteRow(tx, {
+          editionId: input.editionId,
+          patch: { urlRecordId },
+          siteId: site.id,
+        })
+      }
     }
   })
 }

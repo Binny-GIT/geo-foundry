@@ -40,6 +40,8 @@ export const recordCompileResultRequestSchema = z.object({
   manifestSha256: sha256Schema,
   objectCount: z.number().int().min(1).max(100_000),
   releaseId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{5,127}$/),
+  // A2 多站：编译回执按"文章 × 站点"记录，siteId 必填（与 CMS 侧契约一致）。
+  siteId: z.number().int().positive(),
   totalBytes: z.number().int().min(0).max(10_000_000_000),
 })
 

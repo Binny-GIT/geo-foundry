@@ -13,6 +13,8 @@ import {
 import { and, desc, eq, inArray } from "drizzle-orm"
 import { alias } from "drizzle-orm/pg-core"
 
+import { editionSiteMemberSql } from "./edition-sites"
+
 import { markdownToBlocks } from "../../editor/block-markdown"
 import {
   deriveListings,
@@ -90,7 +92,9 @@ export const buildCompileSnapshot = async (
     )
     .where(
       and(
-        eq(editionVersions.siteId, options.siteId),
+        // A2 多站：按 edition_sites 选文（该站成员且未撤下），不再按文章
+        // 单数 site_id。单站文章由 A1 同步保证站点行存在，行为不变。
+        editionSiteMemberSql(options.siteId),
         inArray(editionVersions.workflowStatus, [...COMPILABLE_STATUSES]),
       ),
     )

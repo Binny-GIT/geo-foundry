@@ -61,6 +61,7 @@ const planned = {
   objectCount: 2,
   plan: { manifest: { objects: [{ bytes: 11 }, { bytes: 13 }] } },
   releaseId: "release-worker-compile",
+  siteId: 375,
 }
 
 const rollbackBody = {
@@ -96,6 +97,7 @@ describe("compile trigger", () => {
         manifestSha256: "a".repeat(64),
         objectCount: 2,
         releaseId: "release-worker-compile",
+        siteId: 375,
         totalBytes: 24,
       },
       { operationId },
@@ -132,10 +134,11 @@ describe("operation job payload contract", () => {
     expect(pipeline.compileAndPlanRelease).toHaveBeenCalledWith(fixture.context, {
       editionId: 42,
       operationId,
+      siteId: 375,
     })
     expect(outcome).toMatchObject({
       kind: "succeeded",
-      result: { releaseId: "release-worker-compile" },
+      result: { releaseId: "release-worker-compile", siteId: 375 },
     })
   })
 

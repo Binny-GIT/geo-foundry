@@ -63,6 +63,8 @@ export const compileResultBodySchema = z
     manifestSha256: z.string().regex(SHA256_PATTERN),
     objectCount: z.number().int().min(1).max(100_000),
     releaseId: z.string().regex(RELEASE_ID_PATTERN),
+    // A2 多站：编译回执按"文章 × 站点"记录，siteId 必填。
+    siteId: z.number().int().positive(),
     totalBytes: z.number().int().min(0).max(10_000_000_000),
   })
   .strict()

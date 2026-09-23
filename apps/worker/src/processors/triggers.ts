@@ -40,6 +40,7 @@ export const createCompileTriggerProcessor = (context: ProcessorContext) =>
         const planned = await compileAndPlanRelease(context, {
           editionId,
           operationId: job.data.operationId,
+          ...(parsed.data.siteId === undefined ? {} : { siteId: parsed.data.siteId }),
         })
         await ctx.client.recordCompileResult(
           editionId,
@@ -47,6 +48,7 @@ export const createCompileTriggerProcessor = (context: ProcessorContext) =>
             manifestSha256: planned.manifestSha256,
             objectCount: planned.objectCount,
             releaseId: planned.releaseId,
+            siteId: planned.siteId,
             totalBytes: planned.plan.manifest.objects.reduce(
               (sum, object) => sum + object.bytes,
               0,
@@ -60,6 +62,7 @@ export const createCompileTriggerProcessor = (context: ProcessorContext) =>
             manifestSha256: planned.manifestSha256,
             objectCount: planned.objectCount,
             releaseId: planned.releaseId,
+            siteId: planned.siteId,
           },
         }
       },
@@ -137,6 +140,7 @@ export const createPublishGateProcessor = (context: ProcessorContext) =>
         const planned = await compileAndPlanRelease(context, {
           editionId,
           operationId: job.data.operationId,
+          ...(parsed.data.siteId === undefined ? {} : { siteId: parsed.data.siteId }),
         })
         await context.client.recordCompileResult(
           editionId,
@@ -144,6 +148,7 @@ export const createPublishGateProcessor = (context: ProcessorContext) =>
             manifestSha256: planned.manifestSha256,
             objectCount: planned.objectCount,
             releaseId: planned.releaseId,
+            siteId: planned.siteId,
             totalBytes: planned.plan.manifest.objects.reduce(
               (sum, object) => sum + object.bytes,
               0,
@@ -159,6 +164,7 @@ export const createPublishGateProcessor = (context: ProcessorContext) =>
             editionId,
             operationId: job.data.operationId,
             planned,
+            siteId: planned.siteId,
             store,
           })
           return {
@@ -166,6 +172,7 @@ export const createPublishGateProcessor = (context: ProcessorContext) =>
             result: {
               manifestSha256: receipt.manifestSha256,
               releaseId: receipt.releaseId,
+              siteId: planned.siteId,
             },
           }
         } catch (error) {

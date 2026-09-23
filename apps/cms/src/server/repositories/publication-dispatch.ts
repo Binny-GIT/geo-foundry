@@ -188,11 +188,16 @@ const attachPublishOperation = async (
     return null
   }
   try {
-    const outcome = await submitEditionPublishOperation(db, {
+    const outcomes = await submitEditionPublishOperation(db, {
       claims,
       editionId: plan.editionId,
       reason: `Scheduled publication ${plan.planId}`,
+      // A2：计划表本来就是单站的，按计划的站点发布（不再取文章当前主站）；
+      // 多站排期就是每站一条计划。
+      siteId: plan.siteId,
     })
+    const outcome = outcomes[0]
+    if (outcome === undefined) return operationAttachedToPlan(db, plan.planId)
     const attached = await updatePlan(db, plan, { operationId: outcome.operationId }, "running")
     if (attached) return { operationId: outcome.operationId, planId: plan.planId }
     return operationAttachedToPlan(db, plan.planId)

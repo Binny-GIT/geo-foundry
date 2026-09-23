@@ -1,10 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const { transition, createDraftFromPublished, submitPublish, loadVersion } = vi.hoisted(() => ({
+const {
+  transition,
+  createDraftFromPublished,
+  submitPublish,
+  loadVersion,
+  memberSiteIdsOf,
+} = vi.hoisted(() => ({
   transition: vi.fn(),
   createDraftFromPublished: vi.fn(),
   submitPublish: vi.fn(),
   loadVersion: vi.fn(),
+  memberSiteIdsOf: vi.fn(),
 }))
 
 const authState = { claims: { kind: "user", role: "editor", tenantId: 4, userId: "7" } }
@@ -43,6 +50,11 @@ vi.mock("../../src/server/repositories/operations", () => ({
   },
 }))
 
+vi.mock("../../src/server/repositories/edition-sites", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../src/server/repositories/edition-sites")>()),
+  memberSiteIdsOf,
+}))
+
 import {
   editionWorkflowRouteOf,
   handleEditionWorkflowPost,
@@ -54,6 +66,7 @@ const versionRow = (workflowStatus: string) => ({
   version: {
     compiledRelease: null,
     siteId: 374,
+    sites: [],
     tenantId: 4,
     workflowRevision: "3",
     workflowStatus,
@@ -79,6 +92,8 @@ describe("edition workflow Drizzle routes", () => {
     createDraftFromPublished.mockReset()
     submitPublish.mockReset()
     loadVersion.mockReset()
+    memberSiteIdsOf.mockReset()
+    memberSiteIdsOf.mockResolvedValue([374])
     authState.claims = { kind: "user", role: "editor", tenantId: 4, userId: "7" }
   })
 
@@ -172,11 +187,7 @@ describe("edition workflow Drizzle routes", () => {
   it("returns 202 for created publish operations and 200 for replays", async () => {
     authState.claims = { kind: "user", role: "publisher", tenantId: 4, userId: "9" }
     loadVersion.mockResolvedValue(versionRow("approved"))
-    submitPublish.mockResolvedValueOnce({
-      created: true,
-      operationId: "op-1",
-      state: "queued",
-    })
+    submitPublish.mockResolvedValueOnce({ created: true, operationId: "op-1", state: "queued" })
     const created = await post(["editions", "586", "publish-operations"], {})
 
     submitPublish.mockResolvedValueOnce({
@@ -186,15 +197,57 @@ describe("edition workflow Drizzle routes", () => {
     })
     const replayed = await post(["editions", "586", "publish-operations"], {})
 
+    // 单站：保持旧响应形状（operation 单数，A2 基线兼容）
     expect(created.status).toBe(202)
     expect((await created.json()).operation).toMatchObject({
       created: true,
       operationId: "op-1",
+      siteId: 374,
     })
     expect(replayed.status).toBe(200)
     expect((await replayed.json()).operation).toMatchObject({
       created: false,
       state: "succeeded",
     })
+  })
+
+  it("fans out one operation per member site and responds with an operations array", async () => {
+    authState.claims = { kind: "user", role: "publisher", tenantId: 4, userId: "9" }
+    loadVersion.mockResolvedValue({
+      ...versionRow("approved"),
+      version: { ...versionRow("approved").version, sites: [375] },
+    })
+    memberSiteIdsOf.mockResolvedValue([374, 375])
+    submitPublish.mockImplementation(async (input: { siteId?: number }) => {
+      const siteId = input.siteId ?? 374
+      return { created: true, operationId: `op-${siteId}`, state: "queued" as const }
+    })
+    const fanned = await post(["editions", "586", "publish-operations"], {})
+    const body = (await fanned.json()) as {
+      operations?: { created: boolean; operationId: string; siteId: number }[]
+    }
+
+    expect(fanned.status).toBe(202)
+    expect(submitPublish).toHaveBeenCalledTimes(2)
+    expect(
+      submitPublish.mock.calls.map((call) => call[0]?.siteId).sort((a, b) => a - b),
+    ).toEqual([374, 375])
+    expect(body.operations?.map((operation) => operation.siteId).sort((a, b) => a - b)).toEqual([
+      374, 375,
+    ])
+    expect(body.operations?.every((operation) => operation.created)).toBe(true)
+  })
+
+  it("rejects an explicit siteId that is not a member site", async () => {
+    authState.claims = { kind: "user", role: "publisher", tenantId: 4, userId: "9" }
+    loadVersion.mockResolvedValue(versionRow("approved"))
+    memberSiteIdsOf.mockResolvedValue([374])
+    const rejected = await post(["editions", "586", "publish-operations"], { siteId: 999 })
+
+    expect(rejected.status).toBe(409)
+    expect(await rejected.json()).toEqual({
+      error: { code: "EDITION_WORKFLOW_SITE_NOT_ASSIGNED" },
+    })
+    expect(submitPublish).not.toHaveBeenCalled()
   })
 })

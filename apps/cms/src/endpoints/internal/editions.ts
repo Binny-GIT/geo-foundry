@@ -94,6 +94,7 @@ const handleRecordCompileResult = withInternalGuards(
       ...(ctx.operationId === null ? {} : { operationId: ctx.operationId }),
       releaseId: body.releaseId,
       requestId: ctx.requestId,
+      siteId: body.siteId,
       totalBytes: body.totalBytes,
       user: req.user,
     })

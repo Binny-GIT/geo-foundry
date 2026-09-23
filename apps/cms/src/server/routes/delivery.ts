@@ -4,11 +4,11 @@
  * 异步落库且绝不阻断交付（单篇接口补上真实租户，修复旧 tenantId=0 缺陷）。
  */
 
-import { and, count, desc, eq, ilike, inArray, or, sql } from "drizzle-orm"
+import { and, count, desc, eq, ilike, inArray, sql } from "drizzle-orm"
 
 import { markdownToBlocks } from "../../editor/block-markdown"
 import type { ServerDb } from "../db/client"
-import { contentEditions } from "../db/edition-schema"
+import { contentEditions, editionSites } from "../db/edition-schema"
 import { sites } from "../db/entity-schema"
 import { apiUsageDailies, domains } from "../db/session-schema"
 import { urlRecords } from "../db/workflow-schema"
@@ -161,10 +161,16 @@ export const handleDeliveryGet = async (
     const limit = Number.isSafeInteger(limitRaw) ? Math.min(Math.max(limitRaw, 1), 50) : 20
     const q = (url.searchParams.get("q") ?? "").trim().slice(0, 100)
 
-    const assigned = sql`${contentEditions.sites} @> ARRAY[${site.siteId}]::integer[]`
+    // A2 多站：成员与"已发布"判定读 edition_sites.publish_state
+    // （该行存在且 published 才算发到该站），不再看文章 site_id/sites 数组。
     const where = and(
       eq(contentEditions.workflowStatus, "published"),
-      or(eq(contentEditions.siteId, site.siteId), assigned),
+      sql`EXISTS (
+        SELECT 1 FROM ${editionSites}
+        WHERE ${editionSites.editionId} = ${contentEditions.id}
+          AND ${editionSites.siteId} = ${site.siteId}
+          AND ${editionSites.publishState} = 'published'
+      )`,
       ...(q.length === 0 ? [] : [ilike(contentEditions.title, `%${q}%`)]),
     )
     const [rows, totals, pathnames] = await Promise.all([
@@ -201,30 +207,72 @@ export const handleDeliveryGet = async (
   if (edition === undefined || edition.workflowStatus !== "published") {
     return json(404, { error: { code: "DELIVERY_ARTICLE_NOT_FOUND" } }, 60)
   }
-  const assignedIds = [
-    ...(edition.siteId === null ? [] : [edition.siteId]),
-    ...edition.sites,
-  ].filter((value, index, all) => all.indexOf(value) === index)
+  // A2 多站：已发布站点 = edition_sites 中 publish_state='published' 的行
+  // （不再"取第一个活跃站点"）。主站确定性选择：文章主站已发布则用主站，
+  // 否则最小已发布站点 ID；响应额外带 sites 数组（各站 pathname/locale）。
+  const publishedRows = await db
+    .select({ siteId: editionSites.siteId })
+    .from(editionSites)
+    .where(and(eq(editionSites.editionId, id), eq(editionSites.publishState, "published")))
+  const publishedSiteIds = [...new Set(publishedRows.map((row) => row.siteId))].sort(
+    (left, right) => left - right,
+  )
   const activeRows =
-    assignedIds.length === 0
+    publishedSiteIds.length === 0
       ? []
       : await db
           .select({ id: sites.id, locale: sites.locale, tenantId: sites.tenantId })
           .from(sites)
-          .where(and(eq(sites.status, "active"), inArray(sites.id, assignedIds)))
-  const activeSite = activeRows[0]
-  if (activeSite === undefined) {
+          .where(and(eq(sites.status, "active"), inArray(sites.id, publishedSiteIds)))
+  const activeById = new Map(activeRows.map((row) => [row.id, row]))
+  const usableSiteIds = publishedSiteIds.filter((siteId) => activeById.has(siteId))
+  const firstUsableSiteId = usableSiteIds[0]
+  if (firstUsableSiteId === undefined) {
     return json(404, { error: { code: "DELIVERY_ARTICLE_NOT_FOUND" } }, 60)
   }
-  const pathnames = await activePathnameByEdition(db, activeSite.id)
-  if (activeSite.tenantId !== null) recordUsage(db, "article", activeSite.id, activeSite.tenantId)
+  const primarySiteId =
+    edition.siteId !== null && usableSiteIds.includes(edition.siteId)
+      ? edition.siteId
+      : firstUsableSiteId
+  const urlRows = await db
+    .select({ pathname: urlRecords.pathname, siteId: urlRecords.siteId })
+    .from(urlRecords)
+    .where(
+      and(
+        eq(urlRecords.editionId, id),
+        eq(urlRecords.state, "active"),
+        inArray(urlRecords.siteId, usableSiteIds),
+      ),
+    )
+  const pathnameBySite = new Map<number, string>()
+  for (const row of urlRows) {
+    if (row.pathname.length > 0 && !pathnameBySite.has(row.siteId)) {
+      pathnameBySite.set(row.siteId, row.pathname)
+    }
+  }
+  const primarySite = activeById.get(primarySiteId)
+  if (primarySite === undefined) {
+    return json(404, { error: { code: "DELIVERY_ARTICLE_NOT_FOUND" } }, 60)
+  }
+  if (primarySite.tenantId !== null) {
+    recordUsage(db, "article", primarySite.id, primarySite.tenantId)
+  }
   const markdown = edition.bodyMarkdown ?? ""
   return json(
     200,
     {
-      ...publicEdition(edition, pathnames.get(edition.id)),
+      ...publicEdition(edition, pathnameBySite.get(primarySiteId)),
       body: markdown.length > 0 ? markdownToBlocks(markdown) : [],
-      locale: activeSite.locale ?? "en-US",
+      locale: primarySite.locale ?? "en-US",
+      sites: usableSiteIds.map((siteId) => {
+        const site = activeById.get(siteId)
+        const pathname = pathnameBySite.get(siteId)
+        return {
+          locale: site?.locale ?? "en-US",
+          ...(pathname === undefined ? {} : { pathname, url: pathname }),
+          siteId,
+        }
+      }),
     },
     60,
   )
