@@ -44,7 +44,7 @@ DOMAIN=$(Q "hostname FROM geo_foundry.domains WHERE site_id=$SITE AND role='cano
 # 定时发布等套件的模拟 worker 会遗留 approved/published 且无评估记录的夹具；
 # 真实编译器对快照内每篇文章断言 assessmentState=passed（reserved URL 的
 # approved 文章也进快照），必须清干净才能编译。
-STALE=$(Q "SELECT ce.id FROM geo_foundry.content_editions ce
+STALE=$(Q "ce.id FROM geo_foundry.content_editions ce
   JOIN geo_foundry.edition_revisions ev ON ev.parent_id = ce.id AND ev.latest
   WHERE ev.site_id = $SITE AND ev.workflow_status IN ('approved','compiled','published')
     AND NOT EXISTS (SELECT 1 FROM geo_foundry.quality_assessments qa
