@@ -44,6 +44,7 @@ export {
   compileSnapshotSchema,
   completeIntakeFetchRequestSchema,
   dispatchDuePublicationPlansRequestSchema,
+  editionInputSchema,
   intakeClaimReceiptSchema,
   consumeRollbackIntentReceiptSchema,
   createRssEntriesRequestSchema,

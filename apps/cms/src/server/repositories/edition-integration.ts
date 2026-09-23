@@ -54,6 +54,8 @@ const topicsOf = (version: typeof editionVersions.$inferSelect): string[] => ver
 export type EditionInputSnapshot = {
   readonly body: unknown
   readonly compiledRelease: string | null
+  /** 内容层合并后 content 标识即 editionId（与编译快照 mapEdition 一致）。 */
+  readonly contentId: number
   readonly editionId: number
   readonly inputHash: string
   readonly modifiedAt: string
@@ -83,6 +85,7 @@ export const readEditionInput = async (
     return {
       body,
       compiledRelease: version.compiledRelease ?? null,
+      contentId: options.editionId,
       editionId: options.editionId,
       inputHash: hashEditionContent({ body, primaryTopic, secondaryTopics, summary, title }),
       // Payload draft:true 返回的是 version_* 副本列，publishedAt 对应 version_created_at。
