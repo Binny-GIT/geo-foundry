@@ -200,7 +200,9 @@ export const writeGeneratedDraft = async (
  * 编译回执（A2 按"文章 × 站点 × release"记录）：
  * - 证据（edition.compile.recorded 审计 detail，含 siteId）命中同 (站点, release)
  *   且哈希全匹配 → 幂等返回，不动任何行；
- * - 首个站点（文章 approved）→ 证据版本行 + 文章级 approved→compiled 转移；
+ * - 首个站点（文章 approved）→ 证据版本行 + 文章级 approved→compiled 转移，
+ *   并复位本站行（publish_state 回 pending、清 url_record_id/published_at）——
+ *   新编译周期边界，保证重发布周期能完整重走 published；
  * - 后续站点（文章 compiled，或他站已 published 的单站重试）→ 只落证据版本行
  *   （单值 compiledRelease 写最近一次，兼容旧读取方），文章状态/修订不动。
  * 每站的 release 记在 edition_sites 行上，发布回执段按该行守卫。
@@ -288,9 +290,18 @@ export const recordCompileResult = async (
         scope,
         target: "compiled",
       })
+      // 新编译周期边界：复位本站发布状态。重发布周期（dfp→重审批）时行可能
+      // 还停在上一周期的 published+旧 release，不复位则发布回执段命中
+      // "published 且 releaseId 匹配 → 幂等返回"分支，跳过文章级
+      // compiled→published 转移，文章会卡在 compiled 并退出 delivery。
       await updateEditionSiteRow(tx, {
         editionId: input.editionId,
-        patch: { releaseId: input.releaseId },
+        patch: {
+          publishState: "pending",
+          publishedAt: null,
+          releaseId: input.releaseId,
+          urlRecordId: null,
+        },
         siteId: input.siteId,
       })
       return { releaseId: input.releaseId, workflowStatus: "compiled" as const }

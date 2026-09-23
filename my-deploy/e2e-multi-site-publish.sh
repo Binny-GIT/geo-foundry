@@ -412,6 +412,51 @@ else
   echo "SKIP: baseline file missing on /tmp (scp 后重跑)"
 fi
 
+# ---------- 6.5. 重发布周期（单站回归） ----------
+# A2 回归守卫：新编译周期不复位站点行时，发布回执段命中
+# "published 且 releaseId 匹配 → 幂等返回"分支，跳过文章级转移，
+# 文章卡 compiled 并退出 delivery。
+D2R=$(curl -s -X POST "$BASE/api/editions/$ED2/draft-from-published" -b /tmp/ms-e.jar \
+  -H 'Content-Type: application/json' -d '{"reason":"E2E multi-site republish cycle"}')
+[ "$(st_of "$D2R")" = "draft" ] && ok "republish: draft-from-published -> draft" || bad "republish dfp $D2R"
+curl -s -o /dev/null -X POST "$BASE/api/editions/$ED2/workflow-transitions" -b /tmp/ms-e.jar \
+  -H 'Content-Type: application/json' -d '{"target":"review"}'
+R3=$(rev_of "$(draft "$ED2")")
+A3=$(curl -s -X POST "$BASE/api/workspaces/reviewer/editions/$ED2/approve" -b /tmp/ms-r.jar \
+  -H 'Content-Type: application/json' -H "x-request-id: ms-a3-$TS" -H "idempotency-key: ms-approve3-$TS" \
+  -d "{\"expectedRevision\":$R3}")
+[ "$(st_of "$A3")" = "approved" ] && ok "republish: re-approve -> approved" || bad "republish approve $A3"
+# 重记 passed 评估（编译质量门禁按当前输入快照校验，dfp 后以防哈希变化）
+IH3=$(curl -s -H "$(auth)" "$BASE/api/internal/editions/$ED2/input" | python3 -c 'import json,sys;print(json.load(sys.stdin)["inputHash"])')
+AS3=$(curl -s -X POST "$BASE/api/internal/editions/$ED2/assessments" -H "$(auth)" \
+  -H 'Content-Type: application/json' -H "x-request-id: ms-as3-$TS" \
+  -d "{\"inputHash\":\"$IH3\",\"issues\":[],\"modelId\":\"e2e-multi-site\",\"overall\":90,\"dimensions\":{\"content\":90,\"seo\":90,\"structure\":90},\"promptVersion\":\"e2e-1\",\"provider\":\"e2e\",\"state\":\"passed\",\"thresholdsHash\":\"$THRESH_HASH\"}")
+[ "$(echo "$AS3" | python3 -c 'import json,sys;print(json.load(sys.stdin)["assessmentId"]>0)')" = "True" ] \
+  && ok "republish: assessment passed re-recorded" || bad "republish assessment $AS3"
+P4=$(curl -s -X POST "$BASE/api/editions/$ED2/publish-operations" -b /tmp/ms-p.jar \
+  -H 'Content-Type: application/json' -d '{}')
+echo "publish-op(republish): $P4"
+OP4=$(echo "$P4" | python3 -c 'import json,sys;print(json.load(sys.stdin)["operation"]["operationId"])')
+REL4=$(echo "$P4" | python3 -c 'import json,sys;print(json.load(sys.stdin)["operation"]["releaseId"])')
+[ -n "$REL4" ] && [ "$REL4" != "$REL3" ] && ok "republish mints a fresh release ($REL4)" || bad "republish release=$REL4 (want fresh, was $REL3)"
+S4=""
+for i in $(seq 1 40); do
+  S4=$(Q "state FROM geo_foundry.operations WHERE operation_id='$OP4'")
+  { [ "$S4" = "succeeded" ] || [ "$S4" = "failed" ]; } && break
+  sleep 3
+done
+if [ "$S4" = "succeeded" ]; then ok "republish operation succeeded"
+else ERR=$(Q "coalesce(error->>'code','') FROM geo_foundry.operations WHERE operation_id='$OP4'"); bad "republish state=$S4 error=$ERR"; fi
+ROOT_ST3=$(Q "workflow_status FROM geo_foundry.content_editions WHERE id=$ED2")
+[ "$ROOT_ST3" = "published" ] && ok "republish: article back to published (not stuck compiled)" || bad "republish root=$ROOT_ST3"
+ROW2_FINAL=$(Q "publish_state||'|'||coalesce(release_id,'') FROM geo_foundry.edition_sites WHERE edition_id=$ED2 AND site_id=$SITE")
+[ "$ROW2_FINAL" = "published|$REL4" ] && ok "republish: site row republished with fresh release" || bad "republish row=$ROW2_FINAL"
+URL2_FINAL=$(Q "state FROM geo_foundry.url_records WHERE edition_id=$ED2 AND site_id=$SITE")
+[ "$URL2_FINAL" = "active" ] && ok "republish: URL still active" || bad "republish url=$URL2_FINAL"
+# delivery 直读接口必须仍可见（文章级 published + 站点行 published 双条件）
+DL=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/delivery/articles/$ED2")
+[ "$DL" = "200" ] && ok "republish: delivery detail still 200" || bad "republish delivery code=$DL"
+
 # ---------- 7. 还原现场 ----------
 D1=$(curl -s -X POST "$BASE/api/editions/$ED/draft-from-published" -b /tmp/ms-e.jar \
   -H 'Content-Type: application/json' -d '{"reason":"E2E multi-site cleanup"}')
