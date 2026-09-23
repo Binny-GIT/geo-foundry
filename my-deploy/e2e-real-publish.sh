@@ -4,7 +4,8 @@
 # → release 落对象存储、releases 行 current、文章 published、URL active、
 #   台账 manifest 哈希与 releases 行一致。
 # 收尾用 draft-from-published → archived 还原现场（文章退出 delivery 列表）。
-# 在 mk-dev 宿主机运行；需要 GF_E2E_EDITOR_PASSWORD / GF_E2E_ROOT_PASSWORD。
+# 在 mk-dev 宿主机运行；需要 GF_E2E_EDITOR_PASSWORD / GF_E2E_ROOT_PASSWORD /
+# GF_E2E_PUBLISHER_PASSWORD（发布操作创建者必须是 publisher）。
 # 前提：SITE 站点必须有 active canonical 域名（编译快照硬依赖）。
 set -uo pipefail
 BASE=http://127.0.0.1:3090
@@ -15,6 +16,7 @@ ok() { PASS+=("$1"); echo "PASS: $1"; }
 bad() { FAIL+=("$1"); echo "FAIL: $1"; }
 EDPW="${GF_E2E_EDITOR_PASSWORD:?}"
 RTPW="${GF_E2E_ROOT_PASSWORD:?}"
+PBPW="${GF_E2E_PUBLISHER_PASSWORD:?}"
 
 PSQL() { sudo docker exec pg-server psql -U gpucloud -d geo_foundry -qAt -c "$1"; }
 Q() { PSQL "SELECT $1"; }
@@ -25,6 +27,7 @@ login() { # email pass jar
 }
 login gf-editor-test@geo-foundry.dev "$EDPW" /tmp/rp-e.jar
 login gf-root-test@geo-foundry.dev "$RTPW" /tmp/rp-r.jar
+login e2e-scheduled-publisher@geo-foundry.test "$PBPW" /tmp/rp-p.jar
 echo "logins ok"
 SKEY=$(sudo python3 -c 'import json;print(json.load(open("/opt/geo-foundry/credentials/content-service-keyring.json"))["tenants"]["413"])')
 auth() { echo "Authorization: users API-Key $SKEY"; }
@@ -62,7 +65,9 @@ AS=$(curl -s -X POST "$BASE/api/internal/editions/$ED/assessments" -H "$(auth)" 
   && ok "quality assessment passed recorded" || bad "assessment $AS"
 
 # ---------- 2. 提交 publish operation（真实路径起点，worker 不经模拟） ----------
-P1=$(curl -s -X POST "$BASE/api/editions/$ED/publish-operations" -b /tmp/rp-r.jar \
+# 创建者必须是 publisher：回执段 advanceEditionToPublished 按 operation 审计
+# 恢复创建者身份并断言 role=publisher（super-admin 提交会在回执段 403）。
+P1=$(curl -s -X POST "$BASE/api/editions/$ED/publish-operations" -b /tmp/rp-p.jar \
   -H 'Content-Type: application/json' -d '{}')
 echo "publish-op: $P1"
 OP=$(echo "$P1" | python3 -c 'import json,sys;print(json.load(sys.stdin)["operation"]["operationId"])')

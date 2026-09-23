@@ -23,6 +23,25 @@ describe("compile snapshot route mapping", () => {
     ])
   })
 
+  it("maps a reserved URL (首次发布前 approved 文章的占位路径)", () => {
+    const routes = deriveRoutes([
+      {
+        content: 77,
+        pathname: "/articles/fresh-article",
+        state: "reserved",
+      },
+      {
+        content: 78,
+        pathname: "/articles/living-article",
+        state: "active",
+      },
+    ])
+
+    expect(routes.activeUrlByContent.get(77)).toBe("/articles/fresh-article")
+    expect(routes.activeUrlByContent.get(78)).toBe("/articles/living-article")
+    expect(routes.redirects).toEqual([])
+  })
+
   it("uses the content version timestamp instead of audit update time", () => {
     const edition = mapEdition({
       assessment: { inputHash: "a".repeat(64), state: "passed" },

@@ -45,7 +45,9 @@ export const deriveRoutes = (
     if (pathname.length === 0) {
       continue
     }
-    if (state === "active") {
+    // reserved 同样占位：approved 文章在首次发布前 URL 就是 reserved，
+    // 若只认 active，新文章永远进不了编译快照（发布后才激活会成鸡生蛋）。
+    if (state === "active" || state === "reserved") {
       const contentId = idOf(record["content"])
       if (contentId !== null && !activeUrlByContent.has(contentId)) {
         activeUrlByContent.set(contentId, pathname)
