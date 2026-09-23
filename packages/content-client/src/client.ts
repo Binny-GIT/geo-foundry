@@ -37,6 +37,8 @@ import {
   type OperationSnapshot,
   operationResponseSchema,
   pollDueConnectorsResponseSchema,
+  publishedSitesResponseSchema,
+  type PublishedSitesResponse,
   type RecordAssessmentRequest,
   type RecordCompileResultRequest,
   type RecordReleaseReceiptRequest,
@@ -205,6 +207,11 @@ export class ContentServiceClient {
       null,
       compileSnapshotSchema,
     )
+  }
+
+  // B2：全局 routing 同步的数据源（已发布站点 × canonical 域名）。
+  async getPublishedSites(): Promise<PublishedSitesResponse> {
+    return this.#call("GET", "/internal/published-sites", null, null, publishedSitesResponseSchema)
   }
 
   async writeDraftVersion(

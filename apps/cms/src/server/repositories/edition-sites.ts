@@ -13,6 +13,8 @@ import { and, eq, inArray, notInArray, sql } from "drizzle-orm"
 
 import type { ServerDb } from "../db/client"
 import { contentEditions, editionSites } from "../db/edition-schema"
+import { sites } from "../db/entity-schema"
+import { domains } from "../db/session-schema"
 
 export type EditionSitesTx = Parameters<Parameters<ServerDb["transaction"]>[0]>[0]
 
@@ -133,3 +135,37 @@ export const editionSiteMemberSql = (siteId: number) =>
       AND ${editionSites.siteId} = ${siteId}
       AND ${editionSites.publishState} <> 'unpublished'
   )`
+
+export type PublishedSiteHost = Readonly<{
+  readonly canonicalDomain: string
+  readonly siteId: number
+}>
+
+/**
+ * 全局 routing manifest 的数据源（B2）：凡有 published 行且 active 的站点
+ * 及其 canonical 域名。worker 在每站发布完成后取这份清单写 S3 全局 routing
+ * （服务面 runtime 靠它做 host → site 解析）。published 历史行在文章归档后
+ * 保留（该站 S3 指针不回退），站点因此继续留在清单里；站点撤下的 routing
+ * 语义归 A4 的按站 DELETE。
+ */
+export const publishedSiteHostsOf = async (db: ServerDb): Promise<PublishedSiteHost[]> => {
+  const rows = await db
+    .select({ siteId: sites.id, canonicalDomain: domains.hostname })
+    .from(editionSites)
+    .innerJoin(sites, eq(sites.id, editionSites.siteId))
+    .innerJoin(
+      domains,
+      and(
+        eq(domains.siteId, editionSites.siteId),
+        eq(domains.role, "canonical"),
+        eq(domains.status, "active"),
+      ),
+    )
+    .where(and(eq(editionSites.publishState, "published"), eq(sites.status, "active")))
+    .orderBy(sites.id)
+  // 一个站点至多一个 active canonical 域名；Map 兜底防重复行。
+  return [...new Map(rows.map((row) => [row.siteId, row])).values()].map((row) => ({
+    canonicalDomain: row.canonicalDomain,
+    siteId: row.siteId,
+  }))
+}

@@ -7,6 +7,7 @@ const pipeline = vi.hoisted(() => ({
   createWorkerArtifactStore: vi.fn(),
   parseWorkerS3Options: vi.fn(),
   publishPlannedRelease: vi.fn(),
+  syncGlobalRoutingManifest: vi.fn(),
 }))
 
 vi.mock("../../src/processors/release-pipeline.js", () => ({
@@ -14,6 +15,7 @@ vi.mock("../../src/processors/release-pipeline.js", () => ({
   createWorkerArtifactStore: pipeline.createWorkerArtifactStore,
   parseWorkerS3Options: pipeline.parseWorkerS3Options,
   publishPlannedRelease: pipeline.publishPlannedRelease,
+  syncGlobalRoutingManifest: pipeline.syncGlobalRoutingManifest,
 }))
 
 vi.mock("@geo/publisher", async (importOriginal) => ({
@@ -116,6 +118,7 @@ describe("operation job payload contract", () => {
       manifestSha256: "a".repeat(64),
       releaseId: "release-worker-compile",
     })
+    pipeline.syncGlobalRoutingManifest.mockResolvedValueOnce(undefined)
     const fixture = processorContext()
     const processor = createPublishGateProcessor(fixture.context)
 
@@ -140,6 +143,8 @@ describe("operation job payload contract", () => {
       kind: "succeeded",
       result: { releaseId: "release-worker-compile", siteId: 375 },
     })
+    // 按站发布成功后必须同步全局 routing（服务面靠它解析 host）。
+    expect(pipeline.syncGlobalRoutingManifest).toHaveBeenCalledWith(fixture.context)
   })
 
   it("publish-gate: terminalizes the legacy flat payload (2026-09-09 事故形状)", async () => {
@@ -164,6 +169,7 @@ describe("operation job payload contract", () => {
       }),
     )
     expect(pipeline.compileAndPlanRelease).not.toHaveBeenCalled()
+    expect(pipeline.syncGlobalRoutingManifest).not.toHaveBeenCalled()
   })
 
   it("rollback-gate: parses the shared builder payload and consumes the intent", async () => {

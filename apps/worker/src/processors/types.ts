@@ -18,6 +18,7 @@ export type ProcessorContext = {
     | "getCompileSnapshot"
     | "getEditionInput"
     | "getOperation"
+    | "getPublishedSites"
     | "recordAssessment"
     | "recordCompileResult"
     | "recordPublishedRelease"

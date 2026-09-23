@@ -13,16 +13,27 @@ import {
 import {
   buildReleaseDirectory,
   createS3ArtifactStore,
+  createS3RoutingStore,
   planRelease,
   publishRelease,
+  publishRoutingManifest,
+  RoutingPublishError,
+  ROUTING_PUBLISH_ERROR_CODE,
   verifyReleaseDirectory,
   type ArtifactStore,
   type MediaObject,
 } from "@geo/publisher"
 import { ReleaseV1 } from "@geo/schema"
 
-const { verifyManifest } = ReleaseV1
+const {
+  currentPointerKey,
+  hashRoutingManifest,
+  RELEASE_SCHEMA_VERSION,
+  RoutingHostSchema,
+  verifyManifest,
+} = ReleaseV1
 type PublishReceipt = ReleaseV1.PublishReceipt
+type RoutingManifestInput = ReleaseV1.RoutingManifestInput
 
 import { workerCredentialOf } from "../config/credentials.js"
 import { TerminalJobError, type ProcessorContext } from "./types.js"
@@ -91,6 +102,73 @@ export const createWorkerArtifactStore = (options: WorkerS3Options): ArtifactSto
     },
     keyPrefix: options.keyPrefix,
   })
+
+export const createWorkerRoutingStore = (options: WorkerS3Options) =>
+  createS3RoutingStore({
+    bucket: options.bucket,
+    clientConfig: {
+      credentials: {
+        accessKeyId: options.accessKeyId,
+        secretAccessKey: options.secretAccessKey,
+      },
+      endpoint: `${options.useSSL ? "https" : "http"}://${options.endpointHost}:${options.endpointPort}`,
+      forcePathStyle: true,
+      region: "us-east-1",
+    },
+    keyPrefix: options.keyPrefix,
+  })
+
+/**
+ * B2：单站发布完成后同步全局 routing manifest。服务面 runtime 靠
+ * routing/channels/current.json + manifest 做 host → site 解析，而发布链路
+ * 此前只写 per-site 指针——全局 routing 从无写入，服务面对任何 host 一律
+ * 503 RUNTIME_ROUTING_INVALID。
+ * 数据源是 CMS 的"已发布站点 × canonical 域名"清单（数据库单一事实源）；
+ * routingId 由 manifest 内容哈希推导：清单不变 → 同 id 同字节 → manifest
+ * 对象复用、指针 CAS 幂等 no-op；清单变化 → 新 manifest 对象 + CAS 推进。
+ * 指针 CAS 冲突（并发发布竞态）保持可重试；其余失败（指针缺失等控制面
+ * 与 S3 不一致）转终态，宁可失败也不留半套 routing。
+ */
+export const syncGlobalRoutingManifest = async (context: ProcessorContext): Promise<void> => {
+  const { sites } = await context.client.getPublishedSites()
+  // 域名不符合 routing host 约束时跳过该站（脏数据不阻塞整条发布链）。
+  const hosts = sites
+    .map((site) => ({
+      canonical: true as const,
+      host: site.canonicalDomain,
+      siteId: `site-${site.siteId}`,
+    }))
+    .filter((entry) => RoutingHostSchema.safeParse(entry.host).success)
+  if (hosts.length === 0) return
+  const manifest: RoutingManifestInput = {
+    hosts,
+    schemaVersion: RELEASE_SCHEMA_VERSION,
+  }
+  const sha256 = await hashRoutingManifest(manifest)
+  try {
+    await publishRoutingManifest({
+      manifest,
+      routingId: `routing-${sha256.slice(0, 16)}`,
+      routingStore: createWorkerRoutingStore(
+        parseWorkerS3Options(process.env, (name) => workerCredentialOf(process.env, name)),
+      ),
+      sitePointerObjectKeys: hosts.map((entry) => currentPointerKey(entry.siteId as never)),
+      siteReleaseObjectKeys: [],
+      updatedAt: new Date().toISOString(),
+    })
+  } catch (error) {
+    if (
+      error instanceof RoutingPublishError &&
+      error.code === ROUTING_PUBLISH_ERROR_CODE.ROUTING_POINTER_CONDITION_FAILED
+    ) {
+      throw error
+    }
+    throw new TerminalJobError(
+      "RELEASE_ROUTING_SYNC_FAILED",
+      error instanceof Error ? error.message : String(error),
+    )
+  }
+}
 
 /**
  * 媒体对象在 release 键空间之外：artifact store 的 read 只认 sites/... 键，

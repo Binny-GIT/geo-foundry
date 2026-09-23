@@ -26,6 +26,7 @@ export const INTERNAL_OPERATIONS: readonly InternalOperationDescriptor[] = [
   { method: "post", operationId: "failIntakeFetch", path: INTERNAL_PATHS.intakeFetchFailed },
   { method: "post", operationId: "createRssEntries", path: INTERNAL_PATHS.intakeRssEntries },
   { method: "get", operationId: "getCompileSnapshot", path: INTERNAL_PATHS.compileSnapshot },
+  { method: "get", operationId: "getPublishedSites", path: INTERNAL_PATHS.publishedSites },
   { method: "post", operationId: "writeDraftVersion", path: INTERNAL_PATHS.versions },
   { method: "post", operationId: "recordAssessment", path: INTERNAL_PATHS.assessments },
   { method: "post", operationId: "recordCompileResult", path: INTERNAL_PATHS.compileResults },

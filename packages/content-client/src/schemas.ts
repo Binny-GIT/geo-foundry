@@ -284,6 +284,19 @@ export const similarityResponseSchema = z.object({
   matches: z.array(similarityMatchSchema).max(50),
 })
 
+// B2：全局 routing manifest 数据源（已发布站点 × canonical 域名）。
+export const publishedSiteHostSchema = z.object({
+  canonicalDomain: z.string().min(1),
+  siteId: z.number().int().positive(),
+})
+
+export const publishedSitesResponseSchema = z.object({
+  sites: z.array(publishedSiteHostSchema),
+})
+
+export type PublishedSiteHost = z.infer<typeof publishedSiteHostSchema>
+export type PublishedSitesResponse = z.infer<typeof publishedSitesResponseSchema>
+
 export const internalErrorSchema = z.object({
   error: z.object({
     code: z.string().min(1),

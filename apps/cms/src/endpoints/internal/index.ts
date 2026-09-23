@@ -7,7 +7,7 @@ import { operationHandlerByOperation } from "./operations"
 import { publicationPlanHandlerByOperation } from "./publication-plans"
 import { releaseHandlerByOperation } from "./releases"
 import { rollbackIntentHandlerByOperation } from "./rollback-intents"
-import { handleGetCompileSnapshot } from "./sites"
+import { handleGetCompileSnapshot, handleGetPublishedSites } from "./sites"
 
 const handlerByOperation: Record<string, InternalHandler> = {
   ...connectorHandlerByOperation,
@@ -18,6 +18,7 @@ const handlerByOperation: Record<string, InternalHandler> = {
   ...releaseHandlerByOperation,
   ...rollbackIntentHandlerByOperation,
   getCompileSnapshot: handleGetCompileSnapshot,
+  getPublishedSites: handleGetPublishedSites,
 }
 
 export type InternalEndpoint = Readonly<{

@@ -10,6 +10,7 @@ import {
   createWorkerArtifactStore,
   parseWorkerS3Options,
   publishPlannedRelease,
+  syncGlobalRoutingManifest,
 } from "./release-pipeline.js"
 import { type ProcessorContext, TerminalJobError } from "./types.js"
 
@@ -167,6 +168,9 @@ export const createPublishGateProcessor = (context: ProcessorContext) =>
             siteId: planned.siteId,
             store,
           })
+          // 按站发布成功后，以数据库为事实源重写全局 routing manifest 与指针；
+          // 内容派生 routingId 使同一发布站点集合的重复写入幂等（CAS no-op）。
+          await syncGlobalRoutingManifest(context)
           return {
             kind: "succeeded" as const,
             result: {
