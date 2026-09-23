@@ -26,6 +26,8 @@ login() { # email pass jar
 login gf-editor-test@geo-foundry.dev "$EDPW" /tmp/rp-e.jar
 login gf-root-test@geo-foundry.dev "$RTPW" /tmp/rp-r.jar
 echo "logins ok"
+SKEY=$(sudo python3 -c 'import json;print(json.load(open("/opt/geo-foundry/credentials/content-service-keyring.json"))["tenants"]["413"])')
+auth() { echo "Authorization: users API-Key $SKEY"; }
 
 draft() { curl -s -b /tmp/rp-e.jar "$BASE/api/content-editions/$1?draft=true&depth=0"; }
 st_of() { echo "$1" | python3 -c 'import json,sys;print(json.load(sys.stdin)["workflowStatus"])'; }
@@ -48,6 +50,16 @@ A1=$(curl -s -X POST "$BASE/api/workspaces/reviewer/editions/$ED/approve" -b /tm
   -H 'Content-Type: application/json' -H "x-request-id: rp-a1-$TS" -H "idempotency-key: rp-approve-$TS" \
   -d "{\"expectedRevision\":$R1}")
 [ "$(st_of "$A1")" = "approved" ] && ok "reviewer approve -> approved" || bad "approve $A1"
+
+# 真实编译有质量门禁：assessmentState 必须 passed。经 worker 评估完成后使用的
+# 同一内部端点记录一条 passed 评估（inputHash 取当前输入快照）。
+INPUT_HASH=$(curl -s -H "$(auth)" "$BASE/api/internal/editions/$ED/input" | python3 -c 'import json,sys;print(json.load(sys.stdin)["inputHash"])')
+THRESH_HASH=$(python3 -c "import hashlib;print(hashlib.sha256(b'e2e-real-publish-defaults').hexdigest())")
+AS=$(curl -s -X POST "$BASE/api/internal/editions/$ED/assessments" -H "$(auth)" \
+  -H 'Content-Type: application/json' -H "x-request-id: rp-as-$TS" \
+  -d "{\"inputHash\":\"$INPUT_HASH\",\"issues\":[],\"modelId\":\"e2e-real-publish\",\"overall\":90,\"dimensions\":{\"content\":90,\"seo\":90,\"structure\":90},\"promptVersion\":\"e2e-1\",\"provider\":\"e2e\",\"state\":\"passed\",\"thresholdsHash\":\"$THRESH_HASH\"}")
+[ "$(echo "$AS" | python3 -c 'import json,sys;print(json.load(sys.stdin)["assessmentId"]>0)')" = "True" ] \
+  && ok "quality assessment passed recorded" || bad "assessment $AS"
 
 # ---------- 2. 提交 publish operation（真实路径起点，worker 不经模拟） ----------
 P1=$(curl -s -X POST "$BASE/api/editions/$ED/publish-operations" -b /tmp/rp-r.jar \
@@ -98,7 +110,7 @@ URLST=${URL%%|*}
 ROOT_ST=$(Q "workflow_status FROM geo_foundry.content_editions WHERE id=$ED")
 [ "$ROOT_ST" = "published" ] && ok "root workflow_status=published" || bad "root status=$ROOT_ST"
 
-VER_REL=$(Q "compiled_release FROM geo_foundry.edition_versions WHERE parent_id=$ED AND latest=true")
+VER_REL=$(Q "compiled_release FROM geo_foundry.edition_revisions WHERE parent_id=$ED AND latest=true")
 [ "$VER_REL" = "$REL" ] && ok "latest version compiled_release=$REL" || bad "version rel=$VER_REL"
 
 # 对象存储 manifest 存在性（best effort：宿主有 aws CLI 才查；
