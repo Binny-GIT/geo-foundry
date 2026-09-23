@@ -35,6 +35,17 @@ draft() { curl -s -b /tmp/sp-e.jar "$BASE/api/content-editions/$1?draft=true&dep
 rev_of() { echo "$1" | python3 -c 'import json,sys;print(json.load(sys.stdin)["workflowRevision"])'; }
 st_of() { echo "$1" | python3 -c 'import json,sys;print(json.load(sys.stdin)["workflowStatus"])'; }
 
+# 本套件用模拟 worker 驱动发布 stage；但 mk-dev 真实 worker 也在轮询
+# operation-publish 队列，会抢先消费入队任务并跑真实编译器，命中质量门禁
+# （本夹具无评估记录）把操作打成终态 failed，settle 即失败。模拟段先冻结
+# 真实 worker（cgroup pause），trap 保证任何路径下都恢复。
+WORKER_CONTAINER=geo-foundry-worker-mk-dev
+if command -v docker >/dev/null 2>&1; then
+  sudo docker pause "$WORKER_CONTAINER" >/dev/null 2>&1 \
+    && echo "worker paused (mock section)" || echo "WARN: worker pause failed, race possible"
+  trap 'sudo docker unpause "$WORKER_CONTAINER" >/dev/null 2>&1' EXIT
+fi
+
 # ---------- 1. 一次性文章到 approved ----------
 C1=$(curl -s -X POST "$BASE/api/content-editions?draft=true&depth=0" -b /tmp/sp-e.jar \
   -H 'Content-Type: application/json' \
@@ -111,6 +122,13 @@ D3=$(curl -s -X POST "$BASE/api/internal/publication-plans/dispatch-due" \
   -d "{\"now\":\"$NOW2\",\"workerId\":\"e2e-sp2-$TS\"}")
 OP2=$(Q "coalesce(operation_id,'') FROM geo_foundry.publication_plans WHERE plan_id='$PLAN'")
 [ "$OP2" = "$OP" ] && ok "re-dispatch keeps single operation" || bad "op changed $OP->$OP2"
+
+# 模拟段结束，恢复真实 worker（后续取消路径不再入队发布任务）。
+# 模拟 worker 已把操作打到终态 succeeded，真实 worker 恢复后不会重复处理。
+if command -v docker >/dev/null 2>&1; then
+  sudo docker unpause "$WORKER_CONTAINER" >/dev/null 2>&1 && echo "worker resumed" || echo "WARN: worker unpause failed"
+  trap - EXIT
+fi
 
 # ---------- 7. 取消路径（第二篇一次性文章） ----------
 C2=$(curl -s -X POST "$BASE/api/content-editions?draft=true&depth=0" -b /tmp/sp-e.jar \
