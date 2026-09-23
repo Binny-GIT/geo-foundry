@@ -40,6 +40,24 @@ rev_of() { echo "$1" | python3 -c 'import json,sys;print(json.load(sys.stdin)["w
 DOMAIN=$(Q "hostname FROM geo_foundry.domains WHERE site_id=$SITE AND role='canonical' AND status='active' LIMIT 1")
 [ -n "$DOMAIN" ] && ok "site $SITE canonical domain=$DOMAIN" || { bad "site $SITE 无 canonical 域名，无法编译"; exit 1; }
 
+# ---------- 0.5. 幂等预清理：归档无真实评估的旧 E2E 夹具 ----------
+# 定时发布等套件的模拟 worker 会遗留 approved/published 且无评估记录的夹具；
+# 真实编译器对快照内每篇文章断言 assessmentState=passed（reserved URL 的
+# approved 文章也进快照），必须清干净才能编译。
+STALE=$(Q "SELECT ce.id FROM geo_foundry.content_editions ce
+  JOIN geo_foundry.edition_revisions ev ON ev.parent_id = ce.id AND ev.latest
+  WHERE ev.site_id = $SITE AND ev.workflow_status IN ('approved','compiled','published')
+    AND NOT EXISTS (SELECT 1 FROM geo_foundry.quality_assessments qa
+      WHERE qa.edition_id = ce.id AND qa.state = 'passed')
+  ORDER BY ce.id")
+for ID in $STALE; do
+  CODE=$(curl -s -o /tmp/rp-stale.json -w '%{http_code}' \
+    -X POST "$BASE/api/editions/$ID/workflow-transitions" -b /tmp/rp-r.jar \
+    -H 'Content-Type: application/json' \
+    -d '{"target":"archived","reason":"E2E 真实发布：清理无评估旧夹具"}')
+  [ "$CODE" = "200" ] && ok "stale fixture $ID archived" || bad "stale fixture $ID code=$CODE $(cat /tmp/rp-stale.json)"
+done
+
 # ---------- 1. 一次性文章到 approved ----------
 C1=$(curl -s -X POST "$BASE/api/content-editions?draft=true&depth=0" -b /tmp/rp-e.jar \
   -H 'Content-Type: application/json' \
