@@ -45,8 +45,9 @@ SELECT
   ce.id,
   member.site,
   CASE
-    WHEN ce.workflow_status = 'published' AND ur.state = 'active' THEN 'published'
-    ELSE 'pending'
+    WHEN ce.workflow_status = 'published' AND ur.state = 'active'
+      THEN 'published'::geo_foundry.enum_edition_sites_publish_state
+    ELSE 'pending'::geo_foundry.enum_edition_sites_publish_state
   END,
   ur.id,
   CASE
@@ -64,7 +65,7 @@ SELECT
       WHERE qa.edition_id = ce.id AND qa.site_id = member.site
       ORDER BY qa.id DESC
       LIMIT 1),
-    'pending'
+    'pending'::geo_foundry.enum_quality_assessments_state
   ),
   CASE
     WHEN ce.workflow_status = 'published' AND ur.state = 'active' THEN ur.updated_at
