@@ -85,6 +85,13 @@
       "when": 1788999000011,
       "tag": "0011_api_credentials_auto_adopt",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1788999000012,
+      "tag": "0012_edition_sites",
+      "breakpoints": true
     }
   ]
 }

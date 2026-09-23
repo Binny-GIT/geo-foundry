@@ -19,6 +19,7 @@ import {
 } from "drizzle-orm/pg-core"
 
 import { geo } from "./schema"
+import { qualityAssessmentState } from "./session-schema"
 
 const ORIGINS = ["ai", "human", "hybrid"] as const
 const WORKFLOW = [
@@ -125,6 +126,40 @@ export const editionVersions = geo.table(
     index("edition_revisions_site_idx").on(table.siteId),
     index("edition_revisions_tenant_idx").on(table.tenantId),
     index("edition_revisions_edition_updated_at_idx").on(table.versionUpdatedAt),
+  ],
+)
+
+export const editionSitesPublishState = pgEnum("enum_edition_sites_publish_state", [
+  "pending",
+  "published",
+  "failed",
+  "unpublished",
+])
+
+/**
+ * A1 多站交付数据层：文章 × 站点 的发布状态行。
+ * 单站文章必须与旧 site_id/sites 数组行为完全一致（A2 再把读侧切过来）。
+ * 无外键（与库内其他表一致，完整性由应用层保证）。
+ */
+export const editionSites = geo.table(
+  "edition_sites",
+  {
+    id: serial("id").primaryKey(),
+    tenantId: integer("tenant_id"),
+    editionId: integer("edition_id").notNull(),
+    siteId: integer("site_id").notNull(),
+    publishState: editionSitesPublishState("publish_state").default("pending").notNull(),
+    urlRecordId: integer("url_record_id"),
+    releaseId: varchar("release_id"),
+    qualityState: qualityAssessmentState("quality_state").default("pending").notNull(),
+    publishedAt: timestamp("published_at", { withTimezone: true, precision: 3 }),
+    updatedAt: timestamp("updated_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("edition_sites_edition_site_unique").on(table.editionId, table.siteId),
+    index("edition_sites_tenant_idx").on(table.tenantId),
+    index("edition_sites_site_idx").on(table.siteId),
   ],
 )
 

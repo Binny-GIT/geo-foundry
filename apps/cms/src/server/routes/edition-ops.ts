@@ -12,6 +12,7 @@ import { authenticateRequest } from "../auth/session"
 import { contentEditions, editionVersions } from "../db/edition-schema"
 import { sites } from "../db/entity-schema"
 import { users } from "../db/schema"
+import { syncEditionSitesWithinTx } from "../repositories/edition-sites"
 import { insertLatestVersion, loadCurrentVersion } from "../repositories/edition-workflow"
 import { entityScopeOf } from "../repositories/entities"
 import { serverRuntime } from "../runtime"
@@ -142,6 +143,12 @@ export const handleEditionOpsPost = async (
           .returning({ id: editionVersions.id })
         const newVersionId = versionRows[0]?.id
         if (newVersionId === undefined) throw new EditionOpsError("EDITION_DUPLICATE_FAILED")
+        await syncEditionSitesWithinTx(tx, {
+          editionId: newId,
+          siteId: version.siteId,
+          sites: version.sites,
+          tenantId: version.tenantId,
+        })
         return newId
       })
       return json(201, { editionId: newEditionId })
@@ -259,6 +266,12 @@ export const handleEditionOpsPost = async (
           ...(nextSites === undefined ? {} : { sites: [...nextSites] }),
         })
         .where(eq(editionVersions.id, newVersionId))
+      await syncEditionSitesWithinTx(tx, {
+        editionId,
+        siteId,
+        sites: nextSites ?? version.sites,
+        tenantId,
+      })
       return response
     })
     return json(200, result)

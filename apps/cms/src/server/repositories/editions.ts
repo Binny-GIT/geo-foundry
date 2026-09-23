@@ -14,6 +14,7 @@ import { contentEditions, editionVersions } from "../db/edition-schema"
 import { sites } from "../db/entity-schema"
 import { users } from "../db/schema"
 import type { EntityScope, PaginatedResult } from "./entities"
+import { syncEditionSitesWithinTx } from "./edition-sites"
 
 export type EditionListInput = Readonly<{
   ids?: readonly number[]
@@ -315,6 +316,12 @@ export class EditionsRepository {
         .returning({ id: editionVersions.id })
       const versionId = versionRows[0]?.id
       if (versionId === undefined) throw new EditionWriteError("EDITION_DRAFT_WRITE_FAILED", 500)
+      await syncEditionSitesWithinTx(tx, {
+        editionId,
+        siteId: requestedSiteId,
+        sites: assignedSites,
+        tenantId,
+      })
     })
     if (editionId === null) throw new EditionWriteError("EDITION_DRAFT_WRITE_FAILED", 500)
     const created = await this.findDraft(scope, editionId)
@@ -450,6 +457,7 @@ export class EditionsRepository {
         .returning({ id: editionVersions.id })
       const versionId = inserted[0]?.id
       if (versionId === undefined) throw new EditionWriteError("EDITION_DRAFT_WRITE_FAILED", 500)
+      await syncEditionSitesWithinTx(tx, { editionId, siteId, sites: assignedSites, tenantId })
     })
 
     const saved = await this.findDraft(scope, editionId)

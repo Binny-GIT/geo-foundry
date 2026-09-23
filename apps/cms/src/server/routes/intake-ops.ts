@@ -23,6 +23,7 @@ import {
   integrationGuardOf,
   isDerivedIdempotencyHash,
 } from "../http/integration-guards"
+import { syncEditionSitesWithinTx } from "../repositories/edition-sites"
 import { entityScopeOf } from "../repositories/entities"
 import { serverRuntime } from "../runtime"
 
@@ -192,6 +193,12 @@ const adoptIntakeItem = async (
     })
     .returning({ id: editionVersions.id })
   if (versionRows[0]?.id === undefined) throw new IntakeOpsError("INTAKE_ADOPTION_FAILED")
+  await syncEditionSitesWithinTx(tx, {
+    editionId,
+    siteId,
+    sites: [siteId],
+    tenantId: item.tenantId,
+  })
   await tx.insert(articleSources).values({
     editionId,
     intakeItemId: item.id,
