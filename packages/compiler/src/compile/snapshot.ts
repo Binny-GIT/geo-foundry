@@ -33,6 +33,9 @@ export type CompileMedia = {
   readonly id: string
   readonly path: string
   readonly width?: number
+  /** Worker 传输字段：编译过程忽略，worker 凭它从对象存储取媒体字节。 */
+  readonly mimeType?: string
+  readonly tenantId?: number
 }
 
 export type CompileEdition = {

@@ -1,4 +1,9 @@
-import type { CompileEdition } from "@geo/compiler"
+import {
+  GEO_MEDIA_PATH_PREFIX,
+  geoMediaSrcOf,
+  type CompileEdition,
+  type CompileMedia,
+} from "@geo/compiler"
 
 export type Doc = Record<string, unknown>
 
@@ -84,12 +89,52 @@ const citationsOf = (
       })
     : []
 
+/** media 表行里快照需要的字段（filename 唯一，由仓库层查好传入）。 */
+export type MediaRowInput = {
+  readonly alt: string
+  readonly id: number
+  readonly mimeType?: string
+  readonly tenantId?: number
+}
+
+/**
+ * 正文图片块 → 编译快照媒体条目：只收录 geo 媒体引用（外部 URL 不进产物），
+ * 按文件名去重。tenantId/mimeType 是 worker 传输字段，编译过程忽略。
+ */
+export const mediaEntriesOf = (
+  body: readonly unknown[],
+  mediaByFilename: ReadonlyMap<string, MediaRowInput>,
+): CompileMedia[] => {
+  const entries: CompileMedia[] = []
+  const seen = new Set<string>()
+  for (const block of body) {
+    if (block === null || typeof block !== "object") continue
+    if ((block as Doc)["blockType"] !== "image") continue
+    const path = geoMediaSrcOf((block as Doc)["src"])
+    if (path === null) continue
+    const filename = path.slice(GEO_MEDIA_PATH_PREFIX.length)
+    if (seen.has(filename)) continue
+    const row = mediaByFilename.get(filename)
+    if (row === undefined) continue
+    seen.add(filename)
+    entries.push({
+      alt: row.alt,
+      id: String(row.id),
+      path,
+      ...(row.mimeType === undefined ? {} : { mimeType: row.mimeType }),
+      ...(row.tenantId === undefined ? {} : { tenantId: row.tenantId }),
+    })
+  }
+  return entries
+}
+
 export type EditionMappingInput = {
   readonly assessment: { state: string; inputHash: string } | undefined
   readonly authorId: string
   readonly authorName: string
   readonly canonicalDomain: string
   readonly edition: Doc
+  readonly media: readonly CompileMedia[]
   readonly siteKey: string
   readonly urlPathname: string
 }
@@ -135,7 +180,7 @@ export const mapEdition = (input: EditionMappingInput): CompileEdition | null =>
     contentId: editionId,
     editionId,
     entities: Array.isArray(edition["entities"]) ? (edition["entities"] as unknown[]) : [],
-    media: [],
+    media: input.media,
     modifiedAt,
     publishedAt,
     siteId: input.siteKey,

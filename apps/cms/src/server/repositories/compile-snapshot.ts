@@ -4,7 +4,12 @@
  * 输出形状与 services/compile-snapshot.ts 一致，mapper 复用。
  */
 
-import type { CompileRequest, CompileSiteSnapshot } from "@geo/compiler"
+import {
+  GEO_MEDIA_PATH_PREFIX,
+  geoMediaSrcOf,
+  type CompileRequest,
+  type CompileSiteSnapshot,
+} from "@geo/compiler"
 import { and, desc, eq, inArray } from "drizzle-orm"
 import { alias } from "drizzle-orm/pg-core"
 
@@ -13,12 +18,14 @@ import {
   deriveListings,
   deriveRoutes,
   mapEdition,
+  mediaEntriesOf,
+  type MediaRowInput,
   textOf,
 } from "../../services/compile-snapshot-mappers"
 import { EditionWorkflowError } from "../../services/edition-workflow"
 import type { ServerDb } from "../db/client"
 import { contentEditions, editionVersions } from "../db/edition-schema"
-import { sites } from "../db/entity-schema"
+import { media, sites } from "../db/entity-schema"
 import { domains, qualityAssessments } from "../db/session-schema"
 import { urlRecords } from "../db/workflow-schema"
 import { serviceScopeOf } from "./edition-integration"
@@ -130,18 +137,51 @@ export const buildCompileSnapshot = async (
     })),
   )
 
+  // 带图文章编译：先解析所有正文图片，批量查 media 表（文件名全局唯一），
+  // 再按篇生成快照媒体条目；查不到的引用由编译器报 MEDIA_MISSING。
+  const blocksByEdition = new Map<number, ReturnType<typeof markdownToBlocks>>()
+  const referencedFilenames = new Set<string>()
+  for (const { editionId, version } of versionRows) {
+    const blocks = markdownToBlocks(version.bodyMarkdown ?? "")
+    blocksByEdition.set(editionId, blocks)
+    for (const block of blocks) {
+      if (block["blockType"] !== "image") continue
+      const path = geoMediaSrcOf(block["src"])
+      if (path !== null) referencedFilenames.add(path.slice(GEO_MEDIA_PATH_PREFIX.length))
+    }
+  }
+  const mediaByFilename = new Map<string, MediaRowInput>()
+  if (referencedFilenames.size > 0) {
+    const mediaRows = await db
+      .select()
+      .from(media)
+      .where(inArray(media.filename, [...referencedFilenames]))
+      .limit(referencedFilenames.size)
+    for (const row of mediaRows) {
+      if (row.filename !== null) {
+        mediaByFilename.set(row.filename, {
+          alt: row.alt,
+          id: row.id,
+          ...(row.mimeType === null ? {} : { mimeType: row.mimeType }),
+          tenantId: row.tenantId,
+        })
+      }
+    }
+  }
+
   const topics: { categories: string[]; tags: string[] }[] = []
   const compileEditions = []
   for (const { editionId, version } of versionRows) {
     const urlPathname = activeUrlByContent.get(editionId)
     if (urlPathname === undefined) continue
+    const blocks = blocksByEdition.get(editionId) ?? []
     const mapped = mapEdition({
       assessment: latestAssessment.get(editionId),
       authorId: `author-site-${options.siteId}`,
       authorName: `${siteName} Editorial Team`,
       canonicalDomain,
       edition: {
-        body: markdownToBlocks(version.bodyMarkdown ?? ""),
+        body: blocks,
         citations: version.citations,
         content: editionId,
         contentModifiedAt: isoOf(version.contentModifiedAt),
@@ -154,6 +194,7 @@ export const buildCompileSnapshot = async (
         title: version.title,
         updatedAt: isoOf(version.versionUpdatedAt ?? version.updatedAt),
       },
+      media: mediaEntriesOf(blocks, mediaByFilename),
       siteKey,
       urlPathname,
     })

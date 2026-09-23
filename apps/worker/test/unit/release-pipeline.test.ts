@@ -14,10 +14,15 @@ import { currentPointerKey, routeIndexOf, verifyManifest } from "@geo/schema/rel
 import { describe, expect, it } from "vitest"
 
 import {
+  collectMediaObjects,
   type PlannedSiteRelease,
+  parseWorkerMediaOptions,
+  mediaObjectKeyOf,
   publishPlannedRelease,
   releaseIdentityFor,
+  type WorkerMediaOptions,
 } from "../../src/processors/release-pipeline.js"
+import { TerminalJobError } from "../../src/processors/types.js"
 
 describe("release identity", () => {
   it("mints a fresh deterministic release id when the edition has no compiled release yet", () => {
@@ -247,5 +252,157 @@ describe("publish replay after control-plane failure", () => {
     expect(afterReplay?.etag).toBe(afterFailure?.etag)
     expect(receipt.releaseId).toBe("release-worker-replay")
     expect(recordAttempts).toBe(2)
+  })
+})
+
+describe("media collection for release build", () => {
+  const mediaOptions: WorkerMediaOptions = {
+    accessKeyId: "test-key",
+    bucket: "geo-foundry",
+    endpointHost: "127.0.0.1",
+    endpointPort: 9000,
+    keyPrefix: "objects",
+    mediaPrefix: "objects/media",
+    secretAccessKey: "test-secret",
+    useSSL: false,
+  }
+
+  type FakeObject = { body: Uint8Array; contentType?: string }
+
+  const fakeClient = (
+    objects: Map<string, FakeObject>,
+  ): { client: { send: (command: { input?: { Key?: string } }) => Promise<unknown> }; keys: string[] } => {
+    const keys: string[] = []
+    return {
+      client: {
+        send: async (command) => {
+          const key = command.input?.Key ?? ""
+          keys.push(key)
+          const found = objects.get(key)
+          if (found === undefined) {
+            const error = new Error("no such key")
+            error.name = "NoSuchKey"
+            throw error
+          }
+          return {
+            Body: { transformToByteArray: async () => found.body },
+            ...(found.contentType === undefined ? {} : { ContentType: found.contentType }),
+          }
+        },
+      },
+      keys,
+    }
+  }
+
+  const snapshot = {
+    editions: [
+      {
+        media: [
+          {
+            alt: "一张地图",
+            id: "11",
+            mimeType: "image/webp",
+            path: "/media/map.webp",
+            tenantId: 413,
+          },
+        ],
+      },
+      {
+        media: [
+          // 同文件跨文章去重
+          {
+            id: "11",
+            mimeType: "image/webp",
+            path: "/media/map.webp",
+            tenantId: 413,
+          },
+          {
+            id: "12",
+            mimeType: "image/png",
+            path: "/media/chart.png",
+            tenantId: 413,
+          },
+        ],
+      },
+    ],
+  }
+
+  it("builds release-relative media objects deduped by filename", async () => {
+    const bytesA = new TextEncoder().encode("webp-bytes")
+    const bytesB = new TextEncoder().encode("png-bytes")
+    const { client, keys } = fakeClient(
+      new Map([
+        ["objects/media/tenants/413/map.webp", { body: bytesA, contentType: "image/webp" }],
+        ["objects/media/tenants/413/chart.png", { body: bytesB }],
+      ]),
+    )
+
+    const objects = await collectMediaObjects(snapshot, mediaOptions, client as never)
+
+    expect(keys).toEqual([
+      "objects/media/tenants/413/map.webp",
+      "objects/media/tenants/413/chart.png",
+    ])
+    expect(objects).toEqual([
+      { body: bytesA, contentType: "image/webp", path: "media/map.webp" },
+      { body: bytesB, contentType: "image/png", path: "media/chart.png" },
+    ])
+  })
+
+  it("falls back to the stored content type when the snapshot has no mime type", async () => {
+    const { client } = fakeClient(
+      new Map([["objects/media/tenants/413/map.webp", { body: new Uint8Array([1]) }]]),
+    )
+    const bare = {
+      editions: [{ media: [{ id: "11", path: "/media/map.webp", tenantId: 413 }] }],
+    }
+    const objects = await collectMediaObjects(bare, mediaOptions, client as never)
+    expect(objects[0]?.contentType).toBe("application/octet-stream")
+  })
+
+  it("fails terminally when the media object is missing from the store", async () => {
+    const { client } = fakeClient(new Map())
+    await expect(collectMediaObjects(snapshot, mediaOptions, client as never)).rejects.toBeInstanceOf(
+      TerminalJobError,
+    )
+    await expect(collectMediaObjects(snapshot, mediaOptions, client as never)).rejects.toMatchObject(
+      { code: "RELEASE_MEDIA_FETCH_FAILED" },
+    )
+  })
+
+  it("fails terminally when the snapshot entry has no tenant id", async () => {
+    const { client } = fakeClient(new Map())
+    const noTenant = { editions: [{ media: [{ id: "11", path: "/media/map.webp" }] }] }
+    await expect(collectMediaObjects(noTenant, mediaOptions, client as never)).rejects.toMatchObject(
+      { code: "RELEASE_MEDIA_OPTIONS_INVALID" },
+    )
+  })
+
+  it("derives the physical key from the media prefix, tenant and filename", () => {
+    expect(mediaObjectKeyOf("objects/media", 413, "map.webp")).toBe(
+      "objects/media/tenants/413/map.webp",
+    )
+  })
+
+  it("defaults the media prefix to the CMS layout and honors an override", () => {
+    const credential = () => "test"
+    const parsed = parseWorkerMediaOptions({}, credential)
+    expect(parsed.mediaPrefix).toBe("objects/media")
+    const overridden = parseWorkerMediaOptions(
+      { GEO_FOUNDRY_S3_MEDIA_PREFIX: "custom/media/" },
+      credential,
+    )
+    expect(overridden.mediaPrefix).toBe("custom/media")
+  })
+
+  it("rethrows transient S3 errors so the queue can retry", async () => {
+    const failing = {
+      send: async () => {
+        throw new Error("connection reset")
+      },
+    }
+    await expect(
+      collectMediaObjects(snapshot, mediaOptions, failing as never),
+    ).rejects.toThrow("connection reset")
   })
 })

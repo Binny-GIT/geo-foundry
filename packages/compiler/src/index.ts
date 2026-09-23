@@ -1,5 +1,5 @@
 export { canonicalJson, sha256Hex } from "./canonical.js"
-export { compileBlocks } from "./compile/blocks.js"
+export { compileBlocks, GEO_MEDIA_PATH_PREFIX, geoMediaSrcOf } from "./compile/blocks.js"
 export {
   assertPageInRange,
   listingPagePathname,

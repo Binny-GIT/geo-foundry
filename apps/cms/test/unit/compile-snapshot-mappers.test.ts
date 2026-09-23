@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest"
 
-import { deriveRoutes, mapEdition } from "../../src/services/compile-snapshot-mappers"
+import {
+  deriveRoutes,
+  mapEdition,
+  mediaEntriesOf,
+} from "../../src/services/compile-snapshot-mappers"
 
 describe("compile snapshot route mapping", () => {
   it("maps an active URL whose Payload relationship is depth-expanded", () => {
@@ -60,6 +64,7 @@ describe("compile snapshot route mapping", () => {
         updatedAt: "2026-08-22T00:00:00.000Z",
         workflowStatus: "approved",
       },
+      media: [],
       siteKey: "site-12",
       urlPathname: "/articles/stable-release-plan",
     })
@@ -86,6 +91,7 @@ describe("compile snapshot route mapping", () => {
         updatedAt: "2026-08-22T00:00:00.000Z",
         workflowStatus: "approved",
       },
+      media: [],
       siteKey: "site-12",
       urlPathname: "/articles/creation-timestamp-ordering",
     })
@@ -112,6 +118,7 @@ describe("compile snapshot route mapping", () => {
         updatedAt: "2026-08-21T00:00:00.000Z",
         workflowStatus: "approved",
       },
+      media: [],
       siteKey: "site-12",
       urlPathname: "/articles/author-mapping",
     })
@@ -141,6 +148,7 @@ describe("compile snapshot route mapping", () => {
         updatedAt: "2026-08-21T00:00:00.000Z",
         workflowStatus: "approved",
       },
+      media: [],
       siteKey: "site-12",
       urlPathname: "/articles/legacy-citation",
     })
@@ -152,5 +160,84 @@ describe("compile snapshot route mapping", () => {
         url: "https://example.com/legacy",
       },
     ])
+  })
+})
+
+describe("compile snapshot media entries", () => {
+  const mediaByFilename = new Map([
+    ["map.webp", { alt: "一张地图", id: 11, mimeType: "image/webp", tenantId: 413 }],
+    ["chart.png", { alt: "趋势图", id: 12, mimeType: "image/png", tenantId: 413 }],
+  ])
+
+  it("builds deduped entries for geo media refs with worker transport fields", () => {
+    const entries = mediaEntriesOf(
+      [
+        { blockType: "image", src: "/api/media/file/map.webp" },
+        { blockType: "image", src: "/api/media/file/map.webp" },
+        { blockType: "image", src: "/media/chart.png" },
+        { blockType: "paragraph", text: "正文段落" },
+      ],
+      mediaByFilename,
+    )
+
+    expect(entries).toEqual([
+      {
+        alt: "一张地图",
+        id: "11",
+        mimeType: "image/webp",
+        path: "/media/map.webp",
+        tenantId: 413,
+      },
+      {
+        alt: "趋势图",
+        id: "12",
+        mimeType: "image/png",
+        path: "/media/chart.png",
+        tenantId: 413,
+      },
+    ])
+  })
+
+  it("skips external images and refs whose media row is missing", () => {
+    const entries = mediaEntriesOf(
+      [
+        { blockType: "image", src: "https://cdn.example.com/external.png" },
+        { blockType: "image", src: "/api/media/file/deleted.webp" },
+        { blockType: "image", src: "/uploads/other.png" },
+      ],
+      mediaByFilename,
+    )
+
+    expect(entries).toEqual([])
+  })
+
+  it("carries the media list into the mapped edition", () => {
+    const entries = mediaEntriesOf(
+      [{ blockType: "image", src: "/api/media/file/map.webp" }],
+      mediaByFilename,
+    )
+    const edition = mapEdition({
+      assessment: { inputHash: "a".repeat(64), state: "passed" },
+      authorId: "author-site-12",
+      authorName: "Site A Editorial Team",
+      canonicalDomain: "site-a.test",
+      edition: {
+        body: [{ blockType: "image", src: "/api/media/file/map.webp" }],
+        content: 24,
+        contentModifiedAt: "2026-08-21T00:00:00.000Z",
+        createdAt: "2026-08-21T00:00:00.000Z",
+        id: 42,
+        primaryTopic: "Release control",
+        summary: "带图文章",
+        title: "Image article",
+        updatedAt: "2026-08-22T00:00:00.000Z",
+        workflowStatus: "approved",
+      },
+      media: entries,
+      siteKey: "site-12",
+      urlPathname: "/articles/image-article",
+    })
+
+    expect(edition?.media).toEqual(entries)
   })
 })
