@@ -163,8 +163,10 @@ export async function storeEditionEmbedding(
   })
   try {
     const inserted = await db.execute(sql`
+      -- INSERT 列列表只接受非限定列名（表达式里的三段限定名合法，列列表里
+      -- 报 column "geo_foundry" does not exist）；列顺序必须与 VALUES 对齐。
       INSERT INTO ${embeddings}
-        (${embeddings.embeddingKey}, ${embeddings.tenantId}, ${embeddings.siteId}, ${embeddings.editionId}, ${embeddings.scope}, ${embeddings.modelId}, ${embeddings.dimension}, ${embeddings.inputHash}, ${embeddings.embedding})
+        ("embedding_key", "tenant_id", "site_id", "edition_id", "scope", "model_id", "dimension", "input_hash", "embedding")
       VALUES (${embeddingKey}, ${anchor.tenantId}, ${storeSiteId}, ${anchor.editionId}, ${input.scope}, ${input.modelId}, ${input.dimension}, ${input.inputHash}, ${vectorLiteral}::public.vector)
       -- PostgreSQL 的 ON CONFLICT 目标只接受非限定列名，不能写表或模式限定
       -- 形式；注释里也不能出现美元大括号的列插值，会被 sql 模板求值进语句。
