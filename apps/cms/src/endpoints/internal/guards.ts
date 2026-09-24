@@ -592,7 +592,7 @@ export const withInternalGuards =
         return intakeErrorToResponse(error, requestId, allowOrigin)
       }
       if (error instanceof EmbeddingStoreError) {
-        return embeddingStoreErrorToResponse(error, requestId, allowOrigin)
+        return embeddingErrorToResponse(error, requestId, allowOrigin)
       }
       if (error instanceof SiteEventError) {
         return siteEventErrorToResponse(error, requestId, allowOrigin)

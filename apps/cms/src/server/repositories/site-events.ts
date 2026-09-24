@@ -52,7 +52,7 @@ export const recordSiteEventDelivery = async (
       webhookUrl: input.webhookUrl,
     })
     .onConflictDoUpdate({
-      cols: [siteEventDeliveries.eventId],
+      target: [siteEventDeliveries.eventId],
       set: {
         attemptCount: input.attemptCount,
         lastError: input.error,

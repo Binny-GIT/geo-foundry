@@ -180,7 +180,7 @@ export const sendSiteEventJobWithin = async (
   // 入队端契约校验（与 worker 解析共用同一 schema）：形状不对就回滚事务。
   const parsed = siteEventJobDataSchema.safeParse(data)
   if (!parsed.success) {
-    throw new Error(`JOB_SITE_EVENT_DATA_INVALID:${siteEventIssueText(parsed.error)}`)
+    throw new Error(`JOB_SITE_EVENT_DATA_INVALID:${siteEventIssueText(parsed.error.issues)}`)
   }
   return boss.send(JOB_QUEUE.siteEvents, data, {
     db: fromDrizzle(tx, sql),
