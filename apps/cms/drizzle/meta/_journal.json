@@ -92,6 +92,13 @@
       "when": 1788999000012,
       "tag": "0012_edition_sites",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1788999000013,
+      "tag": "0013_site_events",
+      "breakpoints": true
     }
   ]
 }

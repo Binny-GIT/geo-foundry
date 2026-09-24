@@ -46,6 +46,11 @@
       "path": "/internal/sites/{id}/compile-snapshot"
     },
     {
+      "method": "get",
+      "operationId": "getPublishedSites",
+      "path": "/internal/published-sites"
+    },
+    {
       "method": "post",
       "operationId": "writeDraftVersion",
       "path": "/internal/editions/{id}/versions"
@@ -74,6 +79,11 @@
       "method": "post",
       "operationId": "recordRollbackReceipt",
       "path": "/internal/releases/rollback-receipt"
+    },
+    {
+      "method": "post",
+      "operationId": "recordSiteEventDelivery",
+      "path": "/internal/site-events/deliveries"
     },
     {
       "method": "post",

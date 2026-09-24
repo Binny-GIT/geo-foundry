@@ -22,6 +22,7 @@ export const JOB_QUEUE = {
   generation: "operation-generation",
   intake: "content-intake",
   publish: "operation-publish",
+  siteEvents: "site-events",
 } as const
 
 /** Concurrency by workload: heavy generation is narrow, gates are serial. */
@@ -31,6 +32,7 @@ export const QUEUE_CONCURRENCY: Readonly<Record<string, number>> = {
   generation: 2,
   intake: 2,
   publish: 1,
+  siteEvents: 2,
 }
 
 export type WorkerBossOptions = {

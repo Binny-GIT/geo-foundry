@@ -47,6 +47,9 @@ import {
   recordReleaseReceiptRequestSchema,
   recordReleaseReceiptSchema,
   rssEntriesReceiptSchema,
+  siteEventDeliveryReceiptSchema,
+  siteEventDeliveryRequestSchema,
+  type SiteEventDeliveryRequest,
   type SimilarityMatch,
   type SimilarityQueryRequest,
   type StartOperationStageRequest,
@@ -298,6 +301,20 @@ export class ContentServiceClient {
       recordReleaseReceiptRequestSchema,
       request,
       recordReleaseReceiptSchema,
+      options,
+    )
+  }
+
+  async recordSiteEventDelivery(
+    request: SiteEventDeliveryRequest,
+    options: CallOptions = {},
+  ): Promise<void> {
+    await this.#call(
+      "POST",
+      "/internal/site-events/deliveries",
+      siteEventDeliveryRequestSchema,
+      request,
+      siteEventDeliveryReceiptSchema,
       options,
     )
   }

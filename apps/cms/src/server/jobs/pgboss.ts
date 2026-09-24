@@ -14,6 +14,10 @@ import {
   type OperationType,
   operationJobDataOf,
   parseOperationJobPayload,
+  siteEventJobDataOf,
+  siteEventJobDataSchema,
+  siteEventIssueText,
+  type SiteEventJobData,
 } from "@geo/content-client"
 import { sql } from "drizzle-orm"
 import type { Pool, QueryResult } from "pg"
@@ -30,6 +34,7 @@ export const JOB_QUEUE = {
   generation: "operation-generation",
   intake: "content-intake",
   publish: "operation-publish",
+  siteEvents: "site-events",
 } as const
 
 export type OperationQueueName = "evaluation" | "generation" | "publish"
@@ -160,4 +165,25 @@ export const sendEditionEmbeddingJobWithin = async (
     },
     { db: fromDrizzle(tx, sql), singletonKey: `embed-ed-${input.editionId}` },
   )
+}
+
+/**
+ * 站点事件（发布 webhook）：与 release 登记同事务入队；singletonKey 用
+ * 确定性 eventId，同一事件重放（回执重放）不会重复入队。
+ */
+export const sendSiteEventJobWithin = async (
+  tx: TxLike,
+  input: Parameters<typeof siteEventJobDataOf>[0],
+): Promise<string | null> => {
+  const boss = await cmsBoss()
+  const data: SiteEventJobData = siteEventJobDataOf(input)
+  // 入队端契约校验（与 worker 解析共用同一 schema）：形状不对就回滚事务。
+  const parsed = siteEventJobDataSchema.safeParse(data)
+  if (!parsed.success) {
+    throw new Error(`JOB_SITE_EVENT_DATA_INVALID:${siteEventIssueText(parsed.error)}`)
+  }
+  return boss.send(JOB_QUEUE.siteEvents, data, {
+    db: fromDrizzle(tx, sql),
+    singletonKey: data.eventId,
+  })
 }

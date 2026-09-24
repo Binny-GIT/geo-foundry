@@ -8,6 +8,7 @@ import { publicationPlanHandlerByOperation } from "./publication-plans"
 import { releaseHandlerByOperation } from "./releases"
 import { rollbackIntentHandlerByOperation } from "./rollback-intents"
 import { handleGetCompileSnapshot, handleGetPublishedSites } from "./sites"
+import { siteEventHandlerByOperation } from "./site-events"
 
 const handlerByOperation: Record<string, InternalHandler> = {
   ...connectorHandlerByOperation,
@@ -17,6 +18,7 @@ const handlerByOperation: Record<string, InternalHandler> = {
   ...publicationPlanHandlerByOperation,
   ...releaseHandlerByOperation,
   ...rollbackIntentHandlerByOperation,
+  ...siteEventHandlerByOperation,
   getCompileSnapshot: handleGetCompileSnapshot,
   getPublishedSites: handleGetPublishedSites,
 }

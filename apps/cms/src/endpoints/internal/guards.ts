@@ -4,6 +4,7 @@ import { logger } from "../../server/observability/logger"
 import { resolveSessionClaims, type SessionClaims } from "../../access/session"
 import { ReleaseRegistryError } from "../../server/repositories/release-registry"
 import { RollbackIntentError } from "../../server/repositories/rollback-intents"
+import { SiteEventError } from "../../server/repositories/site-events"
 import { WorkflowRepositoryError } from "../../server/repositories/edition-workflow"
 import { EditionWorkflowError } from "../../services/edition-workflow"
 import { EmbeddingStoreError } from "../../services/embedding-store"
@@ -259,6 +260,23 @@ const RELEASE_REGISTRY_STATUS_BY_CODE: Readonly<Record<string, number>> = {
   RELEASE_SOURCE_IDENTITY_CONFLICT: 409,
   RELEASE_TENANT_MISMATCH: 403,
 }
+
+const SITE_EVENT_STATUS_BY_CODE: Readonly<Record<string, number>> = {
+  SITE_EVENT_TENANT_MISMATCH: 403,
+}
+
+const siteEventErrorToResponse = (
+  error: SiteEventError,
+  requestId: string,
+  allowOrigin: string | null,
+): Response =>
+  internalErrorResponse(
+    SITE_EVENT_STATUS_BY_CODE[error.code] ?? 500,
+    error.code,
+    error.message,
+    requestId,
+    allowOrigin,
+  )
 
 const releaseRegistryErrorToResponse = (
   error: ReleaseRegistryError,
@@ -574,7 +592,10 @@ export const withInternalGuards =
         return intakeErrorToResponse(error, requestId, allowOrigin)
       }
       if (error instanceof EmbeddingStoreError) {
-        return embeddingErrorToResponse(error, requestId, allowOrigin)
+        return embeddingStoreErrorToResponse(error, requestId, allowOrigin)
+      }
+      if (error instanceof SiteEventError) {
+        return siteEventErrorToResponse(error, requestId, allowOrigin)
       }
       // 兜底异常必须带堆栈落日志，否则 500 无法定位（曾因此掩盖跨租户 500）。
       logger.error({ err: error, requestId }, "internal endpoint failed")

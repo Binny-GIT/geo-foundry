@@ -16,6 +16,15 @@ import {
 import { geo } from "./schema"
 
 export const siteStatus = pgEnum("enum_sites_status", ["active", "disabled"])
+export const siteEventType = pgEnum("enum_site_event_types", [
+  "published",
+  "updated",
+  "unpublished",
+])
+export const siteEventDeliveryState = pgEnum("enum_site_event_deliveries_state", [
+  "delivered",
+  "failed",
+])
 export const connectorType = pgEnum("enum_connectors_type", ["manual", "url", "webhook", "rss"])
 export const connectorStatus = pgEnum("enum_connectors_status", ["active", "disabled"])
 export const sourceSnapshotKind = pgEnum("enum_source_snapshots_kind", [
@@ -63,10 +72,41 @@ export const sites = geo.table(
     ),
     seoDefaultsTitleSuffix: varchar("seo_defaults_title_suffix"),
     seoDefaultsDefaultDescription: varchar("seo_defaults_default_description"),
+    webhookUrl: varchar("webhook_url", { length: 2048 }),
+    webhookSecretReference: varchar("webhook_secret_reference", { length: 128 }),
     updatedAt: timestamp("updated_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
   },
   (table) => [index("sites_tenant_idx").on(table.tenantId)],
+)
+
+export const siteEventDeliveries = geo.table(
+  "site_event_deliveries",
+  {
+    id: serial("id").primaryKey(),
+    eventId: varchar("event_id", { length: 64 }).notNull(),
+    tenantId: integer("tenant_id").notNull(),
+    siteId: integer("site_id").notNull(),
+    eventType: siteEventType("event_type").notNull(),
+    hostname: varchar("hostname", { length: 253 }),
+    releaseId: varchar("release_id", { length: 64 }),
+    webhookUrl: varchar("webhook_url", { length: 2048 }).notNull(),
+    state: siteEventDeliveryState("state").notNull(),
+    attemptCount: integer("attempt_count").default(0).notNull(),
+    lastStatusCode: integer("last_status_code"),
+    lastError: varchar("last_error", { length: 500 }),
+    createdAt: timestamp("created_at", { withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("site_event_deliveries_event_unique").on(table.eventId),
+    index("site_event_deliveries_site_idx").on(table.siteId, table.createdAt),
+    index("site_event_deliveries_tenant_idx").on(table.tenantId),
+  ],
 )
 
 export const connectors = geo.table(

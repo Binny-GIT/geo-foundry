@@ -67,6 +67,27 @@ export const recordReleaseReceiptRequestSchema = z.object({
 
 export const recordReleaseReceiptSchema = z.object({ recorded: z.literal(true) })
 
+/** B3：worker 投递站点 webhook 结束后的结果回报（与 CMS 端 bodySchema 对齐）。 */
+export const siteEventDeliveryRequestSchema = z
+  .object({
+    attemptCount: z.number().int().min(0).max(100),
+    error: z.string().max(500).nullable(),
+    eventType: z.enum(["published", "updated", "unpublished"]),
+    eventId: z.string().regex(/^evt-[0-9a-f]{24}$/),
+    hostname: z.string().max(253).nullable(),
+    lastStatusCode: z.number().int().min(100).max(599).nullable(),
+    releaseId: z.string().max(128).nullable(),
+    siteId: z.number().int().positive(),
+    state: z.enum(["delivered", "failed"]),
+    tenantId: z.number().int().positive(),
+    webhookUrl: z.string().max(2048),
+  })
+  .strict()
+
+export const siteEventDeliveryReceiptSchema = z.object({ recorded: z.literal(true) })
+
+export type SiteEventDeliveryRequest = z.input<typeof siteEventDeliveryRequestSchema>
+
 export const pollDueConnectorsResponseSchema = z.object({
   errors: z.array(z.object({ connectorId: z.number().int(), reason: z.string() })),
   polled: z.array(z.number().int()),

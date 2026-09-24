@@ -22,6 +22,7 @@ export const INTERNAL_PATHS = {
   operationGet: "/internal/operations/:operationId",
   operationStageComplete: "/internal/operations/:operationId/stages/complete",
   operationStageStart: "/internal/operations/:operationId/stages/start",
+  siteEventDelivery: "/internal/site-events/deliveries",
 } as const
 
 export const SHA256_PATTERN = /^[0-9a-f]{64}$/
@@ -179,6 +180,26 @@ export const completeOperationStageBodySchema = z
 
 export type StartOperationStageBody = z.infer<typeof startOperationStageBodySchema>
 export type CompleteOperationStageBody = z.infer<typeof completeOperationStageBodySchema>
+
+/** B3：worker 投递 webhook 结束（成功或重试耗尽）后的结果回报。 */
+export const siteEventDeliveryBodySchema = z
+  .object({
+    // 0 = 投递前即失败（凭据目录缺失/密钥不可读），没有实际投递尝试。
+    attemptCount: z.number().int().min(0).max(100),
+    error: z.string().max(500).nullable(),
+    eventType: z.enum(["published", "updated", "unpublished"]),
+    eventId: z.string().regex(/^evt-[0-9a-f]{24}$/),
+    hostname: z.string().max(253).nullable(),
+    lastStatusCode: z.number().int().min(100).max(599).nullable(),
+    releaseId: z.string().max(128).nullable(),
+    siteId: z.number().int().positive(),
+    state: z.enum(["delivered", "failed"]),
+    tenantId: z.number().int().positive(),
+    webhookUrl: z.string().max(2048),
+  })
+  .strict()
+
+export type SiteEventDeliveryBody = z.infer<typeof siteEventDeliveryBodySchema>
 
 const vectorSchema = z.array(z.number().finite()).min(1).max(4096)
 

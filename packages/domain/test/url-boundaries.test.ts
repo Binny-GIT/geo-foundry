@@ -131,6 +131,6 @@ describe("url boundary parsing", () => {
     // Then
     expect(root.value).toBe("/")
     expect(special.value).toBe("/%21guide%27%28draft%29%2A")
-    expect(canonical.value).toBe("https://site-a.test/en-US/")
+    expect(canonical.value).toBe("https://site-a.test/")
   })
 })

@@ -204,12 +204,13 @@ export function constructCanonicalUrl(
     readonly pathname: NormalizedPathname
   }>,
 ): CanonicalUrl {
-  const localizedPath =
-    input.pathname.value === "/"
-      ? `/${input.locale.value}/`
-      : `/${input.locale.value}${input.pathname.value}`
+  // canonical 必须与编译器输出（packages/compiler/src/seo/urls.ts 的 canonicalUrlOf）
+  // 一致：https://<域名><路径>，URL 表面无 locale 段。站点是单 locale 模型，
+  // locale 只参与唯一键（urlUniqueKey），不参与 URL。旧版本在这里强加 /<locale>
+  // 前缀，使 url_records.canonical_url 台账与页面实际 <link rel=canonical> 不一致
+  // （B3 修正，存量行由迁移 0013 回填）。
   return Object.freeze({
     [canonicalUrlBrand]: "CanonicalUrl" as const,
-    value: new URL(localizedPath, `https://${input.hostname.value}`).href,
+    value: new URL(input.pathname.value, `https://${input.hostname.value}`).href,
   })
 }

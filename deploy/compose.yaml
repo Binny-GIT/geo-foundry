@@ -86,6 +86,8 @@ services:
       AI_TIMEOUT_MS: ${AI_TIMEOUT_MS:-}
       AI_MAX_RESPONSE_BYTES: ${AI_MAX_RESPONSE_BYTES:-}
       AI_API_KEY_FILE: /run/geo-foundry/credentials/ai-api-key
+      # B3：站点 webhook 密钥目录（sites.webhook_secret_reference 指向其中具名文件）
+      GEO_FOUNDRY_SITE_WEBHOOK_CREDENTIALS_DIR: /run/geo-foundry/credentials
     volumes:
       - type: bind
         source: ${GEO_FOUNDRY_CREDENTIALS_DIR:?GEO_FOUNDRY_CREDENTIALS_DIR is required}

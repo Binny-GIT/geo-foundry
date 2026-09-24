@@ -45,6 +45,11 @@ export const INTERNAL_OPERATIONS: readonly InternalOperationDescriptor[] = [
     operationId: "recordRollbackReceipt",
     path: INTERNAL_PATHS.recordRollbackReceipt,
   },
+  {
+    method: "post",
+    operationId: "recordSiteEventDelivery",
+    path: INTERNAL_PATHS.siteEventDelivery,
+  },
   { method: "post", operationId: "storeEmbedding", path: INTERNAL_PATHS.embeddings },
   { method: "post", operationId: "findSimilarEditions", path: INTERNAL_PATHS.similarity },
   { method: "get", operationId: "getOperation", path: INTERNAL_PATHS.operationGet },

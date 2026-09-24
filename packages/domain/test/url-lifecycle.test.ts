@@ -63,7 +63,7 @@ describe("url lifecycle", () => {
 
     // Then
     expect(retained.pathname.value).toBe("/guides/geo-foundry")
-    expect(retained.canonicalUrl.value).toBe("https://site-a.test/en-US/guides/geo-foundry")
+    expect(retained.canonicalUrl.value).toBe("https://site-a.test/guides/geo-foundry")
     expect(renamed.redirect).toMatchObject({ state: "redirected", statusCode: 301 })
     expect(renamed.registry.routes.filter((route) => route.state === "redirected")).toHaveLength(1)
     expect(sitemap).toMatchObject({ ok: true })

@@ -23,6 +23,7 @@ export type ProcessorContext = {
     | "recordCompileResult"
     | "recordPublishedRelease"
     | "recordRollbackReceipt"
+    | "recordSiteEventDelivery"
     | "startOperationStage"
     | "storeEmbedding"
     | "writeDraftVersion"

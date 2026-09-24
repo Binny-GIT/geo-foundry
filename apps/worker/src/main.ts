@@ -14,6 +14,7 @@ import {
   createPublishGateProcessor,
   createRollbackGateProcessor,
 } from "./processors/triggers.js"
+import { createSiteEventProcessor } from "./processors/site-events.js"
 import { parseWorkerS3Options } from "./processors/release-pipeline.js"
 import type { WorkJob, WorkerLogEvent } from "./processors/types.js"
 import {
@@ -109,6 +110,9 @@ export const main = async (): Promise<void> => {
       ((job.data as Record<string, unknown>)["stage"] === "rollback-gate"
         ? rollback(job)
         : publish(job)) as Promise<unknown>,
+    [JOB_QUEUE.siteEvents]: createSiteEventProcessor(client, logger, {
+      credentialDirectory: process.env["GEO_FOUNDRY_SITE_WEBHOOK_CREDENTIALS_DIR"],
+    }),
   }
 
   const boss = createWorkerBoss({ connectionString: workerPgConnectionString() })

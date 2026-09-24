@@ -7,6 +7,7 @@
  * - 已预留 URL 在同一事务内激活。
  */
 
+import { type SiteEventType } from "@geo/content-client"
 import {
   type PublishReceipt,
   PublishReceiptSchema,
@@ -22,6 +23,7 @@ import { buildSiteRegistry, toUrlRecordRow } from "../../services/url-registry-s
 import type { ServerDb } from "../db/client"
 import { sites } from "../db/entity-schema"
 import { operations } from "../db/ledger-schema"
+import { sendSiteEventJobWithin } from "../jobs/pgboss"
 import { domains, releases } from "../db/session-schema"
 import { urlRecords } from "../db/workflow-schema"
 import { loadCurrentVersion, transitionEditionWithinTx, workflowActorOf } from "./edition-workflow"
@@ -69,9 +71,19 @@ const siteOf = async (
   tx: Tx,
   siteId: number,
   claims: SessionClaims,
-): Promise<{ readonly id: number; readonly tenantId: number }> => {
+): Promise<{
+  readonly id: number
+  readonly tenantId: number
+  readonly webhookSecretReference: string | null
+  readonly webhookUrl: string | null
+}> => {
   const rows = await tx
-    .select({ id: sites.id, tenantId: sites.tenantId })
+    .select({
+      id: sites.id,
+      tenantId: sites.tenantId,
+      webhookSecretReference: sites.webhookSecretReference,
+      webhookUrl: sites.webhookUrl,
+    })
     .from(sites)
     .where(eq(sites.id, siteId))
     .limit(1)
@@ -79,6 +91,53 @@ const siteOf = async (
   if (site === undefined) throw new ReleaseRegistryError("RELEASE_SITE_NOT_FOUND", String(siteId))
   assertTenant(claims, site.tenantId)
   return site
+}
+
+/**
+ * B3 发布事件：与 release 登记同事务入队站点通知任务（pg-boss site-events）。
+ * 站点未配置 webhook（url 或密钥引用缺失）时静默跳过——无事件、无台账行。
+ * 事件的 hostname 取站点 canonical 活跃域名；缺失时以 null 入队（消费方
+ * 仍可按 siteId 识别）。
+ */
+const enqueueSiteEventWithin = async (
+  tx: Tx,
+  site: Awaited<ReturnType<typeof siteOf>>,
+  input: Readonly<{
+    eventType: SiteEventType
+    manifestSha256: string
+    releaseId: string
+  }>,
+): Promise<void> => {
+  if (
+    site.webhookUrl === null ||
+    site.webhookUrl.length === 0 ||
+    site.webhookSecretReference === null ||
+    site.webhookSecretReference.length === 0
+  ) {
+    return
+  }
+  const domainRows = await tx
+    .select({ hostname: domains.hostname })
+    .from(domains)
+    .where(
+      and(
+        eq(domains.siteId, site.id),
+        eq(domains.role, "canonical"),
+        eq(domains.status, "active"),
+      ),
+    )
+    .limit(1)
+  await sendSiteEventJobWithin(tx, {
+    eventType: input.eventType,
+    hostname: domainRows[0]?.hostname ?? null,
+    manifestSha256: input.manifestSha256,
+    occurredAt: new Date().toISOString(),
+    releaseId: input.releaseId,
+    secretReference: site.webhookSecretReference,
+    siteId: site.id,
+    tenantId: site.tenantId,
+    webhookUrl: site.webhookUrl,
+  })
 }
 
 const releaseOf = async (tx: Tx, releaseId: string): Promise<ReleaseRow | null> => {
@@ -367,6 +426,9 @@ export const recordPublishedRelease = async (
       .from(releases)
       .where(and(eq(releases.siteId, site.id), eq(releases.state, "current")))
       .limit(100)
+    // B3：跟踪本次登记是否真正改变 current 状态——回执重放（同一 release
+    // 已是 current）不应再产生发布事件。
+    let releaseStateChanged = false
     for (const existing of current) {
       if (existing.releaseId !== receipt.releaseId) {
         await updateRelease(
@@ -376,6 +438,7 @@ export const recordPublishedRelease = async (
           auditOf("release.current.superseded", receipt, input.operationId),
           { operationId: input.operationId, receipt },
         )
+        releaseStateChanged = true
       }
     }
     const existing = await releaseOf(tx, receipt.releaseId)
@@ -392,6 +455,7 @@ export const recordPublishedRelease = async (
         state: "current",
         tenantId: site.tenantId,
       })
+      releaseStateChanged = true
     } else {
       assertTenant(claims, existing.tenantId)
       assertReleaseIdentity(existing, receipt)
@@ -403,6 +467,7 @@ export const recordPublishedRelease = async (
           auditOf("release.reconciled.current", receipt, input.operationId),
           { operationId: input.operationId, receipt },
         )
+        releaseStateChanged = true
       }
     }
     if (input.editionId !== undefined) {
@@ -420,6 +485,17 @@ export const recordPublishedRelease = async (
           siteId: site.id,
         })
       }
+    }
+    // B3：登记同事务入队站点发布事件。登记前已有其他 current release 说明
+    // 是重发布（updated），否则是该站点首次发布（published）。
+    if (releaseStateChanged) {
+      await enqueueSiteEventWithin(tx, site, {
+        eventType: current.some((row) => row.releaseId !== receipt.releaseId)
+          ? "updated"
+          : "published",
+        manifestSha256: receipt.manifestSha256,
+        releaseId: receipt.releaseId,
+      })
     }
   })
 }
@@ -458,6 +534,7 @@ export const recordRollbackReceipt = async (
     ) {
       throw new ReleaseRegistryError("RELEASE_SOURCE_IDENTITY_CONFLICT", receipt.fromReleaseId)
     }
+    let releaseStateChanged = false
     if (source.state !== "rolled_back") {
       await updateRelease(
         tx,
@@ -466,6 +543,7 @@ export const recordRollbackReceipt = async (
         auditOf("release.current.rolled_back", receipt, input.operationId),
         { operationId: input.operationId, receipt },
       )
+      releaseStateChanged = true
     }
     if (target.state !== "current") {
       await updateRelease(
@@ -475,6 +553,16 @@ export const recordRollbackReceipt = async (
         auditOf("release.rollback.current", receipt, input.operationId),
         { operationId: input.operationId, receipt },
       )
+      releaseStateChanged = true
+    }
+    // B3：回滚同样改变站点当前 release（内容回退），按 updated 通知；
+    // 回执重放（状态未变）不重复入队。
+    if (releaseStateChanged) {
+      await enqueueSiteEventWithin(tx, site, {
+        eventType: "updated",
+        manifestSha256: receipt.manifestSha256,
+        releaseId: receipt.releaseId,
+      })
     }
   })
 }
