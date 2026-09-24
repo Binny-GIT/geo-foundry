@@ -90,6 +90,8 @@ cleanup_sites() {
 purge_fixture_site() { # 仅按 id + name 双校验清除依赖行
   local S="$1" N="$2"
   [ -n "$S" ] || return 0
+  # 评估行 site_id 非空且外键指向 sites，先删否则站点删除被 NOT NULL 级联挡下。
+  PSQL "DELETE FROM geo_foundry.quality_assessments WHERE site_id=$S" >/dev/null
   PSQL "DELETE FROM geo_foundry.site_event_deliveries WHERE site_id=$S" >/dev/null
   PSQL "DELETE FROM geo_foundry.url_records WHERE site_id=$S" >/dev/null
   PSQL "DELETE FROM geo_foundry.edition_sites WHERE site_id=$S" >/dev/null
@@ -110,15 +112,23 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
 
+    def _healthz(self):
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(b'{"ok":true}')
+
+    def do_GET(self):
+        # 仅探活端点接受 GET；hook 路径未实现 GET（返回 501）。
+        if self.path == "/healthz":
+            self._healthz()
+
     def do_POST(self):
+        if self.path == "/healthz":
+            self._healthz()
+            return
         length = int(self.headers.get("Content-Length", "0"))
         raw = self.rfile.read(length)
-        if self.path == "/healthz":
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(b'{"ok":true}')
-            return
         try:
             body = json.loads(raw.decode("utf-8"))
         except Exception:
@@ -156,8 +166,13 @@ HTTPServer(("0.0.0.0", port), Handler).serve_forever()
 PYEOF
 python3 "$RECEIVER" "$RECEIPT" "$SECRET" "$HOOK_PORT" &
 RECEIVER_PID=$!
-sleep 1
-curl -s -o /dev/null http://127.0.0.1:$HOOK_PORT/healthz \
+# 探针带重试：python 冷启动 + 首次绑定可能超过 1s。
+UP=0
+for i in $(seq 1 10); do
+  curl -s -o /dev/null -m 2 http://127.0.0.1:$HOOK_PORT/healthz && { UP=1; break; }
+  sleep 1
+done
+[ "$UP" = "1" ] \
   && ok "mock receiver up (pid=$RECEIVER_PID, gw=$GW)" \
   || { bad "mock receiver unreachable"; exit 1; }
 
