@@ -216,10 +216,22 @@ assert b["state"]=="failed", per
 assert c["state"]=="passed", per' \
   && ok "Y perSite fanout: B=failed, C=passed" || bad "Y perSite=$PERY"
 
-[ "$(qa_state "$ED_Y" "$SITE_B")" = "failed" ] \
-  && [ "$(qa_has_code "$ED_Y" "$SITE_B" SEMANTIC_SAME_SITE_TITLE_DUPLICATE)" = "1" ] \
-  && ok "Y site B: failed with SEMANTIC_SAME_SITE_TITLE_DUPLICATE (hit X's same-site title)" \
-  || bad "Y B state=$(qa_state "$ED_Y" "$SITE_B") codeCount=$(qa_has_code "$ED_Y" "$SITE_B" SEMANTIC_SAME_SITE_TITLE_DUPLICATE)"
+# 带短重试读行，失败时 dump 行全文（区分"码没落"与"读取时序"）。
+CODE_OK=""
+for i in 1 2 3; do
+  if [ "$(qa_state "$ED_Y" "$SITE_B")" = "failed" ] \
+    && [ "$(qa_has_code "$ED_Y" "$SITE_B" SEMANTIC_SAME_SITE_TITLE_DUPLICATE)" = "1" ]; then
+    CODE_OK=1
+    break
+  fi
+  sleep 2
+done
+if [ -n "$CODE_OK" ]; then
+  ok "Y site B: failed with SEMANTIC_SAME_SITE_TITLE_DUPLICATE (hit X's same-site title)"
+else
+  YB_ROW=$(Q "state || ' | ' || issues::text FROM geo_foundry.quality_assessments WHERE edition_id=$ED_Y AND site_id=$SITE_B ORDER BY created_at DESC LIMIT 1")
+  bad "Y B row=[$YB_ROW]"
+fi
 [ "$(qa_state "$ED_Y" "$SITE_C")" = "passed" ] \
   && [ "$(qa_has_code "$ED_Y" "$SITE_C" SEMANTIC_SAME_SITE_TITLE_DUPLICATE)" = "0" ] \
   && ok "Y site C: passed, no same-site-title code (X not a C member)" \
