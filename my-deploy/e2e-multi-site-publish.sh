@@ -53,9 +53,14 @@ post_assessment() { # $1=edition $2=siteId $3=request-id-tag $4=inputHash
 assess_ok() { [ "$(echo "$1" | python3 -c 'import json,sys;print(json.load(sys.stdin)["assessmentId"]>0)')" = "True" ]; }
 
 SITE_C=""
-# 夹具站删除：sites 被 domains/url_records/releases/operations 外键引用，
-# 必须先删依赖表行（仅按夹具站 id 精确删除，不碰业务行）。
+# 夹具站删除：sites 被 quality_assessments/embeddings/site_event_deliveries/
+# url_records/edition_sites/operations/releases/domains 外键引用，必须先删
+# 依赖表行（仅按夹具站 id 精确删除，不碰业务行）。quality_assessments 的
+# site_id 是 NOT NULL + ON DELETE SET NULL——不先删评估行，站点删除必炸。
 purge_fixture_site() {
+  PSQL "DELETE FROM geo_foundry.quality_assessments WHERE site_id=$1" >/dev/null
+  PSQL "DELETE FROM geo_foundry.embeddings WHERE site_id=$1" >/dev/null
+  PSQL "DELETE FROM geo_foundry.site_event_deliveries WHERE site_id=$1" >/dev/null
   PSQL "DELETE FROM geo_foundry.url_records WHERE site_id=$1" >/dev/null
   PSQL "DELETE FROM geo_foundry.edition_sites WHERE site_id=$1" >/dev/null
   PSQL "DELETE FROM geo_foundry.operations WHERE site_id=$1" >/dev/null
