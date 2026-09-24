@@ -42,6 +42,16 @@ st_of() { echo "$1" | python3 -c 'import json,sys;print(json.load(sys.stdin)["wo
 rev_of() { echo "$1" | python3 -c 'import json,sys;print(json.load(sys.stdin)["workflowRevision"])'; }
 draft() { curl -s -b /tmp/ms-e.jar "$BASE/api/content-editions/$1?draft=true&depth=0"; }
 
+# A3 质量检查按站：评估结论按 (文章 × 站点) 回填，每个成员站一行。
+THRESH_HASH=$(python3 -c "import hashlib;print(hashlib.sha256(b'e2e-multi-site-defaults').hexdigest())")
+input_hash_of() { curl -s -H "$(auth)" "$BASE/api/internal/editions/$1/input" | python3 -c 'import json,sys;print(json.load(sys.stdin)["inputHash"])'; }
+post_assessment() { # $1=edition $2=siteId $3=request-id-tag $4=inputHash
+  curl -s -X POST "$BASE/api/internal/editions/$1/assessments" -H "$(auth)" \
+    -H 'Content-Type: application/json' -H "x-request-id: $3-$TS" \
+    -d "{\"siteId\":$2,\"inputHash\":\"$4\",\"issues\":[],\"modelId\":\"e2e-multi-site\",\"overall\":90,\"dimensions\":{\"content\":90,\"seo\":90,\"structure\":90},\"promptVersion\":\"e2e-1\",\"provider\":\"e2e\",\"state\":\"passed\",\"thresholdsHash\":\"$THRESH_HASH\"}"
+}
+assess_ok() { [ "$(echo "$1" | python3 -c 'import json,sys;print(json.load(sys.stdin)["assessmentId"]>0)')" = "True" ]; }
+
 SITE_C=""
 # 夹具站删除：sites 被 domains/url_records/releases/operations 外键引用，
 # 必须先删依赖表行（仅按夹具站 id 精确删除，不碰业务行）。
@@ -67,11 +77,12 @@ OLD_FIXTURES=$(PSQL "SELECT id FROM geo_foundry.sites WHERE name='E2E A2 NoDomai
 [ -z "$OLD_FIXTURES" ] || { bad "old fixture sites need manual review: $OLD_FIXTURES"; exit 1; }
 
 # 站点内其他未评估文章会阻断整站编译；只报错，不替用户改动其工作流。
+# A3：门禁按 (文章 × 本站) 取最新评估，其他站的 passed 不能替本站背书。
 STALE=$(Q "ce.id FROM geo_foundry.content_editions ce
   JOIN geo_foundry.edition_revisions ev ON ev.parent_id = ce.id AND ev.latest
   WHERE ev.site_id = $SITE AND ev.workflow_status IN ('approved','compiled','published')
     AND NOT EXISTS (SELECT 1 FROM geo_foundry.quality_assessments qa
-      WHERE qa.edition_id = ce.id AND qa.state = 'passed')
+      WHERE qa.edition_id = ce.id AND qa.site_id = $SITE AND qa.state = 'passed')
   ORDER BY ce.id")
 [ -z "$STALE" ] || { bad "site $SITE has unassessed editions: $STALE"; exit 1; }
 
@@ -118,13 +129,19 @@ for S in "$SITE" "$SITE_C"; do
   [ "$R" = "1" ] && ok "URL reserved site $S" || bad "url reserved site $S rows=$R"
 done
 
-INPUT_HASH=$(curl -s -H "$(auth)" "$BASE/api/internal/editions/$ED/input" | python3 -c 'import json,sys;print(json.load(sys.stdin)["inputHash"])')
-THRESH_HASH=$(python3 -c "import hashlib;print(hashlib.sha256(b'e2e-multi-site-defaults').hexdigest())")
-AS=$(curl -s -X POST "$BASE/api/internal/editions/$ED/assessments" -H "$(auth)" \
-  -H 'Content-Type: application/json' -H "x-request-id: ms-as-$TS" \
-  -d "{\"inputHash\":\"$INPUT_HASH\",\"issues\":[],\"modelId\":\"e2e-multi-site\",\"overall\":90,\"dimensions\":{\"content\":90,\"seo\":90,\"structure\":90},\"promptVersion\":\"e2e-1\",\"provider\":\"e2e\",\"state\":\"passed\",\"thresholdsHash\":\"$THRESH_HASH\"}")
-[ "$(echo "$AS" | python3 -c 'import json,sys;print(json.load(sys.stdin)["assessmentId"]>0)')" = "True" ] \
-  && ok "quality assessment passed recorded" || bad "assessment $AS"
+# A3：每个成员站各回填一条 passed 评估（按站门禁只认本站的行）。
+INPUT_HASH=$(input_hash_of "$ED")
+AS_A=$(post_assessment "$ED" "$SITE" "ms-as-a" "$INPUT_HASH")
+AS_C=$(post_assessment "$ED" "$SITE_C" "ms-as-c" "$INPUT_HASH")
+assess_ok "$AS_A" && assess_ok "$AS_C" \
+  && ok "quality assessments passed per member site (2 rows)" || bad "assessment A=$AS_A C=$AS_C"
+NA=$(Q "count(*) FROM geo_foundry.quality_assessments WHERE edition_id=$ED AND site_id=$SITE AND state='passed'")
+NC=$(Q "count(*) FROM geo_foundry.quality_assessments WHERE edition_id=$ED AND site_id=$SITE_C AND state='passed'")
+[ "$NA" -ge 1 ] && [ "$NC" -ge 1 ] && ok "assessment rows landed per site" || bad "assessment rows A=$NA C=$NC"
+QSA=$(Q "quality_state FROM geo_foundry.edition_sites WHERE edition_id=$ED AND site_id=$SITE")
+QSC=$(Q "quality_state FROM geo_foundry.edition_sites WHERE edition_id=$ED AND site_id=$SITE_C")
+[ "$QSA" = "passed" ] && [ "$QSC" = "passed" ] \
+  && ok "edition_sites.quality_state written per site (passed)" || bad "quality_state A=$QSA C=$QSC"
 
 # ---------- 2. 扇出：两条操作（一站一条） ----------
 P1=$(curl -s -X POST "$BASE/api/editions/$ED/publish-operations" -b /tmp/ms-p.jar \
@@ -281,12 +298,12 @@ AM2=$(curl -s -X POST "$BASE/api/workspaces/reviewer/editions/$ED/approve" -b /t
   -H 'Content-Type: application/json' -H "x-request-id: ms-am2-$TS" -H "idempotency-key: ms-approve-m2-$TS" \
   -d "{\"expectedRevision\":$RM2}")
 [ "$(st_of "$AM2")" = "approved" ] && ok "two-site republish: revision bumped" || bad "two-site reapprove $AM2"
-IM=$(curl -s -H "$(auth)" "$BASE/api/internal/editions/$ED/input" | python3 -c 'import json,sys;print(json.load(sys.stdin)["inputHash"])')
-ASM=$(curl -s -X POST "$BASE/api/internal/editions/$ED/assessments" -H "$(auth)" \
-  -H 'Content-Type: application/json' -H "x-request-id: ms-asm-$TS" \
-  -d "{\"inputHash\":\"$IM\",\"issues\":[],\"modelId\":\"e2e-multi-site\",\"overall\":90,\"dimensions\":{\"content\":90,\"seo\":90,\"structure\":90},\"promptVersion\":\"e2e-1\",\"provider\":\"e2e\",\"state\":\"passed\",\"thresholdsHash\":\"$THRESH_HASH\"}")
-[ "$(echo "$ASM" | python3 -c 'import json,sys;print(json.load(sys.stdin)["assessmentId"]>0)')" = "True" ] \
-  && ok "two-site republish: assessment passed" || bad "two-site assessment $ASM"
+# A3：重发布周期两站各需新的 passed 评估（按站门禁）。
+IM=$(input_hash_of "$ED")
+ASM_A=$(post_assessment "$ED" "$SITE" "ms-asm-a" "$IM")
+ASM_C=$(post_assessment "$ED" "$SITE_C" "ms-asm-c" "$IM")
+assess_ok "$ASM_A" && assess_ok "$ASM_C" \
+  && ok "two-site republish: per-site assessments passed" || bad "two-site assessment A=$ASM_A C=$ASM_C"
 PM=$(curl -s -X POST "$BASE/api/editions/$ED/publish-operations" -b /tmp/ms-p.jar \
   -H 'Content-Type: application/json' -d '{}')
 echo "publish-op(two-site republish): $PM"
@@ -328,12 +345,9 @@ A2=$(curl -s -X POST "$BASE/api/workspaces/reviewer/editions/$ED2/approve" -b /t
   -H 'Content-Type: application/json' -H "x-request-id: ms-a2-$TS" -H "idempotency-key: ms-approve2-$TS" \
   -d "{\"expectedRevision\":$R2}")
 [ "$(st_of "$A2")" = "approved" ] && ok "single approve -> approved" || bad "approve2 $A2"
-IH2=$(curl -s -H "$(auth)" "$BASE/api/internal/editions/$ED2/input" | python3 -c 'import json,sys;print(json.load(sys.stdin)["inputHash"])')
-AS2=$(curl -s -X POST "$BASE/api/internal/editions/$ED2/assessments" -H "$(auth)" \
-  -H 'Content-Type: application/json' -H "x-request-id: ms-as2-$TS" \
-  -d "{\"inputHash\":\"$IH2\",\"issues\":[],\"modelId\":\"e2e-multi-site\",\"overall\":90,\"dimensions\":{\"content\":90,\"seo\":90,\"structure\":90},\"promptVersion\":\"e2e-1\",\"provider\":\"e2e\",\"state\":\"passed\",\"thresholdsHash\":\"$THRESH_HASH\"}")
-[ "$(echo "$AS2" | python3 -c 'import json,sys;print(json.load(sys.stdin)["assessmentId"]>0)')" = "True" ] \
-  && ok "single assessment passed" || bad "assessment2 $AS2"
+IH2=$(input_hash_of "$ED2")
+AS2=$(post_assessment "$ED2" "$SITE" "ms-as2" "$IH2")
+assess_ok "$AS2" && ok "single assessment passed" || bad "assessment2 $AS2"
 
 P3=$(curl -s -X POST "$BASE/api/editions/$ED2/publish-operations" -b /tmp/ms-p.jar \
   -H 'Content-Type: application/json' -d '{}')
@@ -489,12 +503,9 @@ A3=$(curl -s -X POST "$BASE/api/workspaces/reviewer/editions/$ED2/approve" -b /t
   -d "{\"expectedRevision\":$R3}")
 [ "$(st_of "$A3")" = "approved" ] && ok "republish A: re-approve -> approved" || bad "republish A approve $A3"
 # 重记 passed 评估（编译质量门禁按当前输入快照校验，dfp 后以防哈希变化）
-IH3=$(curl -s -H "$(auth)" "$BASE/api/internal/editions/$ED2/input" | python3 -c 'import json,sys;print(json.load(sys.stdin)["inputHash"])')
-AS3=$(curl -s -X POST "$BASE/api/internal/editions/$ED2/assessments" -H "$(auth)" \
-  -H 'Content-Type: application/json' -H "x-request-id: ms-as3-$TS" \
-  -d "{\"inputHash\":\"$IH3\",\"issues\":[],\"modelId\":\"e2e-multi-site\",\"overall\":90,\"dimensions\":{\"content\":90,\"seo\":90,\"structure\":90},\"promptVersion\":\"e2e-1\",\"provider\":\"e2e\",\"state\":\"passed\",\"thresholdsHash\":\"$THRESH_HASH\"}")
-[ "$(echo "$AS3" | python3 -c 'import json,sys;print(json.load(sys.stdin)["assessmentId"]>0)')" = "True" ] \
-  && ok "republish A: assessment passed re-recorded" || bad "republish A assessment $AS3"
+IH3=$(input_hash_of "$ED2")
+AS3=$(post_assessment "$ED2" "$SITE" "ms-as3" "$IH3")
+assess_ok "$AS3" && ok "republish A: assessment passed re-recorded" || bad "republish A assessment $AS3"
 # 段 A 断言：同 revision 重发布 → 幂等 no-op（无新操作，旧 release 继续服务）
 P4=$(curl -s -X POST "$BASE/api/editions/$ED2/publish-operations" -b /tmp/ms-p.jar \
   -H 'Content-Type: application/json' -d '{}')
@@ -520,12 +531,9 @@ A4=$(curl -s -X POST "$BASE/api/workspaces/reviewer/editions/$ED2/approve" -b /t
   -H 'Content-Type: application/json' -H "x-request-id: ms-a4-$TS" -H "idempotency-key: ms-approve4-$TS" \
   -d "{\"expectedRevision\":$R4}")
 [ "$(st_of "$A4")" = "approved" ] && ok "republish B: bounce re-approve -> approved (revision bumped)" || bad "republish B approve $A4"
-IH4=$(curl -s -H "$(auth)" "$BASE/api/internal/editions/$ED2/input" | python3 -c 'import json,sys;print(json.load(sys.stdin)["inputHash"])')
-AS4=$(curl -s -X POST "$BASE/api/internal/editions/$ED2/assessments" -H "$(auth)" \
-  -H 'Content-Type: application/json' -H "x-request-id: ms-as4-$TS" \
-  -d "{\"inputHash\":\"$IH4\",\"issues\":[],\"modelId\":\"e2e-multi-site\",\"overall\":90,\"dimensions\":{\"content\":90,\"seo\":90,\"structure\":90},\"promptVersion\":\"e2e-1\",\"provider\":\"e2e\",\"state\":\"passed\",\"thresholdsHash\":\"$THRESH_HASH\"}")
-[ "$(echo "$AS4" | python3 -c 'import json,sys;print(json.load(sys.stdin)["assessmentId"]>0)')" = "True" ] \
-  && ok "republish B: assessment passed re-recorded" || bad "republish B assessment $AS4"
+IH4=$(input_hash_of "$ED2")
+AS4=$(post_assessment "$ED2" "$SITE" "ms-as4" "$IH4")
+assess_ok "$AS4" && ok "republish B: assessment passed re-recorded" || bad "republish B assessment $AS4"
 P5=$(curl -s -X POST "$BASE/api/editions/$ED2/publish-operations" -b /tmp/ms-p.jar \
   -H 'Content-Type: application/json' -d '{}')
 echo "publish-op(republish-B): $P5"

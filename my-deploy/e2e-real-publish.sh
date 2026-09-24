@@ -96,7 +96,7 @@ INPUT_HASH=$(curl -s -H "$(auth)" "$BASE/api/internal/editions/$ED/input" | pyth
 THRESH_HASH=$(python3 -c "import hashlib;print(hashlib.sha256(b'e2e-real-publish-defaults').hexdigest())")
 AS=$(curl -s -X POST "$BASE/api/internal/editions/$ED/assessments" -H "$(auth)" \
   -H 'Content-Type: application/json' -H "x-request-id: rp-as-$TS" \
-  -d "{\"inputHash\":\"$INPUT_HASH\",\"issues\":[],\"modelId\":\"e2e-real-publish\",\"overall\":90,\"dimensions\":{\"content\":90,\"seo\":90,\"structure\":90},\"promptVersion\":\"e2e-1\",\"provider\":\"e2e\",\"state\":\"passed\",\"thresholdsHash\":\"$THRESH_HASH\"}")
+  -d "{\"siteId\":$SITE,\"inputHash\":\"$INPUT_HASH\",\"issues\":[],\"modelId\":\"e2e-real-publish\",\"overall\":90,\"dimensions\":{\"content\":90,\"seo\":90,\"structure\":90},\"promptVersion\":\"e2e-1\",\"provider\":\"e2e\",\"state\":\"passed\",\"thresholdsHash\":\"$THRESH_HASH\"}")
 [ "$(echo "$AS" | python3 -c 'import json,sys;print(json.load(sys.stdin)["assessmentId"]>0)')" = "True" ] \
   && ok "quality assessment passed recorded" || bad "assessment $AS"
 
@@ -229,7 +229,7 @@ A2=$(curl -s -X POST "$BASE/api/workspaces/reviewer/editions/$ED2/approve" -b /t
 IH2=$(curl -s -H "$(auth)" "$BASE/api/internal/editions/$ED2/input" | python3 -c 'import json,sys;print(json.load(sys.stdin)["inputHash"])')
 AS2=$(curl -s -X POST "$BASE/api/internal/editions/$ED2/assessments" -H "$(auth)" \
   -H 'Content-Type: application/json' -H "x-request-id: rp-sa-as-$TS" \
-  -d "{\"inputHash\":\"$IH2\",\"issues\":[],\"modelId\":\"e2e-real-publish\",\"overall\":90,\"dimensions\":{\"content\":90,\"seo\":90,\"structure\":90},\"promptVersion\":\"e2e-1\",\"provider\":\"e2e\",\"state\":\"passed\",\"thresholdsHash\":\"$THRESH_HASH\"}")
+  -d "{\"siteId\":$SITE,\"inputHash\":\"$IH2\",\"issues\":[],\"modelId\":\"e2e-real-publish\",\"overall\":90,\"dimensions\":{\"content\":90,\"seo\":90,\"structure\":90},\"promptVersion\":\"e2e-1\",\"provider\":\"e2e\",\"state\":\"passed\",\"thresholdsHash\":\"$THRESH_HASH\"}")
 [ "$(echo "$AS2" | python3 -c 'import json,sys;print(json.load(sys.stdin)["assessmentId"]>0)')" = "True" ] \
   && ok "sa assessment passed" || bad "sa assessment $AS2"
 P2=$(curl -s -X POST "$BASE/api/editions/$ED2/publish-operations" -b /tmp/rp-r.jar \

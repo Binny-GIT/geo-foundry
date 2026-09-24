@@ -21,6 +21,8 @@ export type SimilarityQueryInput = {
   readonly limit: number
   readonly modelId: string
   readonly scope: EmbeddingScope
+  // A3 质量检查按站：同站/跨域判定的锚点站点；缺省锚定文章单数站点（旧行为）。
+  readonly siteId?: number
   readonly user: unknown
   readonly vector: readonly number[]
 }
@@ -43,6 +45,7 @@ type MatchRow = {
 
 const similarityQuery = (input: {
   readonly anchor: EmbeddingEditionAnchor
+  readonly anchorSiteId?: number
   readonly comparison: SemanticComparison
   readonly dimension: number
   readonly limit: number
@@ -50,10 +53,13 @@ const similarityQuery = (input: {
   readonly scope: EmbeddingScope
   readonly vectorLiteral: string
 }) => {
+  // A3：锚点站点优先取调用方指定的成员站点（同站 = 该站、跨域 = 非该站）；
+  // 租户仍取文章锚点，跨租户 siteId 只查不到行、不会越权。
+  const siteId = input.anchorSiteId ?? input.anchor.siteId
   const sitePredicate =
     input.comparison === "cross-domain"
-      ? sql`${embeddings.siteId} <> ${input.anchor.siteId}`
-      : sql`${embeddings.siteId} = ${input.anchor.siteId}`
+      ? sql`${embeddings.siteId} <> ${siteId}`
+      : sql`${embeddings.siteId} = ${siteId}`
   return sql`
     SELECT ${embeddings.editionId}, ${embeddings.siteId}, ${embeddings.inputHash}, ${contentEditions.title},
            round((1 - (${embeddings.embedding} OPERATOR(public.<=>) ${input.vectorLiteral}::public.vector))::numeric, 6)::float8 AS "similarity"
@@ -79,6 +85,7 @@ export async function findSimilarEditions(
     const result = await db.execute(
       similarityQuery({
         anchor,
+        ...(input.siteId === undefined ? {} : { anchorSiteId: input.siteId }),
         comparison: input.comparison,
         dimension: input.dimension,
         limit: input.limit,
@@ -126,6 +133,7 @@ export async function explainSimilarityQuery(
   const result = await db.execute(sql`
     EXPLAIN (FORMAT JSON) ${similarityQuery({
       anchor,
+      ...(input.siteId === undefined ? {} : { anchorSiteId: input.siteId }),
       comparison: input.comparison,
       dimension: input.dimension,
       limit: input.limit,

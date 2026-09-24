@@ -22,6 +22,7 @@ type StoredEmbedding = {
   inputHash: string
   modelId: string
   scope: "content" | "title"
+  siteId?: number
   vector: readonly number[]
 }
 
@@ -197,6 +198,56 @@ describe("runSemanticCheck", () => {
       expect(call[1]?.limit).toBe(SEMANTIC_CANDIDATE_LIMIT)
       expect(call[1]?.dimension).toBe(16)
       expect(call[1]?.modelId).toBe("fake-embedding-v1")
+    }
+  })
+
+  it("A3：带 siteId 时按目标站落库与锚定相似度查询", async () => {
+    const { client, stored } = depsWith(() => ({
+      crossDomainContent: [],
+      sameSiteContent: [],
+      sameSiteTitle: [],
+    }))
+    await runSemanticCheck({ client, provider: createFakeProvider() }, { ...input, siteId: 9 })
+    for (const entry of stored) {
+      expect(entry.siteId).toBe(9)
+    }
+    for (const call of client.findSimilarEditions.mock.calls) {
+      expect(call[1]?.siteId).toBe(9)
+    }
+  })
+
+  it("A3：复用预计算向量时不再调用 provider.embed", async () => {
+    const { client } = depsWith(() => ({
+      crossDomainContent: [],
+      sameSiteContent: [],
+      sameSiteTitle: [],
+    }))
+    const base = await runSemanticCheck({ client, provider: createFakeProvider() }, input)
+    expect(base.kind).toBe("assessed")
+    const precomputed = {
+      content: {
+        dimension: 1536,
+        modelId: "fake-embedding-v1",
+        providerId: "fake",
+        vector: new Array(1536).fill(0.1),
+      },
+      title: {
+        dimension: 1536,
+        modelId: "fake-embedding-v1",
+        providerId: "fake",
+        vector: new Array(1536).fill(0.2),
+      },
+    }
+    const spyEmbed = vi.fn()
+    const reused = await runSemanticCheck(
+      { client, provider: { ...createFakeProvider(), embed: spyEmbed } },
+      { ...input, embeddings: precomputed, siteId: 9 },
+    )
+    expect(reused.kind).toBe("assessed")
+    expect(spyEmbed).not.toHaveBeenCalled()
+    if (reused.kind === "assessed" && base.kind === "assessed") {
+      // 输入哈希只由模型 + 文本决定，与向量来源无关
+      expect(reused.inputHashes).toEqual(base.inputHashes)
     }
   })
 })

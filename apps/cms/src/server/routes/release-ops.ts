@@ -6,7 +6,7 @@
 
 import { createHash, randomUUID } from "node:crypto"
 
-import { eq, sql } from "drizzle-orm"
+import { eq, inArray, sql } from "drizzle-orm"
 import { z } from "zod"
 
 import { operationRequestHashOf, operationUniqueKeyOf } from "../../services/operations-ledger"
@@ -16,6 +16,10 @@ import { idempotencyRecords, operations } from "../db/ledger-schema"
 import { releases, rollbackIntents } from "../db/session-schema"
 import { sendOperationJobWithin } from "../jobs/pgboss"
 import { entityScopeOf } from "../repositories/entities"
+import {
+  desiredEditionSiteIdsOf,
+  memberSiteIdsOf,
+} from "../repositories/edition-sites"
 import { OperationsRepository } from "../repositories/operations"
 import { serverRuntime } from "../runtime"
 
@@ -280,32 +284,51 @@ export const handleEvaluationPost = async (
   const tenantId = scope.kind === "global" ? Number(document["tenant"] ?? -1) : scope.tenantId
   const siteIdRaw = document["site"]
   const siteId = typeof siteIdRaw === "number" ? siteIdRaw : undefined
-  const siteThresholds =
-    siteId === undefined
-      ? null
-      : (
-          await db
-            .select({
-              dimensionMin: sites.qualityThresholdsDimensionMinimum,
-              overallMin: sites.qualityThresholdsOverallMinimum,
-            })
-            .from(sites)
-            .where(eq(sites.id, siteId))
-            .limit(1)
-        )[0]
-  const thresholds =
-    requestedThresholds ??
-    (siteThresholds === undefined || siteThresholds === null
-      ? undefined
-      : {
-          dimensionMin: Number(siteThresholds.dimensionMin ?? 75),
-          overallMin: Number(siteThresholds.overallMin ?? 80),
-        })
+  // A3 质量检查按站：评估按成员站扇出（与发布扇出同口径：版本 site ∪ sites，
+  // edition_sites 有行且未撤下），每个站点的五列阈值在入队时快照进任务，
+  // worker 只认这份快照；请求体 thresholds（LLM 两维）保留为对所有站的统一覆盖。
+  const desiredSites = desiredEditionSiteIdsOf({
+    siteId: siteId ?? null,
+    sites: Array.isArray(document["sites"])
+      ? document["sites"].filter((id): id is number => typeof id === "number" && id > 0)
+      : [],
+  })
+  const memberSites =
+    desiredSites.length === 0 ? [] : await memberSiteIdsOf(db, editionId, desiredSites)
+  const evaluationSites =
+    memberSites.length > 0 ? memberSites : siteId === undefined ? [] : [siteId]
+  const siteThresholdRows =
+    evaluationSites.length === 0
+      ? []
+      : await db
+          .select({
+            crossDomainBlock: sites.qualityThresholdsCrossDomainBlock,
+            crossDomainReview: sites.qualityThresholdsCrossDomainReview,
+            dimensionMin: sites.qualityThresholdsDimensionMinimum,
+            overallMin: sites.qualityThresholdsOverallMinimum,
+            sameSiteTitleBlock: sites.qualityThresholdsSameSiteTitleBlock,
+            siteId: sites.id,
+          })
+          .from(sites)
+          .where(inArray(sites.id, evaluationSites))
+  const thresholdsBySite = new Map(siteThresholdRows.map((row) => [row.siteId, row]))
+  const evaluateSites = evaluationSites.map((id) => {
+    const row = thresholdsBySite.get(id)
+    return {
+      crossDomainBlock: Number(row?.crossDomainBlock ?? "0.92"),
+      crossDomainReview: Number(row?.crossDomainReview ?? "0.85"),
+      dimensionMin: Number(row?.dimensionMin ?? 75),
+      overallMin: Number(row?.overallMin ?? 80),
+      sameSiteTitleBlock: Number(row?.sameSiteTitleBlock ?? "0.9"),
+      siteId: id,
+    }
+  })
   const endpoint = `/workspaces/editor/editions/${editionId}/evaluation/revision-${Number(document["workflowRevision"] ?? 0)}`
   const requestPayload = {
     body: {
       editionId,
-      ...(thresholds === undefined ? {} : { thresholds }),
+      ...(evaluateSites.length > 0 ? { sites: evaluateSites } : {}),
+      ...(requestedThresholds === undefined ? {} : { thresholds: requestedThresholds }),
     },
   }
   try {

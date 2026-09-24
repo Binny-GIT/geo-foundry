@@ -60,7 +60,10 @@ export const createGenerationProcessor = (context: ProcessorContext, provider: L
     },
   )
 
-/** Evaluation stage: three-layer gate persisted as one immutable assessment. */
+/**
+ * Evaluation stage: three-layer gate, A3 起按成员站扇出——确定性/LLM 打分
+ * 各一次，语义层与阈值判定按站各一次，每站落一条 immutable assessment。
+ */
 export const createEvaluationProcessor = (context: ProcessorContext, provider: LLMProvider) =>
   operationProcessor(
     { context },
@@ -80,6 +83,7 @@ export const createEvaluationProcessor = (context: ProcessorContext, provider: L
             attempt: 1,
             editionId: parsed.data.editionId,
             operationId: job.data.operationId,
+            ...(parsed.data.sites === undefined ? {} : { sites: parsed.data.sites }),
             ...(parsed.data.thresholds === undefined ? {} : { thresholds: parsed.data.thresholds }),
           },
           (edition) =>
@@ -95,9 +99,13 @@ export const createEvaluationProcessor = (context: ProcessorContext, provider: L
         return {
           kind: "succeeded" as const,
           result: {
-            assessmentId: evaluation.assessmentId,
-            decision: evaluation.aggregate.decision,
-            reasons: [...evaluation.aggregate.gate.reasons],
+            assessmentIds: [...evaluation.assessmentIds],
+            perSite: evaluation.perSite.map((site) => ({
+              decision: site.aggregate.decision,
+              reasons: [...site.aggregate.gate.reasons],
+              siteId: site.siteId,
+              state: site.aggregate.assessmentState,
+            })),
           },
         }
       },

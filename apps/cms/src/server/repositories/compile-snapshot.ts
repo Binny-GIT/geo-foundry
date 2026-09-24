@@ -103,6 +103,8 @@ export const buildCompileSnapshot = async (
   const editionIds = versionRows.map((row) => row.editionId)
   const latestAssessment = new Map<number, { state: string; inputHash: string }>()
   if (editionIds.length > 0) {
+    // A3 质量检查按站：门禁按 (文章 × 本站) 取最新结论——本站没有评估行的
+    // 文章（新加的站点）视为未通过，必须重新评估；不再共享其他站的结论。
     const assessments = await db
       .select({
         editionId: qualityAssessments.editionId,
@@ -110,7 +112,12 @@ export const buildCompileSnapshot = async (
         state: qualityAssessments.state,
       })
       .from(qualityAssessments)
-      .where(inArray(qualityAssessments.editionId, editionIds))
+      .where(
+        and(
+          inArray(qualityAssessments.editionId, editionIds),
+          eq(qualityAssessments.siteId, options.siteId),
+        ),
+      )
       .orderBy(desc(qualityAssessments.createdAt))
       .limit(editionIds.length * 4)
     for (const row of assessments) {

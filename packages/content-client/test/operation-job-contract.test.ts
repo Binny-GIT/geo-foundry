@@ -112,6 +112,46 @@ describe("operation job contract", () => {
     expect(rollback.success).toBe(false)
   })
 
+  it("A3：evaluate 任务的按站阈值快照可往返，站字段畸形即拒", () => {
+    const fullSite = {
+      crossDomainBlock: 0.92,
+      crossDomainReview: 0.85,
+      dimensionMin: 75,
+      overallMin: 80,
+      sameSiteTitleBlock: 0.9,
+      siteId: 375,
+    }
+    const withSites = {
+      body: {
+        editionId: 42,
+        sites: [fullSite, { ...fullSite, siteId: 376 }],
+        thresholds: { dimensionMin: 75, overallMin: 80 },
+      },
+    }
+    const parsed = parseOperationJobPayload(withSites, "evaluate")
+    expect(parsed.success).toBe(true)
+    if (parsed.success) {
+      expect(parsed.data.sites).toHaveLength(2)
+    }
+    // 旧形状（无 sites）仍合法：worker 回退单数站点
+    expect(parseOperationJobPayload({ body: bodies.evaluate }, "evaluate").success).toBe(true)
+    // 站缺阈值字段
+    expect(
+      parseOperationJobPayload({ body: { editionId: 42, sites: [{ siteId: 375 }] } }, "evaluate").success,
+    ).toBe(false)
+    // 站 ID 非正数
+    expect(
+      parseOperationJobPayload({ body: { editionId: 42, sites: [{ ...fullSite, siteId: -1 }] } }, "evaluate").success,
+    ).toBe(false)
+    // 站内未知字段（strict）
+    expect(
+      parseOperationJobPayload(
+        { body: { editionId: 42, sites: [{ ...fullSite, bogus: 1 }] } },
+        "evaluate",
+      ).success,
+    ).toBe(false)
+  })
+
   it("formats issues as path-prefixed messages", () => {
     const parsed = parseOperationJobPayload({ body: { editionId: -1 } }, "publish")
     expect(parsed.success).toBe(false)

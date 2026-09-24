@@ -72,6 +72,7 @@ const handleRecordAssessment = withInternalGuards(
       modelId: body.modelId,
       ...(body.overall === undefined ? {} : { overall: body.overall }),
       ...(body.dimensions === undefined ? {} : { dimensions: body.dimensions }),
+      ...(body.siteId === undefined ? {} : { siteId: body.siteId }),
       ...(ctx.operationId === null ? {} : { operationId: ctx.operationId }),
       promptVersion: body.promptVersion,
       provider: body.provider,
@@ -111,6 +112,7 @@ const handleStoreEmbedding = withInternalGuards(
       inputHash: body.inputHash,
       modelId: body.modelId,
       scope: body.scope,
+      ...(body.siteId === undefined ? {} : { siteId: body.siteId }),
       user: req.user,
       vector: body.vector,
     })
@@ -128,6 +130,7 @@ const handleFindSimilarEditions = withInternalGuards(
       limit: body.limit,
       modelId: body.modelId,
       scope: body.scope,
+      ...(body.siteId === undefined ? {} : { siteId: body.siteId }),
       user: req.user,
       vector: body.vector,
     })

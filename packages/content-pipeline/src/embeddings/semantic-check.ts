@@ -16,7 +16,7 @@ import {
 } from "@geo/quality-rules"
 
 import { ProviderError } from "../providers/errors.js"
-import type { LLMProvider } from "../providers/types.js"
+import type { EmbeddingResult, LLMProvider } from "../providers/types.js"
 
 /** Candidate rows fetched per comparison; the gate only needs the nearest. */
 export const SEMANTIC_CANDIDATE_LIMIT = 5
@@ -35,6 +35,14 @@ export type SemanticCheckInput = {
   readonly content: string
   readonly editionId: number
   readonly requestId: string
+  // A3 质量检查按站：本次检查的目标站点（落库站点 + 相似度锚点）；
+  // 缺省由 CMS 端锚定文章单数站点（A3 之前的行为）。
+  readonly siteId?: number
+  // A3：多站扇出时向量只算一次，由调用方共享传入，跳过重复 embed。
+  readonly embeddings?: {
+    readonly content: EmbeddingResult
+    readonly title: EmbeddingResult
+  }
   readonly thresholds?: SemanticThresholds
   readonly title: string
 }
@@ -90,11 +98,15 @@ export const runSemanticCheck = async (
     }
   }
   const { provider } = deps
+  const siteIdField = input.siteId === undefined ? {} : { siteId: input.siteId }
   try {
-    const [titleEmbedding, contentEmbedding] = await Promise.all([
-      provider.embed({ input: input.title, requestId: input.requestId }),
-      provider.embed({ input: input.content, requestId: input.requestId }),
-    ])
+    const [titleEmbedding, contentEmbedding] =
+      input.embeddings === undefined
+        ? await Promise.all([
+            provider.embed({ input: input.title, requestId: input.requestId }),
+            provider.embed({ input: input.content, requestId: input.requestId }),
+          ])
+        : [input.embeddings.title, input.embeddings.content]
     const inputHashes = {
       content: scopedInputHash(provider.embeddingModelId, "content", input.content),
       title: scopedInputHash(provider.embeddingModelId, "title", input.title),
@@ -104,6 +116,7 @@ export const runSemanticCheck = async (
       inputHash: inputHashes.title,
       modelId: titleEmbedding.modelId,
       scope: "title",
+      ...siteIdField,
       vector: [...titleEmbedding.vector],
     })
     await deps.client.storeEmbedding(input.editionId, {
@@ -111,6 +124,7 @@ export const runSemanticCheck = async (
       inputHash: inputHashes.content,
       modelId: contentEmbedding.modelId,
       scope: "content",
+      ...siteIdField,
       vector: [...contentEmbedding.vector],
     })
     const [crossDomainContent, sameSiteTitle, sameSiteContent] = await Promise.all([
@@ -120,6 +134,7 @@ export const runSemanticCheck = async (
         limit: SEMANTIC_CANDIDATE_LIMIT,
         modelId: contentEmbedding.modelId,
         scope: "content",
+        ...siteIdField,
         vector: [...contentEmbedding.vector],
       }),
       deps.client.findSimilarEditions(input.editionId, {
@@ -128,6 +143,7 @@ export const runSemanticCheck = async (
         limit: SEMANTIC_CANDIDATE_LIMIT,
         modelId: titleEmbedding.modelId,
         scope: "title",
+        ...siteIdField,
         vector: [...titleEmbedding.vector],
       }),
       deps.client.findSimilarEditions(input.editionId, {
@@ -136,6 +152,7 @@ export const runSemanticCheck = async (
         limit: SEMANTIC_CANDIDATE_LIMIT,
         modelId: contentEmbedding.modelId,
         scope: "content",
+        ...siteIdField,
         vector: [...contentEmbedding.vector],
       }),
     ])

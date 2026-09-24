@@ -42,6 +42,8 @@ export const draftVersionBodySchema = z
 
 export const assessmentBodySchema = z
   .object({
+    // A3 质量检查按站：评估结论按 (文章 × 站点) 落库；缺省落文章单数站点（旧行为）。
+    siteId: z.number().int().positive().optional(),
     inputHash: z.string().regex(SHA256_PATTERN),
     issues: z
       .array(
@@ -205,6 +207,8 @@ const vectorSchema = z.array(z.number().finite()).min(1).max(4096)
 
 export const embeddingStoreBodySchema = z
   .object({
+    // A3 质量检查按站：按成员站落库；缺省落文章单数站点（旧行为）。
+    siteId: z.number().int().positive().optional(),
     dimension: z.number().int().min(1).max(4096),
     inputHash: z.string().regex(SHA256_PATTERN),
     modelId: z.string().min(1).max(200),
@@ -215,6 +219,8 @@ export const embeddingStoreBodySchema = z
 
 export const similarityQueryBodySchema = z
   .object({
+    // A3 质量检查按站：同站/跨域判定的锚点站点；缺省锚定文章单数站点（旧行为）。
+    siteId: z.number().int().positive().optional(),
     comparison: z.enum(["cross-domain", "same-site"]),
     dimension: z.number().int().min(1).max(4096),
     limit: z.number().int().min(1).max(50),

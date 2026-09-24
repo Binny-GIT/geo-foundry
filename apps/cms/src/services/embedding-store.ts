@@ -128,6 +128,8 @@ export type StoreEmbeddingInput = {
   readonly inputHash: string
   readonly modelId: string
   readonly scope: EmbeddingScope
+  // A3 质量检查按站：目标落库站点；缺省锚定文章单数站点（anchorOf，旧行为）。
+  readonly siteId?: number
   readonly user: unknown
   readonly vector: readonly number[]
 }
@@ -145,6 +147,9 @@ export async function storeEditionEmbedding(
   input: StoreEmbeddingInput,
 ): Promise<EmbeddingReceipt> {
   const anchor = await anchorOf(db, input.editionId, input.user)
+  // A3：落库站点优先取调用方指定的成员站点，key 与行都按该站（同一向量每个
+  // 成员站各一行，key 含 siteId 天然幂等）；缺省回退文章单数站点。
+  const storeSiteId = input.siteId ?? anchor.siteId
   const vectorLiteral = validateVector(input.vector, input.dimension)
   const embeddingKey = embeddingKeyOf({
     dimension: input.dimension,
@@ -152,7 +157,7 @@ export async function storeEditionEmbedding(
     inputHash: input.inputHash,
     modelId: input.modelId,
     scope: input.scope,
-    siteId: anchor.siteId,
+    siteId: storeSiteId,
     tenantId: anchor.tenantId,
     vectorLiteral,
   })
@@ -160,7 +165,7 @@ export async function storeEditionEmbedding(
     const inserted = await db.execute(sql`
       INSERT INTO ${embeddings}
         (${embeddings.embeddingKey}, ${embeddings.tenantId}, ${embeddings.siteId}, ${embeddings.editionId}, ${embeddings.scope}, ${embeddings.modelId}, ${embeddings.dimension}, ${embeddings.inputHash}, ${embeddings.embedding})
-      VALUES (${embeddingKey}, ${anchor.tenantId}, ${anchor.siteId}, ${anchor.editionId}, ${input.scope}, ${input.modelId}, ${input.dimension}, ${input.inputHash}, ${vectorLiteral}::public.vector)
+      VALUES (${embeddingKey}, ${anchor.tenantId}, ${storeSiteId}, ${anchor.editionId}, ${input.scope}, ${input.modelId}, ${input.dimension}, ${input.inputHash}, ${vectorLiteral}::public.vector)
       ON CONFLICT (${embeddings.embeddingKey}) DO NOTHING
       RETURNING ${embeddings.id}`)
     const insertedRows = inserted.rows as unknown as IdRow[]

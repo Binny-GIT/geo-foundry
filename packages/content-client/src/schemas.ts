@@ -23,6 +23,8 @@ export const writeDraftVersionRequestSchema = z
   .refine((value) => Object.keys(value).length > 0, { message: "patch must not be empty" })
 
 export const recordAssessmentRequestSchema = z.object({
+  // A3 质量检查按站：评估结论按 (文章 × 站点) 记录；缺省落文章单数站点（旧行为）。
+  siteId: z.number().int().positive().optional(),
   inputHash: sha256Schema,
   issues: z
     .array(z.object({ code: z.string().min(1).max(200), severity: z.string().min(1).max(50) }))
@@ -172,6 +174,9 @@ export const editionInputSchema = z.object({
   inputHash: z.string().length(64),
   primaryTopic: z.unknown(),
   secondaryTopics: z.unknown(),
+  // A3 质量检查按站：文章成员站点（版本 site ∪ sites 去重）。worker 用它
+  // 决定预热 embedding 的落站；评估扇出以 job payload 的 sites 为准。
+  sites: z.array(z.number().int()).default([]),
   siteId: z.number().int(),
   summary: z.unknown(),
   tenantId: z.number().int(),
@@ -271,6 +276,9 @@ export const embeddingScopeSchema = z.enum(["content", "title"])
 export const semanticComparisonSchema = z.enum(["cross-domain", "same-site"])
 
 export const storeEmbeddingRequestSchema = z.object({
+  // A3 质量检查按站：按成员站落库（同一向量每个成员站一行，key 含 siteId）；
+  // 缺省落文章单数站点（旧行为）。
+  siteId: z.number().int().positive().optional(),
   dimension: z.number().int().min(1).max(4096),
   inputHash: sha256Schema,
   modelId: z.string().min(1).max(200),
@@ -285,6 +293,8 @@ export const embeddingReceiptSchema = z.object({
 })
 
 export const similarityQueryRequestSchema = z.object({
+  // A3 质量检查按站：同站/跨域判定的锚点站点；缺省锚定文章单数站点（旧行为）。
+  siteId: z.number().int().positive().optional(),
   comparison: semanticComparisonSchema,
   dimension: z.number().int().min(1).max(4096),
   limit: z.number().int().min(1).max(50),
@@ -401,9 +411,29 @@ export const generateRequestSchema = z
   })
   .strict()
 
+/**
+ * A3 质量检查按站：入队时对每个成员站点快照的阈值集（LLM 两维 + 语义三维），
+ * worker 按站扇出评估时只认这份快照，不读环境配置。
+ */
+export const evaluateSiteThresholdsSchema = z
+  .object({
+    crossDomainBlock: z.number().min(0).max(1),
+    crossDomainReview: z.number().min(0).max(1),
+    dimensionMin: z.number().min(0).max(100),
+    overallMin: z.number().min(0).max(100),
+    sameSiteTitleBlock: z.number().min(0).max(1),
+    siteId: z.number().int().positive(),
+  })
+  .strict()
+
+export type EvaluateSiteThresholds = z.input<typeof evaluateSiteThresholdsSchema>
+
 export const evaluateRequestSchema = z
   .object({
     editionId: z.number().int().positive(),
+    // A3：按成员站扇出的阈值快照；缺省时 worker 回退文章单数站点 + 包默认阈值
+    // （兼容 A3 之前的在途任务）。
+    sites: z.array(evaluateSiteThresholdsSchema).max(20).optional(),
     thresholds: z
       .object({
         dimensionMin: z.number().min(0).max(100),

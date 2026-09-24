@@ -209,6 +209,10 @@ export const createEmbeddingProcessor = (context: ProcessorContext, provider: LL
           )
         }
         const edition = await ctx.client.getEditionInput(editionId)
+        // A3 质量检查按站：向量按成员站各落一行（key 含 siteId，幂等），
+        // 其他文章的同站去重才能看到"它也发在本站"。无成员站回退单数站点。
+        const memberSites =
+          edition.sites.length > 0 ? edition.sites : edition.siteId > 0 ? [edition.siteId] : []
         const stored: string[] = []
         for (const [scope, input] of [
           ["title", typeof edition.title === "string" ? edition.title : ""],
@@ -218,13 +222,16 @@ export const createEmbeddingProcessor = (context: ProcessorContext, provider: LL
             input,
             requestId: `embed-${editionId}-${scope}`,
           })
-          await ctx.client.storeEmbedding(editionId, {
-            dimension: embedding.dimension,
-            inputHash: sha256Hex(`${embedding.modelId}\n${scope}\n${input}`),
-            modelId: embedding.modelId,
-            scope,
-            vector: [...embedding.vector],
-          })
+          for (const siteId of memberSites) {
+            await ctx.client.storeEmbedding(editionId, {
+              dimension: embedding.dimension,
+              inputHash: sha256Hex(`${embedding.modelId}\n${scope}\n${input}`),
+              modelId: embedding.modelId,
+              scope,
+              ...(siteId > 0 ? { siteId } : {}),
+              vector: [...embedding.vector],
+            })
+          }
           stored.push(scope)
         }
         return { kind: "succeeded" as const, result: { editionId, stored } }

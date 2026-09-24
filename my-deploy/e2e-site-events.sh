@@ -221,7 +221,7 @@ make_approved() { # title body site -> edition id（stdout）
   IH=$(curl -s -H "$(auth)" "$BASE/api/internal/editions/$ED/input" | python3 -c 'import json,sys;print(json.load(sys.stdin)["inputHash"])')
   AS=$(curl -s -X POST "$BASE/api/internal/editions/$ED/assessments" -H "$(auth)" \
     -H 'Content-Type: application/json' -H "x-request-id: se-as-$TS-$ED" \
-    -d "{\"inputHash\":\"$IH\",\"issues\":[],\"modelId\":\"e2e-site-events\",\"overall\":90,\"dimensions\":{\"content\":90,\"seo\":90,\"structure\":90},\"promptVersion\":\"e2e-1\",\"provider\":\"e2e\",\"state\":\"passed\",\"thresholdsHash\":\"$(python3 -c "import hashlib;print(hashlib.sha256(b'e2e-site-events-defaults').hexdigest())")\"}")
+    -d "{\"siteId\":$SITEID,\"inputHash\":\"$IH\",\"issues\":[],\"modelId\":\"e2e-site-events\",\"overall\":90,\"dimensions\":{\"content\":90,\"seo\":90,\"structure\":90},\"promptVersion\":\"e2e-1\",\"provider\":\"e2e\",\"state\":\"passed\",\"thresholdsHash\":\"$(python3 -c "import hashlib;print(hashlib.sha256(b'e2e-site-events-defaults').hexdigest())")\"}")
   echo "$AS" | python3 -c 'import json,sys;d=json.load(sys.stdin);exit(0 if d.get("assessmentId",0)>0 else 1)' \
     || { echo "ASSESS_FAILED $AS"; return 1; }
   echo "$ED"

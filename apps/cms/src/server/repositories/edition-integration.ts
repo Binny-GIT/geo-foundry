@@ -5,14 +5,15 @@
  */
 
 import type { ContentEditionState } from "@geo/domain"
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { resolveSessionClaims } from "../../access/session"
 import { blocksToMarkdown, markdownToBlocks } from "../../editor/block-markdown"
 import { validateEditionBody } from "../../editor/validate-body"
 import { hashEditionContent } from "../../services/edition-input-hash"
 import { EditionWorkflowError } from "../../services/edition-workflow"
 import type { ServerDb } from "../db/client"
-import { editionVersions } from "../db/edition-schema"
+import { editionSites, editionVersions } from "../db/edition-schema"
+import { sites } from "../db/entity-schema"
 import { qualityAssessments } from "../db/session-schema"
 import { sendEditionEmbeddingJobWithin } from "../jobs/pgboss"
 import {
@@ -22,7 +23,12 @@ import {
   type WorkflowClaims,
   workflowActorOf,
 } from "./edition-workflow"
-import { compileSitePatchOf, editionSiteRowOf, updateEditionSiteRow } from "./edition-sites"
+import {
+  compileSitePatchOf,
+  desiredEditionSiteIdsOf,
+  editionSiteRowOf,
+  updateEditionSiteRow,
+} from "./edition-sites"
 import type { EntityScope } from "./entities"
 
 /* guards 的错误映射已覆盖 EditionWorkflowError；沿用保证状态码契约不变。 */
@@ -63,6 +69,8 @@ export type EditionInputSnapshot = {
   readonly publishedAt: string
   readonly primaryTopic: unknown
   readonly secondaryTopics: unknown
+  /** A3：成员站点（版本 site ∪ sites 去重），worker 预热 embedding 按它落站。 */
+  readonly sites: readonly number[]
   readonly siteId: number
   readonly summary: unknown
   readonly tenantId: number
@@ -83,6 +91,7 @@ export const readEditionInput = async (
     const title = version.title ?? ""
     const summary = version.summary ?? ""
     const primaryTopic = version.primaryTopic ?? ""
+    const sites = desiredEditionSiteIdsOf({ siteId: version.siteId, sites: version.sites })
     return {
       body,
       compiledRelease: version.compiledRelease ?? null,
@@ -98,6 +107,7 @@ export const readEditionInput = async (
       publishedAt: (version.versionCreatedAt ?? version.createdAt).toISOString(),
       primaryTopic,
       secondaryTopics,
+      sites,
       siteId: version.siteId ?? -1,
       summary,
       tenantId: version.tenantId ?? -1,
@@ -336,6 +346,8 @@ export const recordAssessment = async (
     readonly dimensions?: Readonly<Record<string, number>>
     readonly promptVersion: string
     readonly provider: string
+    // A3 质量检查按站：结论落到指定成员站点；缺省落文章单数站点（旧行为）。
+    readonly siteId?: number
     readonly state: "error" | "failed" | "passed"
     readonly thresholdsHash: string
     readonly operationId?: string
@@ -349,6 +361,24 @@ export const recordAssessment = async (
     if (scope !== null && scope.kind === "tenant" && version.tenantId !== scope.tenantId) {
       throw fail("EDITION_WORKFLOW_TENANT_MISMATCH")
     }
+    // A3：指定站点必须存在且与文章同租户（不存在/跨租户一律拒，不泄漏存在性）；
+    // 缺省回退文章单数站点（可能为 -1，与旧数据行为一致）。
+    let rowSiteId = version.siteId ?? -1
+    if (input.siteId !== undefined) {
+      const siteRows = await tx
+        .select({ tenantId: sites.tenantId })
+        .from(sites)
+        .where(eq(sites.id, input.siteId))
+        .limit(1)
+      const siteRow = siteRows[0]
+      if (
+        siteRow === undefined ||
+        (version.tenantId !== null && version.tenantId > 0 && siteRow.tenantId !== version.tenantId)
+      ) {
+        throw fail("EDITION_WORKFLOW_TENANT_MISMATCH")
+      }
+      rowSiteId = input.siteId
+    }
     const inserted = await tx
       .insert(qualityAssessments)
       .values({
@@ -360,7 +390,7 @@ export const recordAssessment = async (
         ...(input.dimensions === undefined ? {} : { dimensions: { ...input.dimensions } }),
         promptVersion: input.promptVersion,
         provider: input.provider,
-        siteId: version.siteId ?? -1,
+        siteId: rowSiteId,
         state: input.state,
         tenantId: version.tenantId ?? -1,
         thresholdsHash: input.thresholdsHash,
@@ -368,6 +398,12 @@ export const recordAssessment = async (
       .returning({ id: qualityAssessments.id })
     const assessmentId = inserted[0]?.id
     if (assessmentId === undefined) throw fail("ASSESSMENT_WRITE_FAILED")
+    // A3：结论同步到文章 × 站点 行（新增站点行缺省 pending，评估后才有了状态；
+    // 行不存在是静默 no-op——站点行由草稿保存/分配站点流程维护）。
+    await tx
+      .update(editionSites)
+      .set({ qualityState: input.state, updatedAt: new Date() })
+      .where(and(eq(editionSites.editionId, input.editionId), eq(editionSites.siteId, rowSiteId)))
     return assessmentId
   })
 }
