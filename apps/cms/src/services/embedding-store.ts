@@ -166,8 +166,8 @@ export async function storeEditionEmbedding(
       INSERT INTO ${embeddings}
         (${embeddings.embeddingKey}, ${embeddings.tenantId}, ${embeddings.siteId}, ${embeddings.editionId}, ${embeddings.scope}, ${embeddings.modelId}, ${embeddings.dimension}, ${embeddings.inputHash}, ${embeddings.embedding})
       VALUES (${embeddingKey}, ${anchor.tenantId}, ${storeSiteId}, ${anchor.editionId}, ${input.scope}, ${input.modelId}, ${input.dimension}, ${input.inputHash}, ${vectorLiteral}::public.vector)
-      -- PostgreSQL 的 ON CONFLICT 目标只接受非限定列名；drizzle 会把
-      -- ${embeddings.embeddingKey} 渲染成带 schema 的限定名导致语法错误。
+      -- PostgreSQL 的 ON CONFLICT 目标只接受非限定列名，不能写表或模式限定
+      -- 形式；注释里也不能出现美元大括号的列插值，会被 sql 模板求值进语句。
       ON CONFLICT ("embedding_key") DO NOTHING
       RETURNING ${embeddings.id}`)
     const insertedRows = inserted.rows as unknown as IdRow[]
