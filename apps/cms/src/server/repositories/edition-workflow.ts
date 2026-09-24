@@ -343,9 +343,9 @@ export const reserveEditionUrlWithinTx = async (
     urlId: parsedUrlId.value,
   })
   if (!result.ok) {
-    const error = new Error(result.error.code) as Error & { code?: string }
-    error.code = result.error.code
-    throw error
+    // URL 撞车（同站同 slug 已被其他文章占用，典型场景：同标题文章）是
+    // 用户可恢复的冲突：映射成 409 工作流错误，不能以裸 Error 落 500。
+    throw fail("EDITION_WORKFLOW_URL_CONFLICT")
   }
   const inserted = await tx
     .insert(urlRecords)
