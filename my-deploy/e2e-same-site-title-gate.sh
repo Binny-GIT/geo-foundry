@@ -128,15 +128,16 @@ PSQL "INSERT INTO geo_foundry.domains (hostname, site_id, tenant_id, role, statu
   VALUES ('e2e-a3-c-$TS.test', $SITE_C, $TENANT, 'canonical', 'active')" >/dev/null
 
 # ---------- 2. X（成员 A、B）：真实评估操作 → 两站各 passed ----------
+# 真实评估管道把 summary 填入 ArticlePage 的 metadata/seo description 并过严格
+# schema（min 1）：夹具文章必须带非空 summary，否则评估操作在 draftDocumentOf 失败。
 BODY_X="A3 同站标题门禁验证正文 X。这篇文章发布在 A、B 两个站点，真实评估操作完成后，标题与正文向量按成员站分别落库，按站的评估结论分别写入文章×站点行。当另一篇与它标题完全相同、成员包含 B 站的文章 Y 参与评估时，同站标题相似度门禁必须在 B 站拦下 Y，且 Y 的 B 站发布操作随后在编译门禁终态失败。本文正文与 Y 的正文完全不同，两者正文向量相似度很低，跨域与同站内容检查都不会命中任何区间。门禁行为只依赖标题文本相同，与正文内容无关；本段补足正文长度，满足确定性结构规则的最少字符数要求，让评估结论只含被测的语义层问题。"
-CX=$(python3 -c 'import json,sys;print(json.dumps({"title":sys.argv[1],"bodyMarkdown":sys.argv[2],"site":int(sys.argv[3]),"sites":[int(sys.argv[4])]},ensure_ascii=False))' \
-  "$TITLE" "$BODY_X" "$SITE_A" "$SITE_B" | \
+SUM_X="A3 同站标题门禁验证摘要 X：发布在 A、B 两站，评估结论按成员站各落一行。"
+CX=$(python3 -c 'import json,sys;print(json.dumps({"title":sys.argv[1],"bodyMarkdown":sys.argv[2],"summary":sys.argv[3],"site":int(sys.argv[4]),"sites":[int(sys.argv[5])]},ensure_ascii=False))' \
+  "$TITLE" "$BODY_X" "$SUM_X" "$SITE_A" "$SITE_B" | \
   curl -s -X POST "$BASE/api/content-editions?draft=true&depth=0" -b /tmp/tg-e.jar \
     -H 'Content-Type: application/json' -d @-)
 ED_X=$(echo "$CX" | python3 -c 'import json,sys;print(json.load(sys.stdin)["doc"]["id"])')
 [ -n "$ED_X" ] && ok "X draft created (edition=$ED_X, members=$SITE_A,$SITE_B)" || { bad "create X $CX"; exit 1; }
-RESV_X=$(Q "count(*) FROM geo_foundry.url_records WHERE edition_id=$ED_X AND state='reserved'")
-[ "$RESV_X" = "2" ] && ok "X URL reserved for both member sites" || bad "X reserved urls=$RESV_X"
 
 curl -s -o /dev/null -X POST "$BASE/api/editions/$ED_X/workflow-transitions" -b /tmp/tg-e.jar \
   -H 'Content-Type: application/json' -d '{"target":"review"}'
@@ -172,11 +173,15 @@ AX=$(curl -s -X POST "$BASE/api/workspaces/reviewer/editions/$ED_X/approve" -b /
   -H 'Content-Type: application/json' -H "x-request-id: a3-a-x-$TS" -H "idempotency-key: a3-approve-x-$TS" \
   -d "{\"expectedRevision\":$RX}")
 [ "$(st_of "$AX")" = "approved" ] && ok "X approved (stays on A/B, not published)" || bad "X approve $AX"
+# URL 预留发生在审批时（A2 语义），此时两成员站应各有一行 reserved。
+RESV_X=$(Q "count(*) FROM geo_foundry.url_records WHERE edition_id=$ED_X AND state='reserved'")
+[ "$RESV_X" = "2" ] && ok "X URL reserved for both member sites (after approve)" || bad "X reserved urls=$RESV_X"
 
 # ---------- 3. Y（成员 B、C，标题与 X 完全相同）：B 站被拦、C 站通过 ----------
 BODY_Y="A3 同站标题门禁验证正文 Y。本文标题与文章 X 完全相同，但成员站点是 B 与 C，正文内容则与 X 完全不同。评估时同站标题相似度门禁应命中 X 落在 B 站的标题向量：B 站结论 failed 并携带同站标题重复问题码；C 站不是 X 的成员，C 下没有同站标题向量，C 站结论应 passed。本文同时验证按站结论互不牵连：同一篇文章在不同站点得到不同状态，发布扇出时 B 站操作失败、C 站操作成功。本段补足正文长度，满足确定性结构规则的最少字符数要求，并让两文正文向量相似度保持低位，不触发任何跨域或同站内容区间。"
-CY=$(python3 -c 'import json,sys;print(json.dumps({"title":sys.argv[1],"bodyMarkdown":sys.argv[2],"site":int(sys.argv[3]),"sites":[int(sys.argv[4])]},ensure_ascii=False))' \
-  "$TITLE" "$BODY_Y" "$SITE_B" "$SITE_C" | \
+SUM_Y="A3 同站标题门禁验证摘要 Y：与 X 同标题，成员为 B、C，正文完全不同。"
+CY=$(python3 -c 'import json,sys;print(json.dumps({"title":sys.argv[1],"bodyMarkdown":sys.argv[2],"summary":sys.argv[3],"site":int(sys.argv[4]),"sites":[int(sys.argv[5])]},ensure_ascii=False))' \
+  "$TITLE" "$BODY_Y" "$SUM_Y" "$SITE_B" "$SITE_C" | \
   curl -s -X POST "$BASE/api/content-editions?draft=true&depth=0" -b /tmp/tg-e.jar \
     -H 'Content-Type: application/json' -d @-)
 ED_Y=$(echo "$CY" | python3 -c 'import json,sys;print(json.load(sys.stdin)["doc"]["id"])')
