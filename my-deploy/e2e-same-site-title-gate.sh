@@ -52,7 +52,7 @@ rev_of() { echo "$1" | python3 -c 'import json,sys;print(json.load(sys.stdin)["w
 draft() { curl -s -b /tmp/tg-e.jar "$BASE/api/content-editions/$1?draft=true&depth=0"; }
 
 qa_state() { Q "state FROM geo_foundry.quality_assessments WHERE edition_id=$1 AND site_id=$2 ORDER BY created_at DESC LIMIT 1"; }
-qa_has_code() { Q "count(*) FROM geo_foundry.quality_assessments WHERE edition_id=$1 AND site_id=$2 AND state='failed' AND issues::text LIKE '%$3'"; }
+qa_has_code() { Q "count(*) FROM geo_foundry.quality_assessments WHERE edition_id=$1 AND site_id=$2 AND state='failed' AND issues::text LIKE '%$3%'"; }
 es_qstate() { Q "quality_state FROM geo_foundry.edition_sites WHERE edition_id=$1 AND site_id=$2"; }
 embed_title_count() { Q "count(*) FROM geo_foundry.embeddings WHERE edition_id=$1 AND site_id=$2 AND scope='title'"; }
 op_state() { Q "state FROM geo_foundry.operations WHERE operation_id='$1'"; }
