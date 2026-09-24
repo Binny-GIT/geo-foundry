@@ -456,7 +456,8 @@ chk("url.pathname prefix", ur["pathname"].startswith("/articles/"), True)
 es, bef = b["edition_site"], base["editionSites"][0]
 chk("edition_site.tenant_id", es["tenant_id"], bef["tenant_id"])
 chk("edition_site.site_id", es["site_id"], bef["site_id"])
-chk("edition_site.quality_state", es["quality_state"], bef["quality_state"])
+# A3 预期差异：评估结论按站同步 quality_state（基线为 pending，A3 前不写该列）
+chk("edition_site.quality_state", es["quality_state"], "passed")
 # A2 首次回填（基线为 pending/null/null）
 chk("edition_site.publish_state", es["publish_state"], "published")
 chk("edition_site.release_id", es["release_id"], rel["release_id"])
