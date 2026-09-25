@@ -107,8 +107,11 @@ export const POST = async (request: Request, context: RouteContext): Promise<Res
     ["users-auth-post", () => handleUsersAuthPost(request, params.slug)],
     ["edition-version-post", () => handleEditionVersionPost(request, params.slug)],
     ["edition-workflow-post", () => handleEditionWorkflowPost(request, params.slug)],
-    ["edition-ops-post", () => handleEditionOpsPost(request, params.slug)],
+    // /sites 必须先于 edition-ops 派发：edition-ops 的角色门槛（editor 及以上）
+    // 在认领检查之前执行，会拦掉 publisher 的 /editions/{id}/sites。
+    // edition-sites 先做精确路径匹配（非 /sites 立即返回 null），无副作用。
     ["edition-sites-post", () => handleEditionSitesPost(request, params.slug)],
+    ["edition-ops-post", () => handleEditionOpsPost(request, params.slug)],
     ["intake-ops-post", () => handleIntakeOpsPost(request, params.slug)],
     ["article-source-post", () => handleArticleSourcePost(request, params.slug)],
     ["publication-plan-post", () => handlePublicationPlanPost(request, params.slug)],
