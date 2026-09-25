@@ -1,0 +1,318 @@
+{
+  "recordedAt": "1790160952",
+  "imageTag": "mk-dev-746a3ab",
+  "siteId": 375,
+  "editionId": 695,
+  "releaseId": "rel-29340d3f7ae5bb3f6779d64d",
+  "operationId": "d144029b-11f2-4831-a315-7fb24c5bbb30",
+  "releases": [
+    {
+      "id": 67,
+      "release_id": "rel-29340d3f7ae5bb3f6779d64d",
+      "manifest_sha256": "960f7f261dacc71ac8b1ddbfd1d354b85e6ee37b98f11747f08465bbb0d760fd",
+      "runtime_site_id": "site-375",
+      "tenant_id": 413,
+      "site_id": 375,
+      "state": "current",
+      "revision": 0,
+      "operation_id": "d144029b-11f2-4831-a315-7fb24c5bbb30",
+      "receipt": {
+        "actor": {
+          "kind": "service",
+          "actorId": "geo-foundry-worker"
+        },
+        "action": "publish",
+        "siteId": "site-375",
+        "newEtag": "\"90afbc5b0b4d8d3c3816a3522ff36151\"",
+        "oldEtag": "\"1f53ee952a8b01ce2c40b12b509f916a\"",
+        "releaseId": "rel-29340d3f7ae5bb3f6779d64d",
+        "recordedAt": "2026-09-23T10:55:54.740Z",
+        "schemaVersion": 1,
+        "manifestSha256": "960f7f261dacc71ac8b1ddbfd1d354b85e6ee37b98f11747f08465bbb0d760fd"
+      },
+      "audit_log": [
+        {
+          "at": "2026-09-23T10:55:54.740Z",
+          "action": "release.uploaded.current",
+          "receipt": {
+            "actor": {
+              "kind": "service",
+              "actorId": "geo-foundry-worker"
+            },
+            "action": "publish",
+            "siteId": "site-375",
+            "newEtag": "\"90afbc5b0b4d8d3c3816a3522ff36151\"",
+            "oldEtag": "\"1f53ee952a8b01ce2c40b12b509f916a\"",
+            "releaseId": "rel-29340d3f7ae5bb3f6779d64d",
+            "recordedAt": "2026-09-23T10:55:54.740Z",
+            "schemaVersion": 1,
+            "manifestSha256": "960f7f261dacc71ac8b1ddbfd1d354b85e6ee37b98f11747f08465bbb0d760fd"
+          },
+          "operationId": "d144029b-11f2-4831-a315-7fb24c5bbb30"
+        }
+      ],
+      "updated_at": "2026-09-23T18:55:55.581+08:00",
+      "created_at": "2026-09-23T18:55:55.581+08:00"
+    }
+  ],
+  "operations": [
+    {
+      "id": 315,
+      "operation_id": "d144029b-11f2-4831-a315-7fb24c5bbb30",
+      "tenant_id": 413,
+      "site_id": 375,
+      "operation_type": "publish",
+      "endpoint": "/editions/695/publish",
+      "state": "succeeded",
+      "attempt": 1,
+      "revision": 2,
+      "current_stage": "publish-gate",
+      "last_stage_at": "2026-09-23T18:55:55.305+08:00",
+      "target_ids": {
+        "editionId": 695
+      },
+      "result": {
+        "releaseId": "rel-29340d3f7ae5bb3f6779d64d",
+        "manifestSha256": "960f7f261dacc71ac8b1ddbfd1d354b85e6ee37b98f11747f08465bbb0d760fd"
+      },
+      "error": null,
+      "audit_log": [
+        {
+          "at": "2026-09-23T10:55:55.027Z",
+          "actor": {
+            "kind": "user",
+            "role": "publisher",
+            "userId": "1112",
+            "tenantId": 413
+          },
+          "action": "operation.created",
+          "detail": {
+            "endpoint": "/editions/695/publish",
+            "requestHash": "eefedde137298067c86f4a7e85af1b3fca67a10f7e20ecd1bd8714acfeb34bb6"
+          }
+        },
+        {
+          "at": "2026-09-23T10:55:55.305Z",
+          "actor": {
+            "kind": "service",
+            "role": "content-service",
+            "userId": "1099",
+            "tenantId": 413
+          },
+          "action": "operation.stage.started:publish-gate",
+          "detail": {
+            "stage": "publish-gate",
+            "attempt": 1
+          }
+        },
+        {
+          "at": "2026-09-23T10:55:55.605Z",
+          "actor": {
+            "kind": "service",
+            "role": "content-service",
+            "userId": "1099",
+            "tenantId": 413
+          },
+          "action": "operation.stage.completed:publish-gate",
+          "detail": {
+            "stage": "publish-gate",
+            "attempt": 1,
+            "outcome": "succeeded"
+          }
+        }
+      ],
+      "updated_at": "2026-09-23T18:55:55.605+08:00",
+      "created_at": "2026-09-23T18:55:55.027+08:00",
+      "idempotency_key_hash": "5fd8667b89d18d353f545cac01d32091cd19f48a30f68e903c29b4fdb6a6ab71",
+      "request_payload": {
+        "body": {
+          "editionId": 695
+        }
+      }
+    }
+  ],
+  "urlRecords": [
+    {
+      "id": 181,
+      "site_id": 375,
+      "tenant_id": 413,
+      "locale": "sv-SE",
+      "pathname": "/articles/a2-1790160952",
+      "unique_key": "[\"375\",\"sv-SE\",\"/articles/a2-1790160952\"]",
+      "state": "active",
+      "canonical_url": "https://e2e-scheduled-publish-375.test/sv-SE/articles/a2-1790160952",
+      "status_code": null,
+      "target_url_id": null,
+      "revision": 1,
+      "updated_at": "2026-09-23T18:55:55.596+08:00",
+      "created_at": "2026-09-23T18:55:54.863+08:00",
+      "edition_id": 695
+    }
+  ],
+  "editionSites": [
+    {
+      "id": 126,
+      "tenant_id": 413,
+      "edition_id": 695,
+      "site_id": 375,
+      "publish_state": "pending",
+      "url_record_id": null,
+      "release_id": null,
+      "quality_state": "pending",
+      "published_at": null,
+      "created_at": "2026-09-23T18:55:54.739+08:00",
+      "updated_at": "2026-09-23T18:55:54.739+08:00"
+    }
+  ],
+  "contentEditions": [
+    {
+      "id": 695,
+      "tenant_id": 413,
+      "site_id": 375,
+      "sites": [],
+      "workflow_status": "published",
+      "workflow_revision": 4,
+      "compiled_release": "rel-29340d3f7ae5bb3f6779d64d",
+      "updated_at": "2026-09-23T18:55:55.59+08:00"
+    }
+  ],
+  "editionRevisions": [
+    {
+      "id": 2381,
+      "parent_id": 695,
+      "latest": true,
+      "site_id": 375,
+      "sites": [],
+      "workflow_status": "published",
+      "workflow_revision": 4,
+      "compiled_release": "rel-29340d3f7ae5bb3f6779d64d",
+      "title": "A2 基线 1790160952",
+      "updated_at": "2026-09-23T18:55:55.588+08:00"
+    }
+  ],
+  "qualityAssessments": [
+    {
+      "id": 268,
+      "edition_id": 695,
+      "site_id": 375,
+      "tenant_id": 413,
+      "state": "passed",
+      "input_hash": "5b101ea5b6281062da05fec021902732183ad4ff3297ae28c4505af699c1745e",
+      "issues": [],
+      "overall": 90,
+      "dimensions": {
+        "seo": 90,
+        "content": 90,
+        "structure": 90
+      },
+      "model_id": "a2-baseline",
+      "prompt_version": "e2e-1",
+      "provider": "e2e",
+      "thresholds_hash": "176e11df4de49d96926b3f134e56aa284c5d2404184fa2a701c75e823a0d4dba",
+      "updated_at": "2026-09-23T18:55:54.98+08:00",
+      "created_at": "2026-09-23T18:55:54.98+08:00"
+    }
+  ],
+  "manifest": {
+    "compilerVersion": "1.0.0",
+    "createdAt": "2026-09-23T10:55:54.740Z",
+    "objects": [
+      {
+        "bytes": 3819,
+        "contentType": "application/json",
+        "path": "pages/articles.json",
+        "sha256": "c74c33146d840787b694adacdc3d9c0cb74b36963953ad0c4d80728af4bcbc7c"
+      },
+      {
+        "bytes": 2174,
+        "contentType": "application/json",
+        "path": "pages/articles/a2-1790160952.json",
+        "sha256": "4e1abc0744846969d8dd43ed8291d254c01e40a2a4260ce359312e372b709f12"
+      },
+      {
+        "bytes": 3462,
+        "contentType": "application/json",
+        "path": "pages/articles/browser-business-1788092552327-content-quality-review.json",
+        "sha256": "515e8a1682217f70ec9b120ced7bafc604e402dadec947e254778f282109ae76"
+      },
+      {
+        "bytes": 3404,
+        "contentType": "application/json",
+        "path": "pages/articles/browser-business-1788093304686-content-quality-review.json",
+        "sha256": "e002b63dbda64a1df721aeb139f1df5316680c1a1904b96705744e573f62f9ca"
+      },
+      {
+        "bytes": 3404,
+        "contentType": "application/json",
+        "path": "pages/articles/browser-business-1788097830209-content-quality-review.json",
+        "sha256": "9b2afec05260cd919efd4f3cb752e6b88183e2f389d9e90b50a64f03ff235d1c"
+      },
+      {
+        "bytes": 3404,
+        "contentType": "application/json",
+        "path": "pages/articles/browser-business-1788098073734-content-quality-review.json",
+        "sha256": "648dff14cd50c9cfb8e0bb00e1483aed2e6656c6abfbcf42dea97cdb2c8466d4"
+      },
+      {
+        "bytes": 3404,
+        "contentType": "application/json",
+        "path": "pages/articles/browser-business-1788098277736-content-quality-review.json",
+        "sha256": "04519f0aecd39397029e94fdcdbe020f07e0dec2142511d144913edf99400f37"
+      },
+      {
+        "bytes": 3404,
+        "contentType": "application/json",
+        "path": "pages/articles/browser-business-1788098493877-content-quality-review.json",
+        "sha256": "f002f62f9779fa6aa1eea12dedc286cab2977d4ec63a5a78456c23322ef32522"
+      },
+      {
+        "bytes": 6278,
+        "contentType": "application/json",
+        "path": "pages/articles/enabling-the-next-generation-trait-solver-on-nightly-rust-blog.json",
+        "sha256": "774ba300f98415bf38de8d7df09443c92390373c00e555a24da8fcbd632af6b9"
+      },
+      {
+        "bytes": 2848,
+        "contentType": "application/json",
+        "path": "pages/enabling-the-next-generation-trait-solver-on-nightly-rust-blog.json",
+        "sha256": "49750ce4005fd8cef9ed8fd0403cd53ca838e34d94df6c3e61072d8170005067"
+      },
+      {
+        "bytes": 3081,
+        "contentType": "application/json",
+        "path": "pages/example-domain.json",
+        "sha256": "7cc3bb16c7b3454fb11483c56bba65db03a04ddbbfded5076480e428fcb3f13a"
+      },
+      {
+        "bytes": 1225,
+        "contentType": "application/json",
+        "path": "pages/not-found.json",
+        "sha256": "80ebe9718edaa1634ebfa86a583a152537009f8b90f7d6ede58b5cb48894f757"
+      },
+      {
+        "bytes": 2213,
+        "contentType": "application/json",
+        "path": "routes.json",
+        "sha256": "d89f9c0a3760be5b4018bad55d986c73019c22edfe218ad35d5cef20e29efb20"
+      },
+      {
+        "bytes": 108,
+        "contentType": "application/json",
+        "path": "routing-candidate.json",
+        "sha256": "23681f15b3e650bc581bc06c05bddfccb331916a673441fe9b454c38e8242de3"
+      },
+      {
+        "bytes": 1814,
+        "contentType": "application/xml",
+        "path": "sitemap.xml",
+        "sha256": "fd97ef46c295510091475bbfdfb645c8924058b5204f4a9c8e76a20efffd422b"
+      }
+    ],
+    "releaseId": "rel-29340d3f7ae5bb3f6779d64d",
+    "schemaVersion": 1,
+    "siteId": "site-375",
+    "sourceVersionIds": [
+      "edition-695-input-5b101ea5b6281062da05fec021902732183ad4ff3297ae28c4505af699c1745e"
+    ]
+  }
+}
