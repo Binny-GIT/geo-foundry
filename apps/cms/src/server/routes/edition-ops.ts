@@ -219,6 +219,12 @@ export const handleEditionOpsPost = async (
       }
 
       if (input.sites !== undefined) {
+        // A4：compiled/published/archived 的站点集合改动一律拒绝（此前只锁了
+        // 单数 site 字段，sites[] 路径漏锁）。已发布文章的增删站走
+        // POST/DELETE /api/editions/{id}/sites。
+        if (!SITE_REASSIGNABLE.has(version.workflowStatus ?? "draft")) {
+          throw new EditionOpsError("EDITION_ASSIGNMENT_SITE_LOCKED")
+        }
         const assigned: number[] = []
         for (const candidate of input.sites) {
           if (assigned.includes(candidate)) continue

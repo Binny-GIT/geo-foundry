@@ -17,18 +17,18 @@ import { sites } from "../db/entity-schema"
 import { qualityAssessments } from "../db/session-schema"
 import { sendEditionEmbeddingJobWithin } from "../jobs/pgboss"
 import {
+  compileSitePatchOf,
+  desiredEditionSiteIdsOf,
+  editionSiteRowOf,
+  updateEditionSiteRow,
+} from "./edition-sites"
+import {
   insertLatestVersion,
   loadCurrentVersion,
   transitionEditionWithinTx,
   type WorkflowClaims,
   workflowActorOf,
 } from "./edition-workflow"
-import {
-  compileSitePatchOf,
-  desiredEditionSiteIdsOf,
-  editionSiteRowOf,
-  updateEditionSiteRow,
-} from "./edition-sites"
 import type { EntityScope } from "./entities"
 
 /* guards 的错误映射已覆盖 EditionWorkflowError；沿用保证状态码契约不变。 */
@@ -239,9 +239,13 @@ export const recordCompileResult = async (
       throw fail("EDITION_WORKFLOW_NOT_APPROVED")
     }
     const row = await editionSiteRowOf(tx, input.editionId, input.siteId)
-    if (row === null || row.publishState === "unpublished") {
+    if (row === null) {
       throw fail("EDITION_WORKFLOW_SITE_NOT_ASSIGNED")
     }
+    // A4 撤下站点：该站"不含此文的新 release"的编译回执到达时站点行已是
+    // unpublished——证据版本行照记（单值 compiledRelease 更新为最近一次），
+    // 但不回写站点行（行状态由撤下流程负责，重放不得改写）。
+    const isTakedownRerelease = row.publishState === "unpublished"
     const existingAudit = Array.isArray(version.auditLog) ? version.auditLog : []
     const evidence = existingAudit
       .map((entry) =>
@@ -326,11 +330,13 @@ export const recordCompileResult = async (
         workflowStatus: status,
       })
     }
-    await updateEditionSiteRow(tx, {
-      editionId: input.editionId,
-      patch: compileSitePatchOf(row, input.releaseId),
-      siteId: input.siteId,
-    })
+    if (!isTakedownRerelease) {
+      await updateEditionSiteRow(tx, {
+        editionId: input.editionId,
+        patch: compileSitePatchOf(row, input.releaseId),
+        siteId: input.siteId,
+      })
+    }
     return { releaseId: input.releaseId, workflowStatus: status as ContentEditionState }
   })
 }

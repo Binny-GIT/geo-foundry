@@ -7,7 +7,8 @@
  * - 已预留 URL 在同一事务内激活。
  */
 
-import { type SiteEventType } from "@geo/content-client"
+import type { SiteEventType } from "@geo/content-client"
+import { parseUrlId, publishUrl } from "@geo/domain"
 import {
   type PublishReceipt,
   PublishReceiptSchema,
@@ -15,7 +16,6 @@ import {
   RollbackReceiptSchema,
 } from "@geo/schema/release/v1"
 import { and, eq, sql } from "drizzle-orm"
-import { parseUrlId, publishUrl } from "@geo/domain"
 
 import { resolveSessionClaims, type SessionClaims } from "../../access/session"
 import { EditionWorkflowError } from "../../services/edition-workflow"
@@ -23,11 +23,11 @@ import { buildSiteRegistry, toUrlRecordRow } from "../../services/url-registry-s
 import type { ServerDb } from "../db/client"
 import { sites } from "../db/entity-schema"
 import { operations } from "../db/ledger-schema"
-import { sendSiteEventJobWithin } from "../jobs/pgboss"
 import { domains, releases } from "../db/session-schema"
 import { urlRecords } from "../db/workflow-schema"
-import { loadCurrentVersion, transitionEditionWithinTx, workflowActorOf } from "./edition-workflow"
+import { sendSiteEventJobWithin } from "../jobs/pgboss"
 import { editionSiteRowOf, updateEditionSiteRow } from "./edition-sites"
+import { loadCurrentVersion, transitionEditionWithinTx, workflowActorOf } from "./edition-workflow"
 
 export class ReleaseRegistryError extends Error {
   override readonly name = "ReleaseRegistryError"
@@ -97,15 +97,16 @@ const siteOf = async (
  * B3 发布事件：与 release 登记同事务入队站点通知任务（pg-boss site-events）。
  * 站点未配置 webhook（url 或密钥引用缺失）时静默跳过——无事件、无台账行。
  * 事件的 hostname 取站点 canonical 活跃域名；缺失时以 null 入队（消费方
- * 仍可按 siteId 识别）。
+ * 仍可按 siteId 识别）。A4 撤下站点的 unpublished 事件复用本函数
+ * （releaseId 传被撤下的 release 使事件 id 逐次唯一；manifestSha256 可空）。
  */
-const enqueueSiteEventWithin = async (
+export const enqueueSiteEventWithin = async (
   tx: Tx,
   site: Awaited<ReturnType<typeof siteOf>>,
   input: Readonly<{
     eventType: SiteEventType
-    manifestSha256: string
-    releaseId: string
+    manifestSha256: string | null
+    releaseId: string | null
   }>,
 ): Promise<void> => {
   if (
@@ -120,11 +121,7 @@ const enqueueSiteEventWithin = async (
     .select({ hostname: domains.hostname })
     .from(domains)
     .where(
-      and(
-        eq(domains.siteId, site.id),
-        eq(domains.role, "canonical"),
-        eq(domains.status, "active"),
-      ),
+      and(eq(domains.siteId, site.id), eq(domains.role, "canonical"), eq(domains.status, "active")),
     )
     .limit(1)
   await sendSiteEventJobWithin(tx, {
@@ -471,19 +468,28 @@ export const recordPublishedRelease = async (
       }
     }
     if (input.editionId !== undefined) {
-      await advanceEditionToPublished(tx, {
-        editionId: input.editionId,
-        operationId: input.operationId,
-        receipt,
-        siteId: site.id,
-      })
-      const urlRecordId = await activatePublishedEditionUrl(tx, input.editionId, site.id)
-      if (urlRecordId !== null) {
-        await updateEditionSiteRow(tx, {
+      // A4 撤下站点：该站"不含此文的新 release"的重发回执到达时，站点行已
+      // 置 unpublished——release 登记照常（站点 current 推进、事件照发），
+      // 但跳过文章发布推进与 URL 激活（URL 已 gone）。行不存在保持旧行为
+      // （advanceEditionToPublished 以 RELEASE_EDITION_SITE_MISMATCH 拒绝）。
+      const receiptSiteRow = await editionSiteRowOf(tx, input.editionId, site.id)
+      const isTakedownRerelease =
+        receiptSiteRow !== null && receiptSiteRow.publishState === "unpublished"
+      if (!isTakedownRerelease) {
+        await advanceEditionToPublished(tx, {
           editionId: input.editionId,
-          patch: { urlRecordId },
+          operationId: input.operationId,
+          receipt,
           siteId: site.id,
         })
+        const urlRecordId = await activatePublishedEditionUrl(tx, input.editionId, site.id)
+        if (urlRecordId !== null) {
+          await updateEditionSiteRow(tx, {
+            editionId: input.editionId,
+            patch: { urlRecordId },
+            siteId: site.id,
+          })
+        }
       }
     }
     // B3：登记同事务入队站点发布事件。登记前已有其他 current release 说明

@@ -7,14 +7,15 @@
 import { randomUUID } from "node:crypto"
 
 import { validateTimezone } from "@geo/domain"
-import { and, eq } from "drizzle-orm"
+import { and, eq, inArray } from "drizzle-orm"
 import { z } from "zod"
 
 import { authenticateRequest } from "../auth/session"
-import { loadCurrentVersion } from "../repositories/edition-workflow"
-import { entityScopeOf } from "../repositories/entities"
 import { sites } from "../db/entity-schema"
 import { publicationPlans } from "../db/session-schema"
+import { desiredEditionSiteIdsOf, memberSiteIdsOf } from "../repositories/edition-sites"
+import { loadCurrentVersion } from "../repositories/edition-workflow"
+import { entityScopeOf } from "../repositories/entities"
 import { serverRuntime } from "../runtime"
 
 export class PublicationPlanError extends Error {
@@ -100,39 +101,58 @@ export const handlePublicationPlanPost = async (
       if (role !== "publisher" && role !== "super-admin") {
         throw new PublicationPlanError("EDITION_WORKFLOW_PUBLISHER_REQUIRED")
       }
-      const plan = await db.transaction(async (tx) => {
+      // A4 每站一条计划：多站文章的排期为每个成员站点各插一条（A2 起派发
+      // 按计划行的站点发布）。单站文章成员集就是 [主站]，行为与旧版一致。
+      const plans = await db.transaction(async (tx) => {
         const { version } = await loadCurrentVersion(tx, scope, parsed.data.editionId)
         if (version.workflowStatus !== "approved" && version.workflowStatus !== "compiled") {
           throw new PublicationPlanError("PUBLICATION_PLAN_EDITION_NOT_READY")
         }
-        const siteId = version.siteId
-        if (siteId === null) throw new PublicationPlanError("PUBLICATION_PLAN_SITE_INVALID")
-        const siteRows = await tx
-          .select({ tenantId: sites.tenantId, timezone: sites.timezone })
-          .from(sites)
-          .where(eq(sites.id, siteId))
-          .limit(1)
-        const site = siteRows[0]
-        if (
-          site === undefined ||
-          site.tenantId !== version.tenantId ||
-          site.timezone !== timezone.value.value
-        ) {
-          throw new PublicationPlanError("PUBLICATION_PLAN_TIMEZONE_MISMATCH")
+        const desired = desiredEditionSiteIdsOf({
+          siteId: version.siteId,
+          sites: version.sites,
+        }).filter((id) => id > 0)
+        const memberSites =
+          desired.length === 0 ? [] : await memberSiteIdsOf(tx, parsed.data.editionId, desired)
+        if (memberSites.length === 0) {
+          throw new PublicationPlanError("PUBLICATION_PLAN_SITE_INVALID")
         }
-        const planId = randomUUID()
-        await tx.insert(publicationPlans).values({
-          editionId: parsed.data.editionId,
-          planId,
-          requestedById: Number(auth.claims.userId),
-          scheduledFor: new Date(scheduledFor),
-          siteId,
-          tenantId: version.tenantId ?? -1,
-          timezone: timezone.value.value,
-        })
-        return { planId, status: "pending" as const }
+        const siteRows = await tx
+          .select({ id: sites.id, tenantId: sites.tenantId, timezone: sites.timezone })
+          .from(sites)
+          .where(inArray(sites.id, memberSites))
+        const siteById = new Map(siteRows.map((row) => [row.id, row]))
+        for (const siteId of memberSites) {
+          const site = siteById.get(siteId)
+          if (
+            site === undefined ||
+            site.tenantId !== version.tenantId ||
+            site.timezone !== timezone.value.value
+          ) {
+            throw new PublicationPlanError("PUBLICATION_PLAN_TIMEZONE_MISMATCH")
+          }
+        }
+        const created = memberSites.map((siteId) => ({ planId: randomUUID(), siteId }))
+        await Promise.all(
+          created.map(async (plan) => {
+            await tx.insert(publicationPlans).values({
+              editionId: parsed.data.editionId,
+              planId: plan.planId,
+              requestedById: Number(auth.claims.userId),
+              scheduledFor: new Date(scheduledFor),
+              siteId: plan.siteId,
+              tenantId: version.tenantId ?? -1,
+              timezone: timezone.value.value,
+            })
+          }),
+        )
+        return created.map((plan) => ({
+          planId: plan.planId,
+          siteId: plan.siteId,
+          status: "pending" as const,
+        }))
       })
-      return json(201, { plan })
+      return json(201, { plans })
     }
 
     const planId = slug?.[1] ?? ""

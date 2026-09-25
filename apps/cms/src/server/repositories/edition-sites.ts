@@ -34,6 +34,23 @@ export const desiredEditionSiteIdsOf = (
   return [...ids]
 }
 
+export type DesiredSiteListInput = Readonly<{
+  readonly siteId: number | null
+  readonly sites: readonly number[] | null
+}>
+
+/**
+ * A4：版本行目标站点集合的有序版本（{主站} ∪ sites[]，主站保持在前，
+ * 去重、去非法值）。追加/撤下站点改写版本行 sites[] 用它保持
+ * "sites[] = 主站在前的全集"不变式，主站顺延时取 [0]。
+ */
+export const desiredSiteListOf = (input: DesiredSiteListInput): number[] => {
+  const primary = typeof input.siteId === "number" && input.siteId > 0 ? input.siteId : null
+  const base = (input.sites ?? []).filter((id) => typeof id === "number" && id > 0)
+  const ordered = primary === null ? [...base] : [primary, ...base.filter((id) => id !== primary)]
+  return [...new Set(ordered)]
+}
+
 export const syncEditionSitesWithinTx = async (
   tx: EditionSitesTx,
   input: SyncEditionSitesInput,
@@ -79,7 +96,10 @@ export const editionSiteRowOf = async (
 }
 
 export type EditionSitePatch = Partial<
-  Pick<EditionSiteRow, "publishState" | "releaseId" | "urlRecordId" | "publishedAt">
+  Pick<
+    EditionSiteRow,
+    "publishState" | "releaseId" | "urlRecordId" | "publishedAt" | "qualityState"
+  >
 >
 
 export const compileSitePatchOf = (
@@ -142,26 +162,38 @@ export type PublishedSiteHost = Readonly<{
 }>
 
 /**
- * 全局 routing manifest 的数据源（B2）：凡有 published 行且 active 的站点
- * 及其 canonical 域名。worker 在每站发布完成后取这份清单写 S3 全局 routing
- * （服务面 runtime 靠它做 host → site 解析）。published 历史行在文章归档后
- * 保留（该站 S3 指针不回退），站点因此继续留在清单里；站点撤下的 routing
- * 语义归 A4 的按站 DELETE。
+ * 全局 routing manifest 的数据源（B2，A4 修订口径）：凡 active 且"仍有可
+ * 服务内容"的站点及其 canonical 域名——有 published 文章行，**或**有
+ * current release。worker 在每站发布完成后取这份清单写 S3 全局 routing
+ * （服务面 runtime 靠它做 host → site 解析）。published 历史行在文章归档
+ * 后保留（该站 S3 指针不回退），站点因此继续留在清单里；A4 撤下站点后
+ * 该站会重发一个不含此文（可能是空站）的 release——站点外壳仍需可达，
+ * 因此不能只按 published 行判定，否则撤下某站最后一篇文章会把整站从
+ * routing 里摘除（服务面 503）。
  */
 export const publishedSiteHostsOf = async (db: ServerDb): Promise<PublishedSiteHost[]> => {
   const rows = await db
     .select({ siteId: sites.id, canonicalDomain: domains.hostname })
-    .from(editionSites)
-    .innerJoin(sites, eq(sites.id, editionSites.siteId))
+    .from(sites)
     .innerJoin(
       domains,
       and(
-        eq(domains.siteId, editionSites.siteId),
+        eq(domains.siteId, sites.id),
         eq(domains.role, "canonical"),
         eq(domains.status, "active"),
       ),
     )
-    .where(and(eq(editionSites.publishState, "published"), eq(sites.status, "active")))
+    .where(
+      and(
+        eq(sites.status, "active"),
+        sql`(
+          EXISTS (SELECT 1 FROM edition_sites es
+                  WHERE es.site_id = ${sites.id} AND es.publish_state = 'published')
+          OR EXISTS (SELECT 1 FROM releases r
+                     WHERE r.site_id = ${sites.id} AND r.state = 'current')
+        )`,
+      ),
+    )
     .orderBy(sites.id)
   // 一个站点至多一个 active canonical 域名；Map 兜底防重复行。
   return [...new Map(rows.map((row) => [row.siteId, row])).values()].map((row) => ({

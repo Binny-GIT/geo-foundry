@@ -272,8 +272,11 @@ const slugify = (value: string): string =>
     .replace(/^-+|-+$/g, "")
 
 /**
- * URL 预留：同 edition+site 已有 active/reserved 则复用；否则在事务内用
- * 领域 registry 校验后写入 reserved 行，unique 索引仲裁并发。
+ * URL 预留：同 edition+site 已有 active/reserved 则复用；已有 gone 行
+ * （A4 撤下后重新追加）则把该行重置回 reserved 复用——gone 行占着该
+ * pathname 的 uniqueKey，直接新插会撞唯一索引，而该 pathname 在 gone
+ * 行存在期间不可能被别的文章占用（对任意状态撞键都拒绝），重置是安全的。
+ * 否则在事务内用领域 registry 校验后写入 reserved 行，unique 索引仲裁并发。
  */
 export const reserveEditionUrlWithinTx = async (
   tx: Tx,
@@ -296,6 +299,30 @@ export const reserveEditionUrlWithinTx = async (
     )
     .limit(1)
   if (existing[0] !== undefined) return existing[0].id
+  const gone = await tx
+    .select({ id: urlRecords.id })
+    .from(urlRecords)
+    .where(
+      and(
+        eq(urlRecords.editionId, input.editionId),
+        eq(urlRecords.siteId, input.siteId),
+        eq(urlRecords.state, "gone"),
+      ),
+    )
+    .limit(1)
+  const goneRow = gone[0]
+  if (goneRow !== undefined) {
+    await tx
+      .update(urlRecords)
+      .set({
+        revision: sql`${urlRecords.revision} + 1`,
+        state: "reserved",
+        statusCode: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(urlRecords.id, goneRow.id))
+    return goneRow.id
+  }
 
   const siteRows = await tx
     .select({ locale: sites.locale })

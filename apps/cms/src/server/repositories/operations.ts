@@ -54,76 +54,86 @@ export class OperationsRepository {
   constructor(private readonly db: ServerDb) {}
 
   async submit(input: SubmitOperationRecordInput): Promise<SubmitOperationRecordOutcome> {
-    return this.db.transaction(async (tx) => {
-      // hashtext 冲突只会造成不相关请求短暂串行，不影响正确性。
-      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${input.uniqueKey}))`)
+    return this.db.transaction((tx) => this.submitWithinTx(tx, input))
+  }
 
-      const existingRows = await tx
-        .select({
-          operationId: idempotencyRecords.operationId,
-          requestHash: idempotencyRecords.requestHash,
+  /**
+   * 在调用方事务内提交（A4 撤下站点：行状态翻转、URL gone、unpublished 事件
+   * 与"该站不含此文的重发操作"必须同事务提交——pg-boss 任务只在提交后可见，
+   * worker 取到任务时撤下状态必然已生效，不存在"快照仍含此文"的竞态窗口）。
+   */
+  async submitWithinTx(
+    tx: Parameters<Parameters<ServerDb["transaction"]>[0]>[0],
+    input: SubmitOperationRecordInput,
+  ): Promise<SubmitOperationRecordOutcome> {
+    // hashtext 冲突只会造成不相关请求短暂串行，不影响正确性。
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${input.uniqueKey}))`)
+
+    const existingRows = await tx
+      .select({
+        operationId: idempotencyRecords.operationId,
+        requestHash: idempotencyRecords.requestHash,
+      })
+      .from(idempotencyRecords)
+      .where(eq(idempotencyRecords.uniqueKey, input.uniqueKey))
+      .limit(1)
+    const existing = existingRows[0]
+    if (existing !== undefined) {
+      if (existing.requestHash !== input.requestHash) throw new IdempotencyConflictError()
+      await tx
+        .update(idempotencyRecords)
+        .set({
+          replayCount: sql`COALESCE(${idempotencyRecords.replayCount}, 0) + 1`,
+          updatedAt: new Date(),
         })
-        .from(idempotencyRecords)
         .where(eq(idempotencyRecords.uniqueKey, input.uniqueKey))
+      const operationRows = await tx
+        .select({ operationId: operations.operationId, state: operations.state })
+        .from(operations)
+        .where(eq(operations.operationId, existing.operationId))
         .limit(1)
-      const existing = existingRows[0]
-      if (existing !== undefined) {
-        if (existing.requestHash !== input.requestHash) throw new IdempotencyConflictError()
-        await tx
-          .update(idempotencyRecords)
-          .set({
-            replayCount: sql`COALESCE(${idempotencyRecords.replayCount}, 0) + 1`,
-            updatedAt: new Date(),
-          })
-          .where(eq(idempotencyRecords.uniqueKey, input.uniqueKey))
-        const operationRows = await tx
-          .select({ operationId: operations.operationId, state: operations.state })
-          .from(operations)
-          .where(eq(operations.operationId, existing.operationId))
-          .limit(1)
-        const operation = operationRows[0]
-        if (operation === undefined) {
-          throw new Error(`idempotency operation missing: ${existing.operationId}`)
-        }
-        return { created: false, operationId: operation.operationId, state: operation.state }
+      const operation = operationRows[0]
+      if (operation === undefined) {
+        throw new Error(`idempotency operation missing: ${existing.operationId}`)
       }
+      return { created: false, operationId: operation.operationId, state: operation.state }
+    }
 
-      await tx.insert(operations).values({
-        auditLog: [...input.auditLog],
-        attempt: 1,
-        endpoint: input.endpoint,
-        error: null,
-        idempotencyKeyHash: input.idempotencyKeyHash,
+    await tx.insert(operations).values({
+      auditLog: [...input.auditLog],
+      attempt: 1,
+      endpoint: input.endpoint,
+      error: null,
+      idempotencyKeyHash: input.idempotencyKeyHash,
+      operationId: input.operationId,
+      operationType: input.operationType,
+      requestPayload: input.requestPayload,
+      revision: 0,
+      result: null,
+      ...(input.siteId === undefined ? {} : { siteId: input.siteId }),
+      state: "queued",
+      targetIds: input.targetIds,
+      tenantId: input.tenantId,
+    })
+    await tx.insert(idempotencyRecords).values({
+      endpoint: input.endpoint,
+      idempotencyKey: input.idempotencyKey,
+      operationId: input.operationId,
+      replayCount: 0,
+      requestHash: input.requestHash,
+      tenantId: input.tenantId,
+      uniqueKey: input.uniqueKey,
+    })
+    if (input.outbox !== undefined) {
+      // operation 与队列任务在同一事务内提交。
+      await sendOperationJobWithin(tx, {
         operationId: input.operationId,
         operationType: input.operationType,
-        requestPayload: input.requestPayload,
-        revision: 0,
-        result: null,
-        ...(input.siteId === undefined ? {} : { siteId: input.siteId }),
-        state: "queued",
-        targetIds: input.targetIds,
+        payload: input.outbox.eventPayload,
         tenantId: input.tenantId,
       })
-      await tx.insert(idempotencyRecords).values({
-        endpoint: input.endpoint,
-        idempotencyKey: input.idempotencyKey,
-        operationId: input.operationId,
-        replayCount: 0,
-        requestHash: input.requestHash,
-        tenantId: input.tenantId,
-        uniqueKey: input.uniqueKey,
-      })
-      if (input.outbox !== undefined) {
-        // operation 与队列任务在同一事务内提交。
-        await sendOperationJobWithin(tx, {
-          operationId: input.operationId,
-          operationType: input.operationType,
-          payload: input.outbox.eventPayload,
-          tenantId: input.tenantId,
-        })
-      }
-      return { created: true, operationId: input.operationId, state: "queued" }
-    })
+    }
+    return { created: true, operationId: input.operationId, state: "queued" }
   }
 
   async incrementReplayCount(uniqueKey: string): Promise<number | null> {

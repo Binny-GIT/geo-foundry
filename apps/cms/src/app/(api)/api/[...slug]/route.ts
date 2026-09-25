@@ -10,6 +10,7 @@ import { handleDeliveryGet } from "@/server/routes/delivery"
 import { handleEditionAiChatPost } from "@/server/routes/edition-ai-chat"
 import { handleEditionOpsPost } from "@/server/routes/edition-ops"
 import { handleEditionDraftGet } from "@/server/routes/edition-reads"
+import { handleEditionSitesDelete, handleEditionSitesPost } from "@/server/routes/edition-sites"
 import { handleEditionVersionGet, handleEditionVersionPost } from "@/server/routes/edition-versions"
 import { handleEditionWorkflowPost } from "@/server/routes/edition-workflow"
 import { handleEditionDraftPatch, handleEditionDraftPost } from "@/server/routes/edition-writes"
@@ -107,6 +108,7 @@ export const POST = async (request: Request, context: RouteContext): Promise<Res
     ["edition-version-post", () => handleEditionVersionPost(request, params.slug)],
     ["edition-workflow-post", () => handleEditionWorkflowPost(request, params.slug)],
     ["edition-ops-post", () => handleEditionOpsPost(request, params.slug)],
+    ["edition-sites-post", () => handleEditionSitesPost(request, params.slug)],
     ["intake-ops-post", () => handleIntakeOpsPost(request, params.slug)],
     ["article-source-post", () => handleArticleSourcePost(request, params.slug)],
     ["publication-plan-post", () => handlePublicationPlanPost(request, params.slug)],
@@ -124,7 +126,13 @@ export const POST = async (request: Request, context: RouteContext): Promise<Res
   return handled ?? notFound()
 }
 
-export const DELETE = (): Response => methodNotAllowed()
+export const DELETE = async (request: Request, context: RouteContext): Promise<Response> => {
+  const params = await context.params
+  const handled = await dispatch(request, params.slug, [
+    ["edition-sites-delete", () => handleEditionSitesDelete(request, params.slug)],
+  ])
+  return handled ?? notFound()
+}
 export const PATCH = async (request: Request, context: RouteContext): Promise<Response> => {
   const params = await context.params
   const handled = await dispatch(request, params.slug, [
