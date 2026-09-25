@@ -351,7 +351,8 @@ assert b["siteId"] == int(sys.argv[3]), "site id"
 assert b["hostname"] == sys.argv[4], "hostname"
 et = sys.argv[5]
 if et:
-    assert b["eventType"] == et, f"eventType got={b.get(\"eventType\")} want={et}"
+    got = b.get("eventType")
+    assert b["eventType"] == et, "eventType got=%s want=%s" % (got, et)
 for k in ("tenantId","webhookSecretReference","webhookUrl"):
     assert k not in b, f"internal field leaked: {k}"
 assert r["event_id_header"] == b["eventId"], "event id header"
@@ -394,9 +395,9 @@ ST_XA=$(wait_op "$OP_XA"); ST_XB=$(wait_op "$OP_XB")
 [ "$ST_XA" = "succeeded" ] && [ "$ST_XB" = "succeeded" ] \
   && ok "X fanout: both site operations succeeded" \
   || bad "X fanout A=$ST_XA ($(op_err "$OP_XA")) B=$ST_XB ($(op_err "$OP_XB"))"
-ROW_XA=$(Q "publish_state||'|'||coalesce(url_record_id is not null::text,'n') FROM geo_foundry.edition_sites WHERE edition_id=$ED_X AND site_id=$SITE_A")
-ROW_XB=$(Q "publish_state||'|'||coalesce(url_record_id is not null::text,'n') FROM geo_foundry.edition_sites WHERE edition_id=$ED_X AND site_id=$SITE_B")
-[ "$ROW_XA" = "published|t" ] && [ "$ROW_XB" = "published|t" ] \
+ROW_XA=$(Q "publish_state||'|'||case when url_record_id is null then 'n' else 'y' end FROM geo_foundry.edition_sites WHERE edition_id=$ED_X AND site_id=$SITE_A")
+ROW_XB=$(Q "publish_state||'|'||case when url_record_id is null then 'n' else 'y' end FROM geo_foundry.edition_sites WHERE edition_id=$ED_X AND site_id=$SITE_B")
+[ "$ROW_XA" = "published|y" ] && [ "$ROW_XB" = "published|y" ] \
   && ok "X rows published with urlRecordId (A,B)" || bad "rows A=$ROW_XA B=$ROW_XB"
 URL_XB_ID=$(Q "id FROM geo_foundry.url_records WHERE edition_id=$ED_X AND site_id=$SITE_B")
 URL_XB_REV0=$(Q "revision FROM geo_foundry.url_records WHERE id=$URL_XB_ID")
@@ -521,8 +522,8 @@ QC_C=$(Q "quality_state FROM geo_foundry.edition_sites WHERE edition_id=$ED_X AN
 read -r OP_PUB_C REL_PC ST_PC <<<"$(publish_and_wait "$ED_X" "$SITE_C")"
 [ "$ST_PC" = "succeeded" ] && ok "C single-site publish succeeded (rel=$REL_PC)" \
   || bad "C publish state=$ST_PC err=$(op_err "$OP_PUB_C")"
-ROW_PC=$(Q "publish_state||'|'||coalesce(release_id,'')||'|'||coalesce(url_record_id is not null::text,'n') FROM geo_foundry.edition_sites WHERE edition_id=$ED_X AND site_id=$SITE_C")
-[ "$ROW_PC" = "published|$REL_PC|t" ] && ok "row (X,C) published with release+url" || bad "rowC=$ROW_PC"
+ROW_PC=$(Q "publish_state||'|'||coalesce(release_id,'')||'|'||case when url_record_id is null then 'n' else 'y' end FROM geo_foundry.edition_sites WHERE edition_id=$ED_X AND site_id=$SITE_C")
+[ "$ROW_PC" = "published|$REL_PC|y" ] && ok "row (X,C) published with release+url" || bad "rowC=$ROW_PC"
 URL_C_ST=$(Q "state FROM geo_foundry.url_records WHERE edition_id=$ED_X AND site_id=$SITE_C")
 [ "$URL_C_ST" = "active" ] && ok "URL C active" || bad "urlC=$URL_C_ST"
 SLUG_X=$(Q "pathname FROM geo_foundry.url_records WHERE edition_id=$ED_X AND site_id=$SITE_C")
@@ -556,7 +557,7 @@ OP_RR=$(echo "$TD_BODY" | python3 -c 'import json,sys;print(json.load(sys.stdin)
 REL_RR=$(echo "$TD_BODY" | python3 -c 'import json,sys;print(json.load(sys.stdin)["releaseId"])')
 
 # 同步段断言（撤下提交后立即生效，不等 worker）
-ROW_B=$(Q "publish_state||'|'||coalesce(release_id,'')||'|'||coalesce(url_record_id,'')||'|'||quality_state FROM geo_foundry.edition_sites WHERE edition_id=$ED_X AND site_id=$SITE_B")
+ROW_B=$(Q "publish_state||'|'||coalesce(release_id,'')||'|'||case when url_record_id is null then '' else 'u' end||'|'||quality_state FROM geo_foundry.edition_sites WHERE edition_id=$ED_X AND site_id=$SITE_B")
 [ "$ROW_B" = "unpublished|||pending" ] \
   && ok "row (X,B) unpublished with release/url cleared" || bad "rowB=$ROW_B"
 URLB=$(Q "id||'|'||state||'|'||coalesce(status_code::text,'null')||'|'||revision FROM geo_foundry.url_records WHERE id=$URL_XB_ID")
