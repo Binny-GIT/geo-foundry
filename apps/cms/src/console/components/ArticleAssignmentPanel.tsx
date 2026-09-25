@@ -20,6 +20,10 @@ const ASSIGNMENT_ERRORS: Readonly<Record<string, string>> = {
   EDITION_ASSIGNMENT_OWNER_TENANT_MISMATCH: "负责人必须属于文章所在租户。",
   EDITION_ASSIGNMENT_SITE_NOT_FOUND: "所选站点不存在。",
   EDITION_ASSIGNMENT_SITE_TENANT_MISMATCH: "站点必须属于文章所在租户。",
+  // A4：compiled/published/archived 的站点集合锁死（此前该码只挂在单数
+  // site 字段上、对 Console 不可达，面板却没有任何文案）。
+  EDITION_ASSIGNMENT_SITE_LOCKED:
+    "已编译/已发布文章不能直接改站点集合；已发布文章请用下方“站点发布状态”的追加/撤下。",
 }
 
 const errorTextOf = (code: unknown): string =>
@@ -43,6 +47,7 @@ const ArticleAssignmentPanel = ({
   owner,
   siteIds,
   sites,
+  sitesLocked,
   users,
 }: {
   readonly canAssign: boolean
@@ -50,6 +55,8 @@ const ArticleAssignmentPanel = ({
   readonly owner: string
   readonly siteIds: readonly number[]
   readonly sites: readonly Option[]
+  /** A4：published 状态下站点集合锁死，只保留负责人改派。 */
+  readonly sitesLocked: boolean
   readonly users: readonly Option[]
 }) => {
   const router = useRouter()
@@ -132,31 +139,38 @@ const ArticleAssignmentPanel = ({
               ))}
             </select>
           </label>
-          <div className="grid gap-2">
-            <span className="text-sm font-medium text-[var(--console-ink)]">
-              所属站点（可多选）
-            </span>
-            <p className="m-0 text-xs leading-5 text-[var(--console-ink-muted)]">
-              一篇文章可同时分配多个站点；各站点只呈现分配给自己的文章。
+          {sitesLocked ? (
+            <p className="m-0 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 py-2.5 text-sm leading-6 text-[var(--console-ink-muted)]">
+              文章已发布，站点集合在此不可直接修改；请在下方“站点发布状态”里
+              追加或撤下站点（每站独立评估与发布）。
             </p>
+          ) : (
             <div className="grid gap-2">
-              {sites.map((site) => (
-                <label
-                  className="flex cursor-pointer items-center gap-2.5 text-sm text-[var(--console-ink)]"
-                  key={site.id}
-                >
-                  <input
-                    checked={pickedSites.includes(site.id)}
-                    className="gf-console-focus h-4 w-4 accent-indigo-600"
-                    disabled={pending}
-                    onChange={() => toggleSite(site.id)}
-                    type="checkbox"
-                  />
-                  {site.label}
-                </label>
-              ))}
+              <span className="text-sm font-medium text-[var(--console-ink)]">
+                所属站点（可多选）
+              </span>
+              <p className="m-0 text-xs leading-5 text-[var(--console-ink-muted)]">
+                一篇文章可同时分配多个站点；各站点只呈现分配给自己的文章。
+              </p>
+              <div className="grid gap-2">
+                {sites.map((site) => (
+                  <label
+                    className="flex cursor-pointer items-center gap-2.5 text-sm text-[var(--console-ink)]"
+                    key={site.id}
+                  >
+                    <input
+                      checked={pickedSites.includes(site.id)}
+                      className="gf-console-focus h-4 w-4 accent-indigo-600"
+                      disabled={pending}
+                      onChange={() => toggleSite(site.id)}
+                      type="checkbox"
+                    />
+                    {site.label}
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
           <Button
             className="gf-console-focus disabled:cursor-wait"
             disabled={pending || (!ownerChanged && !sitesChanged)}

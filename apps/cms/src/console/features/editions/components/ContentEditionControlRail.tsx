@@ -1,7 +1,7 @@
 "use client"
 
-import { toast, useEditionEditor, useEditionField } from "../state/edition-editor-context"
 import { useEffect, useState } from "react"
+import type { UiLang } from "@/components/i18n/ui-lang"
 import {
   CalendarClockIcon,
   GlobeIcon,
@@ -11,11 +11,11 @@ import {
   ShieldCheckIcon,
   UsersIcon,
 } from "@/components/icons"
-import type { UiLang } from "@/components/i18n/ui-lang"
 import { Badge, IconBadge } from "@/components/ui"
 import { Button } from "@/components/ui/button"
-import { WorkflowActions } from "./WorkflowActions"
+import { toast, useEditionEditor, useEditionField } from "../state/edition-editor-context"
 import { ContentEditionRail, type VersionSelection } from "./ContentEditionRail"
+import { WorkflowActions } from "./WorkflowActions"
 
 type WorkspaceContext = Readonly<{
   assignees: readonly Readonly<{ email: string | null; id: number | null; role: string | null }>[]
@@ -250,7 +250,20 @@ export const ContentEditionControlRail = ({
       })
       if (!response.ok) throw new Error()
       setScheduledFor("")
-      toast.success(lang === "zh" ? "已创建发布排期。" : "Publication scheduled.")
+      // A4：多站文章按成员站各建一条计划；单站响应 plans 长度为 1，文案不变。
+      const body = (await response.json().catch(() => null)) as {
+        plans?: readonly unknown[]
+      } | null
+      const planCount = Array.isArray(body?.plans) ? body.plans.length : 1
+      toast.success(
+        planCount > 1
+          ? lang === "zh"
+            ? `已为 ${planCount} 个站点创建发布排期。`
+            : `Publication scheduled for ${planCount} sites.`
+          : lang === "zh"
+            ? "已创建发布排期。"
+            : "Publication scheduled.",
+      )
     } catch {
       toast.error(lang === "zh" ? "创建发布排期失败。" : "Could not schedule publication.")
     } finally {

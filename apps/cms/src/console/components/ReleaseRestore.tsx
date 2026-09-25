@@ -93,7 +93,8 @@ export const ReleaseRestore = ({
             </h2>
             <p className="m-0 mt-2 text-sm leading-6 text-[var(--console-ink-muted)]">
               目标版本 <span className="font-mono">{target.releaseId.slice(0, 18)}…</span>。
-              回滚只切换发布指针，不重新编译；操作会写入不可变审计记录。
+              回滚只切换发布指针，不重新编译；一个站点的 release 是整站快照——
+              回滚会回退该站全部已发布文章。操作会写入不可变审计记录。
             </p>
             <label className="mt-4 block">
               <span className="text-sm font-bold text-[var(--console-ink)]">恢复原因 *</span>

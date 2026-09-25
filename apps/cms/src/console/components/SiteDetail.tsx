@@ -338,7 +338,7 @@ const SiteDetail = async ({ id }: { readonly id: string }) => {
                       {restorable && currentRestore !== null && (
                         <ReleaseRestore
                           current={currentRestore}
-                          reasonHint="回滚只切换发布指针，不重新编译"
+                          reasonHint="回滚只切换发布指针，不重新编译；回滚一个站点会回退该站全部已发布文章"
                           siteId={siteId}
                           target={{ manifestSha256, releaseId }}
                         />

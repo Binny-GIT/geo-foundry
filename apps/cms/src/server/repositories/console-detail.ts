@@ -4,11 +4,11 @@
  * overrideAccess:true 等价，只暴露邮箱）。
  */
 
-import { and, asc, count, desc, eq, inArray, ne } from "drizzle-orm"
+import { and, asc, count, desc, eq, inArray, ne, sql } from "drizzle-orm"
 
 import { markdownToBlocks } from "../../editor/block-markdown"
 import type { ServerDb } from "../db/client"
-import { contentEditions, editionVersions } from "../db/edition-schema"
+import { contentEditions, editionSites, editionVersions } from "../db/edition-schema"
 import { sites } from "../db/entity-schema"
 import { operations } from "../db/ledger-schema"
 import { tenants, users } from "../db/schema"
@@ -17,10 +17,34 @@ import { reviewComments, urlRecords } from "../db/workflow-schema"
 import { findSite, operationDoc } from "./console-collections"
 import type { EntityScope } from "./entities"
 
+/** 与 OperationsWorkspace 同一口径的操作错误摘要（A4 每站状态面板复用）。 */
+const operationErrorSummary = (value: unknown): string | null => {
+  if (typeof value !== "object" || value === null) return null
+  const record = value as Record<string, unknown>
+  const message = record["message"] ?? record["error"] ?? record["code"]
+  if (typeof message === "string" && message.length > 0) return message
+  const serialized = JSON.stringify(value)
+  if (serialized === "null") return null
+  return serialized.length > 160 ? `${serialized.slice(0, 160)}…` : serialized
+}
+
 type Row = Record<string, unknown>
 
 const tenantPredicate = (scope: EntityScope, column: Parameters<typeof eq>[0]) =>
   scope.kind === "global" ? [] : [eq(column, scope.tenantId)]
+
+export type ArticleSiteStatus = Readonly<{
+  lastError: string | null
+  pathname: string | null
+  publishState: "pending" | "published" | "failed" | "unpublished"
+  publishedAt: string | null
+  qualityState: "pending" | "running" | "passed" | "failed" | "error"
+  releaseId: string | null
+  siteId: number
+  siteName: string
+  url: string | null
+  urlState: "reserved" | "active" | "redirected" | "gone" | null
+}>
 
 export type ArticleDetailData = Readonly<{
   actorEmailById: ReadonlyMap<number, string>
@@ -29,6 +53,7 @@ export type ArticleDetailData = Readonly<{
   hostname: string | null
   pathname: string | null
   siteOptions: readonly Readonly<{ id: number; label: string }>[]
+  siteStatuses: readonly ArticleSiteStatus[]
   userOptions: readonly Readonly<{ id: number; label: string }>[]
 }>
 
@@ -62,7 +87,16 @@ export const loadArticleDetail = async (
   const { version } = row
   const assignedSites = version.sites
   const editionTenantId = version.tenantId
-  const [urlRow, domainRow, comments, userOptions, siteOptions] = await Promise.all([
+  const [
+    urlRow,
+    domainRow,
+    comments,
+    userOptions,
+    siteOptions,
+    siteStatusRows,
+    siteUrlRows,
+    siteFailedOps,
+  ] = await Promise.all([
     db
       .select({ pathname: urlRecords.pathname })
       .from(urlRecords)
@@ -108,7 +142,82 @@ export const loadArticleDetail = async (
           .orderBy(asc(sites.name))
           .limit(100)
       : [],
+    // A4 每站发布状态：edition_sites 行 × URL 行 × 最近一次失败操作（发布/评估）。
+    db
+      .select({
+        publishState: editionSites.publishState,
+        qualityState: editionSites.qualityState,
+        releaseId: editionSites.releaseId,
+        publishedAt: editionSites.publishedAt,
+        siteId: editionSites.siteId,
+        siteName: sites.name,
+      })
+      .from(editionSites)
+      .leftJoin(sites, eq(sites.id, editionSites.siteId))
+      .where(eq(editionSites.editionId, editionId))
+      .orderBy(asc(editionSites.siteId)),
+    db
+      .select({
+        hostname: domains.hostname,
+        pathname: urlRecords.pathname,
+        siteId: urlRecords.siteId,
+        state: urlRecords.state,
+      })
+      .from(urlRecords)
+      .leftJoin(
+        domains,
+        and(
+          eq(domains.siteId, urlRecords.siteId),
+          eq(domains.role, "canonical"),
+          eq(domains.status, "active"),
+        ),
+      )
+      .where(eq(urlRecords.editionId, editionId))
+      .orderBy(asc(urlRecords.id)),
+    db
+      .select({
+        error: operations.error,
+        siteId: operations.siteId,
+        updatedAt: operations.updatedAt,
+      })
+      .from(operations)
+      .where(
+        and(
+          eq(operations.state, "failed"),
+          inArray(operations.operationType, ["evaluate", "publish"]),
+          sql`${operations.targetIds} ->> 'editionId' = ${String(editionId)}`,
+        ),
+      )
+      .orderBy(desc(operations.updatedAt))
+      .limit(50),
   ])
+  // 一站可能有两行 URL（rename 后 redirected + active）：优先非 redirected 行。
+  const siteUrlBySite = new Map<number, (typeof siteUrlRows)[number]>()
+  for (const row of siteUrlRows) {
+    const existing = siteUrlBySite.get(row.siteId)
+    if (existing === undefined || (existing.state === "redirected" && row.state !== "redirected")) {
+      siteUrlBySite.set(row.siteId, row)
+    }
+  }
+  const siteStatuses: readonly ArticleSiteStatus[] = siteStatusRows.map((row) => {
+    const url = siteUrlBySite.get(row.siteId)
+    const failed = siteFailedOps.find((op) => op.siteId === row.siteId)
+    return {
+      lastError: failed === undefined ? null : operationErrorSummary(failed.error),
+      pathname: url?.pathname ?? null,
+      publishState: row.publishState,
+      publishedAt: row.publishedAt === null ? null : row.publishedAt.toISOString(),
+      qualityState: row.qualityState,
+      releaseId: row.releaseId,
+      siteId: row.siteId,
+      siteName: row.siteName ?? `站点 #${row.siteId}`,
+      url:
+        url !== undefined && url.state === "active" && url.hostname !== null
+          ? `https://${url.hostname}${url.pathname}`
+          : null,
+      urlState: url?.state ?? null,
+    }
+  })
   const audit = Array.isArray(version.auditLog) ? version.auditLog : []
   const actorIds = [
     ...new Set([
@@ -167,6 +276,7 @@ export const loadArticleDetail = async (
       id: site.id,
       label: site.name.length > 0 ? site.name : `站点 #${site.id}`,
     })),
+    siteStatuses,
     userOptions: userOptions.map((user) => ({
       id: user.id,
       label: user.email.length > 0 ? user.email : `用户 #${user.id}`,

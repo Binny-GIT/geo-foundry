@@ -5,6 +5,7 @@ import { CMS_ROLE } from "@/access/roles"
 import { Button } from "@/components/ui/button"
 import ArticleAssignmentPanel from "@/console/components/ArticleAssignmentPanel"
 import ArticleBody from "@/console/components/ArticleBody"
+import ArticleSiteStatusPanel from "@/console/components/ArticleSiteStatusPanel"
 import ArticleWorkflowPanel from "@/console/components/ArticleWorkflowPanel"
 import DeferredText from "@/console/components/DeferredText"
 import DuplicateArticleButton from "@/console/components/DuplicateArticleButton"
@@ -93,12 +94,24 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
     session.role === CMS_ROLE.TENANT_ADMIN ||
     session.role === CMS_ROLE.SUPER_ADMIN
   const canAssign = canEdit
+  // A4：已发布文章的按站操作（追加/撤下/发布/重试）与发布同权：publisher / super-admin。
+  const canManageSites =
+    session.role === CMS_ROLE.PUBLISHER || session.role === CMS_ROLE.SUPER_ADMIN
 
   const detail = await loadArticleDetail(context.db, context.scope, numericId, {
     assignmentOptions: canAssign,
   })
   if (detail === null) notFound()
-  const { actorEmailById, comments, edition, hostname, pathname, siteOptions, userOptions } = detail
+  const {
+    actorEmailById,
+    comments,
+    edition,
+    hostname,
+    pathname,
+    siteOptions,
+    siteStatuses,
+    userOptions,
+  } = detail
 
   const siteId = relationIdOf(edition["site"])
   const siteName = relationText(edition["site"], "name")
@@ -274,41 +287,51 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
             owner={ownerId === null ? "" : String(ownerId)}
             siteIds={assignedSiteIds}
             sites={siteOptions}
+            sitesLocked={workflowStatus === "published"}
             users={userOptions}
           />
 
-          <section className="gf-console-card grid gap-3 p-5">
-            <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">
-              站点文章入口
-            </h2>
-            {publicUrl === null ? (
-              <p className="m-0 text-sm leading-6 text-[var(--console-ink-muted)]">
-                该文章尚未发布或缺少生效的站点 URL；发布后这里会显示线上入口。
-              </p>
-            ) : (
-              <a
-                className="gf-console-focus break-all text-sm font-semibold text-[var(--console-ink)] no-underline hover:text-[var(--console-accent)]"
-                href={publicUrl}
-                rel="noreferrer"
-                target="_blank"
-              >
-                {publicUrl}
-              </a>
-            )}
-            {siteId !== null && (
-              <Button
-                asChild
-                className="gf-console-focus"
-                size="sm"
-                type="button"
-                variant="secondary"
-              >
-                <Link href={consoleRoute.document("sites", String(siteId))}>
-                  查看站点发布历史与恢复 →
-                </Link>
-              </Button>
-            )}
-          </section>
+          {workflowStatus === "published" ? (
+            <ArticleSiteStatusPanel
+              canManage={canManageSites}
+              editionId={numericId}
+              siteOptions={siteOptions}
+              sites={siteStatuses}
+            />
+          ) : (
+            <section className="gf-console-card grid gap-3 p-5">
+              <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">
+                站点文章入口
+              </h2>
+              {publicUrl === null ? (
+                <p className="m-0 text-sm leading-6 text-[var(--console-ink-muted)]">
+                  该文章尚未发布或缺少生效的站点 URL；发布后这里会显示线上入口。
+                </p>
+              ) : (
+                <a
+                  className="gf-console-focus break-all text-sm font-semibold text-[var(--console-ink)] no-underline hover:text-[var(--console-accent)]"
+                  href={publicUrl}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  {publicUrl}
+                </a>
+              )}
+              {siteId !== null && (
+                <Button
+                  asChild
+                  className="gf-console-focus"
+                  size="sm"
+                  type="button"
+                  variant="secondary"
+                >
+                  <Link href={consoleRoute.document("sites", String(siteId))}>
+                    查看站点发布历史与恢复 →
+                  </Link>
+                </Button>
+              )}
+            </section>
+          )}
 
           <section className="gf-console-card grid gap-4 p-5">
             <h2 className="m-0 text-base font-semibold tracking-tight text-[var(--console-ink)]">
