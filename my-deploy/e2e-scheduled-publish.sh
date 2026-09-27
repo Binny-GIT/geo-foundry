@@ -158,5 +158,26 @@ curl -s -o /dev/null -X POST "$BASE/api/internal/publication-plans/dispatch-due"
 ST2=$(Q "status FROM geo_foundry.publication_plans WHERE plan_id='$PLAN2'")
 [ "$ST2" = "cancelled" ] && ok "cancelled plan never claimed" || bad "plan2 status=$ST2"
 
+# 仅归档本套件创建的两篇文章；模拟发布未写 S3 快照，若留在可编译
+# 状态，会阻断后续依赖站点 375 的真实 worker E2E。
+for E in "$ED" "$ED2"; do
+  TITLE=$(Q "title FROM geo_foundry.content_editions WHERE id=$E")
+  case "$TITLE" in
+    "E2E 定时发布 $TS"|"E2E 定时发布 cancel $TS") ;;
+    *) bad "unexpected cleanup edition $E title=$TITLE"; continue ;;
+  esac
+  CURRENT=$(Q "workflow_status FROM geo_foundry.edition_revisions WHERE parent_id=$E AND latest")
+  if [ "$CURRENT" = "published" ]; then
+    DRAFT_CODE=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+      "$BASE/api/editions/$E/draft-from-published" -b /tmp/sp-e.jar \
+      -H 'Content-Type: application/json' -d '{"reason":"定时发布 E2E 夹具归档"}')
+    [ "$DRAFT_CODE" = "200" ] || { bad "draft fixture $E code=$DRAFT_CODE"; continue; }
+  fi
+  ARCHIVE_CODE=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+    "$BASE/api/editions/$E/workflow-transitions" -b /tmp/sp-e.jar \
+    -H 'Content-Type: application/json' -d '{"target":"archived","reason":"定时发布 E2E 夹具归档"}')
+  [ "$ARCHIVE_CODE" = "200" ] && ok "fixture $E archived" || bad "fixture $E archive code=$ARCHIVE_CODE"
+done
+
 echo "PASS=${#PASS[@]} FAIL=${#FAIL[@]}"
 [ "${#FAIL[@]}" = "0" ]
