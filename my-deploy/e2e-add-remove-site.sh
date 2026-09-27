@@ -528,11 +528,18 @@ JOB_ADD=$(Q "count(*) FROM pgboss.job WHERE singleton_key='$OP_ADD_C'")
 R10=$(add_post "$ED_X" "$SITE_C" /tmp/ar-p.jar)
 [ "$(add_code "$R10")" = "409" ] && [ "$(code_of "$(add_body "$R10")")" = "EDITION_SITE_ADD_ALREADY_ASSIGNED" ] \
   && ok "duplicate add while pending -> 409 ALREADY_ASSIGNED" || bad "dup add: $R10"
-EARLY_C=$(curl -s -w '\n%{http_code}' -X POST "$BASE/api/editions/$ED_X/publish-operations" \
-  -b /tmp/ar-p.jar -H 'Content-Type: application/json' -d "{\"siteId\":$SITE_C}")
-[ "$(add_code "$EARLY_C")" = "409" ] && \
-  [ "$(code_of "$(add_body "$EARLY_C")")" = "EDITION_WORKFLOW_SITE_ASSESSMENT_NOT_PASSED" ] \
-  && ok "C publish waits for current add evaluation" || bad "premature C publish: $EARLY_C"
+EVAL_C_NOW=$(Q "state FROM geo_foundry.operations WHERE operation_id='$OP_ADD_C'")
+if [ "$EVAL_C_NOW" != "succeeded" ]; then
+  EARLY_C=$(curl -s -w '\n%{http_code}' -X POST "$BASE/api/editions/$ED_X/publish-operations" \
+    -b /tmp/ar-p.jar -H 'Content-Type: application/json' -d "{\"siteId\":$SITE_C}")
+  [ "$(add_code "$EARLY_C")" = "409" ] && \
+    [ "$(code_of "$(add_body "$EARLY_C")")" = "EDITION_WORKFLOW_SITE_ASSESSMENT_NOT_PASSED" ] \
+    && ok "C publish waits for current add evaluation" || bad "premature C publish: $EARLY_C"
+else
+  LINKED_C=$(Q "count(*) FROM geo_foundry.quality_assessments WHERE edition_id=$ED_X AND site_id=$SITE_C AND state='passed' AND id IN (SELECT jsonb_array_elements_text(result->'assessmentIds')::integer FROM geo_foundry.operations WHERE operation_id='$OP_ADD_C')")
+  [ "$LINKED_C" -ge 1 ] && ok "C evaluation already completed with current-cycle passed assessment" \
+    || bad "C evaluation result lacks linked passed assessment: $LINKED_C"
+fi
 
 ST_EVAL_C=$(wait_eval_op "$OP_ADD_C")
 if [ "$ST_EVAL_C" = "succeeded" ]; then ok "C real-worker evaluation succeeded"
