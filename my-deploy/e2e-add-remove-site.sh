@@ -512,7 +512,10 @@ assert d["operation"]["operationType"] == "evaluate" and d["operation"]["state"]
 ' && ok "add C -> 202 queued evaluate op" || bad "add C: $ADDC"
 OP_ADD_C=$(echo "$ADDC_BODY" | python3 -c 'import json,sys;print(json.load(sys.stdin)["operation"]["operationId"])')
 ROW_C=$(Q "publish_state||'|'||quality_state FROM geo_foundry.edition_sites WHERE edition_id=$ED_X AND site_id=$SITE_C")
-[ "$ROW_C" = "pending|pending" ] && ok "row (X,C) pending/pending" || bad "rowC=$ROW_C"
+case "$ROW_C" in
+  pending\|pending|pending\|passed) ok "row (X,C) pending, with current evaluation possibly complete" ;;
+  *) bad "rowC=$ROW_C" ;;
+esac
 RESV_C=$(Q "count(*) FROM geo_foundry.url_records WHERE edition_id=$ED_X AND site_id=$SITE_C AND state='reserved'")
 [ "$RESV_C" = "1" ] && ok "URL reserved for C" || bad "reserved C=$RESV_C"
 VER_SITES=$(Q "array_to_string(sites, ',') FROM geo_foundry.edition_revisions WHERE parent_id=$ED_X AND latest=true")
