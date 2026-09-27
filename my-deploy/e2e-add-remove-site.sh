@@ -102,15 +102,18 @@ cleanup() {
 purge_fixture_site() { # id name
   local S="$1" N="$2"
   [ -n "$S" ] || return 0
-  PSQL "DELETE FROM geo_foundry.quality_assessments WHERE site_id=$S" >/dev/null
-  PSQL "DELETE FROM geo_foundry.embeddings WHERE site_id=$S" >/dev/null
-  PSQL "DELETE FROM geo_foundry.site_event_deliveries WHERE site_id=$S" >/dev/null
-  PSQL "DELETE FROM geo_foundry.url_records WHERE site_id=$S" >/dev/null
-  PSQL "DELETE FROM geo_foundry.edition_sites WHERE site_id=$S" >/dev/null
-  PSQL "DELETE FROM geo_foundry.operations WHERE site_id=$S" >/dev/null
-  PSQL "DELETE FROM geo_foundry.releases WHERE site_id=$S" >/dev/null
-  PSQL "DELETE FROM geo_foundry.domains WHERE site_id=$S" >/dev/null
-  PSQL "DELETE FROM geo_foundry.sites WHERE id=$S AND name='$N'" >/dev/null
+  local ACTUAL
+  ACTUAL=$(Q "name FROM geo_foundry.sites WHERE id=$S")
+  [ "$ACTUAL" = "$N" ] || { bad "fixture identity mismatch id=$S expected=$N actual=$ACTUAL"; return 1; }
+  PSQL "DELETE FROM geo_foundry.quality_assessments WHERE site_id=$S" >/dev/null || return 1
+  PSQL "DELETE FROM geo_foundry.embeddings WHERE site_id=$S" >/dev/null || return 1
+  PSQL "DELETE FROM geo_foundry.site_event_deliveries WHERE site_id=$S" >/dev/null || return 1
+  PSQL "DELETE FROM geo_foundry.url_records WHERE site_id=$S" >/dev/null || return 1
+  PSQL "DELETE FROM geo_foundry.edition_sites WHERE site_id=$S" >/dev/null || return 1
+  PSQL "DELETE FROM geo_foundry.operations WHERE site_id=$S" >/dev/null || return 1
+  PSQL "DELETE FROM geo_foundry.releases WHERE site_id=$S" >/dev/null || return 1
+  PSQL "DELETE FROM geo_foundry.domains WHERE site_id=$S" >/dev/null || return 1
+  PSQL "DELETE FROM geo_foundry.sites WHERE id=$S AND name='$N'" >/dev/null || return 1
 }
 cleanup_sites() {
   # edition_revisions.site_id 有指向 sites 的硬外键（payload 时代遗留）：
@@ -120,11 +123,16 @@ cleanup_sites() {
   for E in "$ED_X" "$ED_Y" "$ED_Z" "$ED_W"; do
     [ -n "$E" ] && IDS="${IDS:+$IDS,}$E"
   done
-  [ -n "$IDS" ] && PSQL "UPDATE geo_foundry.edition_revisions SET site_id = NULL WHERE parent_id IN ($IDS)" >/dev/null
-  purge_fixture_site "$SITE_A" 'E2E A4 SiteA'
-  purge_fixture_site "$SITE_B" 'E2E A4 SiteB'
-  purge_fixture_site "$SITE_C" 'E2E A4 SiteC'
-  purge_fixture_site "$SITE_D" 'E2E A4 SiteD'
+  if [ -n "$IDS" ]; then
+    local UNARCHIVED
+    UNARCHIVED=$(Q "count(*) FROM geo_foundry.edition_revisions WHERE parent_id IN ($IDS) AND latest AND workflow_status <> 'archived'")
+    [ "$UNARCHIVED" = "0" ] || { bad "fixture editions not archived; keep sites for manual recovery ($IDS)"; return 1; }
+    PSQL "UPDATE geo_foundry.edition_revisions SET site_id = NULL WHERE parent_id IN ($IDS)" >/dev/null || return 1
+  fi
+  purge_fixture_site "$SITE_A" 'E2E A4 SiteA' || return 1
+  purge_fixture_site "$SITE_B" 'E2E A4 SiteB' || return 1
+  purge_fixture_site "$SITE_C" 'E2E A4 SiteC' || return 1
+  purge_fixture_site "$SITE_D" 'E2E A4 SiteD' || return 1
 }
 trap 'cleanup_sites; cleanup' EXIT
 
