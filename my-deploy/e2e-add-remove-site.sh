@@ -104,6 +104,7 @@ purge_fixture_site() { # id name
   [ -n "$S" ] || return 0
   local ACTUAL
   ACTUAL=$(Q "name FROM geo_foundry.sites WHERE id=$S")
+  [ -n "$ACTUAL" ] || return 0
   [ "$ACTUAL" = "$N" ] || { bad "fixture identity mismatch id=$S expected=$N actual=$ACTUAL"; return 1; }
   PSQL "DELETE FROM geo_foundry.quality_assessments WHERE site_id=$S" >/dev/null || return 1
   PSQL "DELETE FROM geo_foundry.embeddings WHERE site_id=$S" >/dev/null || return 1
