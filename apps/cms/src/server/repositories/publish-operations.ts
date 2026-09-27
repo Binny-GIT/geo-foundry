@@ -74,7 +74,9 @@ export const submitEditionPublishOperation = async (
     targetSiteIds = [input.siteId]
     if (isPublishedRetry) {
       // 他站已发布后的单站重试：该站行必须还没发布过，否则会重复出 release。
-      const row = await db.transaction((tx) => editionSiteRowOf(tx, input.editionId, input.siteId!))
+      const requestedSiteId = input.siteId
+      if (requestedSiteId === undefined) throw new WorkflowRepositoryError("EDITION_WORKFLOW_SITE_NOT_ASSIGNED")
+      const row = await db.transaction((tx) => editionSiteRowOf(tx, input.editionId, requestedSiteId))
       if (row !== null && row.publishState === "published") {
         throw new WorkflowRepositoryError("EDITION_WORKFLOW_SITE_ALREADY_PUBLISHED")
       }
@@ -102,24 +104,26 @@ export const submitEditionPublishOperation = async (
       compiledRelease === null
         ? `publish-edition-${input.editionId}-site-${targetSiteId}-revision-${revision}`
         : `publish-edition-${input.editionId}-site-${targetSiteId}-${compiledRelease}`
-    const failed =
+    const lastFailure =
       isPublishedRetry && input.siteId !== undefined
         ? await db
-            .select({ id: operations.id, state: operations.state })
+            .select({ id: operations.id })
             .from(operations)
             .where(
               and(
                 eq(operations.siteId, targetSiteId),
-                eq(operations.endpoint, `/editions/${input.editionId}/publish`),
+                eq(operations.endpoint, endpoint),
+                eq(operations.tenantId, tenantId),
+                eq(operations.state, "failed"),
                 sql`${operations.targetIds} ->> 'editionId' = ${String(input.editionId)}`,
               ),
             )
             .orderBy(desc(operations.id))
             .limit(1)
         : []
-    const previous = failed[0]
-    const idempotencyKey =
-      previous?.state === "failed" ? `${baseKey}-retry-${previous.id}` : baseKey
+    const failedId = lastFailure[0]?.id
+    const retryKey = failedId === undefined ? null : `${baseKey}-retry-${failedId}`
+    const idempotencyKey = retryKey === null ? baseKey : retryKey
     const requestPayload = { body: { editionId: input.editionId, siteId: targetSiteId } }
     const requestHash = operationRequestHashOf(requestPayload)
     const operationId = randomUUID()
