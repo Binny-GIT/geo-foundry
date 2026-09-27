@@ -664,18 +664,28 @@ RA_CODE=$(add_code "$READD")
 [ "$RA_CODE" = "202" ] && ok "re-add B -> 202" || bad "re-add B: $READD"
 OP_RADD=$(echo "$READD" | sed '$d' | python3 -c 'import json,sys;print(json.load(sys.stdin)["operation"]["operationId"])')
 ROW_RB=$(Q "publish_state||'|'||coalesce(release_id,'')||'|'||quality_state FROM geo_foundry.edition_sites WHERE edition_id=$ED_X AND site_id=$SITE_B")
-[ "$ROW_RB" = "pending||pending" ] && ok "row (X,B) reset to pending/pending" || bad "rowB=$ROW_RB"
+case "$ROW_RB" in
+  pending\|\|pending|pending\|\|passed) ok "row (X,B) reset to pending, with current evaluation possibly complete" ;;
+  *) bad "rowB=$ROW_RB" ;;
+esac
 URLB2=$(Q "id||'|'||state||'|'||coalesce(status_code::text,'null')||'|'||revision FROM geo_foundry.url_records WHERE id=$URL_XB_ID")
 [ "$URLB2" = "$URL_XB_ID|reserved|null|$((URL_XB_REV0 + 2))" ] \
   && ok "X URL on B: same row gone->reserved rev+1" || bad "urlB2=$URLB2 want=$URL_XB_ID|reserved|null|$((URL_XB_REV0+2))"
 KEY_RADD=$(Q "idempotency_key FROM geo_foundry.idempotency_records WHERE operation_id='$OP_RADD'")
 [ "$KEY_RADD" = "add-site-$ED_X-$SITE_B-url-$URL_XB_ID-rev-$((URL_XB_REV0 + 2))" ] \
   && ok "re-add idempotency key fresh (url-rev bumped)" || bad "key=$KEY_RADD"
-EARLY_B=$(curl -s -w '\n%{http_code}' -X POST "$BASE/api/editions/$ED_X/publish-operations" \
-  -b /tmp/ar-p.jar -H 'Content-Type: application/json' -d "{\"siteId\":$SITE_B}")
-[ "$(add_code "$EARLY_B")" = "409" ] && \
-  [ "$(code_of "$(add_body "$EARLY_B")")" = "EDITION_WORKFLOW_SITE_ASSESSMENT_NOT_PASSED" ] \
-  && ok "B cannot reuse pre-takedown passed assessment" || bad "B early publish: $EARLY_B"
+EVAL_B_NOW=$(Q "state FROM geo_foundry.operations WHERE operation_id='$OP_RADD'")
+if [ "$EVAL_B_NOW" != "succeeded" ]; then
+  EARLY_B=$(curl -s -w '\n%{http_code}' -X POST "$BASE/api/editions/$ED_X/publish-operations" \
+    -b /tmp/ar-p.jar -H 'Content-Type: application/json' -d "{\"siteId\":$SITE_B}")
+  [ "$(add_code "$EARLY_B")" = "409" ] && \
+    [ "$(code_of "$(add_body "$EARLY_B")")" = "EDITION_WORKFLOW_SITE_ASSESSMENT_NOT_PASSED" ] \
+    && ok "B cannot reuse pre-takedown passed assessment" || bad "B early publish: $EARLY_B"
+else
+  LINKED_B=$(Q "count(*) FROM geo_foundry.quality_assessments WHERE edition_id=$ED_X AND site_id=$SITE_B AND state='passed' AND id IN (SELECT jsonb_array_elements_text(result->'assessmentIds')::integer FROM geo_foundry.operations WHERE operation_id='$OP_RADD')")
+  [ "$LINKED_B" -ge 1 ] && ok "B evaluation already completed with current-cycle passed assessment" \
+    || bad "B evaluation result lacks linked passed assessment: $LINKED_B"
+fi
 ST_EVAL_B=$(wait_eval_op "$OP_RADD")
 if [ "$ST_EVAL_B" = "succeeded" ]; then ok "B re-add real-worker evaluation succeeded"
 else ERR=$(op_err "$OP_RADD"); bad "B re-add eval state=$ST_EVAL_B error=$ERR"; fi
