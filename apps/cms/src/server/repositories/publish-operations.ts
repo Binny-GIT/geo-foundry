@@ -10,9 +10,11 @@
  */
 
 import { createHash, randomUUID } from "node:crypto"
+import { and, desc, eq, sql } from "drizzle-orm"
 
 import { operationRequestHashOf, operationUniqueKeyOf } from "../../services/operations-ledger"
 import type { ServerDb } from "../db/client"
+import { operations } from "../db/ledger-schema"
 import {
   loadCurrentVersion,
   type WorkflowClaims,
@@ -20,6 +22,7 @@ import {
 } from "./edition-workflow"
 import { desiredEditionSiteIdsOf, editionSiteRowOf, memberSiteIdsOf } from "./edition-sites"
 import { OperationsRepository } from "./operations"
+import { passedSiteAddAssessmentId } from "./site-evaluation"
 
 const sha256Text = (input: string): string => createHash("sha256").update(input).digest("hex")
 
@@ -75,6 +78,10 @@ export const submitEditionPublishOperation = async (
       if (row !== null && row.publishState === "published") {
         throw new WorkflowRepositoryError("EDITION_WORKFLOW_SITE_ALREADY_PUBLISHED")
       }
+      const addEvaluation = await passedSiteAddAssessmentId(db, input.editionId, input.siteId)
+      if (addEvaluation.addOperationExists && addEvaluation.assessmentId === null) {
+        throw new WorkflowRepositoryError("EDITION_WORKFLOW_SITE_ASSESSMENT_NOT_PASSED")
+      }
     }
   } else {
     targetSiteIds = members
@@ -91,10 +98,28 @@ export const submitEditionPublishOperation = async (
   // 各站在独立事务里提交：某站失败不回滚已提交的站，调用方重放时
   // 已成功站按幂等键原样返回（created=false），失败站继续重试。
   for (const targetSiteId of targetSiteIds) {
-    const idempotencyKey =
+    const baseKey =
       compiledRelease === null
         ? `publish-edition-${input.editionId}-site-${targetSiteId}-revision-${revision}`
         : `publish-edition-${input.editionId}-site-${targetSiteId}-${compiledRelease}`
+    const failed =
+      isPublishedRetry && input.siteId !== undefined
+        ? await db
+            .select({ id: operations.id, state: operations.state })
+            .from(operations)
+            .where(
+              and(
+                eq(operations.siteId, targetSiteId),
+                eq(operations.endpoint, `/editions/${input.editionId}/publish`),
+                sql`${operations.targetIds} ->> 'editionId' = ${String(input.editionId)}`,
+              ),
+            )
+            .orderBy(desc(operations.id))
+            .limit(1)
+        : []
+    const previous = failed[0]
+    const idempotencyKey =
+      previous?.state === "failed" ? `${baseKey}-retry-${previous.id}` : baseKey
     const requestPayload = { body: { editionId: input.editionId, siteId: targetSiteId } }
     const requestHash = operationRequestHashOf(requestPayload)
     const operationId = randomUUID()

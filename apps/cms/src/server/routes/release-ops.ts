@@ -21,6 +21,7 @@ import {
   memberSiteIdsOf,
 } from "../repositories/edition-sites"
 import { OperationsRepository } from "../repositories/operations"
+import { targetPredatesSiteTakedown } from "../repositories/rollback-safety"
 import { serverRuntime } from "../runtime"
 
 export class ReleaseOpsError extends Error {
@@ -102,6 +103,7 @@ export const handleRollbackIntentPost = async (
         : 409
   try {
     const result = await serverRuntime().db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(471006, ${input.siteId})`)
       const siteRows = await tx
         .select({ id: sites.id, tenantId: sites.tenantId })
         .from(sites)
@@ -134,6 +136,9 @@ export const handleRollbackIntentPost = async (
         source.releaseId === target.releaseId
       ) {
         throw new ReleaseOpsError("ROLLBACK_RELEASE_STATE_MISMATCH")
+      }
+      if (await targetPredatesSiteTakedown(tx, site.id, tenantId, target.releaseId)) {
+        throw new ReleaseOpsError("ROLLBACK_TARGET_PREDATES_TAKEDOWN")
       }
       const intentId = randomUUID()
       const operationId = randomUUID()

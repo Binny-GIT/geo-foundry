@@ -49,16 +49,19 @@ const SITE_ACTION_ERRORS: Readonly<Record<string, string>> = {
   EDITION_SITE_ACTOR_INVALID: "服务身份不能执行该操作。",
   EDITION_SITE_ADD_ALREADY_ASSIGNED: "该站点已分配给这篇文章；评估通过后点“发布该站”即可。",
   EDITION_SITE_ADD_ALREADY_PUBLISHED: "该站点已发布，无需重复追加。",
+  EDITION_SITE_ADD_TAKEDOWN_IN_PROGRESS: "该站点撤下后的重发尚未完成，请完成或修复重发后再追加。",
   EDITION_SITE_ADD_NOT_PUBLISHED: "只有已发布的文章才能追加站点。",
   EDITION_SITE_ADD_SITE_NOT_FOUND: "所选站点不存在。",
   EDITION_SITE_ADD_TENANT_MISMATCH: "站点必须属于文章所在租户。",
   EDITION_SITE_REMOVE_ALREADY_REMOVED: "该站点已撤下，无需重复操作。",
   EDITION_SITE_REMOVE_NOT_ASSIGNED: "该站点未分配给这篇文章。",
   EDITION_SITE_REMOVE_NOT_PUBLISHED: "只有已发布的文章才能撤下站点。",
+  EDITION_SITE_REMOVE_ROLLBACK_IN_PROGRESS: "该站点正在回滚，请等待回滚完成后再撤下。",
   EDITION_SITE_URL_STATE_INVALID: "该站点 URL 状态异常，请刷新后重试。",
   EDITION_WORKFLOW_NOT_APPROVED: "当前文章状态不能发布，请刷新后重试。",
   EDITION_WORKFLOW_PUBLISHER_REQUIRED: "只有发布者或超级管理员可以执行该操作。",
   EDITION_WORKFLOW_SITE_ALREADY_PUBLISHED: "该站点已发布，无需重试。",
+  EDITION_WORKFLOW_SITE_ASSESSMENT_NOT_PASSED: "该站点本轮质量检查尚未通过，请等待评估完成后再发布。",
   EDITION_WORKFLOW_SITE_NOT_ASSIGNED: "该站点未分配给这篇文章。",
   EDITION_WORKFLOW_URL_CONFLICT: "该站点 URL 冲突（同标题文章已占用路径），请调整文章标题后重试。",
   IDEMPOTENCY_KEY_REUSED: "操作已提交过，请刷新查看最新状态。",
@@ -114,12 +117,12 @@ const ArticleSiteStatusPanel = ({
   const memberSiteIds = new Set(sites.map((site) => site.siteId))
   const addableSites = siteOptions.filter((option) => !memberSiteIds.has(option.id))
 
-  const run = async (action: () => Promise<void>, successText: string) => {
+  const run = async (action: () => Promise<string | void>, successText: string) => {
     setPending(true)
     setNotice(null)
     try {
-      await action()
-      setNotice({ ok: true, text: successText })
+      const message = await action()
+      setNotice({ ok: true, text: message ?? successText })
       router.refresh()
     } catch (error) {
       setNotice({ ok: false, text: error instanceof Error ? error.message : "操作未能完成。" })
@@ -137,8 +140,15 @@ const ArticleSiteStatusPanel = ({
       headers: { "content-type": "application/json" },
       method: "POST",
     })
-    const result = (await response.json().catch(() => ({}))) as { error?: { code?: unknown } }
+    const result = (await response.json().catch(() => ({}))) as {
+      error?: { code?: unknown }
+      operation?: { created?: boolean; state?: string }
+    }
     if (!response.ok) throw new Error(errorTextOf(result.error?.code))
+    if (result.operation?.created === false) {
+      return `该站已有发布任务（${result.operation.state ?? "处理中"}），请查看操作日志。`
+    }
+    return undefined
   }
 
   const publishSite = (siteId: number) =>
@@ -196,13 +206,14 @@ const ArticleSiteStatusPanel = ({
 
       {canManage && addableSites.length > 0 && (
         <div className="grid gap-2 border-t border-[var(--console-border)] pt-4">
-          <span className="text-sm font-medium text-[var(--console-ink)]">追加站点</span>
+          <label className="text-sm font-medium text-[var(--console-ink)]" htmlFor="article-add-site">追加站点</label>
           <p className="m-0 text-xs leading-5 text-[var(--console-ink-muted)]">
             追加后先运行该站质量检查；通过后再发布到该站，不影响其他站点。
           </p>
           <div className="flex gap-2">
             <select
               className={selectClass}
+              id="article-add-site"
               disabled={pending}
               onChange={(event) => setAddSiteValue(event.target.value)}
               value={addSiteValue}
@@ -305,9 +316,20 @@ const ArticleSiteStatusPanel = ({
                     </Button>
                   )}
                   {site.publishState === "pending" && qualityBlocksPublish && (
-                    <p className="m-0 text-xs leading-5 text-rose-700">
-                      质量检查未通过，发布会被阻断；调整内容或站点后重新追加评估。
-                    </p>
+                    <>
+                      <p className="m-0 text-xs leading-5 text-rose-700">
+                        质量检查未通过，发布会被阻断；可先解除该站分配，修改内容或站点后再追加评估。
+                      </p>
+                      <Button
+                        disabled={pending}
+                        onClick={() => setTakedown(site.siteId)}
+                        size="sm"
+                        type="button"
+                        variant="secondary"
+                      >
+                        解除该站分配
+                      </Button>
+                    </>
                   )}
                   {site.publishState === "failed" && (
                     <Button
@@ -346,12 +368,16 @@ const ArticleSiteStatusPanel = ({
 
       {takedown !== null && (
         <div
+          aria-labelledby="article-site-remove-title"
           aria-modal="true"
           className="fixed inset-0 z-50 grid place-items-center bg-slate-950/45 p-4"
           role="dialog"
         >
           <div className="w-full max-w-md rounded-2xl border border-[var(--console-border)] bg-[var(--console-surface)] p-6 shadow-2xl">
-            <h3 className="m-0 text-xl font-bold tracking-tight text-[var(--console-ink)]">
+            <h3
+              className="m-0 text-xl font-bold tracking-tight text-[var(--console-ink)]"
+              id="article-site-remove-title"
+            >
               撤下该站点
             </h3>
             <p className="m-0 mt-2 text-sm leading-6 text-[var(--console-ink-muted)]">

@@ -8,6 +8,7 @@ import { and, eq, isNull } from "drizzle-orm"
 import { resolveSessionClaims } from "../../access/session"
 import type { ServerDb } from "../db/client"
 import { rollbackIntents } from "../db/session-schema"
+import { targetPredatesSiteTakedown } from "./rollback-safety"
 
 export class RollbackIntentError extends Error {
   override readonly name = "RollbackIntentError"
@@ -71,6 +72,9 @@ export const consumeRollbackIntent = async (
       throw new RollbackIntentError("ROLLBACK_INTENT_MISMATCH", input.rollbackIntentId)
     }
     if (intent.consumedAt !== null) return
+    if (await targetPredatesSiteTakedown(tx, intent.siteId, tenantId, intent.targetReleaseId)) {
+      throw new RollbackIntentError("ROLLBACK_TARGET_PREDATES_TAKEDOWN", input.rollbackIntentId)
+    }
     const updated = await tx
       .update(rollbackIntents)
       .set({ consumedAt: new Date(), operationId: input.operationId, updatedAt: new Date() })

@@ -227,6 +227,7 @@ export const idempotencyKeySchema = z.string().regex(/^[A-Za-z0-9._-]{8,128}$/)
 
 export const compileSnapshotSchema = z.object({
   editions: z.array(z.record(z.string(), z.unknown())),
+  gonePathnames: z.array(z.string().min(1).startsWith("/")).optional(),
   listings: z.record(z.string(), z.unknown()),
   notFound: z.object({ pathname: z.string().min(1).startsWith("/") }),
   redirects: z.array(

@@ -40,9 +40,11 @@ export const deriveRoutes = (
   urlRecords: readonly UrlRecordDoc[],
 ): {
   readonly activeUrlByContent: Map<number, string>
+  readonly gonePathnames: readonly string[]
   readonly redirects: readonly { fromPathname: string; targetUrl: string }[]
 } => {
   const activeUrlByContent = new Map<number, string>()
+  const gonePathnames: string[] = []
   const redirects: { fromPathname: string; targetUrl: string }[] = []
   for (const record of urlRecords) {
     const state = textOf(record["state"])
@@ -59,6 +61,10 @@ export const deriveRoutes = (
       }
       continue
     }
+    if (state === "gone") {
+      gonePathnames.push(pathname)
+      continue
+    }
     if (state === "redirected") {
       const target = record["targetUrl"]
       const targetPathname =
@@ -70,7 +76,7 @@ export const deriveRoutes = (
       }
     }
   }
-  return { activeUrlByContent, redirects }
+  return { activeUrlByContent, gonePathnames, redirects }
 }
 
 const citationsOf = (

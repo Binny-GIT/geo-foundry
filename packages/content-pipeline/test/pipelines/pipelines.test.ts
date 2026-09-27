@@ -198,6 +198,11 @@ describe("runEvaluationOperation", () => {
     )
     expect(result.perSite[0]?.aggregate.decision).toBe("passed")
     expect(assessments).toHaveLength(1)
+    expect(client.recordAssessment).toHaveBeenCalledWith(
+      101,
+      expect.any(Object),
+      { operationId: "op-0001-abcd" },
+    )
   })
 
   it("A3：payload 带 sites 快照时按快照扇出，缺省时回退单数站点", async () => {

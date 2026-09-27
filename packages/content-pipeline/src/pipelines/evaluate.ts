@@ -44,6 +44,7 @@ const legacySitePlanOf = (siteId: number): EvaluateSitePlan => ({
 
 export type EvaluateEditionInput = {
   readonly editionId: number
+  readonly operationId?: string
   readonly siteAngle: string
   readonly siteName: string
   readonly thresholds?: { dimensionMin: number; overallMin: number }
@@ -208,6 +209,7 @@ export const evaluateEdition = async (
         llmThresholds,
         plan.siteId,
       ),
+      input.operationId === undefined ? {} : { operationId: input.operationId },
     )
     perSite.push({ aggregate, assessmentId: assessment.assessmentId, siteId: plan.siteId })
   }
@@ -256,6 +258,7 @@ export const runEvaluationOperation = async (
   return evaluateEdition(deps, {
     document: documentOf(snapshot),
     editionId: input.editionId,
+    operationId: input.operationId,
     siteAngle: input.siteAngle ?? "default",
     siteName: input.siteName ?? "site",
     ...(input.sites === undefined ? {} : { sites: input.sites }),

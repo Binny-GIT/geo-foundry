@@ -30,6 +30,7 @@ import {
   workflowActorOf,
 } from "./edition-workflow"
 import type { EntityScope } from "./entities"
+import { latestSiteAddEvaluation } from "./site-evaluation"
 
 /* guards 的错误映射已覆盖 EditionWorkflowError；沿用保证状态码契约不变。 */
 const fail = (code: string): EditionWorkflowError => new EditionWorkflowError(code)
@@ -404,12 +405,15 @@ export const recordAssessment = async (
       .returning({ id: qualityAssessments.id })
     const assessmentId = inserted[0]?.id
     if (assessmentId === undefined) throw fail("ASSESSMENT_WRITE_FAILED")
-    // A3：结论同步到文章 × 站点 行（新增站点行缺省 pending，评估后才有了状态；
-    // 行不存在是静默 no-op——站点行由草稿保存/分配站点流程维护）。
-    await tx
-      .update(editionSites)
-      .set({ qualityState: input.state, updatedAt: new Date() })
-      .where(and(eq(editionSites.editionId, input.editionId), eq(editionSites.siteId, rowSiteId)))
+    // A4 重新追加后的旧评估回执仍可留 immutable 评估台账，但不能覆盖新周期
+    // 的站点质量状态；只有本轮追加评估的 operationId 能更新该行。
+    const addEvaluation = await latestSiteAddEvaluation(tx, input.editionId, rowSiteId)
+    if (addEvaluation === null || addEvaluation.operationId === input.operationId) {
+      await tx
+        .update(editionSites)
+        .set({ qualityState: input.state, updatedAt: new Date() })
+        .where(and(eq(editionSites.editionId, input.editionId), eq(editionSites.siteId, rowSiteId)))
+    }
     return assessmentId
   })
 }

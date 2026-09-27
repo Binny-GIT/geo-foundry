@@ -124,11 +124,10 @@ export const handlePublicationPlanPost = async (
         const siteById = new Map(siteRows.map((row) => [row.id, row]))
         for (const siteId of memberSites) {
           const site = siteById.get(siteId)
-          if (
-            site === undefined ||
-            site.tenantId !== version.tenantId ||
-            site.timezone !== timezone.value.value
-          ) {
+          if (site === undefined || site.tenantId !== version.tenantId) {
+            throw new PublicationPlanError("PUBLICATION_PLAN_SITE_INVALID")
+          }
+          if (memberSites.length === 1 && site.timezone !== timezone.value.value) {
             throw new PublicationPlanError("PUBLICATION_PLAN_TIMEZONE_MISMATCH")
           }
         }
@@ -142,7 +141,7 @@ export const handlePublicationPlanPost = async (
               scheduledFor: new Date(scheduledFor),
               siteId: plan.siteId,
               tenantId: version.tenantId ?? -1,
-              timezone: timezone.value.value,
+              timezone: siteById.get(plan.siteId)?.timezone ?? timezone.value.value,
             })
           }),
         )
@@ -152,7 +151,7 @@ export const handlePublicationPlanPost = async (
           status: "pending" as const,
         }))
       })
-      return json(201, { plans })
+      return json(201, { plans, ...(plans.length === 1 ? { plan: plans[0] } : {}) })
     }
 
     const planId = slug?.[1] ?? ""

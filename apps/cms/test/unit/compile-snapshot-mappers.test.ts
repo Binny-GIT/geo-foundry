@@ -1,3 +1,4 @@
+import { compileSite } from "@geo/compiler"
 import { describe, expect, it } from "vitest"
 
 import {
@@ -25,6 +26,7 @@ describe("compile snapshot route mapping", () => {
     expect(routes.redirects).toEqual([
       { fromPathname: "/articles/old-path", targetUrl: "/articles/new-path" },
     ])
+    expect(routes.gonePathnames).toEqual([])
   })
 
   it("maps a reserved URL (首次发布前 approved 文章的占位路径)", () => {
@@ -44,6 +46,41 @@ describe("compile snapshot route mapping", () => {
     expect(routes.activeUrlByContent.get(77)).toBe("/articles/fresh-article")
     expect(routes.activeUrlByContent.get(78)).toBe("/articles/living-article")
     expect(routes.redirects).toEqual([])
+    expect(routes.gonePathnames).toEqual([])
+  })
+
+  it("maps removed URLs to terminal gone paths without reviving the article", async () => {
+    const routes = deriveRoutes([
+      { content: 77, pathname: "/articles/removed", state: "gone" },
+      { content: 78, pathname: "/articles/living", state: "active" },
+    ])
+
+    expect(routes.activeUrlByContent.has(77)).toBe(false)
+    expect(routes.activeUrlByContent.get(78)).toBe("/articles/living")
+    expect(routes.gonePathnames).toEqual(["/articles/removed"])
+
+    const output = await compileSite({
+      clock: { now: "2026-09-27T00:00:00.000Z" },
+      compilerVersion: "test",
+      editions: [],
+      gonePathnames: routes.gonePathnames,
+      listings: { articles: { pageSize: 20, pathname: "/articles" }, categories: [], tags: [] },
+      notFound: { pathname: "/not-found" },
+      redirects: routes.redirects,
+      site: {
+        canonicalDomain: "example.test",
+        locale: "en-US",
+        name: "Example",
+        organization: { name: "Example" },
+        seoDefaults: { description: "Example", title: "Example" },
+        siteId: "site-1",
+        timezone: "UTC",
+      },
+    })
+    expect(output.routeIndex.routes).toContainEqual({
+      pathname: "/articles/removed",
+      status: "gone",
+    })
   })
 
   it("uses the content version timestamp instead of audit update time", () => {

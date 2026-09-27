@@ -25,7 +25,7 @@ import {
   reserveUrl,
   transitionContentEdition,
 } from "@geo/domain"
-import { and, eq, inArray, sql } from "drizzle-orm"
+import { and, desc, eq, inArray, sql } from "drizzle-orm"
 
 import { buildSiteRegistry, toUrlRecordRow } from "../../services/url-registry-snapshot"
 import type { ServerDb } from "../db/client"
@@ -309,6 +309,7 @@ export const reserveEditionUrlWithinTx = async (
         eq(urlRecords.state, "gone"),
       ),
     )
+    .orderBy(desc(urlRecords.id))
     .limit(1)
   const goneRow = gone[0]
   if (goneRow !== undefined) {

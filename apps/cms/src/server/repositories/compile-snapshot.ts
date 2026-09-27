@@ -31,6 +31,7 @@ import { media, sites } from "../db/entity-schema"
 import { domains, qualityAssessments } from "../db/session-schema"
 import { urlRecords } from "../db/workflow-schema"
 import { serviceScopeOf } from "./edition-integration"
+import { passedSiteAddAssessmentId } from "./site-evaluation"
 
 const fail = (code: string, detail: string): EditionWorkflowError =>
   new EditionWorkflowError(code, detail)
@@ -139,7 +140,7 @@ export const buildCompileSnapshot = async (
     .leftJoin(target, eq(target.id, urlRecords.targetUrlId))
     .where(eq(urlRecords.siteId, options.siteId))
     .limit(1000)
-  const { activeUrlByContent, redirects } = deriveRoutes(
+  const { activeUrlByContent, gonePathnames, redirects } = deriveRoutes(
     urlRows.map((row) => ({
       content: row.editionId,
       pathname: row.pathname,
@@ -185,9 +186,22 @@ export const buildCompileSnapshot = async (
   for (const { editionId, version } of versionRows) {
     const urlPathname = activeUrlByContent.get(editionId)
     if (urlPathname === undefined) continue
+    const addEvaluation = await passedSiteAddAssessmentId(db, editionId, options.siteId)
+    const assessment = latestAssessment.get(editionId)
+    const linkedAssessment =
+      addEvaluation.assessmentId === null
+        ? undefined
+        : (
+            await db
+              .select({ inputHash: qualityAssessments.inputHash, state: qualityAssessments.state })
+              .from(qualityAssessments)
+              .where(eq(qualityAssessments.id, addEvaluation.assessmentId))
+              .limit(1)
+          )[0]
+    const eligibleAssessment = addEvaluation.addOperationExists ? linkedAssessment : assessment
     const blocks = blocksByEdition.get(editionId) ?? []
     const mapped = mapEdition({
-      assessment: latestAssessment.get(editionId),
+      assessment: eligibleAssessment,
       authorId: `author-site-${options.siteId}`,
       authorName: `${siteName} Editorial Team`,
       canonicalDomain,
@@ -216,6 +230,7 @@ export const buildCompileSnapshot = async (
 
   return {
     editions: compileEditions,
+    gonePathnames: [...gonePathnames].sort(),
     listings: {
       articles: { pathname: "/articles", pageSize: 20 },
       ...deriveListings(topics),

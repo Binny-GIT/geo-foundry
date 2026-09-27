@@ -287,7 +287,7 @@ const ArticleDetail = async ({ id }: { readonly id: string }) => {
             owner={ownerId === null ? "" : String(ownerId)}
             siteIds={assignedSiteIds}
             sites={siteOptions}
-            sitesLocked={workflowStatus === "published"}
+            sitesLocked={workflowStatus === "published" || workflowStatus === "compiled"}
             users={userOptions}
           />
 

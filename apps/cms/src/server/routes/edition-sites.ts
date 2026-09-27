@@ -21,7 +21,7 @@
 
 import { createHash, randomUUID } from "node:crypto"
 import { markUrlGone, parseUrlId } from "@geo/domain"
-import { and, eq, inArray, sql } from "drizzle-orm"
+import { and, desc, eq, inArray, sql } from "drizzle-orm"
 import { z } from "zod"
 import { operationRequestHashOf, operationUniqueKeyOf } from "../../services/operations-ledger"
 import { buildSiteRegistry, toUrlRecordRow } from "../../services/url-registry-snapshot"
@@ -29,6 +29,7 @@ import { authenticateRequest } from "../auth/session"
 import type { ServerDb } from "../db/client"
 import { editionSites, editionVersions } from "../db/edition-schema"
 import { sites } from "../db/entity-schema"
+import { operations } from "../db/ledger-schema"
 import { releases } from "../db/session-schema"
 import { urlRecords } from "../db/workflow-schema"
 import { IdempotencyConflictError } from "../errors"
@@ -158,6 +159,24 @@ const addSite = async (
       // 重复追加只会产生重复评估。
       throw new EditionSitesError("EDITION_SITE_ADD_ALREADY_ASSIGNED")
     }
+    if (row?.publishState === "unpublished") {
+      const takedown = await tx
+        .select({ state: operations.state })
+        .from(operations)
+        .where(
+          and(
+            eq(operations.siteId, siteId),
+            eq(operations.tenantId, version.tenantId ?? -1),
+            eq(operations.endpoint, `/editions/${editionId}/sites/${siteId}/re-release`),
+            sql`${operations.targetIds} ->> 'editionId' = ${String(editionId)}`,
+          ),
+        )
+        .orderBy(desc(operations.id))
+        .limit(1)
+      if (takedown[0]?.state !== "succeeded") {
+        throw new EditionSitesError("EDITION_SITE_ADD_TAKEDOWN_IN_PROGRESS")
+      }
+    }
 
     // 版本行把新站加入目标集（主站不变；sites[] 保持"主站在前的全集"）。
     const currentDesired = desiredSiteListOf(version)
@@ -203,7 +222,7 @@ const addSite = async (
       title: version.title ?? "",
     })
     const urlRows = await tx
-      .select({ revision: urlRecords.revision })
+      .select({ id: urlRecords.id, revision: urlRecords.revision })
       .from(urlRecords)
       .where(
         and(
@@ -214,9 +233,11 @@ const addSite = async (
       )
       .limit(1)
     // 追加站点的质量评估只跑新站（A3 按站管线：sites 数组即评估计划），
-    // 阈值按该站快照。幂等键含 URL 行修订：每轮追加生命周期（首加/撤下后
-    // 重加，URL 行各有一次修订）键不同，撤下后重加不会命中旧评估的重放。
+    // 阈值按该站快照。幂等键含 URL 行身份与修订：撤下后复用同一行靠
+    // revision 区分；未发布的简单解除会删 URL 行，重加靠新行 id 区分。
     const revision = Number(urlRows[0]?.revision ?? 0)
+    const urlRecordId = urlRows[0]?.id
+    if (urlRecordId === undefined) throw new EditionSitesError("EDITION_SITE_URL_STATE_INVALID")
     const endpoint = `/editions/${editionId}/sites/${siteId}/evaluate`
     const requestPayload = {
       body: {
@@ -233,7 +254,7 @@ const addSite = async (
         ],
       },
     }
-    const idempotencyKey = `add-site-${editionId}-${siteId}-url-rev-${revision}`
+    const idempotencyKey = `add-site-${editionId}-${siteId}-url-${urlRecordId}-rev-${revision}`
     const requestHash = operationRequestHashOf(requestPayload)
     const outcome = await new OperationsRepository(db).submitWithinTx(tx, {
       auditLog: [
@@ -289,6 +310,23 @@ const removeSite = async (
       throw new EditionSitesError("EDITION_SITE_REMOVE_ALREADY_REMOVED")
     }
     const isTakedown = row.publishState === "published"
+    if (isTakedown) {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(471006, ${siteId})`)
+      const pendingRollback = await tx
+        .select({ id: operations.id })
+        .from(operations)
+        .where(
+          and(
+            eq(operations.siteId, siteId),
+            eq(operations.operationType, "rollback"),
+            inArray(operations.state, ["queued", "running"]),
+          ),
+        )
+        .limit(1)
+      if (pendingRollback.length > 0) {
+        throw new EditionSitesError("EDITION_SITE_REMOVE_ROLLBACK_IN_PROGRESS")
+      }
+    }
 
     // 版本行移除该站；主站被撤下时顺延到剩余站（无剩余站时保留原主站值）。
     const currentDesired = desiredSiteListOf(version)
@@ -311,7 +349,13 @@ const removeSite = async (
     const urlRows = await tx
       .select()
       .from(urlRecords)
-      .where(and(eq(urlRecords.editionId, editionId), eq(urlRecords.siteId, siteId)))
+      .where(
+        and(
+          eq(urlRecords.editionId, editionId),
+          eq(urlRecords.siteId, siteId),
+          eq(urlRecords.state, isTakedown ? "active" : "reserved"),
+        ),
+      )
       .limit(1)
     const urlRow = urlRows[0]
     let removedReleaseId: string | null = null
@@ -355,6 +399,24 @@ const removeSite = async (
           updatedAt: new Date(),
         })
         .where(eq(urlRecords.id, urlRow.id))
+      // 改名留下的历史 301 目标被撤下后不可再引用；一并转成 410，
+      // 否则新 release 的重定向图会指向不存在的 active 路由而编译失败。
+      await tx
+        .update(urlRecords)
+        .set({
+          revision: sql`${urlRecords.revision} + 1`,
+          state: "gone",
+          statusCode: 410,
+          targetUrlId: null,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(urlRecords.editionId, editionId),
+            eq(urlRecords.siteId, siteId),
+            eq(urlRecords.state, "redirected"),
+          ),
+        )
       removedReleaseId = row.releaseId
       await updateEditionSiteRow(tx, {
         editionId,
@@ -376,6 +438,22 @@ const removeSite = async (
       if (urlRow !== undefined) {
         await tx.delete(urlRecords).where(eq(urlRecords.id, urlRow.id))
       }
+      await tx
+        .update(urlRecords)
+        .set({
+          revision: sql`${urlRecords.revision} + 1`,
+          state: "gone",
+          statusCode: 410,
+          targetUrlId: null,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(urlRecords.editionId, editionId),
+            eq(urlRecords.siteId, siteId),
+            eq(urlRecords.state, "redirected"),
+          ),
+        )
       await tx
         .delete(editionSites)
         .where(and(eq(editionSites.editionId, editionId), eq(editionSites.siteId, siteId)))

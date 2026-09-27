@@ -364,6 +364,16 @@ import json,sys
 d=json.load(sys.stdin)
 print(",".join(str(x["id"]) for x in sorted(d.get("docs",[]),key=lambda x:x["id"])))'
 }
+route_check() { # routes-file pathname active|gone -> ok/FAIL
+  python3 - "$1" "$2" "$3" <<'PY'
+import json, sys
+routes = json.load(open(sys.argv[1]))["routes"]
+match = [route for route in routes if route["pathname"] == sys.argv[2]]
+assert len(match) == 1 and match[0]["status"] == sys.argv[3], match
+assert sys.argv[3] != "gone" or "objectKey" not in match[0], match
+print("ok")
+PY
+}
 manifest_check() { # manifest-file pathname has|absent -> ok/FAIL
   python3 - "$1" "$2" "$3" <<'PY'
 import json, sys
@@ -399,6 +409,13 @@ ROW_XA=$(Q "publish_state||'|'||case when url_record_id is null then 'n' else 'y
 ROW_XB=$(Q "publish_state||'|'||case when url_record_id is null then 'n' else 'y' end FROM geo_foundry.edition_sites WHERE edition_id=$ED_X AND site_id=$SITE_B")
 [ "$ROW_XA" = "published|y" ] && [ "$ROW_XB" = "published|y" ] \
   && ok "X rows published with urlRecordId (A,B)" || bad "rows A=$ROW_XA B=$ROW_XB"
+SLUG_XB=$(Q "pathname FROM geo_foundry.url_records WHERE edition_id=$ED_X AND site_id=$SITE_B AND state='active'")
+if s3_get "$PREFIX/sites/site-$SITE_B/releases/$REL_XB/routes.json" /tmp/ar-routes-b-before.json; then
+  [ "$(route_check /tmp/ar-routes-b-before.json "$SLUG_XB" active)" = "ok" ] \
+    && ok "B original release routes X as active" || bad "B original route missing X active"
+else
+  bad "B original routes fetch failed (S3 reader)"
+fi
 URL_XB_ID=$(Q "id FROM geo_foundry.url_records WHERE edition_id=$ED_X AND site_id=$SITE_B")
 URL_XB_REV0=$(Q "revision FROM geo_foundry.url_records WHERE id=$URL_XB_ID")
 [ -n "$URL_XB_ID" ] && ok "X URL row on B (id=$URL_XB_ID rev=$URL_XB_REV0)" || bad "X URL row B missing"
@@ -502,14 +519,20 @@ VER_SITES=$(Q "array_to_string(sites, ',') FROM geo_foundry.edition_revisions WH
 [ "$VER_SITES" = "$SITE_A,$SITE_B,$SITE_C" ] \
   && ok "version sites expanded to A,B,C ($VER_SITES)" || bad "version sites=$VER_SITES"
 URL_C_REV=$(Q "revision FROM geo_foundry.url_records WHERE edition_id=$ED_X AND site_id=$SITE_C")
+URL_C_ID=$(Q "id FROM geo_foundry.url_records WHERE edition_id=$ED_X AND site_id=$SITE_C")
 KEY_ADD_C=$(Q "idempotency_key FROM geo_foundry.idempotency_records WHERE operation_id='$OP_ADD_C'")
-[ "$KEY_ADD_C" = "add-site-$ED_X-$SITE_C-url-rev-$URL_C_REV" ] \
-  && ok "idempotency key URL-revision scoped ($KEY_ADD_C)" || bad "key=$KEY_ADD_C want=add-site-$ED_X-$SITE_C-url-rev-$URL_C_REV"
+[ "$KEY_ADD_C" = "add-site-$ED_X-$SITE_C-url-$URL_C_ID-rev-$URL_C_REV" ] \
+  && ok "idempotency key URL-identity/revision scoped ($KEY_ADD_C)" || bad "key=$KEY_ADD_C want=add-site-$ED_X-$SITE_C-url-$URL_C_ID-rev-$URL_C_REV"
 JOB_ADD=$(Q "count(*) FROM pgboss.job WHERE singleton_key='$OP_ADD_C'")
 [ "$JOB_ADD" -ge 1 ] && ok "evaluate job enqueued (pgboss)" || bad "evaluate job=$JOB_ADD"
 R10=$(add_post "$ED_X" "$SITE_C" /tmp/ar-p.jar)
 [ "$(add_code "$R10")" = "409" ] && [ "$(code_of "$(add_body "$R10")")" = "EDITION_SITE_ADD_ALREADY_ASSIGNED" ] \
   && ok "duplicate add while pending -> 409 ALREADY_ASSIGNED" || bad "dup add: $R10"
+EARLY_C=$(curl -s -w '\n%{http_code}' -X POST "$BASE/api/editions/$ED_X/publish-operations" \
+  -b /tmp/ar-p.jar -H 'Content-Type: application/json' -d "{\"siteId\":$SITE_C}")
+[ "$(add_code "$EARLY_C")" = "409" ] && \
+  [ "$(code_of "$(add_body "$EARLY_C")")" = "EDITION_WORKFLOW_SITE_ASSESSMENT_NOT_PASSED" ] \
+  && ok "C publish waits for current add evaluation" || bad "premature C publish: $EARLY_C"
 
 ST_EVAL_C=$(wait_eval_op "$OP_ADD_C")
 if [ "$ST_EVAL_C" = "succeeded" ]; then ok "C real-worker evaluation succeeded"
@@ -555,6 +578,14 @@ assert d["releaseId"].startswith("rel-"), d
 ' && ok "takedown B -> 202 (unpublished + re-release queued)" || bad "takedown: $TAKEDOWN"
 OP_RR=$(echo "$TD_BODY" | python3 -c 'import json,sys;print(json.load(sys.stdin)["operation"]["operationId"])')
 REL_RR=$(echo "$TD_BODY" | python3 -c 'import json,sys;print(json.load(sys.stdin)["releaseId"])')
+RR_BEFORE=$(Q "state FROM geo_foundry.operations WHERE operation_id='$OP_RR'")
+if [ "$RR_BEFORE" != "succeeded" ]; then
+  RADD_EARLY=$(add_post "$ED_X" "$SITE_B" /tmp/ar-p.jar)
+  [ "$(add_code "$RADD_EARLY")" = "409" ] && \
+    [ "$(code_of "$(add_body "$RADD_EARLY")")" = "EDITION_SITE_ADD_TAKEDOWN_IN_PROGRESS" ] \
+    && ok "B re-add blocked until takedown re-release succeeds" \
+    || bad "B early re-add was not blocked: $RADD_EARLY"
+fi
 
 # 同步段断言（撤下提交后立即生效，不等 worker）
 ROW_B=$(Q "publish_state||'|'||coalesce(release_id,'')||'|'||case when url_record_id is null then '' else 'u' end||'|'||quality_state FROM geo_foundry.edition_sites WHERE edition_id=$ED_X AND site_id=$SITE_B")
@@ -593,6 +624,15 @@ REL_STATE_OLD=$(Q "state FROM geo_foundry.releases WHERE release_id='$REL_XB'")
 [ "$REL_STATE_NEW" = "current" ] && [ "$REL_STATE_OLD" = "superseded" ] \
   && ok "B release pointer advanced ($REL_RR current, $REL_XB superseded)" \
   || bad "rel states new=$REL_STATE_NEW old=$REL_STATE_OLD"
+SHA_RR=$(Q "manifest_sha256 FROM geo_foundry.releases WHERE release_id='$REL_RR'")
+SHA_XB=$(Q "manifest_sha256 FROM geo_foundry.releases WHERE release_id='$REL_XB'")
+RB_OLD=$(curl -s -w '\n%{http_code}' -X POST "$BASE/api/rollback-operations/intents" \
+  -b /tmp/ar-p.jar -H 'Content-Type: application/json' \
+  -d "{\"siteId\":$SITE_B,\"expectedCurrentReleaseId\":\"$REL_RR\",\"expectedCurrentManifestSha256\":\"$SHA_RR\",\"targetReleaseId\":\"$REL_XB\",\"expectedManifestSha256\":\"$SHA_XB\"}")
+[ "$(add_code "$RB_OLD")" = "409" ] && \
+  [ "$(code_of "$(add_body "$RB_OLD")")" = "ROLLBACK_TARGET_PREDATES_TAKEDOWN" ] \
+  && ok "rollback to X-containing release rejected after takedown" \
+  || bad "rollback restored removed content: $RB_OLD"
 if s3_get "$PREFIX/sites/site-$SITE_B/releases/$REL_RR/manifest.json" /tmp/ar-man-b.json; then
   MB1=$(manifest_check /tmp/ar-man-b.json "$SLUG_X" absent)
   SLUG_Y=$(Q "pathname FROM geo_foundry.url_records WHERE edition_id=$ED_Y AND site_id=$SITE_B")
@@ -601,6 +641,14 @@ if s3_get "$PREFIX/sites/site-$SITE_B/releases/$REL_RR/manifest.json" /tmp/ar-ma
   [ "$MB2" = "ok" ] && ok "B new release still includes Y doc" || bad "B manifest lost Y: $MB2"
 else
   bad "B re-release manifest fetch failed (S3 reader)"
+fi
+if s3_get "$PREFIX/sites/site-$SITE_B/releases/$REL_RR/routes.json" /tmp/ar-routes-b-gone.json; then
+  [ "$(route_check /tmp/ar-routes-b-gone.json "$SLUG_XB" gone)" = "ok" ] \
+    && ok "B current release routes removed X as 410" || bad "B gone route missing X"
+  [ "$(route_check /tmp/ar-routes-b-gone.json "$SLUG_Y" active)" = "ok" ] \
+    && ok "B current release retains Y active route" || bad "B active route missing Y"
+else
+  bad "B re-release routes fetch failed (S3 reader)"
 fi
 EV_UPB=$(event_id_of "$SITE_B" "$REL_RR" updated)
 DROW_UPB=$(wait_delivery "$EV_UPB")
@@ -621,8 +669,13 @@ URLB2=$(Q "id||'|'||state||'|'||coalesce(status_code::text,'null')||'|'||revisio
 [ "$URLB2" = "$URL_XB_ID|reserved|null|$((URL_XB_REV0 + 2))" ] \
   && ok "X URL on B: same row gone->reserved rev+1" || bad "urlB2=$URLB2 want=$URL_XB_ID|reserved|null|$((URL_XB_REV0+2))"
 KEY_RADD=$(Q "idempotency_key FROM geo_foundry.idempotency_records WHERE operation_id='$OP_RADD'")
-[ "$KEY_RADD" = "add-site-$ED_X-$SITE_B-url-rev-$((URL_XB_REV0 + 2))" ] \
+[ "$KEY_RADD" = "add-site-$ED_X-$SITE_B-url-$URL_XB_ID-rev-$((URL_XB_REV0 + 2))" ] \
   && ok "re-add idempotency key fresh (url-rev bumped)" || bad "key=$KEY_RADD"
+EARLY_B=$(curl -s -w '\n%{http_code}' -X POST "$BASE/api/editions/$ED_X/publish-operations" \
+  -b /tmp/ar-p.jar -H 'Content-Type: application/json' -d "{\"siteId\":$SITE_B}")
+[ "$(add_code "$EARLY_B")" = "409" ] && \
+  [ "$(code_of "$(add_body "$EARLY_B")")" = "EDITION_WORKFLOW_SITE_ASSESSMENT_NOT_PASSED" ] \
+  && ok "B cannot reuse pre-takedown passed assessment" || bad "B early publish: $EARLY_B"
 ST_EVAL_B=$(wait_eval_op "$OP_RADD")
 if [ "$ST_EVAL_B" = "succeeded" ]; then ok "B re-add real-worker evaluation succeeded"
 else ERR=$(op_err "$OP_RADD"); bad "B re-add eval state=$ST_EVAL_B error=$ERR"; fi
@@ -640,6 +693,12 @@ if s3_get "$PREFIX/sites/site-$SITE_B/releases/$REL_PB/manifest.json" /tmp/ar-ma
   [ "$MB3" = "ok" ] && ok "B manifest contains X doc again after re-add" || bad "B re-add manifest: $MB3"
 else
   bad "B re-add manifest fetch failed (S3 reader)"
+fi
+if s3_get "$PREFIX/sites/site-$SITE_B/releases/$REL_PB/routes.json" /tmp/ar-routes-b-restored.json; then
+  [ "$(route_check /tmp/ar-routes-b-restored.json "$SLUG_XB" active)" = "ok" ] \
+    && ok "B re-add restores X active route" || bad "B re-add active route missing X"
+else
+  bad "B re-add routes fetch failed (S3 reader)"
 fi
 EV_UPB2=$(event_id_of "$SITE_B" "$REL_PB" updated)
 DROW_UPB2=$(wait_delivery "$EV_UPB2")
@@ -666,11 +725,35 @@ ROW_D=$(Q "count(*) FROM geo_foundry.edition_sites WHERE edition_id=$ED_X AND si
 URLD=$(Q "count(*) FROM geo_foundry.url_records WHERE edition_id=$ED_X AND site_id=$SITE_D")
 [ "$ROW_D" = "0" ] && [ "$URLD" = "0" ] \
   && ok "row (X,D) + reserved URL removed" || bad "rowD=$ROW_D urlD=$URLD"
+ADDD2=$(curl -s -w '\n%{http_code}' -X POST "$BASE/api/editions/$ED_X/sites" \
+  -b /tmp/ar-p.jar -H 'Content-Type: application/json' -d "{\"siteId\":$SITE_D}")
+OP_ADD_D2=$(echo "$ADDD2" | sed '$d' | python3 -c 'import json,sys;print(json.load(sys.stdin)["operation"]["operationId"])')
+[ "$(add_code "$ADDD2")" = "202" ] && [ "$OP_ADD_D2" != "$OP_ADD_D" ] \
+  && ok "D re-add after unassign enqueues fresh evaluate operation" \
+  || bad "D re-add replayed old evaluation: $ADDD2"
+ST_EVAL_D2=$(wait_eval_op "$OP_ADD_D2")
+[ "$ST_EVAL_D2" = "succeeded" ] && ok "D fresh evaluation succeeded" \
+  || bad "D fresh eval state=$ST_EVAL_D2 err=$(op_err "$OP_ADD_D2")"
+UNASSIGN2=$(curl -s -w '\n%{http_code}' -X DELETE "$BASE/api/editions/$ED_X/sites/$SITE_D" \
+  -b /tmp/ar-p.jar -H 'Content-Type: application/json' -d '{"reason":"E2E A4 unassign D again"}')
+[ "$(add_code "$UNASSIGN2")" = "200" ] && ok "D second unassign succeeds" || bad "D second unassign: $UNASSIGN2"
 VER_SITES3=$(Q "array_to_string(sites, ',') FROM geo_foundry.edition_revisions WHERE parent_id=$ED_X AND latest=true")
 [ "$VER_SITES3" = "$SITE_A,$SITE_C,$SITE_B" ] \
   && ok "version sites back to A,C,B" || bad "version sites=$VER_SITES3"
 
-# ---------- 10. 空站撤下（D 站唯一文章 Z 撤下 → 空 release） ----------
+# ---------- 10. 改名后撤下：旧 301 与新 active 同时转 410 ----------
+RENAME_PATH="/articles/a4-renamed-z-$TS"
+RENAME=$(curl -s -w '\n%{http_code}' -X POST \
+  "$BASE/api/url-record-operations/$(Q "id FROM geo_foundry.url_records WHERE edition_id=$ED_Z AND site_id=$SITE_D AND state='active'")/rename" \
+  -b /tmp/ar-p.jar -H 'Content-Type: application/json' \
+  -d "{\"locale\":\"en-US\",\"pathname\":\"$RENAME_PATH\"}")
+[ "$(add_code "$RENAME")" = "200" ] && ok "Z URL renamed before takedown" || bad "Z rename: $RENAME"
+NEW_ZD=$(Q "pathname FROM geo_foundry.url_records WHERE edition_id=$ED_Z AND site_id=$SITE_D AND state='active'")
+OLD_ZD=$(Q "pathname FROM geo_foundry.url_records WHERE edition_id=$ED_Z AND site_id=$SITE_D AND state='redirected'")
+[ "$NEW_ZD" = "$RENAME_PATH" ] && [ "$OLD_ZD" = "$SLUG_Z" ] \
+  && ok "Z URL has redirected old and active new rows" || bad "Z rename rows new=$NEW_ZD old=$OLD_ZD"
+
+# ---------- 11. 空站撤下（D 站唯一文章 Z 撤下 → 空 release） ----------
 TD2=$(curl -s -w '\n%{http_code}' -X DELETE "$BASE/api/editions/$ED_Z/sites/$SITE_D" \
   -b /tmp/ar-p.jar -H 'Content-Type: application/json' -d '{"reason":"E2E A4 takedown D (empty site)"}')
 [ "$(add_code "$TD2")" = "202" ] && ok "takedown D -> 202" || bad "takedown D: $TD2"
@@ -678,8 +761,8 @@ OP_RR2=$(echo "$TD2" | sed '$d' | python3 -c 'import json,sys;print(json.load(sy
 REL_RR2=$(echo "$TD2" | sed '$d' | python3 -c 'import json,sys;print(json.load(sys.stdin)["releaseId"])')
 ROW_ZD=$(Q "publish_state||'|'||coalesce(release_id,'') FROM geo_foundry.edition_sites WHERE edition_id=$ED_Z AND site_id=$SITE_D")
 [ "$ROW_ZD" = "unpublished|" ] && ok "row (Z,D) unpublished" || bad "rowZD=$ROW_ZD"
-URL_ZD=$(Q "state||'|'||coalesce(status_code::text,'null') FROM geo_foundry.url_records WHERE edition_id=$ED_Z AND site_id=$SITE_D")
-[ "$URL_ZD" = "gone|410" ] && ok "Z URL on D gone 410" || bad "urlZD=$URL_ZD"
+URL_ZD=$(Q "count(*) FROM geo_foundry.url_records WHERE edition_id=$ED_Z AND site_id=$SITE_D AND state='gone' AND status_code=410")
+[ "$URL_ZD" = "2" ] && ok "Z old and renamed URLs on D gone 410" || bad "gone rows=$URL_ZD"
 ST_Z_ST=$(Q "workflow_status FROM geo_foundry.content_editions WHERE id=$ED_Z")
 [ "$ST_Z_ST" = "published" ] && ok "article Z stays published (site-level takedown)" || bad "Z status=$ST_Z_ST"
 ST_RR2=$(wait_op "$OP_RR2")
@@ -694,6 +777,13 @@ if s3_get "$PREFIX/sites/site-$SITE_D/releases/$REL_RR2/manifest.json" /tmp/ar-m
   [ "$MD" = "ok" ] && ok "D empty release: Z doc absent, structural objects intact" || bad "D manifest: $MD"
 else
   bad "D empty release manifest fetch failed (S3 reader)"
+fi
+if s3_get "$PREFIX/sites/site-$SITE_D/releases/$REL_RR2/routes.json" /tmp/ar-routes-d-gone.json; then
+  [ "$(route_check /tmp/ar-routes-d-gone.json "$SLUG_Z" gone)" = "ok" ] && \
+    [ "$(route_check /tmp/ar-routes-d-gone.json "$RENAME_PATH" gone)" = "ok" ] \
+    && ok "D empty release routes Z old and renamed URLs to 410" || bad "D gone routes missing Z"
+else
+  bad "D empty release routes fetch failed (S3 reader)"
 fi
 EV_UPD=$(event_id_of "$SITE_D" "$REL_RR2" updated)
 DROW_UPD=$(wait_delivery "$EV_UPD")

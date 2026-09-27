@@ -100,7 +100,13 @@ export const loadArticleDetail = async (
     db
       .select({ pathname: urlRecords.pathname })
       .from(urlRecords)
-      .where(and(eq(urlRecords.editionId, editionId), eq(urlRecords.state, "active")))
+      .where(
+        and(
+          eq(urlRecords.editionId, editionId),
+          eq(urlRecords.siteId, version.siteId ?? -1),
+          eq(urlRecords.state, "active"),
+        ),
+      )
       .limit(1),
     version.siteId === null
       ? []
@@ -203,7 +209,14 @@ export const loadArticleDetail = async (
     const url = siteUrlBySite.get(row.siteId)
     const failed = siteFailedOps.find((op) => op.siteId === row.siteId)
     return {
-      lastError: failed === undefined ? null : operationErrorSummary(failed.error),
+      lastError:
+        row.publishState === "failed" ||
+        row.qualityState === "failed" ||
+        row.qualityState === "error"
+          ? failed === undefined
+            ? null
+            : operationErrorSummary(failed.error)
+          : null,
       pathname: url?.pathname ?? null,
       publishState: row.publishState,
       publishedAt: row.publishedAt === null ? null : row.publishedAt.toISOString(),

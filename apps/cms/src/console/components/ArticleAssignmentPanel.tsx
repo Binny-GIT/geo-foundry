@@ -67,7 +67,8 @@ const ArticleAssignmentPanel = ({
 
   const ownerChanged = ownerValue !== owner
   const sitesChanged =
-    pickedSites.length !== siteIds.length || pickedSites.some((id) => !siteIds.includes(id))
+    !sitesLocked &&
+    (pickedSites.length !== siteIds.length || pickedSites.some((id) => !siteIds.includes(id)))
 
   const saveAssignment = async () => {
     if (!ownerChanged && !sitesChanged) return
@@ -141,8 +142,7 @@ const ArticleAssignmentPanel = ({
           </label>
           {sitesLocked ? (
             <p className="m-0 rounded-md border border-[var(--console-border)] bg-[var(--console-surface-muted)] px-3.5 py-2.5 text-sm leading-6 text-[var(--console-ink-muted)]">
-              文章已发布，站点集合在此不可直接修改；请在下方“站点发布状态”里
-              追加或撤下站点（每站独立评估与发布）。
+              文章已发布或已编译，站点集合在此不可直接修改；已发布文章请在下方“站点发布状态”里追加或撤下站点（每站独立评估与发布）。
             </p>
           ) : (
             <div className="grid gap-2">
