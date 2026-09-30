@@ -45,7 +45,7 @@ const keyring = parseSiteKeyring({
   },
 })
 
-const setup = async () => {
+const setup = async (appOptions: { readonly mediaQuotaPerMinute?: number } = {}) => {
   const store = new MemoryObjectReader()
   const mapBytes = fixtureMediaBytes("map.webp")
   const release = await buildSiteRelease({
@@ -62,6 +62,7 @@ const setup = async () => {
 
   const runtime = createDeliveryRuntime({ store })
   const app = createDeliveryApp({
+    ...appOptions,
     publicOrigin: "https://geo-delivery.test",
     runtime,
     siteKeyring: keyring,
@@ -167,10 +168,8 @@ describe("createDeliveryApp routes", () => {
     expect(await response.text()).toContain('data-release="release-a-v1"')
   })
 
-  it("serves a media object byte-for-byte with a long cache header once the manifest hash verifies", async () => {
-    const response = await fetch(`${baseUrl()}/v1/sites/site-a.test/media/map.webp`, {
-      headers: authed(),
-    })
+  it("serves a media object without site credentials, byte-for-byte with a long cache header", async () => {
+    const response = await fetch(`${baseUrl()}/v1/sites/site-a.test/media/map.webp`)
     expect(response.status).toBe(200)
     expect(response.headers.get("content-type")).toBe("image/webp")
     expect(response.headers.get("cache-control")).toBe("public, max-age=31536000, immutable")
@@ -250,8 +249,39 @@ describe("createDeliveryApp routes", () => {
     expect(second.headers.get("retry-after")).not.toBeNull()
   })
 
+  it("answers anonymous media requests for an unpublished host with 404", async () => {
+    const response = await fetch(`${baseUrl()}/v1/sites/unknown-to-runtime.test/media/map.webp`)
+    expect(response.status).toBe(404)
+    expect(await response.json()).toEqual({ error: { code: "DELIVERY_UNKNOWN_HOST" } })
+  })
+
   it("rejects non-GET methods as 405", async () => {
     const response = await fetch(`${baseUrl()}/healthz`, { method: "POST" })
     expect(response.status).toBe(405)
+  })
+})
+
+describe("createDeliveryApp anonymous media quota", () => {
+  let world: Awaited<ReturnType<typeof setup>>
+
+  beforeAll(async () => {
+    world = await setup({ mediaQuotaPerMinute: 2 })
+  })
+
+  afterAll(async () => {
+    await new Promise<void>((resolveClosed) => world.server.close(() => resolveClosed()))
+  })
+
+  it("caps anonymous media requests per site and answers 429 with Retry-After", async () => {
+    const url = `http://127.0.0.1:${world.port}/v1/sites/site-a.test/media/map.webp`
+    const statuses = []
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const response = await fetch(url)
+      statuses.push(response.status)
+      if (response.status === 429) {
+        expect(response.headers.get("retry-after")).not.toBeNull()
+      }
+    }
+    expect(statuses).toEqual([200, 200, 429])
   })
 })

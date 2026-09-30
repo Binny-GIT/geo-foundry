@@ -3,7 +3,8 @@
  * 由 examples/site-b-express 的 createSiteBApp({ runtime }) 产品化而来，
  * 流式渲染 HTML 出口的写法（writeHead + renderToPipeableStream）与缓存头
  * 约定直接沿用；新增的部分是 JSON 出口、sitemap 出口、media 出口和站点
- * 密钥鉴权。
+ * 密钥鉴权。media 出口不要求站点密钥：第 1 层站点把正文 HTML 嵌进自己
+ * 的页面，图片由访客浏览器直接加载，带不上 Bearer；只按站点做匿名配额。
  *
  * 路由不使用 Express 5 的动态路径参数（`:param`/通配符）——与示例保持
  * 同一种防御性写法：示例本身也只用了一个静态路径（/sitemap.xml）加一个
@@ -28,6 +29,8 @@ import type { DeliveryRuntime } from "./runtime/delivery-runtime.js"
 export type CreateDeliveryAppOptions = {
   /** 测试用可注入时钟；生产默认 Date.now。 */
   readonly clock?: () => number
+  /** media 出口每站每分钟的匿名请求上限；默认 MEDIA_QUOTA_PER_MINUTE。 */
+  readonly mediaQuotaPerMinute?: number
   /** 对外公网地址，用于把 JSON/HTML 里的站内媒体引用改写为绝对地址。 */
   readonly publicOrigin: string
   /** 测试用可注入配额计数器；生产默认新建一个进程内单例。 */
@@ -39,6 +42,7 @@ export type CreateDeliveryAppOptions = {
 const REVALIDATE = "public, max-age=0, must-revalidate"
 const MEDIA_CACHE_CONTROL = "public, max-age=31536000, immutable"
 const NO_STORE = "no-store"
+const MEDIA_QUOTA_PER_MINUTE = 6_000
 
 const JSON_PAGE_PATTERN = /^\/v1\/sites\/([^/]+)\/pages(\/.*)?$/
 const SITEMAP_PATTERN = /^\/v1\/sites\/([^/]+)\/sitemap\.xml$/
@@ -184,6 +188,7 @@ const authorizeOrRespond = (
 export const createDeliveryApp = (options: CreateDeliveryAppOptions): Application => {
   const clock = options.clock ?? Date.now
   const quota = options.quota ?? new QuotaTracker()
+  const mediaQuotaPerMinute = options.mediaQuotaPerMinute ?? MEDIA_QUOTA_PER_MINUTE
   const { runtime, siteKeyring } = options
 
   const handleHealthz = (response: Response): void => {
@@ -424,15 +429,17 @@ export const createDeliveryApp = (options: CreateDeliveryAppOptions): Applicatio
       if (mediaMatch !== null) {
         const host = decodeSegment(mediaMatch[1] ?? "")
         const filename = decodeSegment(mediaMatch[2] ?? "")
-        const outcome = authorizeOrRespond(
-          authorizationHeader,
-          siteKeyring,
-          quota,
-          host,
+        const check = quota.consume(
+          `media\u0000${host.trim().toLowerCase()}`,
+          mediaQuotaPerMinute,
           now,
-          respondUnauthorized,
         )
-        if (!outcome.ok) return
+        if (!check.allowed) {
+          respondUnauthorized(429, "DELIVERY_MEDIA_RATE_LIMITED", {
+            "Retry-After": String(check.retryAfterSeconds),
+          })
+          return
+        }
         await handleMedia(response, host, filename)
         return
       }
