@@ -429,11 +429,14 @@ export const createDeliveryApp = (options: CreateDeliveryAppOptions): Applicatio
       if (mediaMatch !== null) {
         const host = decodeSegment(mediaMatch[1] ?? "")
         const filename = decodeSegment(mediaMatch[2] ?? "")
-        const check = quota.consume(
-          `media\u0000${host.trim().toLowerCase()}`,
-          mediaQuotaPerMinute,
-          now,
-        )
+        const normalizedHost = host.trim().toLowerCase()
+        // 只有密钥环里的站点会产出媒体地址；其余主机名一律 404，不建配额桶、不读存储，
+        // 否则随机主机名既能绕过按站配额，又能让配额表无限增长、每次都打一次对象存储。
+        if (!siteKeyring.has(normalizedHost)) {
+          sendJson(response, 404, { error: { code: "DELIVERY_UNKNOWN_HOST" } }, NO_STORE)
+          return
+        }
+        const check = quota.consume(`media\u0000${normalizedHost}`, mediaQuotaPerMinute, now)
         if (!check.allowed) {
           respondUnauthorized(429, "DELIVERY_MEDIA_RATE_LIMITED", {
             "Retry-After": String(check.retryAfterSeconds),

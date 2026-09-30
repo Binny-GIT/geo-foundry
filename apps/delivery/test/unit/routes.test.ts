@@ -60,7 +60,15 @@ const setup = async (appOptions: { readonly mediaQuotaPerMinute?: number } = {})
     { canonical: true, host: "site-a.test", siteId: "site-a" },
   ])
 
-  const runtime = createDeliveryRuntime({ store })
+  const baseRuntime = createDeliveryRuntime({ store })
+  const mediaLookups: string[] = []
+  const runtime = {
+    ...baseRuntime,
+    resolveMedia: (request: Parameters<typeof baseRuntime.resolveMedia>[0]) => {
+      mediaLookups.push(request.hostname)
+      return baseRuntime.resolveMedia(request)
+    },
+  }
   const app = createDeliveryApp({
     ...appOptions,
     publicOrigin: "https://geo-delivery.test",
@@ -71,7 +79,7 @@ const setup = async (appOptions: { readonly mediaQuotaPerMinute?: number } = {})
   await new Promise<void>((resolveReady) => server.once("listening", () => resolveReady()))
   const address = server.address()
   if (typeof address !== "object" || address === null) throw new Error("failed to bind test server")
-  return { mapBytes, port: address.port, release, server }
+  return { mapBytes, mediaLookups, port: address.port, release, server }
 }
 
 describe("createDeliveryApp routes", () => {
@@ -249,10 +257,20 @@ describe("createDeliveryApp routes", () => {
     expect(second.headers.get("retry-after")).not.toBeNull()
   })
 
-  it("answers anonymous media requests for an unpublished host with 404", async () => {
+  it("answers anonymous media requests for a keyring host without a release with 404", async () => {
     const response = await fetch(`${baseUrl()}/v1/sites/unknown-to-runtime.test/media/map.webp`)
     expect(response.status).toBe(404)
     expect(await response.json()).toEqual({ error: { code: "DELIVERY_UNKNOWN_HOST" } })
+  })
+
+  it("rejects anonymous media requests for hosts outside the keyring before touching storage", async () => {
+    const probeHosts = ["probe-1.test", "probe-2.test", "PROBE-3.test"]
+    for (const host of probeHosts) {
+      const response = await fetch(`${baseUrl()}/v1/sites/${host}/media/map.webp`)
+      expect(response.status).toBe(404)
+      expect(await response.json()).toEqual({ error: { code: "DELIVERY_UNKNOWN_HOST" } })
+    }
+    expect(world.mediaLookups.filter((host) => host.toLowerCase().startsWith("probe-"))).toEqual([])
   })
 
   it("rejects non-GET methods as 405", async () => {
