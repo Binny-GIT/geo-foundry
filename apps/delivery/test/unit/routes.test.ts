@@ -129,6 +129,21 @@ describe("createDeliveryApp routes", () => {
     expect(imageBlock?.src).toBe("https://geo-delivery.test/v1/sites/site-a.test/media/map.webp")
   })
 
+  it("ships schema.org JSON-LD alongside the page so tier-1 sites need no geo renderer", async () => {
+    const response = await fetch(`${baseUrl()}/v1/sites/site-a.test/pages/guides/article`, {
+      headers: authed(),
+    })
+    const body = (await response.json()) as {
+      jsonLd?: { "@context": string; "@graph": readonly Record<string, unknown>[] }
+    }
+    expect(body.jsonLd?.["@context"]).toBe("https://schema.org")
+    expect(body.jsonLd?.["@graph"].length).toBeGreaterThan(0)
+    for (const node of body.jsonLd?.["@graph"] ?? []) {
+      expect(node["@type"]).toEqual(expect.any(String))
+      expect(node).not.toHaveProperty("type")
+    }
+  })
+
   it("returns 410 for a gone pathname and 404 with a rendered not-found document for an unmapped one", async () => {
     const gone = await fetch(`${baseUrl()}/v1/sites/site-a.test/pages/retired`, {
       headers: authed(),

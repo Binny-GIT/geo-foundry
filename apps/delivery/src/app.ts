@@ -16,7 +16,7 @@ import { renderToPipeableStream } from "react-dom/server"
 import express, { type Application, type Request, type Response } from "express"
 
 import { renderPage } from "@geo/render-core"
-import { GeoHead, GeoPage } from "@geo/render-react"
+import { GeoHead, GeoPage, geoJsonLdOf } from "@geo/render-react"
 import type { PageDocument } from "@geo/schema"
 
 import { authorizeSiteRequest, quotaBucketKeyOf, QuotaTracker } from "./auth/site-auth.js"
@@ -59,6 +59,18 @@ const firstHeaderValue = (value: string | readonly string[] | undefined): string
 
 const mediaBaseUrlOf = (origin: string, host: string): string =>
   `${origin}/v1/sites/${encodeURIComponent(host)}/media`
+
+const renderedPayloadOf = (
+  document: PageDocument,
+): { readonly bodyHtml: string; readonly jsonLd?: ReturnType<typeof geoJsonLdOf> } => {
+  const page = renderPage(document)
+  return {
+    bodyHtml: renderBodyHtml(page),
+    ...(page.head.structuredData.length === 0
+      ? {}
+      : { jsonLd: geoJsonLdOf(page.head.structuredData) }),
+  }
+}
 
 const sendJson = (
   response: Response,
@@ -194,7 +206,7 @@ export const createDeliveryApp = (options: CreateDeliveryAppOptions): Applicatio
           response,
           result.status,
           {
-            bodyHtml: renderBodyHtml(renderPage(document)),
+            ...renderedPayloadOf(document),
             document,
             releaseId: result.releaseId,
             siteId: result.siteId,
@@ -210,7 +222,7 @@ export const createDeliveryApp = (options: CreateDeliveryAppOptions): Applicatio
           response,
           result.status,
           {
-            bodyHtml: renderBodyHtml(renderPage(document)),
+            ...renderedPayloadOf(document),
             document,
             redirect: { statusCode: 301 as const, targetUrl: result.targetUrl },
             releaseId: result.releaseId,
