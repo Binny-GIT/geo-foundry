@@ -25,8 +25,15 @@ const schemaJsonLd = (value: unknown): unknown => {
   return value
 }
 
+export const geoJsonLdOf = (
+  structuredData: RenderHead["structuredData"],
+): { readonly "@context": "https://schema.org"; readonly "@graph": unknown } => ({
+  "@context": "https://schema.org",
+  "@graph": schemaJsonLd(structuredData),
+})
+
 export const serializeGeoJsonLd = (structuredData: RenderHead["structuredData"]): string =>
-  scriptSafeJson({ "@context": "https://schema.org", "@graph": schemaJsonLd(structuredData) })
+  scriptSafeJson(geoJsonLdOf(structuredData))
 
 export type GeoHeadProps = Readonly<{ readonly head: RenderHead }>
 

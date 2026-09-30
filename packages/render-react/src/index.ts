@@ -1,6 +1,6 @@
 export { GeoProvider, useGeoPage } from "./context.js"
 export { GEO_RENDER_ERROR, GeoRenderError } from "./errors.js"
-export { GeoHead, serializeGeoJsonLd } from "./metadata.js"
+export { GeoHead, geoJsonLdOf, serializeGeoJsonLd } from "./metadata.js"
 export { GeoDocumentPage, GeoPage } from "./page.js"
 export { DEFAULT_GEO_THEME_TOKENS, resolveGeoThemeTokens } from "./theme.js"
 export type { GeoProviderProps, GeoRenderContextValue } from "./context.js"
