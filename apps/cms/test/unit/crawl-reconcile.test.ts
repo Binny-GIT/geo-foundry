@@ -15,7 +15,14 @@ describe("crawl 补偿选择", () => {
     expect(crawlReconcileActionOf({ ...base, attempts: 10 })).toBe("exhaust")
   })
   it("Given 已落库但尚未确认删除, when 到期补偿, then 重试确认", () => {
-    expect(crawlReconcileActionOf({ ...base, state: "ingested", jobId: "job_1234567890abcdef", attempts: 10 })).toBe("ingest")
+    expect(
+      crawlReconcileActionOf({
+        ...base,
+        state: "ingested",
+        jobId: "job_1234567890abcdef",
+        attempts: 10,
+      }),
+    ).toBe("ingest")
   })
   it("Given 已确认删除, when 到期补偿, then 跳过", () => {
     expect(crawlReconcileActionOf({ ...base, ackedAt: new Date() })).toBe("skip")

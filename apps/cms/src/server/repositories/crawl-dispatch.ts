@@ -186,8 +186,8 @@ export const crawlDispatchInput = async (db: ServerDb, parentId: number, user: u
       and(
         eq(crawlJobs.parentIntakeItemId, parentId),
         eq(crawlJobs.tenantId, tenantId),
-         isNull(crawlJobs.jobId),
-         inArray(crawlJobs.state, ["dispatched", "failed"]),
+        isNull(crawlJobs.jobId),
+        inArray(crawlJobs.state, ["dispatched", "failed"]),
       ),
     )
     .limit(1)
@@ -214,8 +214,14 @@ export const recordCrawlDispatch = async (
     if (row === undefined) throw new IntakeError("INTAKE_ITEM_NOT_FOUND")
     if (row.jobId === jobId) return
     if (row.jobId !== null) throw new IntakeError("INTAKE_FETCH_STATE_INVALID")
-     await tx.update(crawlJobs).set({ jobId, state: "dispatched", lastError: null, updatedAt: new Date() }).where(eq(crawlJobs.id, row.id))
-     await tx.update(intakeItems).set({ status: "fetching", failureCode: null, updatedAt: new Date() }).where(eq(intakeItems.id, parentId))
+    await tx
+      .update(crawlJobs)
+      .set({ jobId, state: "dispatched", lastError: null, updatedAt: new Date() })
+      .where(eq(crawlJobs.id, row.id))
+    await tx
+      .update(intakeItems)
+      .set({ status: "fetching", failureCode: null, updatedAt: new Date() })
+      .where(eq(intakeItems.id, parentId))
   })
 }
 
