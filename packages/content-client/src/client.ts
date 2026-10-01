@@ -1,4 +1,13 @@
-import type { z } from "zod"
+import { z } from "zod"
+import {
+  type CrawlDispatchInput,
+  type CrawlEntry,
+  type CrawlJobInput,
+  crawlDispatchInputSchema,
+  crawlEntrySchema,
+  crawlJobIdSchema,
+  crawlJobInputSchema,
+} from "./crawl-contract.js"
 
 import {
   type AssessmentReceipt,
@@ -36,9 +45,9 @@ import {
   internalErrorSchema,
   type OperationSnapshot,
   operationResponseSchema,
+  type PublishedSitesResponse,
   pollDueConnectorsResponseSchema,
   publishedSitesResponseSchema,
-  type PublishedSitesResponse,
   type RecordAssessmentRequest,
   type RecordCompileResultRequest,
   type RecordReleaseReceiptRequest,
@@ -47,15 +56,15 @@ import {
   recordReleaseReceiptRequestSchema,
   recordReleaseReceiptSchema,
   rssEntriesReceiptSchema,
-  siteEventDeliveryReceiptSchema,
-  siteEventDeliveryRequestSchema,
-  type SiteEventDeliveryRequest,
   type SimilarityMatch,
   type SimilarityQueryRequest,
+  type SiteEventDeliveryRequest,
   type StartOperationStageRequest,
   type StoreEmbeddingRequest,
   similarityQueryRequestSchema,
   similarityResponseSchema,
+  siteEventDeliveryReceiptSchema,
+  siteEventDeliveryRequestSchema,
   startOperationStageRequestSchema,
   storeEmbeddingRequestSchema,
   type WriteDraftVersionRequest,
@@ -92,6 +101,79 @@ export class ContentServiceClient {
 
   constructor(config: ContentClientConfig) {
     this.#config = config
+  }
+
+  async getCrawlDispatchInput(parentId: number): Promise<CrawlDispatchInput> {
+    return this.#call(
+      "GET",
+      `/internal/crawl-dispatches/${parentId}/input`,
+      null,
+      null,
+      crawlDispatchInputSchema,
+    )
+  }
+
+  async recordCrawlDispatch(parentId: number, jobId: string): Promise<void> {
+    await this.#call(
+      "POST",
+      `/internal/crawl-dispatches/${parentId}/record`,
+      z.object({ jobId: crawlJobIdSchema }),
+      { jobId },
+      z.object({ recorded: z.literal(true) }),
+    )
+  }
+
+  async failCrawlDispatch(parentId: number, code: string): Promise<void> {
+    await this.#call(
+      "POST",
+      `/internal/crawl-dispatches/${parentId}/fail`,
+      z.object({ code: z.string().min(1).max(120) }),
+      { code },
+      z.object({ failed: z.literal(true) }),
+    )
+  }
+
+  async getCrawlJobInput(jobId: string): Promise<CrawlJobInput> {
+    return this.#call(
+      "GET",
+      `/internal/crawl-jobs/${encodeURIComponent(jobId)}/input`,
+      null,
+      null,
+      crawlJobInputSchema,
+    )
+  }
+
+  async completeCrawlJob(
+    jobId: string,
+    entries: readonly CrawlEntry[],
+  ): Promise<{ count: number; duplicates: number }> {
+    return this.#call(
+      "POST",
+      `/internal/crawl-jobs/${encodeURIComponent(jobId)}/complete`,
+      z.object({ entries: z.array(crawlEntrySchema).max(50) }),
+      { entries },
+      z.object({ count: z.number().int(), duplicates: z.number().int() }),
+    )
+  }
+
+  async failCrawlJob(jobId: string, code: string): Promise<void> {
+    await this.#call(
+      "POST",
+      `/internal/crawl-jobs/${encodeURIComponent(jobId)}/fail`,
+      z.object({ code: z.string().min(1).max(120) }),
+      { code },
+      z.object({ failed: z.literal(true) }),
+    )
+  }
+
+  async acknowledgeCrawlJob(jobId: string): Promise<void> {
+    await this.#call(
+      "POST",
+      `/internal/crawl-jobs/${encodeURIComponent(jobId)}/ack`,
+      null,
+      null,
+      z.object({ acknowledged: z.literal(true) }),
+    )
   }
 
   async dispatchDuePublicationPlans(

@@ -1,6 +1,16 @@
 {
   "components": {
     "parameters": {
+      "CrawlJobId": {
+        "description": "Crawl job identifier",
+        "in": "path",
+        "name": "jobId",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "pattern": "^job_[0-9a-f]{16}$"
+        }
+      },
       "OperationId": {
         "description": "Operation identifier",
         "in": "path",
@@ -392,6 +402,363 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/ResourceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed or schema-invalid request"
+          },
+          "401": {
+            "description": "Missing or invalid service identity"
+          },
+          "403": {
+            "description": "Non-service identity or tenant mismatch"
+          },
+          "404": {
+            "description": "Requested resource was not found or is outside the tenant scope"
+          },
+          "409": {
+            "description": "Workflow state conflict"
+          },
+          "413": {
+            "description": "Body exceeds the configured size limit"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        },
+        "security": [
+          {
+            "serviceApiKey": []
+          }
+        ],
+        "tags": [
+          "internal"
+        ]
+      }
+    },
+    "/internal/crawl-dispatches/{id}/input": {
+      "get": {
+        "operationId": "getCrawlDispatchInput",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ResourceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed or schema-invalid request"
+          },
+          "401": {
+            "description": "Missing or invalid service identity"
+          },
+          "403": {
+            "description": "Non-service identity or tenant mismatch"
+          },
+          "404": {
+            "description": "Requested resource was not found or is outside the tenant scope"
+          },
+          "409": {
+            "description": "Workflow state conflict"
+          },
+          "413": {
+            "description": "Body exceeds the configured size limit"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        },
+        "security": [
+          {
+            "serviceApiKey": []
+          }
+        ],
+        "tags": [
+          "internal"
+        ]
+      }
+    },
+    "/internal/crawl-dispatches/{id}/record": {
+      "post": {
+        "operationId": "recordCrawlDispatch",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ResourceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed or schema-invalid request"
+          },
+          "401": {
+            "description": "Missing or invalid service identity"
+          },
+          "403": {
+            "description": "Non-service identity or tenant mismatch"
+          },
+          "404": {
+            "description": "Requested resource was not found or is outside the tenant scope"
+          },
+          "409": {
+            "description": "Workflow state conflict"
+          },
+          "413": {
+            "description": "Body exceeds the configured size limit"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        },
+        "security": [
+          {
+            "serviceApiKey": []
+          }
+        ],
+        "tags": [
+          "internal"
+        ]
+      }
+    },
+    "/internal/crawl-dispatches/{id}/fail": {
+      "post": {
+        "operationId": "failCrawlDispatch",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ResourceId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed or schema-invalid request"
+          },
+          "401": {
+            "description": "Missing or invalid service identity"
+          },
+          "403": {
+            "description": "Non-service identity or tenant mismatch"
+          },
+          "404": {
+            "description": "Requested resource was not found or is outside the tenant scope"
+          },
+          "409": {
+            "description": "Workflow state conflict"
+          },
+          "413": {
+            "description": "Body exceeds the configured size limit"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        },
+        "security": [
+          {
+            "serviceApiKey": []
+          }
+        ],
+        "tags": [
+          "internal"
+        ]
+      }
+    },
+    "/internal/crawl-jobs/{jobId}/input": {
+      "get": {
+        "operationId": "getCrawlJobInput",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CrawlJobId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed or schema-invalid request"
+          },
+          "401": {
+            "description": "Missing or invalid service identity"
+          },
+          "403": {
+            "description": "Non-service identity or tenant mismatch"
+          },
+          "404": {
+            "description": "Requested resource was not found or is outside the tenant scope"
+          },
+          "409": {
+            "description": "Workflow state conflict"
+          },
+          "413": {
+            "description": "Body exceeds the configured size limit"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        },
+        "security": [
+          {
+            "serviceApiKey": []
+          }
+        ],
+        "tags": [
+          "internal"
+        ]
+      }
+    },
+    "/internal/crawl-jobs/{jobId}/complete": {
+      "post": {
+        "operationId": "completeCrawlJob",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CrawlJobId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed or schema-invalid request"
+          },
+          "401": {
+            "description": "Missing or invalid service identity"
+          },
+          "403": {
+            "description": "Non-service identity or tenant mismatch"
+          },
+          "404": {
+            "description": "Requested resource was not found or is outside the tenant scope"
+          },
+          "409": {
+            "description": "Workflow state conflict"
+          },
+          "413": {
+            "description": "Body exceeds the configured size limit"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        },
+        "security": [
+          {
+            "serviceApiKey": []
+          }
+        ],
+        "tags": [
+          "internal"
+        ]
+      }
+    },
+    "/internal/crawl-jobs/{jobId}/fail": {
+      "post": {
+        "operationId": "failCrawlJob",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CrawlJobId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed or schema-invalid request"
+          },
+          "401": {
+            "description": "Missing or invalid service identity"
+          },
+          "403": {
+            "description": "Non-service identity or tenant mismatch"
+          },
+          "404": {
+            "description": "Requested resource was not found or is outside the tenant scope"
+          },
+          "409": {
+            "description": "Workflow state conflict"
+          },
+          "413": {
+            "description": "Body exceeds the configured size limit"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        },
+        "security": [
+          {
+            "serviceApiKey": []
+          }
+        ],
+        "tags": [
+          "internal"
+        ]
+      }
+    },
+    "/internal/crawl-jobs/{jobId}/ack": {
+      "post": {
+        "operationId": "ackCrawlJob",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CrawlJobId"
           }
         ],
         "responses": {

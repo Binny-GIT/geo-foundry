@@ -11,6 +11,13 @@ const readContractFixture = async <T>(fileName: string): Promise<T> =>
   JSON.parse(await readFile(new URL(`../contracts/${fileName}`, import.meta.url), "utf8")) as T
 
 const clientMethodByOperation: Readonly<Record<string, string>> = {
+  getCrawlDispatchInput: "getCrawlDispatchInput",
+  recordCrawlDispatch: "recordCrawlDispatch",
+  failCrawlDispatch: "failCrawlDispatch",
+  getCrawlJobInput: "getCrawlJobInput",
+  completeCrawlJob: "completeCrawlJob",
+  failCrawlJob: "failCrawlJob",
+  ackCrawlJob: "acknowledgeCrawlJob",
   claimIntakeFetch: "claimIntakeFetch",
   completeIntakeFetch: "completeIntakeFetch",
   dispatchDuePublicationPlans: "dispatchDuePublicationPlans",

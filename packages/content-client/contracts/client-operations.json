@@ -42,6 +42,41 @@
     },
     {
       "method": "get",
+      "operationId": "getCrawlDispatchInput",
+      "path": "/internal/crawl-dispatches/{id}/input"
+    },
+    {
+      "method": "post",
+      "operationId": "recordCrawlDispatch",
+      "path": "/internal/crawl-dispatches/{id}/record"
+    },
+    {
+      "method": "post",
+      "operationId": "failCrawlDispatch",
+      "path": "/internal/crawl-dispatches/{id}/fail"
+    },
+    {
+      "method": "get",
+      "operationId": "getCrawlJobInput",
+      "path": "/internal/crawl-jobs/{jobId}/input"
+    },
+    {
+      "method": "post",
+      "operationId": "completeCrawlJob",
+      "path": "/internal/crawl-jobs/{jobId}/complete"
+    },
+    {
+      "method": "post",
+      "operationId": "failCrawlJob",
+      "path": "/internal/crawl-jobs/{jobId}/fail"
+    },
+    {
+      "method": "post",
+      "operationId": "ackCrawlJob",
+      "path": "/internal/crawl-jobs/{jobId}/ack"
+    },
+    {
+      "method": "get",
       "operationId": "getCompileSnapshot",
       "path": "/internal/sites/{id}/compile-snapshot"
     },
