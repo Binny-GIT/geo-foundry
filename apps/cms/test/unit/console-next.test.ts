@@ -29,7 +29,7 @@ describe("Console login return location", () => {
       "/admin/login",
       "/admin/forgot-password",
       "/admin/reset-password",
-      "/admin/_emergency/collections/users",
+      "/admin/login/continue",
       "/console/work",
     ]) {
       expect(normalizeConsoleNext(value)).toBe("/admin")
@@ -38,7 +38,8 @@ describe("Console login return location", () => {
 
   it("does not forward route trees with their own authentication boundary", () => {
     expect(shouldForwardConsoleNext("/admin/login")).toBe(false)
-    expect(shouldForwardConsoleNext("/admin/_emergency")).toBe(false)
+    expect(shouldForwardConsoleNext("/admin/forgot-password")).toBe(false)
+    expect(shouldForwardConsoleNext("/admin/reset-password/continue")).toBe(false)
     expect(shouldForwardConsoleNext("/admin/workspace/editions/572")).toBe(false)
     expect(normalizeConsoleNext("/admin/workspace/editions/572")).toBe(
       "/admin/workspace/editions/572",
