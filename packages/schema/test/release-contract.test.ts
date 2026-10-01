@@ -156,6 +156,13 @@ describe("ReleaseManifest v1 规范契约", () => {
 })
 
 describe("Routing 与 route index v1 严格契约", () => {
+  it("允许空站点清单作为最后一个站点撤下后的终态", async () => {
+    const empty = { hosts: [], schemaVersion: 1 }
+    const serialized = ReleaseV1.serializeRoutingManifest(empty)
+    const parsed = ReleaseV1.routingManifestOf(JSON.parse(new TextDecoder().decode(serialized)))
+    expect(parsed.hosts).toEqual([])
+    expect(await ReleaseV1.hashRoutingManifest(empty)).toMatch(/^[a-f0-9]{64}$/)
+  })
   const routingManifest = {
     hosts: [
       { canonical: false, host: "www.site-a.test", siteId: "site-a" },

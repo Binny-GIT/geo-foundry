@@ -42,7 +42,7 @@ export const RoutingManifestHostSchema = z
 
 const RoutingManifestInputSchema = z
   .strictObject({
-    hosts: z.array(RoutingManifestHostSchema).min(1).readonly(),
+    hosts: z.array(RoutingManifestHostSchema).readonly(),
     schemaVersion: z.literal(RELEASE_SCHEMA_VERSION),
   })
   .superRefine((manifest, context) => {
