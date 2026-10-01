@@ -24,7 +24,14 @@ type IntakeInboxProps = {
   readonly initialStatus: string
 }
 
-const CHANNELS = ["", "manual", "url", "webhook", "rss"] as const
+const CHANNELS = ["", "manual", "url", "webhook", "rss", "crawl"] as const
+const CHANNEL_LABELS: Readonly<Record<string, string>> = {
+  crawl: "网页采集",
+  manual: "手动",
+  rss: "RSS",
+  url: "网址",
+  webhook: "Webhook",
+}
 const STATUSES = [
   "",
   "new",
@@ -207,7 +214,7 @@ export const IntakeInbox = ({
             >
               {CHANNELS.map((channel) => (
                 <option key={channel} value={channel}>
-                  {channel || "All channels"}
+                  {CHANNEL_LABELS[channel] ?? "全部渠道"}
                 </option>
               ))}
             </select>
@@ -337,8 +344,8 @@ export const IntakeInbox = ({
                             {text(item["title"], "Untitled intake")}
                           </strong>
                           <span className="block truncate pt-1 text-xs text-[var(--console-ink-muted)]">
-                            {text(item["channel"])} · {text(item["status"])} ·{" "}
-                            {dateLabel(item["receivedAt"])}
+                            {CHANNEL_LABELS[String(item["channel"])] ?? text(item["channel"])} ·{" "}
+                            {text(item["status"])} · {dateLabel(item["receivedAt"])}
                           </span>
                         </span>
                       </div>
@@ -365,7 +372,7 @@ export const IntakeInbox = ({
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <p className="m-0 text-xs font-bold uppercase tracking-[0.12em] text-indigo-600">
-                    {text(selected["channel"])}
+                    {CHANNEL_LABELS[String(selected["channel"])] ?? text(selected["channel"])}
                   </p>
                   <h2 className="m-0 pt-1 text-xl font-semibold tracking-tight text-[var(--console-ink)]">
                     {text(selected["title"], "Untitled intake")}

@@ -15,11 +15,12 @@ type ConnectorManagerProps = {
   readonly connectors: readonly ConnectorRow[]
 }
 
-const TYPES = ["rss", "url", "webhook", "manual"] as const
+const TYPES = ["rss", "crawl", "url", "webhook", "manual"] as const
 
 const TYPE_LABEL: Readonly<Record<string, string>> = {
   manual: "手动",
   rss: "RSS 轮询",
+  crawl: "网页采集",
   url: "URL",
   webhook: "Webhook",
 }
@@ -85,6 +86,9 @@ export const ConnectorManager = ({ canManage, connectors }: ConnectorManagerProp
           name,
           pollIntervalMinutes: Number(form.get("pollIntervalMinutes") ?? 60),
           site: Number(site),
+          ...(String(form.get("secretReference") ?? "").trim().length === 0
+            ? {}
+            : { secretReference: String(form.get("secretReference")).trim() }),
           ...(String(form.get("sourceEndpoint") ?? "").trim().length === 0
             ? {}
             : { sourceEndpoint: String(form.get("sourceEndpoint")).trim() }),
@@ -99,7 +103,7 @@ export const ConnectorManager = ({ canManage, connectors }: ConnectorManagerProp
           readonly errors?: readonly { readonly message?: string }[]
         }
         setError(
-          `创建失败（${payload.errors?.[0]?.message ?? response.status}）。RSS 源必须填 feed 端点。`,
+          `创建失败（${payload.errors?.[0]?.message ?? response.status}）。轮询源请检查端点与凭据引用名。`,
         )
         return
       }
@@ -194,12 +198,21 @@ export const ConnectorManager = ({ canManage, connectors }: ConnectorManagerProp
                 </select>
               </label>
               <label className="grid gap-1.5 text-sm text-[var(--console-ink-muted)]">
-                Feed 端点（RSS 必填）
+                目标 URL（RSS 填 feed，网页采集填主页）
                 <input
                   className="h-9 rounded-md border border-[var(--console-border)] bg-[var(--console-surface)] px-3 font-mono text-xs text-[var(--console-ink)]"
                   name="sourceEndpoint"
                   placeholder="https://example.com/feed.xml"
                   type="url"
+                />
+              </label>
+              <label className="grid gap-1.5 text-sm text-[var(--console-ink-muted)]">
+                凭据引用名（网页采集必填）
+                <input
+                  className="h-9 rounded-md border border-[var(--console-border)] bg-[var(--console-surface)] px-3 text-sm text-[var(--console-ink)]"
+                  name="secretReference"
+                  placeholder="例如：news-source"
+                  pattern="[a-z0-9][a-z0-9._-]*"
                 />
               </label>
               <label className="grid gap-1.5 text-sm text-[var(--console-ink-muted)]">
@@ -242,7 +255,7 @@ export const ConnectorManager = ({ canManage, connectors }: ConnectorManagerProp
         </h2>
         {connectors.length === 0 ? (
           <p className="m-0 text-sm leading-6 text-[var(--console-ink-muted)]">
-            还没有配置任何采集源。RSS 源由 Worker 每分钟检查、按各自间隔轮询。
+            还没有配置任何采集源。RSS 与网页采集由 Worker 按间隔轮询。
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -281,7 +294,26 @@ export const ConnectorManager = ({ canManage, connectors }: ConnectorManagerProp
                         </span>
                       </td>
                       <td className="max-w-64 truncate py-3 pr-4 font-mono text-xs text-[var(--console-ink-muted)]">
-                        {text(connector["sourceEndpoint"], "—")}
+                        {isEditing && connector["type"] === "crawl" ? (
+                          <div className="grid gap-1">
+                            <input
+                              id={`endpoint-${id}`}
+                              aria-label="目标 URL"
+                              defaultValue={text(connector["sourceEndpoint"], "")}
+                              className="w-48 rounded-md border border-[var(--console-border)] px-2"
+                              type="url"
+                            />
+                            <input
+                              id={`secret-${id}`}
+                              aria-label="凭据引用名"
+                              defaultValue={text(connector["secretReference"], "")}
+                              className="w-48 rounded-md border border-[var(--console-border)] px-2"
+                              pattern="[a-z0-9][a-z0-9._-]*"
+                            />
+                          </div>
+                        ) : (
+                          text(connector["sourceEndpoint"], "—")
+                        )}
                       </td>
                       <td className="py-3 pr-4 text-[var(--console-ink-muted)]">
                         {isEditing ? (
@@ -317,6 +349,18 @@ export const ConnectorManager = ({ canManage, connectors }: ConnectorManagerProp
                                       {
                                         name: String(editing["name"] ?? ""),
                                         pollIntervalMinutes: minutes,
+                                        ...(editing["type"] === "crawl"
+                                          ? {
+                                              sourceEndpoint:
+                                                document.querySelector<HTMLInputElement>(
+                                                  `#endpoint-${id}`,
+                                                )?.value ?? "",
+                                              secretReference:
+                                                document.querySelector<HTMLInputElement>(
+                                                  `#secret-${id}`,
+                                                )?.value ?? "",
+                                            }
+                                          : {}),
                                         status: String(editing["status"] ?? "active") as
                                           | "active"
                                           | "disabled",
@@ -348,7 +392,7 @@ export const ConnectorManager = ({ canManage, connectors }: ConnectorManagerProp
                                   variant="secondary"
                                 >
                                   <PlugIcon />
-                                  改间隔
+                                  编辑
                                 </Button>
                                 <Button
                                   disabled={busy}
