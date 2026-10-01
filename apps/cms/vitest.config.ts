@@ -6,6 +6,7 @@ import { defineConfig } from "vitest/config"
 const cacheRoot = process.env["GEO_FOUNDRY_VITEST_CACHE_DIR"]
 
 export const config = defineConfig({
+  resolve: { alias: { "@": resolve(import.meta.dirname, "src") } },
   cacheDir:
     cacheRoot === undefined
       ? resolve(tmpdir(), "geo-foundry-vitest-cache", `cms-${process.pid}`)

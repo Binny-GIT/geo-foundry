@@ -52,6 +52,7 @@ export const handleEditionOpsPost = async (
   if (slug?.length !== 3 || slug[0] !== "editions") return null
   const editionId = idOf(slug)
   if (editionId === null) return null
+  if (slug[2] !== "duplicate" && slug[2] !== "assignment") return null
   const auth = await authenticateRequest(request.headers)
   if (auth === null) return json(401, { error: { code: "EDITION_OPS_UNAUTHENTICATED" } })
   const role = auth.claims.role
@@ -61,9 +62,6 @@ export const handleEditionOpsPost = async (
     return json(403, { error: { code: "EDITION_OPS_FORBIDDEN" } })
   }
 
-  // body 只在本路由真正认领（duplicate/assignment）时才读取；
-  // 提前消费会让后续 handler 的 request.json() 抛错。
-  if (slug[2] !== "duplicate" && slug[2] !== "assignment") return null
   let raw: unknown = {}
   try {
     raw = await request.json()
