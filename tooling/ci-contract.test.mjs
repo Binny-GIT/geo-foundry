@@ -99,12 +99,13 @@ test("Given container deployment When Compose is inspected Then credentials are 
 })
 
 test("Given protected shared-service execution When the secure runner is inspected Then it only injects credentials from owner-only files", async () => {
-  const [runner, worker, credentials, operations, workflow] = await Promise.all([
+  const [runner, worker, credentials, operations, workflow, publish] = await Promise.all([
     readText("scripts/shared-services/secure-run.mjs"),
     readText("apps/worker/src/main.ts"),
     readText("apps/worker/src/config/credentials.ts"),
     readText("apps/cms/src/endpoints/internal/operations.ts"),
-    readText("apps/cms/src/endpoints/edition-workflow.ts"),
+    readText("apps/cms/src/server/routes/edition-workflow.ts"),
+    readText("apps/cms/src/server/repositories/publish-operations.ts"),
   ])
 
   assert.match(runner, /GEO_FOUNDRY_PG_USER_FILE/)
@@ -118,7 +119,10 @@ test("Given protected shared-service execution When the secure runner is inspect
   assert.match(credentials, /WORKER_CREDENTIAL_FILE_INSECURE/)
   assert.match(credentials, /metadata\.mode & 0o077/)
   assert.match(worker, /CMS_BASE_URL/)
-  assert.match(workflow, /\/editions\/:id\/publish-operations/)
-  assert.match(operations, /publisher identity must submit publish operations/)
+  assert.match(workflow, /slug\[0\] !== "editions"/)
+  assert.match(workflow, /slug\[2\] === "publish-operations"/)
+  assert.match(publish, /claims\.role !== "publisher" && claims\.role !== "super-admin"/)
+  assert.match(operations, /startOperationStage: handleStartStage/)
+  assert.match(operations, /completeOperationStage: handleCompleteStage/)
   assert.doesNotMatch(operations, /\/internal\/operations\/publish|\/v1\/publish/)
 })
