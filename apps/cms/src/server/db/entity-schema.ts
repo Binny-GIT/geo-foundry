@@ -9,6 +9,7 @@ import {
   serial,
   timestamp,
   uniqueIndex,
+  uuid,
   varchar,
   vector,
 } from "drizzle-orm/pg-core"
@@ -25,7 +26,13 @@ export const siteEventDeliveryState = pgEnum("enum_site_event_deliveries_state",
   "delivered",
   "failed",
 ])
-export const connectorType = pgEnum("enum_connectors_type", ["manual", "url", "webhook", "rss"])
+export const connectorType = pgEnum("enum_connectors_type", [
+  "manual",
+  "url",
+  "webhook",
+  "rss",
+  "crawl",
+])
 export const connectorStatus = pgEnum("enum_connectors_status", ["active", "disabled"])
 export const sourceSnapshotKind = pgEnum("enum_source_snapshots_kind", [
   "raw-response",
@@ -95,12 +102,8 @@ export const siteEventDeliveries = geo.table(
     attemptCount: integer("attempt_count").default(0).notNull(),
     lastStatusCode: integer("last_status_code"),
     lastError: varchar("last_error", { length: 500 }),
-    createdAt: timestamp("created_at", { withTimezone: true, precision: 3 })
-      .defaultNow()
-      .notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, precision: 3 })
-      .defaultNow()
-      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, precision: 3 }).defaultNow().notNull(),
   },
   (table) => [
     uniqueIndex("site_event_deliveries_event_unique").on(table.eventId),
@@ -129,6 +132,44 @@ export const connectors = geo.table(
   (table) => [
     index("connectors_site_idx").on(table.siteId),
     index("connectors_tenant_idx").on(table.tenantId),
+  ],
+)
+
+export const crawlJobState = pgEnum("enum_crawl_jobs_state", [
+  "dispatched",
+  "notified",
+  "ingesting",
+  "ingested",
+  "failed",
+])
+
+export const crawlJobs = geo.table(
+  "crawl_jobs",
+  {
+    id: serial("id").primaryKey(),
+    tenantId: integer("tenant_id").notNull(),
+    connectorId: integer("connector_id").notNull(),
+    parentIntakeItemId: integer("parent_intake_item_id").notNull(),
+    jobId: varchar("job_id", { length: 64 }),
+    deliveryId: uuid("delivery_id"),
+    state: crawlJobState("state").default("dispatched").notNull(),
+    crawlStatus: varchar("crawl_status", { length: 32 }),
+    attempts: integer("attempts").default(0).notNull(),
+    lastError: varchar("last_error", { length: 500 }),
+    dispatchedAt: timestamp("dispatched_at", { withTimezone: true }).defaultNow().notNull(),
+    notifiedAt: timestamp("notified_at", { withTimezone: true }),
+    ingestedAt: timestamp("ingested_at", { withTimezone: true }),
+    ackedAt: timestamp("acked_at", { withTimezone: true }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("crawl_jobs_parent_intake_item_id_key").on(table.parentIntakeItemId),
+    uniqueIndex("crawl_jobs_job_id_key").on(table.jobId),
+    uniqueIndex("crawl_jobs_delivery_id_key").on(table.deliveryId),
+    index("crawl_jobs_tenant_idx").on(table.tenantId),
+    index("crawl_jobs_state_updated_idx").on(table.state, table.updatedAt),
+    index("crawl_jobs_connector_idx").on(table.connectorId, table.state),
   ],
 )
 

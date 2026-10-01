@@ -23,6 +23,7 @@ export const intakeChannel = pgEnum("enum_intake_items_channel", [
   "url",
   "webhook",
   "rss",
+  "crawl",
 ])
 export const intakeStatus = pgEnum("enum_intake_items_status", [
   "new",
