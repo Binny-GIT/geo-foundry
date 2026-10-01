@@ -387,7 +387,7 @@ const handleIntakeOpsAction = async (
       const createSchema = z
         .object({
           bodyMarkdown: z.string().max(200_000).optional(),
-           channel: publicIntakeChannelSchema,
+          channel: publicIntakeChannelSchema,
           connectorId: z.coerce.number().int().positive().optional(),
           contentHash: z.string().trim().min(1).max(512).optional(),
           sourceUrl: z.string().trim().min(1).max(4_000).optional(),
