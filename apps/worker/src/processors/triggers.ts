@@ -190,6 +190,21 @@ export const createPublishGateProcessor = (context: ProcessorContext) =>
     },
   )
 
+export const createPublishQueueProcessor = (context: ProcessorContext) => {
+  const publish = createPublishGateProcessor(context)
+  const rollback = createRollbackGateProcessor(context)
+  return (job: Parameters<typeof publish>[0]): Promise<unknown> => {
+    switch ((job.data as Record<string, unknown>)["stage"]) {
+      case "routing-sync":
+        return syncGlobalRoutingManifest(context)
+      case "rollback-gate":
+        return rollback(job)
+      default:
+        return publish(job)
+    }
+  }
+}
+
 /**
  * Standalone embedding warm-up: embed title and body of one edition and
  * store both with scoped input hashes; the store is idempotent by canonical

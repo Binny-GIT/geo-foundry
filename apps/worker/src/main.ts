@@ -12,8 +12,7 @@ import { parseWorkerS3Options } from "./processors/release-pipeline.js"
 import { createSiteEventProcessor } from "./processors/site-events.js"
 import {
   createEmbeddingProcessor,
-  createPublishGateProcessor,
-  createRollbackGateProcessor,
+  createPublishQueueProcessor,
 } from "./processors/triggers.js"
 import type { WorkerLogEvent, WorkJob } from "./processors/types.js"
 import {
@@ -82,8 +81,6 @@ export const main = async (): Promise<void> => {
     }),
   )
   const context = { client, logger }
-  const publish = createPublishGateProcessor(context)
-  const rollback = createRollbackGateProcessor(context)
   const snapshots = createSnapshotStore(parseWorkerS3Options(process.env, credential))
   const sendIntakeJob = async (input: { intakeItemId: number; tenantId: number }) => {
     // 子项入队经 CMS internal API 之外的直达路径已不存在；复用 dispatch 侧的
@@ -118,10 +115,7 @@ export const main = async (): Promise<void> => {
               tenantId: Number(job.data["tenantId"]),
             },
           }),
-    [JOB_QUEUE.publish]: (job: Parameters<typeof publish>[0]) =>
-      ((job.data as Record<string, unknown>)["stage"] === "rollback-gate"
-        ? rollback(job)
-        : publish(job)) as Promise<unknown>,
+    [JOB_QUEUE.publish]: createPublishQueueProcessor(context),
     [JOB_QUEUE.siteEvents]: createSiteEventProcessor(client, logger, {
       credentialDirectory: process.env["GEO_FOUNDRY_SITE_WEBHOOK_CREDENTIALS_DIR"],
     }),

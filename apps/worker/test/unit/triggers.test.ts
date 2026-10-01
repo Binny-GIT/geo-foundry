@@ -26,6 +26,7 @@ vi.mock("@geo/publisher", async (importOriginal) => ({
 import {
   createCompileTriggerProcessor,
   createPublishGateProcessor,
+  createPublishQueueProcessor,
   createRollbackGateProcessor,
   terminalPublishErrorOf,
 } from "../../src/processors/triggers.js"
@@ -110,6 +111,17 @@ describe("compile trigger", () => {
 describe("operation job payload contract", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  it("routes site status sync through the existing publish queue without requiring an operation ledger", async () => {
+    const fixture = processorContext()
+    pipeline.syncGlobalRoutingManifest.mockResolvedValueOnce(undefined)
+    const processor = createPublishQueueProcessor(fixture.context)
+
+    await processor({ data: { kind: "routing-sync", stage: "routing-sync", siteId: 4, tenantId: 9 }, id: "routing-job", queueName: "operation-publish" } as never)
+
+    expect(pipeline.syncGlobalRoutingManifest).toHaveBeenCalledWith(fixture.context)
+    expect(fixture.recordCompileResult).not.toHaveBeenCalled()
   })
 
   it("publish-gate: parses job data built with the shared builder", async () => {
