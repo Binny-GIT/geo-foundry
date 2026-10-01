@@ -302,6 +302,20 @@ const worldOf = async (): Promise<RuntimeWorld> => {
 }
 
 describe("runtime resolution", () => {
+  it("returns unknown-host for all hosts after the final site is disabled", async () => {
+    const store = new MemoryObjectReader()
+    await installRouting(store, "routing-empty", [])
+    const runtime = createRuntime({ store })
+
+    await expect(runtime.resolve({ hostname: "site-a.test", pathname: "/" })).resolves.toEqual({
+      kind: "unknown-host",
+      status: 404,
+    })
+    await expect(runtime.resolveSitemap({ hostname: "site-b.test" })).resolves.toEqual({
+      kind: "unknown-host",
+      status: 404,
+    })
+  })
   it("resolves active, redirect, gone, not-found, unknown-host, aliases, and isolated sites", async () => {
     const world = await worldOf()
     const runtime = createRuntime({ store: world.store })
