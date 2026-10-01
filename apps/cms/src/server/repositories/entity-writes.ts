@@ -68,8 +68,12 @@ const connectorSchema = z
     pollIntervalMinutes: z.coerce.number().int().min(5).max(10_080).default(60),
     site: z.coerce.number().int().positive(),
     sourceEndpoint: z.string().trim().max(2_000).optional(),
+    secretReference: z
+      .string()
+      .regex(/^[a-z0-9][a-z0-9._-]{0,127}$/)
+      .optional(),
     status: z.enum(["active", "disabled"]).default("active"),
-    type: z.enum(["manual", "url", "webhook", "rss"]),
+    type: z.enum(["manual", "url", "webhook", "rss", "crawl"]),
   })
   .strict()
 
@@ -80,6 +84,11 @@ const connectorUpdateSchema = z
     site: z.coerce.number().int().positive().optional(),
     /* 空串/null 表示清空端点（停用抓取但保留配置）。 */
     sourceEndpoint: z.string().trim().max(2_000).nullable().optional(),
+    secretReference: z
+      .string()
+      .regex(/^[a-z0-9][a-z0-9._-]{0,127}$/)
+      .nullable()
+      .optional(),
     status: z.enum(["active", "disabled"]).optional(),
   })
   .strict()
@@ -107,6 +116,7 @@ const connectorDtoOf = (row: ConnectorRow): Row => ({
   pollIntervalMinutes: row.pollIntervalMinutes,
   site: row.siteId,
   sourceEndpoint: row.sourceEndpoint,
+  secretReference: row.secretReference,
   status: row.status,
   tenant: row.tenantId,
   type: row.type,
@@ -145,8 +155,11 @@ export const createConnector = async (
     parsed.data.sourceEndpoint === undefined || parsed.data.sourceEndpoint.length === 0
       ? null
       : connectorEndpointOf(parsed.data.sourceEndpoint)
-  if (parsed.data.type === "rss" && endpoint === null) {
-    throw fail("CMS_CONNECTOR_ENDPOINT_REQUIRED", 400, "RSS 采集源必须配置 feed 端点")
+  if ((parsed.data.type === "rss" || parsed.data.type === "crawl") && endpoint === null) {
+    throw fail("CMS_CONNECTOR_ENDPOINT_REQUIRED", 400, "采集源必须配置目标端点")
+  }
+  if (parsed.data.type === "crawl" && parsed.data.secretReference === undefined) {
+    throw fail("CMS_CONNECTOR_SECRET_REFERENCE_REQUIRED")
   }
   const rows = await db
     .insert(connectors)
@@ -155,6 +168,7 @@ export const createConnector = async (
       pollIntervalMinutes: parsed.data.pollIntervalMinutes,
       siteId: parsed.data.site,
       sourceEndpoint: endpoint,
+      secretReference: parsed.data.secretReference ?? null,
       status: parsed.data.status,
       tenantId,
       type: parsed.data.type,
@@ -189,8 +203,11 @@ export const updateConnector = async (
         : parsed.data.sourceEndpoint === null || parsed.data.sourceEndpoint.length === 0
           ? null
           : connectorEndpointOf(parsed.data.sourceEndpoint)
-    if (nextType === "rss" && nextEndpoint === null) {
-      throw fail("CMS_CONNECTOR_ENDPOINT_REQUIRED", 400, "RSS 采集源必须配置 feed 端点")
+    if ((nextType === "rss" || nextType === "crawl") && nextEndpoint === null) {
+      throw fail("CMS_CONNECTOR_ENDPOINT_REQUIRED", 400, "采集源必须配置目标端点")
+    }
+    if (nextType === "crawl" && !(parsed.data.secretReference ?? current.secretReference)) {
+      throw fail("CMS_CONNECTOR_SECRET_REFERENCE_REQUIRED")
     }
     const updated = await tx
       .update(connectors)
@@ -201,6 +218,9 @@ export const updateConnector = async (
           : { pollIntervalMinutes: parsed.data.pollIntervalMinutes }),
         ...(parsed.data.site === undefined ? {} : { siteId: parsed.data.site }),
         ...(parsed.data.sourceEndpoint === undefined ? {} : { sourceEndpoint: nextEndpoint }),
+        ...(parsed.data.secretReference === undefined
+          ? {}
+          : { secretReference: parsed.data.secretReference }),
         ...(parsed.data.status === undefined ? {} : { status: parsed.data.status }),
         updatedAt: new Date(),
       })

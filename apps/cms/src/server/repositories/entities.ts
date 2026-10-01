@@ -154,6 +154,7 @@ export class EntitiesRepository {
         pollIntervalMinutes: row.pollIntervalMinutes,
         site: row.siteId,
         sourceEndpoint: row.sourceEndpoint,
+        secretReference: row.secretReference,
         status: row.status,
         tenant: row.tenantId,
         type: row.type,
