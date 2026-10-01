@@ -141,6 +141,36 @@ describe("crawl worker", () => {
     ])
     expect(ack).toHaveBeenCalledWith(ingest.data.jobId)
   })
+  it("Given an oversized and an empty article, when ingest runs, then only the valid article is stored", async () => {
+    const article = (url: string, content: string) => ({ title: "文章", url, content })
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json({
+          id: ingest.data.jobId,
+          status: "succeeded",
+          result: {
+            schema_version: "1.0",
+            type: "article_collection",
+            source_url: "https://example.test",
+            requested_count: 3,
+            returned_count: 3,
+            status: "complete",
+            items: [
+              article("https://example.test/long", "长".repeat(200_001)),
+              article("https://example.test/empty", ""),
+              article("https://example.test/ok", "正文"),
+            ],
+          },
+        }),
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+    await run(fetchImpl)(ingest)
+    expect(complete).toHaveBeenCalledWith(ingest.data.jobId, [
+      { content: "正文", sourceUrl: "https://example.test/ok", summary: null, title: "文章" },
+    ])
+    expect(ack).toHaveBeenCalledWith(ingest.data.jobId)
+  })
   it("Given DELETE 409 after ingestion, when ingest runs, then it leaves acknowledgement for reconciliation", async () => {
     const fetchImpl = vi
       .fn()

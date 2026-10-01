@@ -1,4 +1,9 @@
-import { type ContentServiceClient, crawlEntryOf, crawlRemoteJobSchema } from "@geo/content-client"
+import {
+  type ContentServiceClient,
+  crawlEntryOf,
+  crawlEntrySchema,
+  crawlRemoteJobSchema,
+} from "@geo/content-client"
 import { z } from "zod"
 
 import { readWorkerCredentialFile } from "../config/credentials.js"
@@ -121,7 +126,13 @@ export const createCrawlProcessor =
             break
           case "succeeded":
             if (result.data.result == null) throw new CrawlRemoteError("CRAWL_RESULT_INVALID")
-            await client.completeCrawlJob(jobId, result.data.result.items.map(crawlEntryOf))
+            // crawl 对超长正文只打标记不截断：越界的单篇丢弃，不让整批落库失败
+            await client.completeCrawlJob(
+              jobId,
+              result.data.result.items
+                .map(crawlEntryOf)
+                .filter((entry) => crawlEntrySchema.safeParse(entry).success),
+            )
             break
           default: {
             const neverStatus: never = result.data.status

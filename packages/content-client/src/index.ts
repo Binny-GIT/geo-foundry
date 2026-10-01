@@ -11,6 +11,7 @@ export {
   type CrawlRemoteJob,
   crawlCollectionSchema,
   crawlEntryOf,
+  crawlEntrySchema,
   crawlRemoteJobSchema,
 } from "./crawl-contract.js"
 export type {
