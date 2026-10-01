@@ -75,7 +75,7 @@ describe("crawl worker", () => {
     expect(record).toHaveBeenCalledWith(3, "job_1234567890abcdef")
     expect(JSON.parse(String(fetchImpl.mock.calls[0]?.[1]?.body))).toMatchObject({
       type: "article_collection",
-       params: { output: { format: "article_collection", max_items: 3 } },
+      params: { output: { format: "article_collection", max_items: 3 } },
     })
   })
   it("Given a 400 create response, when dispatch runs, then the parent fails", async () => {
