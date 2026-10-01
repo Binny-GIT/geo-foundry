@@ -3,7 +3,7 @@
  * 数据库读写在 server/routes/intake-ops.ts 与 server/repositories/intake-fetch.ts。
  */
 
-export type IntakeChannel = "manual" | "url" | "webhook" | "rss"
+export type IntakeChannel = "manual" | "url" | "webhook" | "rss" | "crawl"
 
 type IntakeId = number
 
@@ -159,5 +159,7 @@ export const normalizeIntakeInput = (input: IntakeInput): NormalizedIntakeInput 
       return normalizeWebhookIntakeInput(rest)
     case "rss":
       return normalizeRssIntakeInput(rest)
+    case "crawl":
+      return normalizeForChannel("crawl", rest)
   }
 }

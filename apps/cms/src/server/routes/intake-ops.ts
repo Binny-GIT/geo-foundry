@@ -27,6 +27,8 @@ import { syncEditionSitesWithinTx } from "../repositories/edition-sites"
 import { entityScopeOf } from "../repositories/entities"
 import { serverRuntime } from "../runtime"
 
+export const publicIntakeChannelSchema = z.enum(["manual", "url", "webhook", "rss"])
+
 export class IntakeOpsError extends Error {
   override readonly name = "IntakeOpsError"
   constructor(readonly code: string) {
@@ -220,12 +222,14 @@ const adoptIntakeItem = async (
  * 默认站点）。校验失败的请求在此之前已被 400 拒绝，不会走到这里。
  */
 export const shouldAutoAdopt = (input: {
+  readonly channel?: string
   readonly autoAdopt: boolean
   readonly directDrop: boolean
   readonly duplicate: boolean
   readonly replay: boolean
   readonly resolvedSiteId: number | undefined
 }): boolean =>
+  input.channel !== "crawl" &&
   input.autoAdopt &&
   input.directDrop &&
   !input.replay &&
@@ -383,7 +387,7 @@ const handleIntakeOpsAction = async (
       const createSchema = z
         .object({
           bodyMarkdown: z.string().max(200_000).optional(),
-          channel: z.enum(["manual", "url", "webhook", "rss"]),
+           channel: publicIntakeChannelSchema,
           connectorId: z.coerce.number().int().positive().optional(),
           contentHash: z.string().trim().min(1).max(512).optional(),
           sourceUrl: z.string().trim().min(1).max(4_000).optional(),
@@ -569,6 +573,7 @@ const handleIntakeOpsAction = async (
            * 成稿失败不吞投稿：条目留在收件箱 ready 等人工采纳。
            */
           const triggered = shouldAutoAdopt({
+            channel: normalized.channel,
             autoAdopt: auth.credential?.autoAdopt === true,
             directDrop,
             duplicate: result.duplicates.length > 0,

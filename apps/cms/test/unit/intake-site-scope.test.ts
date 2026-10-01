@@ -8,6 +8,7 @@ import { describe, expect, it } from "vitest"
 
 import {
   intakeSiteScopeErrorOf,
+  publicIntakeChannelSchema,
   resolveSuggestedSiteId,
   shouldAutoAdopt,
 } from "../../src/server/routes/intake-ops"
@@ -71,5 +72,14 @@ describe("webhook auto-adopt trigger conditions", () => {
 
   it("Given a non-direct channel (url/rss), when checked, then it goes through the inbox", () => {
     expect(shouldAutoAdopt({ ...base, directDrop: false })).toBe(false)
+  })
+  it("Given a crawl item with direct content, when auto-adopt is checked, then it remains in the inbox", () => {
+    expect(shouldAutoAdopt({ ...base, channel: "crawl" })).toBe(false)
+  })
+})
+
+describe("public intake channel", () => {
+  it("Given a crawl channel, when parsed for public submission, then it is rejected", () => {
+    expect(publicIntakeChannelSchema.safeParse("crawl").success).toBe(false)
   })
 })
