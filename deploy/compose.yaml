@@ -37,6 +37,7 @@ services:
       GEO_FOUNDRY_S3_FORCE_PATH_STYLE: "true"
       GEO_FOUNDRY_S3_SECRET_REF: rustfs-geo-foundry-svc
       GEO_FOUNDRY_CMS_SECRET_FILE: /run/geo-foundry/credentials/cms-secret
+      GEO_FOUNDRY_CRAWL_CREDENTIALS_DIR: /run/geo-foundry/credentials
       # The workspace writing assistant calls the same provider contract as
       # the worker, but switches independently: the worker additionally needs
       # an embedding model and refuses to boot without one, so enabling chat
@@ -88,6 +89,9 @@ services:
       AI_API_KEY_FILE: /run/geo-foundry/credentials/ai-api-key
       # B3：站点 webhook 密钥目录（sites.webhook_secret_reference 指向其中具名文件）
       GEO_FOUNDRY_SITE_WEBHOOK_CREDENTIALS_DIR: /run/geo-foundry/credentials
+      GEO_FOUNDRY_CRAWL_BASE_URL: ${GEO_FOUNDRY_CRAWL_BASE_URL:-https://crawl.xllent.dev}
+      GEO_FOUNDRY_CRAWL_CALLBACK_URL: ${GEO_FOUNDRY_CRAWL_CALLBACK_URL:-https://geo-foundry-mk-dev.aixllent.com/api/integration/crawl-callbacks}
+      GEO_FOUNDRY_CRAWL_CREDENTIALS_DIR: /run/geo-foundry/credentials
     volumes:
       - type: bind
         source: ${GEO_FOUNDRY_CREDENTIALS_DIR:?GEO_FOUNDRY_CREDENTIALS_DIR is required}
