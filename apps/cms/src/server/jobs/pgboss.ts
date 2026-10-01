@@ -187,6 +187,18 @@ export const sendEditionEmbeddingJobWithin = async (
   )
 }
 
+export const sendRoutingSyncJobWithin = async (
+  tx: TxLike,
+  input: Readonly<{ siteId: number; tenantId: number }>,
+): Promise<string | null> => {
+  const boss = await cmsBoss()
+  return boss.send(
+    JOB_QUEUE.publish,
+    { kind: "routing-sync", stage: "routing-sync", siteId: input.siteId, tenantId: input.tenantId },
+    { db: fromDrizzle(tx, sql) },
+  )
+}
+
 /**
  * 站点事件（发布 webhook）：与 release 登记同事务入队；singletonKey 用
  * 确定性 eventId，同一事件重放（回执重放）不会重复入队。

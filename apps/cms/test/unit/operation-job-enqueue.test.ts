@@ -24,7 +24,7 @@ vi.mock("../../src/server/runtime", () => ({
   serverRuntime: () => ({ pool: {} }),
 }))
 
-import { sendOperationJobWithin } from "../../src/server/jobs/pgboss"
+import { sendOperationJobWithin, sendRoutingSyncJobWithin } from "../../src/server/jobs/pgboss"
 
 const tx = {} as never
 
@@ -47,6 +47,16 @@ describe("sendOperationJobWithin 入队契约", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     sendCalls.length = 0
+  })
+
+  it("站点状态变更沿用发布队列并绑定业务事务", async () => {
+    await sendRoutingSyncJobWithin(tx, { siteId: 4, tenantId: 9 })
+
+    expect(sendCall()).toMatchObject({
+      data: { kind: "routing-sync", stage: "routing-sync", siteId: 4, tenantId: 9 },
+      opts: { db: { tx } },
+      queue: "operation-publish",
+    })
   })
 
   it("publish：按共享契约构造任务数据入队，payload 可被 worker 侧解析", async () => {
