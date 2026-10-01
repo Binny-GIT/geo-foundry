@@ -11,7 +11,7 @@ export class CmsCredentialFileError extends Error {
 const strictFileMode = (environment: Record<string, string | undefined>): boolean =>
   environment["GEO_FOUNDRY_CREDENTIAL_MODE"] === "file"
 
-const readFileCredential = (fileVariable: string, path: string): string => {
+export const readFileCredential = (fileVariable: string, path: string): string => {
   let metadata: ReturnType<typeof statSync>
   try {
     metadata = statSync(path)

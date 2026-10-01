@@ -6,6 +6,7 @@ import {
   handleUsersAuthGet,
   handleUsersAuthPost,
 } from "@/server/routes/auth"
+import { handleCrawlCallback } from "@/server/routes/crawl-callbacks"
 import { handleDeliveryGet } from "@/server/routes/delivery"
 import { handleEditionAiChatPost } from "@/server/routes/edition-ai-chat"
 import { handleEditionOpsPost } from "@/server/routes/edition-ops"
@@ -102,6 +103,7 @@ export const GET = async (request: Request, context: RouteContext): Promise<Resp
 export const POST = async (request: Request, context: RouteContext): Promise<Response> => {
   const params = await context.params
   const handled = await dispatch(request, params.slug, [
+    ["crawl-callback", () => handleCrawlCallback(request, params.slug)],
     ["internal", () => handleInternalRequest(request, params.slug)],
     ["account-auth-post", () => handleAccountAuthPost(request, params.slug)],
     ["users-auth-post", () => handleUsersAuthPost(request, params.slug)],
