@@ -15,7 +15,17 @@ PSQL() { sudo docker exec pg-server psql -U gpucloud -d geo_foundry -qAt -c "$1"
 Q() { PSQL "SELECT $1"; }
 SKEY=$(sudo python3 -c 'import json;print(json.load(open("/opt/geo-foundry/credentials/content-service-keyring.json"))["tenants"]["413"])')
 auth() { echo "Authorization: users API-Key $SKEY"; }
-wait_tick() { echo "… waiting 75s for poll timer"; sleep 75; }
+# pg-boss cron 的实际节拍在 30～90s 之间抖动，固定等 75s 会偶发错过一拍：
+# 改为等到连接器 last_polled_at 晚于基准时刻（最长 180s）。
+wait_polled() {
+  local id=$1 since=$2
+  echo "… waiting for poll timer (connector $id)"
+  for _ in $(seq 1 36); do
+    [ "$(Q "(last_polled_at > to_timestamp($since)) FROM geo_foundry.connectors WHERE id=$id")" = "t" ] && return 0
+    sleep 5
+  done
+  echo "note: connector $id not polled within 180s"
+}
 cleanup() {
   PSQL "UPDATE geo_foundry.connectors SET status='disabled' WHERE id IN ($CID_X,$CID_Y)" >/dev/null
   PSQL "UPDATE geo_foundry.intake_items SET status='ignored' WHERE connector_id IN ($CID_X,$CID_Y)" >/dev/null
@@ -28,7 +38,8 @@ CID_Y=$(PSQL "INSERT INTO geo_foundry.connectors (name,type,status,site_id,tenan
 [ -n "$CID_X" ] && [ -n "$CID_Y" ] && ok "connectors created ($CID_X,$CID_Y)" || { bad "insert connectors"; exit 1; }
 
 # ---------- 1. tick1：X 跳过并退避，Y 建父稿并入队 ----------
-wait_tick
+wait_polled "$CID_X" "$TS"
+wait_polled "$CID_Y" "$TS"
 LX=$(Q "(last_polled_at IS NOT NULL) FROM geo_foundry.connectors WHERE id=$CID_X")
 PX=$(Q "count(*) FROM geo_foundry.intake_items WHERE connector_id=$CID_X")
 [ "$LX" = "t" ] && [ "$PX" = "0" ] && ok "no-endpoint connector skipped + backed off" || bad "X polled=$LX parent=$PX"
@@ -66,8 +77,9 @@ CHILD=$(Q "count(*) FROM geo_foundry.intake_items WHERE connector_id=$CID_Y AND 
 [ "$CHILD" = "2" ] && ok "child url-channel intakes new" || bad "children=$CHILD"
 
 # ---------- 4. tick3：failed 父稿复位新一轮（父稿仍唯一） ----------
+T3=$(date +%s)
 PSQL "UPDATE geo_foundry.connectors SET last_polled_at = now() - interval '2 hours' WHERE id=$CID_Y" >/dev/null
-wait_tick
+wait_polled "$CID_Y" "$T3"
 PY3=$(Q "status FROM geo_foundry.intake_items WHERE id=$PID")
 PNEWS2=$(Q "count(*) FROM geo_foundry.intake_items WHERE connector_id=$CID_Y AND channel='rss'")
 # 复位后 worker 可能又立刻失败：接受 fetching/failed，父稿不重复即证明复位走通。
