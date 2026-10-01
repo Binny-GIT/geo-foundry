@@ -18,6 +18,7 @@ import { validateUserTenantInvariant } from "../../access/user-tenant-invariant"
 import { hashPassword } from "../auth/password"
 import type { ServerDb } from "../db/client"
 import { connectors, sites } from "../db/entity-schema"
+import { sendRoutingSyncJobWithin } from "../jobs/pgboss"
 import { tenants, users } from "../db/schema"
 import { domains } from "../db/session-schema"
 import { findConsoleRecord } from "./console-collections"
@@ -510,7 +511,7 @@ export const updateSite = async (
   const columns = siteColumnsOf(parsed.data)
   await db.transaction(async (tx) => {
     const current = (
-      await tx.select({ tenantId: sites.tenantId }).from(sites).where(eq(sites.id, id)).limit(1)
+      await tx.select({ status: sites.status, tenantId: sites.tenantId }).from(sites).where(eq(sites.id, id)).limit(1)
     )[0]
     if (current === undefined) throw fail("CMS_NOT_FOUND", 404)
     assertScope(scope, current.tenantId)
@@ -518,6 +519,9 @@ export const updateSite = async (
       .update(sites)
       .set({ ...columns, updatedAt: new Date() })
       .where(eq(sites.id, id))
+    if (parsed.data.status !== undefined && parsed.data.status !== current.status) {
+      await sendRoutingSyncJobWithin(tx, { siteId: id, tenantId: current.tenantId })
+    }
   })
   return (await findConsoleRecord(db, scope, "sites", id)) ?? { id }
 }
