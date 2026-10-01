@@ -1,25 +1,24 @@
-import { ContentServiceClient } from "@geo/content-client"
-
 import { createWorkerAiProvider } from "./config/ai-provider.js"
 import { workerCredentialOf } from "./config/credentials.js"
 import { loadTenantKeyring, runForTenant, tenantClientProxy } from "./config/tenant-keyring.js"
 import { createSnapshotStore } from "./intake/snapshot-store.js"
+import { createCrawlProcessor } from "./processors/crawl.js"
 import { createIntakeProcessor } from "./processors/intake.js"
 import {
   createEvaluationProcessor,
   createGenerationProcessor,
 } from "./processors/pipeline-processors.js"
+import { parseWorkerS3Options } from "./processors/release-pipeline.js"
+import { createSiteEventProcessor } from "./processors/site-events.js"
 import {
   createEmbeddingProcessor,
   createPublishGateProcessor,
   createRollbackGateProcessor,
 } from "./processors/triggers.js"
-import { createSiteEventProcessor } from "./processors/site-events.js"
-import { parseWorkerS3Options } from "./processors/release-pipeline.js"
-import type { WorkJob, WorkerLogEvent } from "./processors/types.js"
+import type { WorkerLogEvent, WorkJob } from "./processors/types.js"
 import {
-  createWorkerBoss,
   CRON_SCHEDULES,
+  createWorkerBoss,
   JOB_QUEUE,
   QUEUE_CONCURRENCY,
   workerPgConnectionString,
@@ -35,7 +34,8 @@ type ShapedJob = {
   readonly queueName: string
 }
 
-const handleJobs = (processor: (job: ShapedJob) => Promise<unknown>) =>
+const handleJobs =
+  (processor: (job: ShapedJob) => Promise<unknown>) =>
   async (jobs: readonly PgBossJob[]): Promise<void> => {
     for (const job of jobs) {
       const data = (job.data ?? {}) as Record<string, unknown>
@@ -88,11 +88,15 @@ export const main = async (): Promise<void> => {
   const sendIntakeJob = async (input: { intakeItemId: number; tenantId: number }) => {
     // 子项入队经 CMS internal API 之外的直达路径已不存在；复用 dispatch 侧的
     // pg-boss 直连（受限 role 只能 INSERT pgboss.job，与 CMS 同队列同去重键）。
-    await bossSend(JOB_QUEUE.intake, {
-      intakeItemId: input.intakeItemId,
-      kind: "intake",
-      tenantId: input.tenantId,
-    }, `intake-${input.intakeItemId}`)
+    await bossSend(
+      JOB_QUEUE.intake,
+      {
+        intakeItemId: input.intakeItemId,
+        kind: "intake",
+        tenantId: input.tenantId,
+      },
+      `intake-${input.intakeItemId}`,
+    )
   }
   // 处理器各自的 data 形状由运行时 data.stage/kind 分派，这里只保留统一外壳；
   // never 参数位让各具体处理器形状都能落入同一张表。
@@ -100,12 +104,20 @@ export const main = async (): Promise<void> => {
     [JOB_QUEUE.embedding]: createEmbeddingProcessor(context, provider),
     [JOB_QUEUE.evaluation]: createEvaluationProcessor(context, provider),
     [JOB_QUEUE.generation]: createGenerationProcessor(context, provider),
-    [JOB_QUEUE.intake]: createIntakeProcessor({
-      client,
-      enqueue: sendIntakeJob,
-      logger,
-      snapshots,
-    }),
+    [JOB_QUEUE.intake]: (job: WorkJob<Record<string, unknown>>) =>
+      job.data["kind"] === "crawl-dispatch" || job.data["kind"] === "crawl-ingest"
+        ? createCrawlProcessor(client, {
+            baseUrl: process.env["GEO_FOUNDRY_CRAWL_BASE_URL"] ?? "https://crawl.xllent.dev",
+            callbackUrl: process.env["GEO_FOUNDRY_CRAWL_CALLBACK_URL"] ?? "",
+            credentialDirectory: process.env["GEO_FOUNDRY_CRAWL_CREDENTIALS_DIR"],
+          })(job)
+        : createIntakeProcessor({ client, enqueue: sendIntakeJob, logger, snapshots })({
+            ...job,
+            data: {
+              intakeItemId: Number(job.data["intakeItemId"]),
+              tenantId: Number(job.data["tenantId"]),
+            },
+          }),
     [JOB_QUEUE.publish]: (job: Parameters<typeof publish>[0]) =>
       ((job.data as Record<string, unknown>)["stage"] === "rollback-gate"
         ? rollback(job)
