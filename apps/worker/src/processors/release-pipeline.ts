@@ -139,7 +139,6 @@ export const syncGlobalRoutingManifest = async (context: ProcessorContext): Prom
       siteId: `site-${site.siteId}`,
     }))
     .filter((entry) => RoutingHostSchema.safeParse(entry.host).success)
-  if (hosts.length === 0) return
   const manifest: RoutingManifestInput = {
     hosts,
     schemaVersion: RELEASE_SCHEMA_VERSION,
