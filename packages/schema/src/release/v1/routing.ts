@@ -82,7 +82,9 @@ const RoutingManifestInputSchema = z
 
 export const RoutingManifestSchema = RoutingManifestInputSchema.transform((manifest) =>
   Object.freeze({
-    hosts: Object.freeze([...manifest.hosts].sort((left, right) => compareCanonicalText(left.host, right.host))),
+    hosts: Object.freeze(
+      [...manifest.hosts].sort((left, right) => compareCanonicalText(left.host, right.host)),
+    ),
     schemaVersion: manifest.schemaVersion,
   }),
 )
@@ -158,7 +160,9 @@ export const RouteIndexSchema = RouteIndexInputSchema.transform((routeIndex) =>
   Object.freeze({
     canonicalDomain: routeIndex.canonicalDomain,
     routes: Object.freeze(
-      [...routeIndex.routes].sort((left, right) => compareCanonicalText(left.pathname, right.pathname)),
+      [...routeIndex.routes].sort((left, right) =>
+        compareCanonicalText(left.pathname, right.pathname),
+      ),
     ),
     schemaVersion: routeIndex.schemaVersion,
     siteId: routeIndex.siteId,
@@ -207,7 +211,8 @@ export const routingPointerOf = (input: {
 
 export const routeIndexOf = (input: unknown): RouteIndex => RouteIndexSchema.parse(input)
 
-export const routingManifestOf = (input: unknown): RoutingManifest => RoutingManifestSchema.parse(input)
+export const routingManifestOf = (input: unknown): RoutingManifest =>
+  RoutingManifestSchema.parse(input)
 
 export const routingManifestSiteIdOfHost = (
   manifest: RoutingManifest,

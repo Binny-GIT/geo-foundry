@@ -198,11 +198,8 @@ export const createWorkerMediaClient = (options: WorkerMediaOptions): S3Client =
   })
 
 /** 媒体对象键：<mediaPrefix>/tenants/<租户>/<文件名>，与 CMS 上传布局一致。 */
-export const mediaObjectKeyOf = (
-  mediaPrefix: string,
-  tenantId: number,
-  filename: string,
-): string => `${mediaPrefix}/tenants/${tenantId}/${filename}`
+export const mediaObjectKeyOf = (mediaPrefix: string, tenantId: number, filename: string): string =>
+  `${mediaPrefix}/tenants/${tenantId}/${filename}`
 
 /**
  * 编译快照的媒体条目是 CMS 的传输数据（tenantId/mimeType 编译过程忽略）；
@@ -381,8 +378,7 @@ export const publishPlannedRelease = async (
     verifiedManifest: input.planned.verifiedManifest,
   })
   // 回执登记的任务站点；旧载荷无 siteId 时回退文章单数站点。
-  const siteId =
-    input.siteId ?? (await context.client.getEditionInput(input.editionId)).siteId
+  const siteId = input.siteId ?? (await context.client.getEditionInput(input.editionId)).siteId
   await context.client.recordPublishedRelease(siteId, {
     editionId: input.editionId,
     operationId: input.operationId,

@@ -3,7 +3,8 @@ import { readFile } from "node:fs/promises"
 import test from "node:test"
 
 const root = new URL("../", import.meta.url)
-const readText = async (path) => (await readFile(new URL(path, root), "utf8")).replaceAll("\r\n", "\n")
+const readText = async (path) =>
+  (await readFile(new URL(path, root), "utf8")).replaceAll("\r\n", "\n")
 const readJson = async (path) => JSON.parse(await readText(path))
 
 test("Given public CI When its workflow is inspected Then it runs only non-secret verification", async () => {
@@ -62,7 +63,10 @@ test("Given CI verification When its local entrypoint is inspected Then it force
     script,
     /packages:validate|packages:pack-smoke|task-6-packed-consumer|package-validate\.mjs|package-smoke\.mjs/,
   )
-  assert.doesNotMatch(script, /test:e2e|test:faults"\]|test:harness|evidence:verify|evidence-manifest/)
+  assert.doesNotMatch(
+    script,
+    /test:e2e|test:faults"\]|test:harness|evidence:verify|evidence-manifest/,
+  )
   assert.match(manifest.scripts["test:faults"], /turbo run build --force/)
   assert.match(manifest.scripts["test:faults"], /--filter=@geo\/cms/)
   assert.match(manifest.scripts["test:faults"], /--filter=@geo\/worker/)

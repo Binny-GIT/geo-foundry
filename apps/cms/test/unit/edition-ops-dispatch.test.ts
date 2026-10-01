@@ -39,7 +39,9 @@ describe("edition ops action claiming", () => {
   it("returns null without authenticating when the action is not claimed", async () => {
     // 前提：未登录且操作不属于 edition-ops
     state.authenticated = false
-    const request = new Request("http://localhost/api/editions/42/review-comments", { method: "POST" })
+    const request = new Request("http://localhost/api/editions/42/review-comments", {
+      method: "POST",
+    })
     // 执行：检查操作归属
     const result = await handleEditionOpsPost(request, ["editions", "42", "review-comments"])
     // 结果：交由后续处理器认领
@@ -95,7 +97,9 @@ describe("edition ops action claiming", () => {
     expect(await result.json()).toEqual({ error: { code: "API_ROUTE_NOT_FOUND" } })
     expect(
       await handleEditionOpsPost(new Request("http://localhost/api/editions/42/sites"), [
-        "editions", "42", "sites",
+        "editions",
+        "42",
+        "sites",
       ]),
     ).toBeNull()
   })

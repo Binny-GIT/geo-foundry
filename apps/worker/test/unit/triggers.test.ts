@@ -118,7 +118,11 @@ describe("operation job payload contract", () => {
     pipeline.syncGlobalRoutingManifest.mockResolvedValueOnce(undefined)
     const processor = createPublishQueueProcessor(fixture.context)
 
-    await processor({ data: { kind: "routing-sync", stage: "routing-sync", siteId: 4, tenantId: 9 }, id: "routing-job", queueName: "operation-publish" } as never)
+    await processor({
+      data: { kind: "routing-sync", stage: "routing-sync", siteId: 4, tenantId: 9 },
+      id: "routing-job",
+      queueName: "operation-publish",
+    } as never)
 
     expect(pipeline.syncGlobalRoutingManifest).toHaveBeenCalledWith(fixture.context)
     expect(fixture.recordCompileResult).not.toHaveBeenCalled()

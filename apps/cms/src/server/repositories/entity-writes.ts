@@ -511,7 +511,11 @@ export const updateSite = async (
   const columns = siteColumnsOf(parsed.data)
   await db.transaction(async (tx) => {
     const current = (
-      await tx.select({ status: sites.status, tenantId: sites.tenantId }).from(sites).where(eq(sites.id, id)).limit(1)
+      await tx
+        .select({ status: sites.status, tenantId: sites.tenantId })
+        .from(sites)
+        .where(eq(sites.id, id))
+        .limit(1)
     )[0]
     if (current === undefined) throw fail("CMS_NOT_FOUND", 404)
     assertScope(scope, current.tenantId)

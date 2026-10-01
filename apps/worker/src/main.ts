@@ -10,10 +10,7 @@ import {
 } from "./processors/pipeline-processors.js"
 import { parseWorkerS3Options } from "./processors/release-pipeline.js"
 import { createSiteEventProcessor } from "./processors/site-events.js"
-import {
-  createEmbeddingProcessor,
-  createPublishQueueProcessor,
-} from "./processors/triggers.js"
+import { createEmbeddingProcessor, createPublishQueueProcessor } from "./processors/triggers.js"
 import type { WorkerLogEvent, WorkJob } from "./processors/types.js"
 import {
   CRON_SCHEDULES,

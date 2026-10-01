@@ -16,7 +16,9 @@ describe("site status routing transaction", () => {
     ["disabled", "active"],
   ])("enqueues %s to %s within the same transaction", async (from, to) => {
     const tx = {
-      select: () => ({ from: () => ({ where: () => ({ limit: async () => [{ status: from, tenantId: 9 }] }) }) }),
+      select: () => ({
+        from: () => ({ where: () => ({ limit: async () => [{ status: from, tenantId: 9 }] }) }),
+      }),
       update: () => ({ set: () => ({ where: async () => undefined }) }),
     }
     const db = { transaction: async (work: (value: typeof tx) => Promise<void>) => work(tx) }
@@ -28,12 +30,16 @@ describe("site status routing transaction", () => {
 
   it("rolls back the status change when the enqueue fails", async () => {
     const tx = {
-      select: () => ({ from: () => ({ where: () => ({ limit: async () => [{ status: "active", tenantId: 9 }] }) }) }),
+      select: () => ({
+        from: () => ({ where: () => ({ limit: async () => [{ status: "active", tenantId: 9 }] }) }),
+      }),
       update: () => ({ set: () => ({ where: async () => undefined }) }),
     }
     const db = { transaction: async (work: (value: typeof tx) => Promise<void>) => work(tx) }
     send.mockRejectedValueOnce(new Error("queue unavailable"))
 
-    await expect(updateSite(db as never, { kind: "global" }, 4, { status: "disabled" })).rejects.toThrow("queue unavailable")
+    await expect(
+      updateSite(db as never, { kind: "global" }, 4, { status: "disabled" }),
+    ).rejects.toThrow("queue unavailable")
   })
 })

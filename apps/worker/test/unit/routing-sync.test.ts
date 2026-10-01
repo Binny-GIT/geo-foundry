@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const calls = vi.hoisted(() => ({ publish: vi.fn(), sites: [] as { siteId: number; canonicalDomain: string }[] }))
+const calls = vi.hoisted(() => ({
+  publish: vi.fn(),
+  sites: [] as { siteId: number; canonicalDomain: string }[],
+}))
 
 vi.mock("@geo/publisher", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@geo/publisher")>()),
@@ -28,7 +31,12 @@ describe("global routing sync", () => {
     await syncGlobalRoutingManifest(context)
 
     expect(calls.publish).toHaveBeenLastCalledWith(
-      expect.objectContaining({ manifest: { hosts: [{ canonical: true, host: "one.test", siteId: "site-1" }], schemaVersion: 1 } }),
+      expect.objectContaining({
+        manifest: {
+          hosts: [{ canonical: true, host: "one.test", siteId: "site-1" }],
+          schemaVersion: 1,
+        },
+      }),
     )
   })
 
@@ -39,7 +47,10 @@ describe("global routing sync", () => {
     await syncGlobalRoutingManifest(context)
 
     expect(calls.publish).toHaveBeenCalledWith(
-      expect.objectContaining({ manifest: { hosts: [], schemaVersion: 1 }, sitePointerObjectKeys: [] }),
+      expect.objectContaining({
+        manifest: { hosts: [], schemaVersion: 1 },
+        sitePointerObjectKeys: [],
+      }),
     )
   })
 })

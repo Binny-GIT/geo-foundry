@@ -203,9 +203,9 @@ describe("Routing 与 route index v1 严格契约", () => {
 
     expect(result.success).toBe(false)
     if (!result.success) {
-      expect(result.error.issues.some(({ message }) => message === "ROUTING_SITE_CANONICAL_MISSING")).toBe(
-        true,
-      )
+      expect(
+        result.error.issues.some(({ message }) => message === "ROUTING_SITE_CANONICAL_MISSING"),
+      ).toBe(true)
     }
   })
 
@@ -231,7 +231,11 @@ describe("Routing 与 route index v1 严格契约", () => {
       siteId: "site-a",
     })
 
-    expect(index.routes.map((route) => route.pathname)).toEqual(["/article", "/not-found", "/removed"])
+    expect(index.routes.map((route) => route.pathname)).toEqual([
+      "/article",
+      "/not-found",
+      "/removed",
+    ])
     expect(index.routes.find((route) => route.status === "gone")).toEqual({
       pathname: "/removed",
       status: "gone",
