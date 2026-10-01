@@ -33,11 +33,13 @@ describe("internal API contract fixtures", () => {
       const parameters = pathItem[operation.method]?.parameters ?? []
       const hasId = operation.path.includes(":id")
       const hasOperationId = operation.path.includes(":operationId")
+      const hasJobId = operation.path.includes(":jobId")
       expect(parameters.some((parameter) => parameter.$ref.endsWith("/ResourceId"))).toBe(hasId)
       expect(parameters.some((parameter) => parameter.$ref.endsWith("/OperationId"))).toBe(
         hasOperationId,
       )
-      expect(parameters).toHaveLength(Number(hasId) + Number(hasOperationId))
+      expect(parameters.some((parameter) => parameter.$ref.endsWith("/CrawlJobId"))).toBe(hasJobId)
+      expect(parameters).toHaveLength(Number(hasId) + Number(hasOperationId) + Number(hasJobId))
     }
     const documentedOperations = Object.values(internalOpenApiDocument.paths).flatMap((pathItem) =>
       Object.values(pathItem as Record<string, { operationId: string }>).map(

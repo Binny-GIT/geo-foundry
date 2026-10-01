@@ -25,6 +25,13 @@ export const INTERNAL_OPERATIONS: readonly InternalOperationDescriptor[] = [
   { method: "post", operationId: "completeIntakeFetch", path: INTERNAL_PATHS.intakeFetchComplete },
   { method: "post", operationId: "failIntakeFetch", path: INTERNAL_PATHS.intakeFetchFailed },
   { method: "post", operationId: "createRssEntries", path: INTERNAL_PATHS.intakeRssEntries },
+  { method: "get", operationId: "getCrawlDispatchInput", path: INTERNAL_PATHS.crawlDispatchInput },
+  { method: "post", operationId: "recordCrawlDispatch", path: INTERNAL_PATHS.crawlDispatchRecord },
+  { method: "post", operationId: "failCrawlDispatch", path: INTERNAL_PATHS.crawlDispatchFail },
+  { method: "get", operationId: "getCrawlJobInput", path: INTERNAL_PATHS.crawlJobInput },
+  { method: "post", operationId: "completeCrawlJob", path: INTERNAL_PATHS.crawlJobComplete },
+  { method: "post", operationId: "failCrawlJob", path: INTERNAL_PATHS.crawlJobFail },
+  { method: "post", operationId: "ackCrawlJob", path: INTERNAL_PATHS.crawlJobAck },
   { method: "get", operationId: "getCompileSnapshot", path: INTERNAL_PATHS.compileSnapshot },
   { method: "get", operationId: "getPublishedSites", path: INTERNAL_PATHS.publishedSites },
   { method: "post", operationId: "writeDraftVersion", path: INTERNAL_PATHS.versions },
@@ -85,13 +92,14 @@ const errorResponses = {
 
 const parameterByName = {
   id: { $ref: "#/components/parameters/ResourceId" },
+  jobId: { $ref: "#/components/parameters/CrawlJobId" },
   operationId: { $ref: "#/components/parameters/OperationId" },
 } as const
 
 const parametersOf = (routePath: string) =>
   [...routePath.matchAll(/:([A-Za-z][A-Za-z0-9_]*)/g)].map((match) => {
     const name = match[1]
-    if (name === "id" || name === "operationId") return parameterByName[name]
+    if (name === "id" || name === "jobId" || name === "operationId") return parameterByName[name]
     throw new Error(`missing OpenAPI parameter definition for ${name ?? "unknown"}`)
   })
 
@@ -124,6 +132,13 @@ const pathsOfOperations = (): Record<string, Record<string, ReturnType<typeof ge
 export const internalOpenApiDocument = {
   components: {
     parameters: {
+      CrawlJobId: {
+        description: "Crawl job identifier",
+        in: "path",
+        name: "jobId",
+        required: true,
+        schema: { type: "string", pattern: "^job_[0-9a-f]{16}$" },
+      },
       OperationId: {
         description: "Operation identifier",
         in: "path",

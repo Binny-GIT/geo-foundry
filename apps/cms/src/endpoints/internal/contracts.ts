@@ -23,6 +23,13 @@ export const INTERNAL_PATHS = {
   operationStageComplete: "/internal/operations/:operationId/stages/complete",
   operationStageStart: "/internal/operations/:operationId/stages/start",
   siteEventDelivery: "/internal/site-events/deliveries",
+  crawlDispatchInput: "/internal/crawl-dispatches/:id/input",
+  crawlDispatchRecord: "/internal/crawl-dispatches/:id/record",
+  crawlDispatchFail: "/internal/crawl-dispatches/:id/fail",
+  crawlJobInput: "/internal/crawl-jobs/:jobId/input",
+  crawlJobComplete: "/internal/crawl-jobs/:jobId/complete",
+  crawlJobFail: "/internal/crawl-jobs/:jobId/fail",
+  crawlJobAck: "/internal/crawl-jobs/:jobId/ack",
 } as const
 
 export const SHA256_PATTERN = /^[0-9a-f]{64}$/
@@ -202,6 +209,26 @@ export const siteEventDeliveryBodySchema = z
   .strict()
 
 export type SiteEventDeliveryBody = z.infer<typeof siteEventDeliveryBodySchema>
+
+export const crawlJobIdSchema = z.string().regex(/^job_[0-9a-f]{16}$/)
+export const crawlDispatchRecordSchema = z.object({ jobId: crawlJobIdSchema }).strict()
+export const crawlFailureSchema = z.object({ code: z.string().min(1).max(120) }).strict()
+export const crawlCompleteSchema = z
+  .object({
+    entries: z
+      .array(
+        z
+          .object({
+            content: z.string().min(1).max(200_000),
+            sourceUrl: z.string().url().max(4_000),
+            summary: z.string().max(20_000).nullable(),
+            title: z.string().min(1).max(1_000),
+          })
+          .strict(),
+      )
+      .max(50),
+  })
+  .strict()
 
 const vectorSchema = z.array(z.number().finite()).min(1).max(4096)
 

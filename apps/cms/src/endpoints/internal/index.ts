@@ -1,4 +1,5 @@
 import { connectorHandlerByOperation } from "./connectors"
+import { crawlHandlerByOperation } from "./crawl"
 import { editionHandlerByOperation } from "./editions"
 import type { InternalHandler } from "./guards"
 import { intakeHandlerByOperation } from "./intake"
@@ -7,11 +8,12 @@ import { operationHandlerByOperation } from "./operations"
 import { publicationPlanHandlerByOperation } from "./publication-plans"
 import { releaseHandlerByOperation } from "./releases"
 import { rollbackIntentHandlerByOperation } from "./rollback-intents"
-import { handleGetCompileSnapshot, handleGetPublishedSites } from "./sites"
 import { siteEventHandlerByOperation } from "./site-events"
+import { handleGetCompileSnapshot, handleGetPublishedSites } from "./sites"
 
 const handlerByOperation: Record<string, InternalHandler> = {
   ...connectorHandlerByOperation,
+  ...crawlHandlerByOperation,
   ...editionHandlerByOperation,
   ...intakeHandlerByOperation,
   ...operationHandlerByOperation,
