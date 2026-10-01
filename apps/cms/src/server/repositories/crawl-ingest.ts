@@ -16,6 +16,28 @@ export type CrawlEntry = Readonly<{
   content: string
 }>
 
+/** 单篇采集结果转稿源字段；正文转不出合法区块或来源地址不是 http(s) 时返回 null，整批跳过这一篇。 */
+export const crawlIntakeFieldsOf = (
+  entry: CrawlEntry,
+): Readonly<{
+  blocks: Record<string, unknown>[]
+  contentHash: string
+  normalizedUrl: string
+}> | null => {
+  const content = entry.content.trim().replace(/\r\n/g, "\n")
+  const blocks = markdownToBlocks(content)
+  if (validateEditionBody(blocks) !== true) return null
+  let normalizedUrl: string | undefined
+  try {
+    normalizedUrl = normalizeIntakeUrl(entry.sourceUrl)
+  } catch (error) {
+    if (error instanceof IntakeError) return null
+    throw error
+  }
+  if (normalizedUrl === undefined) return null
+  return { blocks, contentHash: createHash("sha256").update(content).digest("hex"), normalizedUrl }
+}
+
 export const crawlJobInput = async (db: ServerDb, jobId: string, user: unknown) => {
   const tenantId = crawlTenantOf(user)
   const [row] = await db
@@ -61,13 +83,14 @@ export const completeCrawlIngest = async (
     if (job.state === "ingested") return { count: 0, duplicates: 0 }
     if (job.state === "failed") throw new IntakeError("INTAKE_FETCH_STATE_INVALID")
     let duplicates = 0
+    let skipped = 0
     for (const entry of entries) {
-      const content = entry.content.trim().replace(/\r\n/g, "\n")
-      const blocks = markdownToBlocks(content)
-      if (validateEditionBody(blocks) !== true) throw new IntakeError("INTAKE_BODY_BLOCKS_INVALID")
-      const normalizedUrl = normalizeIntakeUrl(entry.sourceUrl)
-      if (normalizedUrl === undefined) throw new IntakeError("INTAKE_SOURCE_URL_REQUIRED")
-      const contentHash = createHash("sha256").update(content).digest("hex")
+      const fields = crawlIntakeFieldsOf(entry)
+      if (fields === null) {
+        skipped += 1
+        continue
+      }
+      const { blocks, contentHash, normalizedUrl } = fields
       const [existing] = await tx
         .select({ id: intakeItems.id })
         .from(intakeItems)
@@ -111,11 +134,11 @@ export const completeCrawlIngest = async (
       .update(intakeItems)
       .set({
         status: "ready",
-        summary: `${entries.length} 篇文章，${duplicates} 篇重复。`,
+        summary: `${entries.length - skipped} 篇文章，${duplicates} 篇重复${skipped > 0 ? `，${skipped} 篇无法转换已跳过` : ""}。`,
         updatedAt: new Date(),
       })
       .where(eq(intakeItems.id, job.parentIntakeItemId))
-    return { count: entries.length, duplicates }
+    return { count: entries.length - skipped, duplicates }
   })
 }
 
