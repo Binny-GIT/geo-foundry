@@ -14,10 +14,10 @@ import {
   type OperationType,
   operationJobDataOf,
   parseOperationJobPayload,
+  type SiteEventJobData,
+  siteEventIssueText,
   siteEventJobDataOf,
   siteEventJobDataSchema,
-  siteEventIssueText,
-  type SiteEventJobData,
 } from "@geo/content-client"
 import { sql } from "drizzle-orm"
 import type { Pool, QueryResult } from "pg"
@@ -137,6 +137,26 @@ export const sendOperationJobWithin = async (
 export const sendIntakeJob = async (input: IntakeJobData): Promise<string | null> => {
   const boss = await cmsBoss()
   return boss.send(JOB_QUEUE.intake, input, { singletonKey: `intake-${input.intakeItemId}` })
+}
+
+/** crawl 台账和队列在同一个 Drizzle 事务提交；按 job/parent 固定去重。 */
+export const sendCrawlJobWithin = async (
+  tx: TxLike,
+  input: Readonly<{
+    kind: "crawl-dispatch" | "crawl-ingest"
+    parentIntakeItemId: number
+    tenantId: number
+    jobId?: string
+  }>,
+): Promise<string | null> => {
+  const boss = await cmsBoss()
+  return boss.send(JOB_QUEUE.intake, input, {
+    db: fromDrizzle(tx, sql),
+    singletonKey:
+      input.kind === "crawl-dispatch"
+        ? `crawl-dispatch-${input.parentIntakeItemId}`
+        : `crawl-ingest-${input.jobId}`,
+  })
 }
 
 export type EditionEmbeddingJobData = Readonly<{
