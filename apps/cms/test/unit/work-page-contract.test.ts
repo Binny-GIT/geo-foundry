@@ -49,7 +49,8 @@ describe("workbench server contract", () => {
     ])
 
     expect(board).toContain("min-h-0 flex-1 overflow-auto")
-    expect(board).toContain("2xl:grid-cols-[repeat(6,minmax(180px,1fr))]")
+    expect(board).toContain("gridTemplateColumns: `repeat(${columns.length}, minmax(200px, 1fr))`")
+    expect(board).toContain('className="grid gap-4"')
     expect(board).not.toContain("min-w-[1500px]")
     expect(board).toContain("dropActionFor")
     expect(board).toContain('target="_blank"')
