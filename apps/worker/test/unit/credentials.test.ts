@@ -3,7 +3,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 
-import { optionalWorkerCredential, workerCredentialOf } from "../../src/config/credentials.js"
+import { workerCredentialOf } from "../../src/config/credentials.js"
 import { parseWorkerS3Options } from "../../src/processors/release-pipeline.js"
 
 const fixtureOf = async (): Promise<{
@@ -77,10 +77,10 @@ describe("Worker owner-only credentials", () => {
   it("rejects insecure credential files without leaking their content", async () => {
     const fixture = await fixtureOf()
     try {
-      const path = fixture.environment["GEO_FOUNDRY_REDIS_PASSWORD_FILE"]
+      const path = fixture.environment["GEO_FOUNDRY_WORKER_PG_URL_FILE"]
       await chmod(path, 0o644)
-      expect(() => optionalWorkerCredential(fixture.environment, "GEO_FOUNDRY_REDIS_PASSWORD")).toThrow(
-        "WORKER_CREDENTIAL_FILE_INSECURE:GEO_FOUNDRY_REDIS_PASSWORD_FILE",
+      expect(() => workerCredentialOf(fixture.environment, "GEO_FOUNDRY_WORKER_PG_URL")).toThrow(
+        "WORKER_CREDENTIAL_FILE_INSECURE:GEO_FOUNDRY_WORKER_PG_URL_FILE",
       )
     } finally {
       await fixture.cleanup()
