@@ -6,9 +6,10 @@
  */
 import type { Server } from "node:http"
 
-import { afterAll, beforeAll, describe, expect, it } from "vitest"
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 
 import { createDeliveryApp } from "../../src/app.js"
+import { QuotaTracker } from "../../src/auth/site-auth.js"
 import { parseSiteKeyring } from "../../src/config/site-keyring.js"
 import { createDeliveryRuntime } from "../../src/runtime/delivery-runtime.js"
 import {
@@ -69,9 +70,11 @@ const setup = async (appOptions: { readonly mediaQuotaPerMinute?: number } = {})
       return baseRuntime.resolveMedia(request)
     },
   }
+  const quota = new QuotaTracker()
   const app = createDeliveryApp({
     ...appOptions,
     publicOrigin: "https://geo-delivery.test",
+    quota,
     runtime,
     siteKeyring: keyring,
   })
@@ -79,7 +82,7 @@ const setup = async (appOptions: { readonly mediaQuotaPerMinute?: number } = {})
   await new Promise<void>((resolveReady) => server.once("listening", () => resolveReady()))
   const address = server.address()
   if (typeof address !== "object" || address === null) throw new Error("failed to bind test server")
-  return { mapBytes, mediaLookups, port: address.port, release, server }
+  return { mapBytes, mediaLookups, port: address.port, quota, release, server }
 }
 
 describe("createDeliveryApp routes", () => {
@@ -97,6 +100,40 @@ describe("createDeliveryApp routes", () => {
 
   const baseUrl = () => `http://127.0.0.1:${world.port}`
   const authed = (token = VALID_KEY) => ({ Authorization: `Bearer ${token}` })
+
+  it("公开媒体抓取规则，当 API 主机请求 robots.txt 时", async () => {
+    // Given：无凭据请求，观察真实配额计数器。
+    const consume = vi.spyOn(world.quota, "consume")
+    try {
+      // When：通过实际 HTTP 请求 robots.txt。
+      const response = await fetch(`${baseUrl()}/robots.txt`)
+      // Then：精确返回抓取策略，不消耗配额。
+      expect(response.status).toBe(200)
+      expect(response.headers.get("content-type")).toBe("text/plain; charset=utf-8")
+      expect(response.headers.get("cache-control")).toBe("public, max-age=3600")
+      expect(await response.text()).toBe("User-agent: *\nAllow: /v1/sites/*/media/\nDisallow: /\n")
+      expect(consume).not.toHaveBeenCalled()
+    } finally {
+      consume.mockRestore()
+    }
+  })
+
+  it.each(["site-a.test", ""])("返回 404，当 robots 请求携带站点头 %j 时", async (host) => {
+    // Given：站点头存在，即使为空也不是 API 主机规则。
+    const consume = vi.spyOn(world.quota, "consume")
+    try {
+      // When：无凭据请求站点 robots.txt。
+      const response = await fetch(`${baseUrl()}/robots.txt`, {
+        headers: { "X-Geo-Site-Host": host },
+      })
+      // Then：不误用 API 抓取规则，不鉴权也不消耗配额。
+      expect(response.status).toBe(404)
+      expect(response.headers.has("www-authenticate")).toBe(false)
+      expect(consume).not.toHaveBeenCalled()
+    } finally {
+      consume.mockRestore()
+    }
+  })
 
   it("answers /healthz without any credentials and without touching the object store", async () => {
     const response = await fetch(`${baseUrl()}/healthz`)

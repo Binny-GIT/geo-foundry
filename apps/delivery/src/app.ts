@@ -12,15 +12,15 @@
  * 只注册一个 app.use(handler)，路由分发在处理函数内部用普通正则手写，
  * 顺带也让"站点身份不能从路径/请求头以外的地方推断"这条约束更容易审查。
  */
-import { createElement as h, type ReactNode } from "react"
-import { renderToPipeableStream } from "react-dom/server"
-import express, { type Application, type Request, type Response } from "express"
 
 import { renderPage } from "@geo/render-core"
 import { GeoHead, GeoPage, geoJsonLdOf } from "@geo/render-react"
 import type { PageDocument } from "@geo/schema"
+import express, { type Application, type Request, type Response } from "express"
+import { createElement as h, type ReactNode } from "react"
+import { renderToPipeableStream } from "react-dom/server"
 
-import { authorizeSiteRequest, quotaBucketKeyOf, QuotaTracker } from "./auth/site-auth.js"
+import { authorizeSiteRequest, QuotaTracker, quotaBucketKeyOf } from "./auth/site-auth.js"
 import type { SiteKeyring } from "./config/site-keyring.js"
 import { absolutizePageDocumentMedia } from "./render/absolute-media.js"
 import { renderBodyHtml } from "./render/body-html.js"
@@ -380,6 +380,20 @@ export const createDeliveryApp = (options: CreateDeliveryAppOptions): Applicatio
 
       if (pathname === "/healthz") {
         handleHealthz(response)
+        return
+      }
+
+      if (pathname === "/robots.txt") {
+        response.setHeader("Vary", "X-Geo-Site-Host")
+        if (request.headers["x-geo-site-host"] !== undefined) {
+          sendJson(response, 404, { error: { code: "DELIVERY_ROBOTS_NOT_FOUND" } }, NO_STORE)
+          return
+        }
+        response.writeHead(200, {
+          "Cache-Control": "public, max-age=3600",
+          "Content-Type": "text/plain; charset=utf-8",
+        })
+        response.end("User-agent: *\nAllow: /v1/sites/*/media/\nDisallow: /\n")
         return
       }
 
