@@ -4,7 +4,9 @@
  * - 不带 siteId：为全部成员站点各提交一条；
  * - 显式 siteId：只为该站提交（定时发布按计划站点、单站失败重试共用此入口，
  *   文章已 published 时仅允许对尚未发布的成员站重试）。
- * 幂等键含站点 ID（publish-edition-{id}-site-{siteId}-...），跨站互不干扰；
+ * 幂等键含站点 ID（publish-edition-{id}-...-site-{siteId}-...），跨站互不干扰；
+ * 未编译时还含版本行 id：修订号在每个新版本都从 0 重新计数，只用修订号会让
+ * 已发布文章的新版本回放旧版本的发布操作（新内容永远发不出去）。
  * releaseId 恒由 operationId 确定性推导（releaseIdForOperation），worker 侧重试安全。
  * 会话路由与定时发布调度共用。
  */
@@ -15,12 +17,12 @@ import { and, desc, eq, sql } from "drizzle-orm"
 import { operationRequestHashOf, operationUniqueKeyOf } from "../../services/operations-ledger"
 import type { ServerDb } from "../db/client"
 import { operations } from "../db/ledger-schema"
+import { desiredEditionSiteIdsOf, editionSiteRowOf, memberSiteIdsOf } from "./edition-sites"
 import {
   loadCurrentVersion,
   type WorkflowClaims,
   WorkflowRepositoryError,
 } from "./edition-workflow"
-import { desiredEditionSiteIdsOf, editionSiteRowOf, memberSiteIdsOf } from "./edition-sites"
 import { OperationsRepository } from "./operations"
 import { passedSiteAddAssessmentId } from "./site-evaluation"
 
@@ -28,6 +30,19 @@ const sha256Text = (input: string): string => createHash("sha256").update(input)
 
 export const releaseIdForOperation = (operationId: string): string =>
   `rel-${createHash("sha256").update(operationId).digest("hex").slice(0, 24)}`
+
+export const publishOperationBaseKeyOf = (
+  input: Readonly<{
+    compiledRelease: string | null
+    editionId: number
+    revision: number
+    siteId: number
+    versionId: number
+  }>,
+): string =>
+  input.compiledRelease === null
+    ? `publish-edition-${input.editionId}-version-${input.versionId}-site-${input.siteId}-revision-${input.revision}`
+    : `publish-edition-${input.editionId}-site-${input.siteId}-${input.compiledRelease}`
 
 export type SubmitEditionPublishOutcome = Readonly<{
   created: boolean
@@ -75,8 +90,11 @@ export const submitEditionPublishOperation = async (
     if (isPublishedRetry) {
       // 他站已发布后的单站重试：该站行必须还没发布过，否则会重复出 release。
       const requestedSiteId = input.siteId
-      if (requestedSiteId === undefined) throw new WorkflowRepositoryError("EDITION_WORKFLOW_SITE_NOT_ASSIGNED")
-      const row = await db.transaction((tx) => editionSiteRowOf(tx, input.editionId, requestedSiteId))
+      if (requestedSiteId === undefined)
+        throw new WorkflowRepositoryError("EDITION_WORKFLOW_SITE_NOT_ASSIGNED")
+      const row = await db.transaction((tx) =>
+        editionSiteRowOf(tx, input.editionId, requestedSiteId),
+      )
       if (row !== null && row.publishState === "published") {
         throw new WorkflowRepositoryError("EDITION_WORKFLOW_SITE_ALREADY_PUBLISHED")
       }
@@ -100,10 +118,13 @@ export const submitEditionPublishOperation = async (
   // 各站在独立事务里提交：某站失败不回滚已提交的站，调用方重放时
   // 已成功站按幂等键原样返回（created=false），失败站继续重试。
   for (const targetSiteId of targetSiteIds) {
-    const baseKey =
-      compiledRelease === null
-        ? `publish-edition-${input.editionId}-site-${targetSiteId}-revision-${revision}`
-        : `publish-edition-${input.editionId}-site-${targetSiteId}-${compiledRelease}`
+    const baseKey = publishOperationBaseKeyOf({
+      compiledRelease,
+      editionId: input.editionId,
+      revision,
+      siteId: targetSiteId,
+      versionId: version.id,
+    })
     const lastFailure =
       isPublishedRetry && input.siteId !== undefined
         ? await db
