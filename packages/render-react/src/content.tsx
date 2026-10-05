@@ -1,5 +1,3 @@
-import type { ReactNode } from "react"
-
 import type {
   RenderBlock,
   RenderContent,
@@ -8,6 +6,7 @@ import type {
   RenderPage,
   RenderSlotName,
 } from "@geo/render-core"
+import type { ReactNode } from "react"
 
 import { useGeoPage } from "./context.js"
 
@@ -282,7 +281,9 @@ export const ContentBody = ({
         <Hero hero={content.hero} page={page} tokens={tokens} />
       )}
       <Slot name="after-hero" />
-      <Author content={content} page={page} tokens={tokens} />
+      {content.author === undefined ? null : (
+        <Author content={content} page={page} tokens={tokens} />
+      )}
       {page.pageType === "article-list" ||
       page.pageType === "category" ||
       page.pageType === "tag" ? (

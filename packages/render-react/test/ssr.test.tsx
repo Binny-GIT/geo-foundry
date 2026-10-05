@@ -1,7 +1,7 @@
 import { Writable } from "node:stream"
 
 import { renderPage } from "@geo/render-core"
-import { canonicalPageFixtures } from "@geo/schema"
+import { ArticlePageSchema, canonicalPageFixtures } from "@geo/schema"
 import { renderToPipeableStream, renderToString } from "react-dom/server"
 import { describe, expect, it } from "vitest"
 
@@ -29,6 +29,33 @@ const streamToString = (page: ReturnType<typeof renderPage>): Promise<string> =>
   })
 
 describe("Geo SSR", () => {
+  it("不渲染署名，当文章没有真人作者时", () => {
+    // Given：无作者文章与自定义作者组件。
+    const { author: _author, ...document } = canonicalPageFixtures[0]
+    const page = renderPage(ArticlePageSchema.parse(document))
+    // When：执行 SSR。
+    const html = renderToString(
+      <GeoPage page={page} theme={{ components: { Author: () => <p>By custom author</p> } }} />,
+    )
+    // Then：无作者时不调用作者组件。
+    expect(html).not.toContain("By ")
+    expect(html).not.toContain("/authors/")
+  })
+
+  it("保留署名链接，当文章有真人作者时", () => {
+    // Given：明确的真人作者。
+    const page = renderPage(
+      ArticlePageSchema.parse({
+        ...canonicalPageFixtures[0],
+        author: { id: "author-ada", name: "Ada Chen", url: "https://site-a.test/authors/ada" },
+      }),
+    )
+    // When：执行 SSR。
+    const html = renderToString(<GeoPage page={page} />)
+    // Then：真人署名继续可见。
+    expect(html).toContain('href="https://site-a.test/authors/ada">Ada Chen</a>')
+  })
+
   it.each(canonicalPageFixtures)(
     "renders the $pageType fixture without JavaScript",
     async (fixture) => {

@@ -53,7 +53,7 @@ export const dedupeStructuredData = (
   return unique
 }
 
-const organizationNodeOf = (site: GraphSite): StructuredData => {
+const organizationNodeOf = (site: GraphSite): Extract<StructuredData, { type: "Organization" }> => {
   const organization = site.organization
   if (organization === undefined || organization.name.length === 0) {
     throw required("organization", `site ${canonicalDomainOf(site)} has no publisher organization`)
@@ -85,22 +85,28 @@ export type ArticleGraphInput = {
 }
 
 /**
- * Linked JSON-LD graph for article pages: the Article/NewsArticle node,
- * an optional ImageObject for the hero, the author as Person, the site
- * publisher as Organization, and the visible breadcrumbs. Every value is
- * copied from the same source the visible page renders.
+ * 文章图谱保留真人作者；没有真人作者时以发布机构署名，不生成虚构 Person。
  */
 export const buildArticleGraph = (input: ArticleGraphInput): readonly StructuredData[] => {
   const author = input.author
-  if (author === undefined || author.name.length === 0) {
+  if (author !== undefined && author.name.length === 0) {
     throw required("author", `article ${input.canonicalUrl} has no author`)
   }
   if (input.articleKind === "news" && input.heroImage === undefined) {
     throw required("image", `news article ${input.canonicalUrl} requires a hero image`)
   }
+  const organization = organizationNodeOf(input.site)
   const nodes: StructuredData[] = [
     {
-      author: { name: author.name, ...(author.url === undefined ? {} : { url: author.url }) },
+      author:
+        author === undefined
+          ? {
+              id: organization.id,
+              name: organization.name,
+              type: "Organization",
+              url: organization.url,
+            }
+          : { name: author.name, ...(author.url === undefined ? {} : { url: author.url }) },
       dateModified: input.dateModified,
       datePublished: input.datePublished,
       description: input.description,
@@ -110,13 +116,17 @@ export const buildArticleGraph = (input: ArticleGraphInput): readonly Structured
       type: input.articleKind === "news" ? "NewsArticle" : "Article",
       url: input.canonicalUrl,
     },
-    {
-      id: "#author",
-      name: author.name,
-      type: "Person",
-      ...(author.url === undefined ? {} : { url: author.url }),
-    },
-    organizationNodeOf(input.site),
+    ...(author === undefined
+      ? []
+      : [
+          {
+            id: "#author",
+            name: author.name,
+            type: "Person" as const,
+            ...(author.url === undefined ? {} : { url: author.url }),
+          },
+        ]),
+    organization,
     { id: "#breadcrumbs", items: [...input.breadcrumbs], type: "BreadcrumbList" },
   ]
   if (input.heroImage !== undefined) {

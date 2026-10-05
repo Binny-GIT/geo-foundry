@@ -86,8 +86,6 @@ describe("compile snapshot route mapping", () => {
   it("uses the content version timestamp instead of audit update time", () => {
     const edition = mapEdition({
       assessment: { inputHash: "a".repeat(64), state: "passed" },
-      authorId: "author-site-12",
-      authorName: "Site A Editorial Team",
       canonicalDomain: "site-a.test",
       edition: {
         body: [{ blockType: "paragraph", text: "Stable release content" }],
@@ -108,13 +106,12 @@ describe("compile snapshot route mapping", () => {
 
     expect(edition?.modifiedAt).toBe("2026-08-21T00:00:00.000Z")
     expect(edition?.status).toBe("published")
+    expect(edition).not.toHaveProperty("author")
   })
 
   it("clamps a creation hook timestamp to the persisted publish timestamp", () => {
     const edition = mapEdition({
       assessment: { inputHash: "a".repeat(64), state: "passed" },
-      authorId: "author-site-12",
-      authorName: "Site A Editorial Team",
       canonicalDomain: "site-a.test",
       edition: {
         body: [{ blockType: "paragraph", text: "Created at database time" }],
@@ -140,8 +137,8 @@ describe("compile snapshot route mapping", () => {
   it("maps a stable public author independently of the content origin enum", () => {
     const edition = mapEdition({
       assessment: { inputHash: "a".repeat(64), state: "passed" },
-      authorId: "author-site-12",
-      authorName: "Site A Editorial Team",
+      authorId: "author-ada",
+      authorName: "Ada Chen",
       canonicalDomain: "site-a.test",
       edition: {
         body: [{ blockType: "paragraph", text: "Stored paragraph" }],
@@ -161,17 +158,15 @@ describe("compile snapshot route mapping", () => {
     })
 
     expect(edition?.author).toEqual({
-      id: "author-site-12",
-      name: "Site A Editorial Team",
-      url: "https://site-a.test/authors/site-a-editorial-team",
+      id: "author-ada",
+      name: "Ada Chen",
+      url: "https://site-a.test/authors/ada-chen",
     })
   })
 
   it("normalizes legacy source citations without mutating the stored edition", () => {
     const edition = mapEdition({
       assessment: { inputHash: "a".repeat(64), state: "passed" },
-      authorId: "author-site-12",
-      authorName: "Site A Editorial Team",
       canonicalDomain: "site-a.test",
       edition: {
         body: [{ blockType: "paragraph", text: "Stored paragraph" }],
@@ -255,8 +250,6 @@ describe("compile snapshot media entries", () => {
     )
     const edition = mapEdition({
       assessment: { inputHash: "a".repeat(64), state: "passed" },
-      authorId: "author-site-12",
-      authorName: "Site A Editorial Team",
       canonicalDomain: "site-a.test",
       edition: {
         body: [{ blockType: "image", src: "/api/media/file/map.webp" }],

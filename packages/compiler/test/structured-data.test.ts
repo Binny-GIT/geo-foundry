@@ -101,9 +101,24 @@ describe("article JSON-LD graph", () => {
     expect("image" in (graph[0] ?? {})).toBe(false)
   })
 
-  it("requires an author and a publisher organization", () => {
+  it("以发布机构署名，当文章没有真人作者时", () => {
+    // Given：没有真人作者的文章。
     const { author: _author, ...withoutAuthor } = articleInput
-    expectCode(() => buildArticleGraph(withoutAuthor), COMPILER_ERROR.SEO_REQUIRED_FIELD_MISSING)
+    // When：生成结构化数据。
+    const graph = buildArticleGraph(withoutAuthor)
+    // Then：署名包含发布机构身份，不伪造 Person。
+    expect(graph[0]).toMatchObject({
+      author: {
+        id: "#organization",
+        name: "Site A Media",
+        type: "Organization",
+        url: "https://site-a.test/",
+      },
+    })
+    expect(graph.some((node) => node.type === "Person")).toBe(false)
+  })
+
+  it("requires a publisher organization", () => {
     const { organization: _organization, ...withoutOrg } = site
     expectCode(
       () => buildArticleGraph({ ...articleInput, site: withoutOrg }),

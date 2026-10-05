@@ -1,8 +1,8 @@
 import {
-  GEO_MEDIA_PATH_PREFIX,
-  geoMediaSrcOf,
   type CompileEdition,
   type CompileMedia,
+  GEO_MEDIA_PATH_PREFIX,
+  geoMediaSrcOf,
 } from "@geo/compiler"
 
 export type Doc = Record<string, unknown>
@@ -136,14 +136,15 @@ export const mediaEntriesOf = (
 
 export type EditionMappingInput = {
   readonly assessment: { state: string; inputHash: string } | undefined
-  readonly authorId: string
-  readonly authorName: string
   readonly canonicalDomain: string
   readonly edition: Doc
   readonly media: readonly CompileMedia[]
   readonly siteKey: string
   readonly urlPathname: string
-}
+} & (
+  | { readonly authorId: string; readonly authorName: string }
+  | { readonly authorId?: never; readonly authorName?: never }
+)
 
 /** One ContentEditions row -> compiler CompileEdition snapshot. */
 export const mapEdition = (input: EditionMappingInput): CompileEdition | null => {
@@ -171,7 +172,7 @@ export const mapEdition = (input: EditionMappingInput): CompileEdition | null =>
       input.assessment?.state === "passed"
         ? input.assessment.state
         : "failed",
-    ...(input.authorName.length === 0
+    ...(input.authorName === undefined || input.authorName.length === 0
       ? {}
       : {
           author: {

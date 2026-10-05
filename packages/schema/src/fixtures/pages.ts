@@ -52,7 +52,6 @@ const relatedPage = {
 
 const contentFields = {
   hero: { title: "Geo Foundry", summary: "Portable page contracts." },
-  author: { id: "author-mark", name: "Mark", url: "https://site-a.test/authors/mark" },
   citations: [
     {
       id: "citation-prd",
@@ -82,7 +81,18 @@ export const articlePageFixture = ArticlePageSchema.parse({
       type: "Article",
       headline: "Article",
       url: "https://site-a.test/guides/article",
-      author: { name: "Mark", url: "https://site-a.test/authors/mark" },
+      author: {
+        type: "Organization",
+        id: "#organization",
+        name: "Site A",
+        url: "https://site-a.test/",
+      },
+    },
+    {
+      type: "Organization",
+      id: "#organization",
+      name: "Site A",
+      url: "https://site-a.test/",
     },
   ],
   body: validBlockFixtures,

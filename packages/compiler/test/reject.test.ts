@@ -211,12 +211,12 @@ describe("typed rejections", () => {
     )
   })
 
-  it("rejects an article without an author (required JSON-LD field)", async () => {
-    const { author: _author, ...withoutAuthor } = edition
+  it("拒绝空作者姓名，当明确提供的真人作者不合法时", async () => {
+    const invalidAuthor = { ...edition, author: { ...edition.author, name: "" } }
     await expectCode(
       compileArticle({
         clock: { now: "2026-08-19T00:00:00Z" },
-        edition: withoutAuthor,
+        edition: invalidAuthor,
         site,
       }),
       COMPILER_ERROR.SEO_REQUIRED_FIELD_MISSING,

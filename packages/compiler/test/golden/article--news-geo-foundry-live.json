@@ -1,9 +1,4 @@
 {
-  "author": {
-    "id": "author-lin",
-    "name": "Lin Zhao",
-    "url": "https://site-a.test/authors/lin-zhao"
-  },
   "body": [
     {
       "id": "block-102-0",
@@ -84,8 +79,10 @@
   "structuredData": [
     {
       "author": {
-        "name": "Lin Zhao",
-        "url": "https://site-a.test/authors/lin-zhao"
+        "id": "#organization",
+        "name": "Site A Media",
+        "type": "Organization",
+        "url": "https://site-a.test/"
       },
       "dateModified": "2026-08-18T09:30:00Z",
       "datePublished": "2026-08-18T09:00:00Z",
@@ -103,12 +100,6 @@
       "type": "ImageObject",
       "url": "https://site-a.test/media/launch.webp",
       "width": 900
-    },
-    {
-      "id": "#author",
-      "name": "Lin Zhao",
-      "type": "Person",
-      "url": "https://site-a.test/authors/lin-zhao"
     },
     {
       "id": "#organization",

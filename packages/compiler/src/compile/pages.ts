@@ -1,18 +1,17 @@
 import {
   ArticleListPageSchema,
+  type ArticlePage,
   ArticlePageSchema,
   CategoryPageSchema,
-  TagPageSchema,
-  type ArticlePage,
   type PageDocument,
+  TagPageSchema,
 } from "@geo/schema"
-
-import { compileBlocks } from "./blocks.js"
-import { CompilerError, COMPILER_ERROR } from "./errors.js"
-import { baseOf, slugOf, type PageClock } from "./document-base.js"
-import { heroImageOf } from "./hero.js"
 import { verifySeoConsistency } from "../seo/metadata.js"
 import { buildArticleGraph, buildListingGraph } from "../structured-data/graph.js"
+import { compileBlocks } from "./blocks.js"
+import { baseOf, type PageClock, slugOf } from "./document-base.js"
+import { COMPILER_ERROR, CompilerError } from "./errors.js"
+import { heroImageOf } from "./hero.js"
 import {
   assertEditionCompilable,
   assertEditionOnCanonicalDomain,
@@ -40,8 +39,7 @@ const articleBreadcrumbs = (input: {
       return {
         pathname,
         title:
-          input.listingTitles?.get(pathname) ??
-          segment.charAt(0).toUpperCase() + segment.slice(1),
+          input.listingTitles?.get(pathname) ?? segment.charAt(0).toUpperCase() + segment.slice(1),
       }
     }),
     { pathname: input.pathname, title: input.title },
@@ -87,7 +85,7 @@ export const compileArticle = async (input: {
   })
   const document = ArticlePageSchema.parse({
     ...base,
-    author: edition.author,
+    ...(edition.author === undefined ? {} : { author: edition.author }),
     body: compileBlocks(edition.body, edition),
     breadcrumbs,
     citations: edition.citations,

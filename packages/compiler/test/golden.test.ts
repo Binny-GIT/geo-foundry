@@ -55,11 +55,6 @@ const request = (): CompileRequest => ({
       articleKind: "news",
       assessmentInputHash: "b".repeat(64),
       assessmentState: "passed",
-      author: {
-        id: "author-lin",
-        name: "Lin Zhao",
-        url: "https://site-a.test/authors/lin-zhao",
-      },
       body: [
         { blockType: "heading", level: "2", text: "Geo Foundry goes live" },
         { blockType: "paragraph", text: "The serving plane now ships immutable releases." },

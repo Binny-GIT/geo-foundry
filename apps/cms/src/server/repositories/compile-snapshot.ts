@@ -5,23 +5,20 @@
  */
 
 import {
-  GEO_MEDIA_PATH_PREFIX,
-  geoMediaSrcOf,
   type CompileRequest,
   type CompileSiteSnapshot,
+  GEO_MEDIA_PATH_PREFIX,
+  geoMediaSrcOf,
 } from "@geo/compiler"
 import { and, desc, eq, inArray } from "drizzle-orm"
 import { alias } from "drizzle-orm/pg-core"
-
-import { editionSiteMemberSql } from "./edition-sites"
-
 import { markdownToBlocks } from "../../editor/block-markdown"
 import {
   deriveListings,
   deriveRoutes,
+  type MediaRowInput,
   mapEdition,
   mediaEntriesOf,
-  type MediaRowInput,
   textOf,
 } from "../../services/compile-snapshot-mappers"
 import { EditionWorkflowError } from "../../services/edition-workflow"
@@ -31,6 +28,7 @@ import { media, sites } from "../db/entity-schema"
 import { domains, qualityAssessments } from "../db/session-schema"
 import { urlRecords } from "../db/workflow-schema"
 import { serviceScopeOf } from "./edition-integration"
+import { editionSiteMemberSql } from "./edition-sites"
 import { passedSiteAddAssessmentId } from "./site-evaluation"
 
 const fail = (code: string, detail: string): EditionWorkflowError =>
@@ -202,8 +200,6 @@ export const buildCompileSnapshot = async (
     const blocks = blocksByEdition.get(editionId) ?? []
     const mapped = mapEdition({
       assessment: eligibleAssessment,
-      authorId: `author-site-${options.siteId}`,
-      authorName: `${siteName} Editorial Team`,
       canonicalDomain,
       edition: {
         body: blocks,

@@ -168,7 +168,19 @@ const ArticleShape = {
   image: AssetUrlSchema.optional(),
   datePublished: TimestampSchema.optional(),
   dateModified: TimestampSchema.optional(),
-  author: StructuredAuthorSchema.optional(),
+  author: z
+    .union([
+      StructuredAuthorSchema,
+      z
+        .strictObject({
+          type: z.literal("Organization"),
+          id: NodeIdSchema.optional(),
+          name: NonEmptyStringSchema,
+          url: HttpUrlSchema,
+        })
+        .readonly(),
+    ])
+    .optional(),
 } as const
 
 const ArticleStructuredDataSchema = z
