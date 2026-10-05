@@ -111,6 +111,24 @@ const goldenFileOf = (document: CompiledDocument): string =>
   `${document.pageType}--${document.pathname.slice(1).replace(/\//g, "-")}.json`
 
 describe("golden fixtures per page type", () => {
+  it("映射页面语言与 canonical，当编译文章语义信息时", async () => {
+    // Given：中文站点且页面路径不同于首页。
+    const input = request()
+    // When：编译文章和新闻。
+    const output = await compileSite({ ...input, site: { ...input.site, locale: "zh-CN" } })
+    // Then：每个文章节点与页面路由一致。
+    const articles = output.documents
+      .map((document) => PageDocumentSchema.parse(JSON.parse(document.canonical)))
+      .filter((document) => document.pageType === "article")
+    expect(articles).toHaveLength(2)
+    for (const article of articles) {
+      expect(article.structuredData[0]).toMatchObject({
+        inLanguage: "zh-CN",
+        mainEntityOfPage: article.route.canonicalUrl,
+      })
+    }
+  })
+
   it("保留版本日期，当生成分页、分类和标签列表时", async () => {
     // Given：发布日期与修改日期不同的两个版本。
     const input = request()

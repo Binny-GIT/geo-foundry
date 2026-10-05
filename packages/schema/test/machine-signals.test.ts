@@ -71,3 +71,31 @@ describe("列表日期契约", () => {
     expect(result.success).toBe(false)
   })
 })
+
+describe("文章语义字段契约", () => {
+  it.each(["Article", "NewsArticle"])("接受旧版 %s，当缺少新语义字段时", (type) => {
+    // Given：历史发布节点没有语言和页面主体字段。
+    const input = { type, headline: "Legacy", url: "https://site-a.test/articles/legacy" }
+    // When：新 schema 读取旧节点。
+    const parsed = StructuredDataSchema.parse(input)
+    // Then：可选字段不影响历史发布产物。
+    expect(parsed).toEqual(input)
+  })
+
+  it.each([{ inLanguage: "not a locale" }, { mainEntityOfPage: "/articles/relative" }])(
+    "拒绝非法语义字段，当输入不符合契约时：%j",
+    (fields) => {
+      // Given：语言或页面 URL 不合法。
+      const input = {
+        type: "Article",
+        headline: "Article",
+        url: "https://site-a.test/articles/article",
+        ...fields,
+      }
+      // When：在边界解析节点。
+      const result = StructuredDataSchema.safeParse(input)
+      // Then：契约继续严格验证字段值。
+      expect(result.success).toBe(false)
+    },
+  )
+})

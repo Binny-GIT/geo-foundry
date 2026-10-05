@@ -170,6 +170,8 @@ const ArticleShape = {
   image: AssetUrlSchema.optional(),
   datePublished: TimestampSchema.optional(),
   dateModified: TimestampSchema.optional(),
+  inLanguage: LocaleSchema.optional(),
+  mainEntityOfPage: HttpUrlSchema.optional(),
   author: z
     .union([
       StructuredAuthorSchema,

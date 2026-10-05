@@ -90,6 +90,8 @@
       "headline": "Geo Foundry goes live",
       "id": "#article",
       "image": "https://site-a.test/media/launch.webp",
+      "inLanguage": "en-US",
+      "mainEntityOfPage": "https://site-a.test/news/geo-foundry-live",
       "type": "NewsArticle",
       "url": "https://site-a.test/news/geo-foundry-live"
     },

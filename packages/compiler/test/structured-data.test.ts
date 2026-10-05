@@ -37,6 +37,7 @@ const articleInput = {
   datePublished: "2026-08-17T10:00:00Z",
   description: "How deterministic gates protect releases.",
   heroImage,
+  locale: "zh-CN",
   site,
   title: "Deterministic release gates",
 }
@@ -62,6 +63,8 @@ describe("article JSON-LD graph", () => {
       headline: "Deterministic release gates",
       id: "#article",
       image: "https://site-a.test/media/map.webp",
+      inLanguage: "zh-CN",
+      mainEntityOfPage: "https://site-a.test/guides/release-gates",
       url: "https://site-a.test/guides/release-gates",
     })
     expect(graph[1]).toMatchObject({

@@ -29,6 +29,30 @@ const streamToString = (page: ReturnType<typeof renderPage>): Promise<string> =>
   })
 
 describe("Geo SSR", () => {
+  it("序列化语言与页面主体，当渲染文章 JSON-LD 时", () => {
+    // Given：编译契约中的文章语义字段。
+    const page = renderPage(canonicalPageFixtures[0])
+    // When：通过 GeoHead 输出实际 JSON-LD script。
+    const html = renderToString(<GeoHead head={page.head} />)
+    const json = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(html)?.[1]
+    // Then：键名未经改写，机构身份映射为 schema.org 属性。
+    expect(JSON.parse(json ?? "null")).toMatchObject({
+      "@graph": expect.arrayContaining([
+        expect.objectContaining({
+          "@type": "Article",
+          inLanguage: "en-US",
+          mainEntityOfPage: "https://site-a.test/guides/article",
+          author: {
+            "@type": "Organization",
+            "@id": "#organization",
+            name: "Site A",
+            url: "https://site-a.test/",
+          },
+        }),
+      ]),
+    })
+  })
+
   it("不渲染署名，当文章没有真人作者时", () => {
     // Given：无作者文章与自定义作者组件。
     const { author: _author, ...document } = canonicalPageFixtures[0]

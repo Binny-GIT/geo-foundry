@@ -80,6 +80,7 @@ export type ArticleGraphInput = {
   readonly datePublished: string
   readonly description: string
   readonly heroImage?: GraphHeroImage
+  readonly locale: string
   readonly site: GraphSite
   readonly title: string
 }
@@ -112,6 +113,8 @@ export const buildArticleGraph = (input: ArticleGraphInput): readonly Structured
       description: input.description,
       headline: input.title,
       id: "#article",
+      inLanguage: input.locale,
+      mainEntityOfPage: input.canonicalUrl,
       ...(input.heroImage === undefined ? {} : { image: input.heroImage.url }),
       type: input.articleKind === "news" ? "NewsArticle" : "Article",
       url: input.canonicalUrl,

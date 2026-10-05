@@ -100,6 +100,8 @@
       "headline": "Deterministic release gates",
       "id": "#article",
       "image": "https://site-a.test/media/map.webp",
+      "inLanguage": "en-US",
+      "mainEntityOfPage": "https://site-a.test/guides/release-gates",
       "type": "Article",
       "url": "https://site-a.test/guides/release-gates"
     },

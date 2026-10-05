@@ -83,6 +83,8 @@ export const articlePageFixture = ArticlePageSchema.parse({
       type: "Article",
       headline: "Article",
       url: "https://site-a.test/guides/article",
+      inLanguage: "en-US",
+      mainEntityOfPage: "https://site-a.test/guides/article",
       author: {
         type: "Organization",
         id: "#organization",

@@ -108,6 +108,7 @@ export const compileArticle = async (input: {
       datePublished: edition.publishedAt,
       description: edition.summary,
       ...(hero === undefined ? {} : { heroImage: hero }),
+      locale: base.route.locale,
       site,
       title: edition.title,
     }),
