@@ -67,8 +67,9 @@ OP=$(echo "$BODY" | python3 -c 'import json,sys;print(json.load(sys.stdin)["oper
 ROW=$(Q "consumed_at IS NULL FROM geo_foundry.rollback_intents WHERE intent_id='$INTENT'")
 OPT=$(Q "state FROM geo_foundry.operations WHERE operation_id='$OP'")
 OBT=$(Q "count(*) FROM pgboss.job WHERE singleton_key='$OP'")
-# 常驻 worker 会真实认领该 operation（queued→running），E2E 与其竞争属预期。
-[ "$ROW" = "t" ] && { [ "$OPT" = "queued" ] || [ "$OPT" = "running" ]; } && [ "$OBT" -ge 1 ] \
+# 常驻 worker 会真实认领并执行该 operation，E2E 与其竞争属预期：查询时它可能还在排队/运行，
+# 也可能已执行完（夹具 release 缺对象，最终为 failed）。这里只验证同事务建出意图行、操作与队列任务。
+[ -n "$ROW" ] && { [ "$OPT" = "queued" ] || [ "$OPT" = "running" ] || [ "$OPT" = "succeeded" ] || [ "$OPT" = "failed" ]; } && [ "$OBT" -ge 1 ] \
   && ok "intent+operation ($OPT) + pgboss job" || bad "intent row=$ROW op=$OPT job=$OBT"
 
 # ---------- 4. consume：mismatch 拒绝 → 正确 → 重放幂等 ----------
