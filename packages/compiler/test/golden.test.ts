@@ -1,4 +1,5 @@
 import { readdir, readFile, writeFile } from "node:fs/promises"
+import { PageDocumentSchema } from "@geo/schema"
 import { describe, expect, it } from "vitest"
 
 import {
@@ -110,6 +111,28 @@ const goldenFileOf = (document: CompiledDocument): string =>
   `${document.pageType}--${document.pathname.slice(1).replace(/\//g, "-")}.json`
 
 describe("golden fixtures per page type", () => {
+  it("保留版本日期，当生成分页、分类和标签列表时", async () => {
+    // Given：发布日期与修改日期不同的两个版本。
+    const input = request()
+    // When：编译站点全部列表。
+    const output = await compileSite(input)
+    // Then：每个列表项保留其对应版本的日期。
+    const listings = output.documents
+      .map((document) => PageDocumentSchema.parse(JSON.parse(document.canonical)))
+      .filter((document) => "items" in document)
+    expect(listings).toHaveLength(4)
+    for (const listing of listings) {
+      for (const item of listing.items) {
+        const edition = input.editions.find((candidate) => candidate.urlPathname === item.pathname)
+        expect(edition).toBeDefined()
+        expect(item).toMatchObject({
+          publishedAt: edition?.publishedAt,
+          modifiedAt: edition?.modifiedAt,
+        })
+      }
+    }
+  })
+
   it("matches every committed golden file byte-for-byte in canonical form", async () => {
     const output = await compileSite(request())
     const goldenDirectory = new URL("./golden/", import.meta.url)

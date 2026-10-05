@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest"
 
-import { ArticlePageSchema, articlePageFixture, StructuredDataSchema } from "../src/index.js"
+import {
+  ArticlePageSchema,
+  articlePageFixture,
+  RelatedPageSchema,
+  StructuredDataSchema,
+} from "../src/index.js"
 
 describe("文章署名契约", () => {
   it("接受历史真人署名，当读取旧版文章时", () => {
@@ -42,6 +47,27 @@ describe("文章署名契约", () => {
     // When：解析结构化数据。
     const result = StructuredDataSchema.safeParse(input)
     // Then：strictObject 仍拒绝未知字段。
+    expect(result.success).toBe(false)
+  })
+})
+
+describe("列表日期契约", () => {
+  const legacy = { pageId: "page-legacy", title: "Legacy", pathname: "/articles/legacy" }
+
+  it("接受无日期列表项，当读取旧版发布产物时", () => {
+    // Given：旧版列表项没有日期。
+    // When：解析历史列表项。
+    const item = RelatedPageSchema.parse(legacy)
+    // Then：无需迁移即可读取。
+    expect(item).toEqual(legacy)
+  })
+
+  it.each(["publishedAt", "modifiedAt"])("拒绝非法 %s，当日期不是时间戳时", (field) => {
+    // Given：非法日期。
+    const input = { ...legacy, [field]: "2026-08-17" }
+    // When：解析列表项。
+    const result = RelatedPageSchema.safeParse(input)
+    // Then：与文章元数据相同的时间戳约束生效。
     expect(result.success).toBe(false)
   })
 })

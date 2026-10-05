@@ -132,6 +132,8 @@ export const RelatedPageSchema = z
     pathname: PathnameSchema,
     description: NonEmptyStringSchema.max(500).optional(),
     image: AssetUrlSchema.optional(),
+    publishedAt: TimestampSchema.optional(),
+    modifiedAt: TimestampSchema.optional(),
   })
   .readonly()
 

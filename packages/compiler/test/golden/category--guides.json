@@ -27,8 +27,10 @@
   "items": [
     {
       "description": "How deterministic gates protect releases.",
+      "modifiedAt": "2026-08-17T11:00:00Z",
       "pageId": "page-101",
       "pathname": "/guides/release-gates",
+      "publishedAt": "2026-08-17T10:00:00Z",
       "title": "Deterministic release gates"
     }
   ],

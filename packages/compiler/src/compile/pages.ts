@@ -188,8 +188,10 @@ export const compileListingPage = async (input: {
 
 const listingItemOf = (edition: CompileEdition) => ({
   description: edition.summary,
+  modifiedAt: edition.modifiedAt,
   pageId: `page-${edition.editionId}`,
   pathname: edition.urlPathname,
+  publishedAt: edition.publishedAt,
   title: edition.title,
 })
 

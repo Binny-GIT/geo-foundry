@@ -27,8 +27,10 @@
   "items": [
     {
       "description": "Geo Foundry announces its deterministic serving plane.",
+      "modifiedAt": "2026-08-18T09:30:00Z",
       "pageId": "page-102",
       "pathname": "/news/geo-foundry-live",
+      "publishedAt": "2026-08-18T09:00:00Z",
       "title": "Geo Foundry goes live"
     }
   ],

@@ -48,6 +48,8 @@ const relatedPage = {
   title: "Related guide",
   pathname: "/guides/related",
   description: "A related canonical page.",
+  publishedAt: "2026-08-17T10:00:00.000Z",
+  modifiedAt: "2026-08-17T11:00:00.000Z",
 }
 
 const contentFields = {
