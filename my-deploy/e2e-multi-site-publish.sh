@@ -490,14 +490,11 @@ else
 fi
 
 # ---------- 6.5. 重发布周期（单站回归，两段） ----------
-# 段 A：遗留幂等语义——dfp 后 revision 复位 0，重审/重批后回到 revision-2，
-#   与首条发布键（revision-2，当时文章还是 approved 未编译）撞车 →
-#   publish 幂等 no-op：不新建操作/发布，旧 release 继续服务。
-#   这是 A2 前单站既有行为，A2 契约要求完全一致（断言 created=false）。
-# 段 B：真实新编译周期——free-flow approved→review→approved 把 revision
-#   推到 4（≠2）→ 新操作 → worker 铸新 release。回归守卫：新编译周期
-#   不复位站点行时（2356fc2 修的 bug），发布回执命中
-#   "published 且 releaseId 匹配 → 幂等返回"，文章卡 compiled 退出 delivery。
+# 段 A：已发布文章的新版本重发布。dfp 后 revision 复位 0，重审/重批后修订号与首条发布键相同；
+#   发布幂等键含版本行 id（7806af0），新版本必须新建操作并铸新 release。7806af0 之前键只含修订号，
+#   新版本撞上首条键幂等回放旧 release——编辑改过的内容永远发不出去（e2e-nkmed-delivery 发现）。
+# 段 B：第二轮新编译周期（再 dfp → 重审/重批 → 发布）→ 又一个新操作与新 release。
+#   回归守卫（2356fc2）：新编译周期复位站点行，发布回执推进到新 release，文章回到 published 不卡 compiled。
 D2R=$(curl -s -X POST "$BASE/api/editions/$ED2/draft-from-published" -b /tmp/ms-e.jar \
   -H 'Content-Type: application/json' -d '{"reason":"E2E multi-site republish cycle"}')
 [ "$(st_of "$D2R")" = "draft" ] && ok "republish A: draft-from-published -> draft" || bad "republish A dfp $D2R"
@@ -512,31 +509,41 @@ A3=$(curl -s -X POST "$BASE/api/workspaces/reviewer/editions/$ED2/approve" -b /t
 IH3=$(input_hash_of "$ED2")
 AS3=$(post_assessment "$ED2" "$SITE" "ms-as3" "$IH3")
 assess_ok "$AS3" && ok "republish A: assessment passed re-recorded" || bad "republish A assessment $AS3"
-# 段 A 断言：同 revision 重发布 → 幂等 no-op（无新操作，旧 release 继续服务）
 P4=$(curl -s -X POST "$BASE/api/editions/$ED2/publish-operations" -b /tmp/ms-p.jar \
   -H 'Content-Type: application/json' -d '{}')
 echo "publish-op(republish-A): $P4"
 OP4=$(echo "$P4" | python3 -c 'import json,sys;print(json.load(sys.stdin)["operation"]["operationId"])')
 REL4=$(echo "$P4" | python3 -c 'import json,sys;print(json.load(sys.stdin)["operation"]["releaseId"])')
 C4=$(echo "$P4" | python3 -c 'import json,sys;print(json.load(sys.stdin)["operation"]["created"])')
-[ "$C4" = "False" ] && [ "$OP4" = "$OP3" ] && [ "$REL4" = "$REL3" ] \
-  && ok "republish A: same revision key -> idempotent no-op (legacy single-site semantics)" \
-  || bad "republish A want no-op got $P4"
-ROW2A=$(Q "publish_state||'|'||coalesce(release_id,'') FROM geo_foundry.edition_sites WHERE edition_id=$ED2 AND site_id=$SITE")
-[ "$ROW2A" = "published|$REL3" ] && ok "republish A: site row untouched (serving $REL3)" || bad "republish A row=$ROW2A"
+[ "$C4" = "True" ] && [ -n "$OP4" ] && [ "$OP4" != "$OP3" ] && [ "$REL4" != "$REL3" ] \
+  && ok "republish A: new version -> fresh operation + fresh release ($REL4)" \
+  || bad "republish A want fresh operation/release, got $P4"
+S4=""
+for i in $(seq 1 40); do
+  S4=$(Q "state FROM geo_foundry.operations WHERE operation_id='$OP4'")
+  { [ "$S4" = "succeeded" ] || [ "$S4" = "failed" ]; } && break
+  sleep 3
+done
+if [ "$S4" = "succeeded" ]; then ok "republish A operation succeeded"
+else ERR=$(Q "coalesce(error->>'code','') FROM geo_foundry.operations WHERE operation_id='$OP4'"); bad "republish A state=$S4 error=$ERR"; fi
 ST2A=$(Q "workflow_status FROM geo_foundry.edition_revisions WHERE parent_id=$ED2 AND latest=true")
-[ "$ST2A" = "approved" ] && ok "republish A: article stays approved (no new cycle started)" || bad "republish A latest=$ST2A"
+[ "$ST2A" = "published" ] && ok "republish A: article back to published (not stuck compiled)" || bad "republish A latest=$ST2A"
+ROW2A=$(Q "publish_state||'|'||coalesce(release_id,'') FROM geo_foundry.edition_sites WHERE edition_id=$ED2 AND site_id=$SITE")
+[ "$ROW2A" = "published|$REL4" ] && ok "republish A: site row republished with new release" || bad "republish A row=$ROW2A"
 DL4=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/delivery/articles/$ED2")
-[ "$DL4" = "200" ] && ok "republish A: delivery still 200 on old release" || bad "republish A delivery code=$DL4"
+[ "$DL4" = "200" ] && ok "republish A: delivery detail 200 on new release" || bad "republish A delivery code=$DL4"
 
-# 段 B：free-flow 回弹（approved→review→approved）把 revision 推到 4 → 真实新编译周期
+# 段 B：第二轮新编译周期
+D2B=$(curl -s -X POST "$BASE/api/editions/$ED2/draft-from-published" -b /tmp/ms-e.jar \
+  -H 'Content-Type: application/json' -d '{"reason":"E2E multi-site republish cycle B"}')
+[ "$(st_of "$D2B")" = "draft" ] && ok "republish B: draft-from-published -> draft" || bad "republish B dfp $D2B"
 curl -s -o /dev/null -X POST "$BASE/api/editions/$ED2/workflow-transitions" -b /tmp/ms-e.jar \
   -H 'Content-Type: application/json' -d '{"target":"review"}'
 R4=$(rev_of "$(draft "$ED2")")
 A4=$(curl -s -X POST "$BASE/api/workspaces/reviewer/editions/$ED2/approve" -b /tmp/ms-r.jar \
   -H 'Content-Type: application/json' -H "x-request-id: ms-a4-$TS" -H "idempotency-key: ms-approve4-$TS" \
   -d "{\"expectedRevision\":$R4}")
-[ "$(st_of "$A4")" = "approved" ] && ok "republish B: bounce re-approve -> approved (revision bumped)" || bad "republish B approve $A4"
+[ "$(st_of "$A4")" = "approved" ] && ok "republish B: re-approve -> approved" || bad "republish B approve $A4"
 IH4=$(input_hash_of "$ED2")
 AS4=$(post_assessment "$ED2" "$SITE" "ms-as4" "$IH4")
 assess_ok "$AS4" && ok "republish B: assessment passed re-recorded" || bad "republish B assessment $AS4"
@@ -545,9 +552,9 @@ P5=$(curl -s -X POST "$BASE/api/editions/$ED2/publish-operations" -b /tmp/ms-p.j
 echo "publish-op(republish-B): $P5"
 OP5=$(echo "$P5" | python3 -c 'import json,sys;print(json.load(sys.stdin)["operation"]["operationId"])')
 REL5=$(echo "$P5" | python3 -c 'import json,sys;print(json.load(sys.stdin)["operation"]["releaseId"])')
-[ -n "$OP5" ] && [ "$OP5" != "$OP3" ] && [ "$REL5" != "$REL3" ] \
+[ -n "$OP5" ] && [ "$OP5" != "$OP4" ] && [ "$REL5" != "$REL4" ] \
   && ok "republish B: fresh operation + fresh release ($REL5)" \
-  || bad "republish B op=$OP5 rel=$REL5 (want fresh vs op=$OP3 rel=$REL3)"
+  || bad "republish B op=$OP5 rel=$REL5 (want fresh vs op=$OP4 rel=$REL4)"
 S5=""
 for i in $(seq 1 40); do
   S5=$(Q "state FROM geo_foundry.operations WHERE operation_id='$OP5'")
