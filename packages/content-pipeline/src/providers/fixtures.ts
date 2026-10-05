@@ -5,7 +5,7 @@ export const DRAFT_PROMPT_VERSION = "draft-v1"
 export const ADAPTATION_PROMPT_VERSION = "adaptation-v1"
 export const REVISION_PROMPT_VERSION = "revision-v1"
 export const EVALUATION_PROMPT_VERSION = "evaluation-v1"
-export const QUALITY_EVALUATION_PROMPT_VERSION = "quality-evaluation-v1"
+export const QUALITY_EVALUATION_PROMPT_VERSION = "quality-evaluation-v2"
 export const EMBEDDING_FIXTURE_VERSION = "embedding-v1"
 
 export const outlineFixture = {

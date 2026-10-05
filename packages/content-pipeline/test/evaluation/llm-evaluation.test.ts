@@ -1,21 +1,20 @@
-import { describe, expect, it } from "vitest"
-
 import {
   DEFAULT_LLM_GATE_THRESHOLDS,
   type LlmEvaluationOutput,
   type LlmGateThresholds,
 } from "@geo/quality-rules"
+import { describe, expect, it } from "vitest"
 
 import {
   evaluationInputHash,
+  type LlmEvaluationRecord,
   llmThresholdsHash,
   runLlmEvaluation,
   toAssessmentRequest,
   toRedactedEvidence,
-  type LlmEvaluationRecord,
 } from "../../src/evaluation/llm-evaluation.js"
-import { createFakeProvider } from "../../src/providers/fake.js"
 import { ProviderError } from "../../src/providers/errors.js"
+import { createFakeProvider } from "../../src/providers/fake.js"
 import {
   CHAT_FIXTURES,
   QUALITY_EVALUATION_PROMPT_VERSION,
@@ -57,6 +56,38 @@ const providerReturning = (output: unknown): LLMProvider => ({
 })
 
 describe("runLlmEvaluation", () => {
+  it("builds the v2 request with written definitions for every dimension", async () => {
+    let capturedRequest: Parameters<LLMProvider["generate"]>[0] | undefined
+    const provider: LLMProvider = {
+      ...createFakeProvider(),
+      async generate(request) {
+        capturedRequest = request
+        return {
+          content: qualityEvaluationFixture,
+          latencyMs: 12,
+          modelId: "fake-chat-v1",
+          providerId: "fake",
+          rawResponseHash: "c".repeat(64),
+        }
+      },
+    }
+
+    await runLlmEvaluation({ provider }, input)
+
+    expect(capturedRequest?.promptVersion).toBe("quality-evaluation-v2")
+    expect(capturedRequest?.system).toContain("evaluationContract.dimensionDefinitions")
+    const user = JSON.parse(capturedRequest?.user ?? "{}") as {
+      evaluationContract: { dimensionDefinitions: Record<string, string> }
+    }
+    expect(Object.keys(user.evaluationContract.dimensionDefinitions).sort()).toEqual([
+      "geo",
+      "originality",
+      "quality",
+      "seo",
+      "siteFit",
+    ])
+  })
+
   it("scores the golden fake fixture as passed with full persistence evidence", async () => {
     const record = await runLlmEvaluation({ provider: createFakeProvider() }, input)
     expect(record.kind).toBe("scored")
