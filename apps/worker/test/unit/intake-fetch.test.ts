@@ -23,6 +23,29 @@ describe("intake SSRF boundaries", () => {
     expect(isPublicAddress("8.8.8.8")).toBe(true)
     expect(isPublicAddress("2606:4700:4700::1111")).toBe(true)
   })
+
+  it("blocks special-purpose /24 blocks exactly, without swallowing neighbouring public space", () => {
+    for (const address of [
+      "192.0.0.8",
+      "192.0.2.10",
+      "198.18.0.1",
+      "198.19.255.1",
+      "198.51.100.7",
+      "203.0.113.9",
+    ]) {
+      expect(isPublicAddress(address), address).toBe(false)
+    }
+    // 192.0.66.184：Automattic（WordPress VIP），technologyreview.com 等新闻站托管于此
+    for (const address of [
+      "192.0.66.184",
+      "192.0.78.9",
+      "198.51.44.1",
+      "203.0.64.1",
+      "::ffff:192.0.66.184",
+    ]) {
+      expect(isPublicAddress(address), address).toBe(true)
+    }
+  })
 })
 
 describe("intake pinned DNS lookup", () => {
@@ -49,8 +72,15 @@ describe("intake extraction", () => {
     expect(page.title).toBe("Article title")
     expect(page.blocks).toEqual([
       { blockType: "heading", level: "2", text: "Top heading" },
-      { blockType: "paragraph", text: "This paragraph is long enough to serve as a summary fallback." },
-      { blockType: "list", items: [{ text: "First point" }, { text: "Second point" }], style: "unordered" },
+      {
+        blockType: "paragraph",
+        text: "This paragraph is long enough to serve as a summary fallback.",
+      },
+      {
+        blockType: "list",
+        items: [{ text: "First point" }, { text: "Second point" }],
+        style: "unordered",
+      },
       { alt: "Hero", blockType: "image", src: "https://source.test/img/hero.png" },
       { blockType: "code", code: "console.log(1)", language: "text" },
     ])
@@ -69,16 +99,12 @@ describe("intake extraction", () => {
       extractRssEntries(
         "<rss><channel><item><title>One</title><link>https://source.test/one</link><description>First source</description></item></channel></rss>",
       ),
-    ).toEqual([
-      { sourceUrl: "https://source.test/one", summary: "First source", title: "One" },
-    ])
+    ).toEqual([{ sourceUrl: "https://source.test/one", summary: "First source", title: "One" }])
     expect(
       extractRssEntries(
-        "<feed><entry><title>Two</title><link href=\"https://source.test/two\"/><summary>Second source</summary></entry></feed>",
+        '<feed><entry><title>Two</title><link href="https://source.test/two"/><summary>Second source</summary></entry></feed>',
       ),
-    ).toEqual([
-      { sourceUrl: "https://source.test/two", summary: "Second source", title: "Two" },
-    ])
+    ).toEqual([{ sourceUrl: "https://source.test/two", summary: "Second source", title: "Two" }])
   })
 })
 

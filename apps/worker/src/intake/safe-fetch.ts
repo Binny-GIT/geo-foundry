@@ -1,7 +1,7 @@
 import { lookup } from "node:dns/promises"
-import { isIP } from "node:net"
 import { request as httpRequest } from "node:http"
 import { request as httpsRequest } from "node:https"
+import { isIP } from "node:net"
 
 const MAX_REDIRECTS = 3
 const MAX_RESPONSE_BYTES = 2_000_000
@@ -26,8 +26,10 @@ const fail = (code: string, retryable = false, message?: string): IntakeFetchErr
 const ipv4Blocked = (address: string): boolean => {
   const values = address.split(".").map(Number)
   if (values.length !== 4 || values.some((value) => !Number.isInteger(value))) return true
-  const [a, b] = values
-  if (a === undefined || b === undefined) return true
+  const [a, b, c] = values
+  if (a === undefined || b === undefined || c === undefined) return true
+  // 特殊用途段按 RFC 6890 的确切前缀匹配：192.0.0.0/24、192.0.2.0/24、198.51.100.0/24、
+  // 203.0.113.0/24 都只是 /24，整段 /16 拦截会误伤公网（如 Automattic 的 192.0.64.0/18）。
   return (
     a === 0 ||
     a === 10 ||
@@ -36,10 +38,11 @@ const ipv4Blocked = (address: string): boolean => {
     (a === 100 && b >= 64 && b <= 127) ||
     (a === 169 && b === 254) ||
     (a === 172 && b >= 16 && b <= 31) ||
-    (a === 192 && b === 0) ||
+    (a === 192 && b === 0 && (c === 0 || c === 2)) ||
     (a === 192 && b === 168) ||
-    (a === 198 && (b === 18 || b === 19 || b === 51)) ||
-    (a === 203 && b === 0)
+    (a === 198 && (b === 18 || b === 19)) ||
+    (a === 198 && b === 51 && c === 100) ||
+    (a === 203 && b === 0 && c === 113)
   )
 }
 
@@ -75,7 +78,10 @@ type PinnedAddress = { readonly address: string; readonly family: 4 | 6 }
 
 export function pinnedLookupResult(resolved: PinnedAddress, all: true): PinnedAddress[]
 export function pinnedLookupResult(resolved: PinnedAddress, all: false): PinnedAddress
-export function pinnedLookupResult(resolved: PinnedAddress, all: boolean): PinnedAddress | PinnedAddress[] {
+export function pinnedLookupResult(
+  resolved: PinnedAddress,
+  all: boolean,
+): PinnedAddress | PinnedAddress[] {
   return all ? [{ ...resolved }] : resolved
 }
 
@@ -123,9 +129,7 @@ const publicAddressFor = async (hostname: string): Promise<{ address: string; fa
   return { address: accepted.address, family: accepted.family as 4 | 6 }
 }
 
-const responseBody = async (
-  response: import("node:http").IncomingMessage,
-): Promise<Uint8Array> =>
+const responseBody = async (response: import("node:http").IncomingMessage): Promise<Uint8Array> =>
   new Promise((resolve, reject) => {
     const chunks: Buffer[] = []
     let length = 0
@@ -148,14 +152,24 @@ export type IntakeHttpResponse = Readonly<{
   status: number
 }>
 
-const requestOnce = async (url: URL): Promise<{ body: Uint8Array; headers: import("node:http").IncomingHttpHeaders; status: number }> => {
+const requestOnce = async (
+  url: URL,
+): Promise<{
+  body: Uint8Array
+  headers: import("node:http").IncomingHttpHeaders
+  status: number
+}> => {
   const resolved = await publicAddressFor(url.hostname)
   const request = url.protocol === "https:" ? httpsRequest : httpRequest
   return new Promise((resolve, reject) => {
     const client = request(
       url,
       {
-        headers: { accept: "text/html,application/rss+xml,application/atom+xml,text/xml,application/xml,text/plain;q=0.8,*/*;q=0.1", "user-agent": USER_AGENT },
+        headers: {
+          accept:
+            "text/html,application/rss+xml,application/atom+xml,text/xml,application/xml,text/plain;q=0.8,*/*;q=0.1",
+          "user-agent": USER_AGENT,
+        },
         lookup: (_hostname, options, callback) => {
           if (options.all === true) {
             callback(null, pinnedLookupResult(resolved, true))
@@ -195,7 +209,8 @@ export const fetchPublicUrl = async (source: string): Promise<IntakeHttpResponse
     const response = await requestOnce(current)
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.location
-      if (typeof location !== "string" || location.length === 0) throw fail("INTAKE_REDIRECT_INVALID")
+      if (typeof location !== "string" || location.length === 0)
+        throw fail("INTAKE_REDIRECT_INVALID")
       if (redirect === MAX_REDIRECTS) throw fail("INTAKE_REDIRECT_LIMIT")
       current = validateUrl(new URL(location, current).toString())
       continue
@@ -203,12 +218,17 @@ export const fetchPublicUrl = async (source: string): Promise<IntakeHttpResponse
     if (response.status === 408 || response.status === 429 || response.status >= 500) {
       throw fail(`INTAKE_HTTP_${response.status}`, true)
     }
-    if (response.status < 200 || response.status >= 300) throw fail(`INTAKE_HTTP_${response.status}`)
+    if (response.status < 200 || response.status >= 300)
+      throw fail(`INTAKE_HTTP_${response.status}`)
     const rawContentType = response.headers["content-type"]
-    const contentType = (Array.isArray(rawContentType) ? rawContentType[0] : rawContentType ?? "application/octet-stream")
-      .split(";", 1)[0]
-      ?.trim()
-      .toLowerCase() ?? "application/octet-stream"
+    const contentType =
+      (Array.isArray(rawContentType)
+        ? rawContentType[0]
+        : (rawContentType ?? "application/octet-stream")
+      )
+        .split(";", 1)[0]
+        ?.trim()
+        .toLowerCase() ?? "application/octet-stream"
     return {
       body: response.body,
       contentType,
