@@ -54,11 +54,19 @@ export const crawlCollectionSchema = z
     meta: z.unknown().optional(),
   })
   .passthrough()
+// 真实 Worker 把文章集合包在执行信封里（{engine, data, artifacts, execution}）；也接受直接给集合。
+const crawlResultSchema = z.union([
+  crawlCollectionSchema,
+  z
+    .object({ data: crawlCollectionSchema })
+    .passthrough()
+    .transform((envelope) => envelope.data),
+])
 export const crawlRemoteJobSchema = z
   .object({
     id: crawlJobIdSchema,
     status: z.enum(["pending", "leased", "running", "succeeded", "failed"]),
-    result: crawlCollectionSchema.nullish(),
+    result: crawlResultSchema.nullish(),
     error: z
       .union([
         z.string(),

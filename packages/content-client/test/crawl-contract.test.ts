@@ -30,6 +30,30 @@ describe("crawl article_collection v1", () => {
   it("Given absent canonical URL, when mapped, then source URL falls back to url", () => {
     expect(crawlEntryOf({ ...article, canonical_url: null }).sourceUrl).toBe(article.url)
   })
+  it("Given the real worker's execution envelope, when parsed, then the article collection is unwrapped", () => {
+    const job = crawlRemoteJobSchema.parse({
+      id: "job_69c48a49b7d56c86",
+      status: "succeeded",
+      result: {
+        engine: "scrapling",
+        data: collection,
+        artifacts: ["storage\\data\\job_69c48a49b7d56c86\\result.json"],
+        execution: { llm: { used: true }, http_fetches: 4 },
+      },
+    })
+    expect(job.result?.items.map((item) => crawlEntryOf(item).sourceUrl)).toEqual([
+      "https://example.test/c",
+    ])
+  })
+  it("Given an envelope whose data is not an article collection, when parsed, then it is rejected", () => {
+    expect(
+      crawlRemoteJobSchema.safeParse({
+        id: "job_69c48a49b7d56c86",
+        status: "succeeded",
+        result: { engine: "scrapling", data: { type: "page" } },
+      }).success,
+    ).toBe(false)
+  })
   it("Given an object error on a failed job, when parsed, then it remains readable", () => {
     const job = crawlRemoteJobSchema.parse({
       id: "job_1234567890abcdef",
