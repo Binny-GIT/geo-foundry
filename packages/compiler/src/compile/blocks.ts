@@ -1,4 +1,4 @@
-import { type ContentBlock, ContentBlockSchema } from "@geo/schema"
+import { type ContentBlock, ContentBlockSchema, editionListItemTextOf } from "@geo/schema"
 
 import { COMPILER_ERROR, CompilerError } from "./errors.js"
 import type { CompileEdition, CompileMedia } from "./snapshot.js"
@@ -92,6 +92,9 @@ export const compileBlocks = (
     }
     if (typeof candidate["id"] !== "string" || candidate["id"].length === 0) {
       mapped["id"] = `block-${edition.editionId}-${index}`
+    }
+    if (mapped["type"] === "list" && Array.isArray(mapped["items"])) {
+      mapped["items"] = mapped["items"].map(editionListItemTextOf)
     }
     if (type === "image") {
       const media = edition.media

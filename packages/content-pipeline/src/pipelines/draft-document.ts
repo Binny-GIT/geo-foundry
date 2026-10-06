@@ -1,4 +1,9 @@
-import { type ArticlePage, ArticlePageSchema, type ContentBlock } from "@geo/schema"
+import {
+  type ArticlePage,
+  ArticlePageSchema,
+  type ContentBlock,
+  editionListItemTextOf,
+} from "@geo/schema"
 
 export type DraftDocumentInput = {
   readonly body: readonly unknown[]
@@ -55,11 +60,7 @@ const blockOf = (raw: unknown, index: number): ContentBlock | null => {
     mapped["style"] = "ordered"
   }
   if (type === "list" && Array.isArray(mapped["items"])) {
-    mapped["items"] = mapped["items"].map((item: unknown) =>
-      item !== null && typeof item === "object" && "text" in item && typeof item.text === "string"
-        ? item.text
-        : item,
-    )
+    mapped["items"] = mapped["items"].map(editionListItemTextOf)
   }
   mapped["id"] = `generated-block-${index}`
   return mapped as unknown as ContentBlock

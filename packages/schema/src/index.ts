@@ -1,5 +1,6 @@
-export { PageDocumentJsonSchema } from "./json-schema.js"
+export { editionListItemTextOf } from "./edition-list-item.js"
 export * from "./fixtures/index.js"
+export { PageDocumentJsonSchema } from "./json-schema.js"
 export {
   migratePageDocument,
   pageDocumentMigrationRegistry,
