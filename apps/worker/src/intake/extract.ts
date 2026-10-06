@@ -1,7 +1,7 @@
 import { XMLParser } from "fast-xml-parser"
 
-export { extractStructuredArticle } from "@geo/content-pipeline"
 export type { ExtractedBlock, ExtractedPage } from "@geo/content-pipeline"
+export { extractStructuredArticle } from "@geo/content-pipeline"
 
 const normalizeText = (value: string): string => value.replace(/\s+/g, " ").trim()
 
@@ -10,13 +10,15 @@ type XmlRecord = Record<string, unknown>
 const recordOf = (value: unknown): XmlRecord | null =>
   typeof value === "object" && value !== null && !Array.isArray(value) ? (value as XmlRecord) : null
 
-const arrayOf = (value: unknown): readonly unknown[] => (Array.isArray(value) ? value : value === undefined ? [] : [value])
+const arrayOf = (value: unknown): readonly unknown[] =>
+  Array.isArray(value) ? value : value === undefined ? [] : [value]
 
 const text = (value: unknown): string | undefined => {
   if (typeof value === "string") return normalizeText(value) || undefined
   if (typeof value === "number") return String(value)
   const record = recordOf(value)
-  if (record !== null && typeof record["#text"] === "string") return normalizeText(record["#text"]) || undefined
+  if (record !== null && typeof record["#text"] === "string")
+    return normalizeText(record["#text"]) || undefined
   return undefined
 }
 
@@ -37,7 +39,7 @@ export type RssEntry = Readonly<{
   title: string
 }>
 
-/** Parses bounded RSS 2.0 or Atom XML into normal URL intake entries. */
+/** Parses bounded RSS 2.0, RSS 1.0 (RDF) or Atom XML into normal URL intake entries. */
 export const extractRssEntries = (xml: string): readonly RssEntry[] => {
   let parsed: unknown
   try {
@@ -49,11 +51,16 @@ export const extractRssEntries = (xml: string): readonly RssEntry[] => {
   if (root === null) throw new Error("INTAKE_RSS_INVALID")
   const rss = recordOf(root["rss"])
   const feed = recordOf(root["feed"])
-  const rawEntries = rss === null
-    ? feed === null
-      ? []
-      : arrayOf(feed["entry"])
-    : arrayOf(recordOf(rss["channel"] )?.["item"])
+  // RSS 1.0（Nature、Lancet 等期刊在用）：item 是 rdf:RDF 的直接子元素，不在 channel 里。
+  const rdf = recordOf(root["rdf:RDF"])
+  const rawEntries =
+    rss !== null
+      ? arrayOf(recordOf(rss["channel"])?.["item"])
+      : feed !== null
+        ? arrayOf(feed["entry"])
+        : rdf !== null
+          ? arrayOf(rdf["item"])
+          : []
   const entries: RssEntry[] = []
   for (const raw of rawEntries) {
     const entry = recordOf(raw)

@@ -106,6 +106,22 @@ describe("intake extraction", () => {
       ),
     ).toEqual([{ sourceUrl: "https://source.test/two", summary: "Second source", title: "Two" }])
   })
+
+  it("parses RSS 1.0 (RDF) feeds whose items sit directly under rdf:RDF", () => {
+    expect(
+      extractRssEntries(
+        `<?xml version="1.0" encoding="UTF-8"?>
+        <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://purl.org/rss/1.0/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+          <channel rdf:about="https://journal.test/rss"><title>Journal</title><link>https://journal.test/</link></channel>
+          <item rdf:about="https://journal.test/a1"><title>Trial result</title><link>https://journal.test/a1</link><description>Phase 3 outcome</description><dc:date>2026-10-01</dc:date></item>
+          <item rdf:about="https://journal.test/a2"><title>Second</title><link>https://journal.test/a2</link></item>
+        </rdf:RDF>`,
+      ),
+    ).toEqual([
+      { sourceUrl: "https://journal.test/a1", summary: "Phase 3 outcome", title: "Trial result" },
+      { sourceUrl: "https://journal.test/a2", title: "Second" },
+    ])
+  })
 })
 
 describe("intake snapshot identity", () => {
