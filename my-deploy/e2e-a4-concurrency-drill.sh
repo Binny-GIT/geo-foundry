@@ -78,11 +78,12 @@ purge_fixture_site() { # 原 A4 的 id+name 双校验及外键清理顺序；整
   SQL+=" DELETE FROM geo_foundry.sites WHERE id=$S AND name='$N' AND tenant_id=$TENANT; COMMIT;"
   PSQL "$SQL" >/dev/null
 }
-routing_ready() {
-  [ "$(Q "count(*) FROM pgboss.job WHERE (data->>'siteId')::text IN ($SITE_TEXT_IDS)
-    AND data->>'kind'='routing-sync' AND created_on >= '$SYNC_SINCE'::timestamptz")" = "${#SITES[@]}" ] &&
-  [ "$(Q "count(*) FROM pgboss.job WHERE (data->>'siteId')::text IN ($SITE_TEXT_IDS)
-    AND data->>'kind'='routing-sync' AND created_on >= '$SYNC_SINCE'::timestamptz AND state<>'completed'")" = 0 ]
+routing_ready() { # 站点变更会合并 routing-sync，不能按“每站一个任务”计数：
+  # 要求没有未完成的任务，且至少一个任务在最后一次夹具站点更新之后才开始执行（其 manifest 不含夹具 host）。
+  [ "$(Q "count(*) FROM pgboss.job WHERE data->>'kind'='routing-sync'
+    AND created_on >= '$SYNC_SINCE'::timestamptz AND state<>'completed'")" = 0 ] &&
+  [ "$(Q "count(*) FROM pgboss.job WHERE data->>'kind'='routing-sync' AND state='completed'
+    AND started_on >= (SELECT max(updated_at) FROM geo_foundry.sites WHERE id IN ($SITE_IDS))")" -ge 1 ]
 }
 finish() {
   local RC=$? PID ID I SAFE=1
@@ -92,7 +93,6 @@ finish() {
   for PID in "${CHILDREN[@]}"; do wait "$PID" 2>/dev/null || true; done
   if (( ${#SITES[@]} > 0 )); then
     SITE_IDS=$(IFS=,; printf '%s' "${SITES[*]}")
-    SITE_TEXT_IDS=$(printf "'%s'," "${SITES[@]}"); SITE_TEXT_IDS=${SITE_TEXT_IDS%,}
     poll 180 idle_sites || { bad '清理：仍有非终态操作，保留夹具供人工恢复'; SAFE=0; }
     if (( SAFE )); then
       for ID in "${ARTICLES[@]}"; do
@@ -358,7 +358,7 @@ events_ready() { # 精确按 job 的 site/release/type/eventId 关联，不接�
         AND d.state='delivered' AND d.last_status_code BETWEEN 200 AND 299)")" = 0 ]
 }
 invariants() {
-  local ROW ID TYPE STATE ERR MESSAGE S CURRENT HASH EDID PATHNAME PS URL_STATE FOUND HOST
+  local ROW ID TYPE STATE ERR MESSAGE S CURRENT HASH EDID PATHNAME PS URL_STATE FOUND HOST ENQ_MAX
   poll 180 round_terminal && ok "$TAG I2 全部本轮操作180秒内终态" || { bad "$TAG I2 操作超时"; return 1; }
   Q "coalesce(json_agg(json_build_object('id',operation_id,'type',operation_type,'state',state,
     'error',error,'endpoint',endpoint)),'[]'::json) FROM geo_foundry.operations
@@ -391,9 +391,12 @@ invariants() {
     WHERE site_id IN ($A,$B) AND state='active' GROUP BY site_id,pathname HAVING count(*)>1) x")" = 0
   check "$TAG I6 无重复 site/release/type 台账" test "$(Q "count(*) FROM (SELECT site_id,release_id,event_type
     FROM geo_foundry.site_event_deliveries WHERE site_id IN ($A,$B) GROUP BY site_id,release_id,event_type HAVING count(*)>1) x")" = 0
-  check "$TAG I6 无重复 site/release/type 入队" test "$(Q "count(*) FROM (SELECT data->>'siteId',data->>'releaseId',data->>'eventType'
+  # S5 回滚会重新登记上一个 release，事件 id 按 (site,release,type) 确定性生成：该事件设计内会再投递一次
+  # （NKMed 的 revalidate 幂等，并依赖这次重投刷新页面）；其余场景不应出现重复入队。
+  ENQ_MAX=1; [ "$SC" = S5 ] && ENQ_MAX=2
+  check "$TAG I6 无重复 site/release/type 入队（上限 $ENQ_MAX）" test "$(Q "count(*) FROM (SELECT data->>'siteId',data->>'releaseId',data->>'eventType'
     FROM pgboss.job WHERE data->>'siteId' IN ('$A','$B') AND data ? 'eventId'
-    GROUP BY data->>'siteId',data->>'releaseId',data->>'eventType' HAVING count(*)>1) x")" = 0
+    GROUP BY data->>'siteId',data->>'releaseId',data->>'eventType' HAVING count(*)>$ENQ_MAX) x")" = 0
   for S in "$A" "$B"; do
     CURRENT=$(Q "release_id FROM geo_foundry.releases WHERE site_id=$S AND state='current'") || return 1
     check "$TAG I3 site=$S 恰一 current release" test "$(Q "count(*) FROM geo_foundry.releases WHERE site_id=$S AND state='current'")" = 1
