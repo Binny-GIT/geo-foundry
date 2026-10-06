@@ -354,7 +354,7 @@ events_ready() { # 精确按 job 的 site/release/type/eventId 关联，不接�
   [ "$(Q "count(*) FROM pgboss.job j WHERE j.data->>'siteId' IN ('$A','$B')
     AND j.data ? 'eventId' AND NOT EXISTS (SELECT 1 FROM geo_foundry.site_event_deliveries d
       WHERE d.event_id=j.data->>'eventId' AND d.site_id=(j.data->>'siteId')::integer
-        AND d.release_id=j.data->>'releaseId' AND d.event_type=j.data->>'eventType'
+        AND d.release_id=j.data->>'releaseId' AND d.event_type::text=j.data->>'eventType'
         AND d.state='delivered' AND d.last_status_code BETWEEN 200 AND 299)")" = 0 ]
 }
 invariants() {
