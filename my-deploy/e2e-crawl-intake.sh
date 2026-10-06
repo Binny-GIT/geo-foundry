@@ -69,10 +69,11 @@ createServer(async (req, res) => {
   if (!job) { res.writeHead(404).end(JSON.stringify({ error: 'job_not_found' })); return }
   if (req.method === 'GET') {
     res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ id, status: job.status,
-      result: job.status === 'succeeded' ? { schema_version: '1.0', type: 'article_collection',
+      result: job.status === 'succeeded' ? { engine: 'scrapling', artifacts: [], execution: {}, data: {
+        schema_version: '1.0', type: 'article_collection',
         source_url: 'https://example.test', requested_count: 1, returned_count: 1, status: 'complete',
         items: [{ title: '采集 E2E 文章', url: `https://example.test/${process.env.GF_FAKE_REF}`,
-          canonical_url: `https://example.test/${process.env.GF_FAKE_REF}?utm_source=crawl`, content: '# 测试正文\n\n可供人工审阅的内容。', summary: '测试摘要', _meta: {} }], warnings: [], _meta: {} } : null }))
+          canonical_url: `https://example.test/${process.env.GF_FAKE_REF}?utm_source=crawl`, content: '# 测试正文\n\n可供人工审阅的内容。', summary: '测试摘要', _meta: {} }], warnings: [], _meta: {} } } : null }))
     return
   }
   if (req.method === 'DELETE') { jobs.delete(id); res.writeHead(204).end(); return }
