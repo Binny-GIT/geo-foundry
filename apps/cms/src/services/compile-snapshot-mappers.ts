@@ -182,7 +182,7 @@ export const mapEdition = (input: EditionMappingInput): CompileEdition | null =>
           },
         }),
     body: Array.isArray(edition["body"]) ? (edition["body"] as unknown[]) : [],
-    categories: primaryTopic.length === 0 ? [] : [slugify(primaryTopic)],
+    categories: [...new Set([slugify(primaryTopic)].filter((slug) => slug.length > 0))],
     citations: citationsOf(edition["citations"], editionId),
     contentId: editionId,
     editionId,
@@ -193,7 +193,7 @@ export const mapEdition = (input: EditionMappingInput): CompileEdition | null =>
     siteId: input.siteKey,
     status: "published",
     summary: textOf(edition["summary"]) || textOf(edition["title"]),
-    tags: secondaryTopics.map(slugify),
+    tags: [...new Set(secondaryTopics.map(slugify).filter((slug) => slug.length > 0))],
     title: textOf(edition["title"]),
     urlPathname: input.urlPathname,
     urlStatus: "active",
@@ -218,18 +218,22 @@ export const deriveListings = (
     }
   }
   return {
-    categories: [...categories].sort().map((topic) => {
+    categories: [...categories].sort().flatMap((topic) => {
       const slug = slugify(topic)
-      return {
-        id: `cat-${slug}`,
-        pathname: `/${slug}`,
-        slug,
-        title: topic.charAt(0).toUpperCase() + topic.slice(1),
-      }
+      if (slug.length === 0) return []
+      return [
+        {
+          id: `cat-${slug}`,
+          pathname: `/${slug}`,
+          slug,
+          title: topic.charAt(0).toUpperCase() + topic.slice(1),
+        },
+      ]
     }),
-    tags: [...tags].sort().map((topic) => {
+    tags: [...tags].sort().flatMap((topic) => {
       const slug = slugify(topic)
-      return { id: `tag-${slug}`, pathname: `/tags/${slug}`, slug, title: topic }
+      if (slug.length === 0) return []
+      return [{ id: `tag-${slug}`, pathname: `/tags/${slug}`, slug, title: topic }]
     }),
   }
 }
