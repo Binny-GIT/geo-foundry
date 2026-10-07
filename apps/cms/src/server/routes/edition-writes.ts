@@ -19,6 +19,7 @@ const patchSchema = z
     angle: z.string().max(2_000).optional(),
     bodyMarkdown: z.string().max(2_000_000).optional(),
     citations: z.unknown().optional(),
+    creationOrigin: z.enum(["ai", "human", "hybrid"]).optional(),
     dueAt: z.string().datetime().nullable().optional(),
     editorialStatus: z.enum(["unassigned", "assigned", "in-progress", "blocked"]).optional(),
     entities: z.unknown().optional(),

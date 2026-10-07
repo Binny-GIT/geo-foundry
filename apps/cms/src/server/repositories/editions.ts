@@ -13,8 +13,8 @@ import type { ServerDb } from "../db/client"
 import { contentEditions, editionVersions } from "../db/edition-schema"
 import { sites } from "../db/entity-schema"
 import { users } from "../db/schema"
-import type { EntityScope, PaginatedResult } from "./entities"
 import { syncEditionSitesWithinTx } from "./edition-sites"
+import type { EntityScope, PaginatedResult } from "./entities"
 
 export type EditionListInput = Readonly<{
   ids?: readonly number[]
@@ -34,6 +34,7 @@ export type EditionDraftPatch = Readonly<{
   angle?: string
   bodyMarkdown?: string
   citations?: unknown
+  creationOrigin?: NonNullable<(typeof contentEditions.$inferSelect)["creationOrigin"]>
   dueAt?: string | null
   editorialStatus?: "assigned" | "blocked" | "in-progress" | "unassigned"
   entities?: unknown
@@ -264,7 +265,7 @@ export class EditionsRepository {
           citations: patch.citations ?? [],
           compiledRelease: null,
           contentModifiedAt: now,
-          creationOrigin: "human",
+          creationOrigin: patch.creationOrigin ?? "human",
           dueAt: patch.dueAt === undefined || patch.dueAt === null ? null : new Date(patch.dueAt),
           editorialStatus: patch.editorialStatus ?? "unassigned",
           entities: patch.entities ?? [],
@@ -293,7 +294,7 @@ export class EditionsRepository {
           citations: patch.citations ?? [],
           compiledRelease: null,
           contentModifiedAt: now,
-          creationOrigin: "human",
+          creationOrigin: patch.creationOrigin ?? "human",
           dueAt: patch.dueAt === undefined || patch.dueAt === null ? null : new Date(patch.dueAt),
           editorialStatus: patch.editorialStatus ?? "unassigned",
           entities: patch.entities ?? [],
@@ -416,6 +417,12 @@ export class EditionsRepository {
         (patch.summary !== undefined && patch.summary !== current.summary) ||
         (patch.title !== undefined && patch.title !== current.title)
 
+      if (patch.creationOrigin !== undefined) {
+        await tx
+          .update(contentEditions)
+          .set({ creationOrigin: patch.creationOrigin })
+          .where(eq(contentEditions.id, editionId))
+      }
       await tx
         .update(editionVersions)
         .set({ latest: false })
@@ -429,7 +436,7 @@ export class EditionsRepository {
           citations: patch.citations === undefined ? current.citations : patch.citations,
           compiledRelease: current.compiledRelease,
           contentModifiedAt: contentChanged ? now : current.contentModifiedAt,
-          creationOrigin: current.creationOrigin,
+          creationOrigin: patch.creationOrigin ?? current.creationOrigin,
           dueAt:
             patch.dueAt === undefined
               ? current.dueAt
