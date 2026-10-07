@@ -1,6 +1,6 @@
 /*
- * 编译快照的 Drizzle 实现：站点 + canonical 域名 + 可编译文章（当前草稿版本
- * 行，等价 Payload draft:true）+ 最近评估 + URL 注册表派生路由。
+ * 编译快照的 Drizzle 实现：站点 + canonical 域名 + 可编译文章（编辑中的
+ * 已发布文章使用本站历史发布修订）+ 对应评估 + URL 注册表派生路由。
  * 输出形状与 services/compile-snapshot.ts 一致，mapper 复用。
  */
 
@@ -23,18 +23,19 @@ import {
 } from "../../services/compile-snapshot-mappers"
 import { EditionWorkflowError } from "../../services/edition-workflow"
 import type { ServerDb } from "../db/client"
-import { contentEditions, editionVersions } from "../db/edition-schema"
 import { media, sites } from "../db/entity-schema"
 import { domains, qualityAssessments } from "../db/session-schema"
 import { urlRecords } from "../db/workflow-schema"
+import {
+  publishedAssessmentQuery,
+  readSnapshotVersions,
+  snapshotContentHash,
+} from "./compile-snapshot-selection"
 import { serviceScopeOf } from "./edition-integration"
-import { editionSiteMemberSql } from "./edition-sites"
 import { passedSiteAddAssessmentId } from "./site-evaluation"
 
 const fail = (code: string, detail: string): EditionWorkflowError =>
   new EditionWorkflowError(code, detail)
-
-const COMPILABLE_STATUSES = ["approved", "compiled", "published"] as const
 
 const isoOf = (value: Date | null | undefined): string | undefined =>
   value === null || value === undefined ? undefined : value.toISOString()
@@ -82,24 +83,9 @@ export const buildCompileSnapshot = async (
     timezone: textOf(site.timezone) || "UTC",
   }
 
-  const versionRows = await db
-    .select({ editionId: contentEditions.id, version: editionVersions })
-    .from(contentEditions)
-    .innerJoin(
-      editionVersions,
-      and(eq(editionVersions.parentId, contentEditions.id), eq(editionVersions.latest, true)),
-    )
-    .where(
-      and(
-        // A2 多站：按 edition_sites 选文（该站成员且未撤下），不再按文章
-        // 单数 site_id。单站文章由 A1 同步保证站点行存在，行为不变。
-        editionSiteMemberSql(options.siteId),
-        inArray(editionVersions.workflowStatus, [...COMPILABLE_STATUSES]),
-      ),
-    )
-    .limit(500)
+  const versionRows = await readSnapshotVersions(db, options.siteId)
 
-  const editionIds = versionRows.map((row) => row.editionId)
+  const editionIds = versionRows.filter((row) => !row.fallback).map((row) => row.editionId)
   const latestAssessment = new Map<number, { state: string; inputHash: string }>()
   if (editionIds.length > 0) {
     // A3 质量检查按站：门禁按 (文章 × 本站) 取最新结论——本站没有评估行的
@@ -146,6 +132,9 @@ export const buildCompileSnapshot = async (
       targetUrl: row.targetPathname === null ? null : { pathname: row.targetPathname },
     })),
   )
+  const publishedUrlByEdition = new Map(
+    urlRows.filter((row) => row.state === "active").map((row) => [row.editionId, row.pathname]),
+  )
 
   // 带图文章编译：先解析所有正文图片，批量查 media 表（文件名全局唯一），
   // 再按篇生成快照媒体条目；查不到的引用由编译器报 MEDIA_MISSING。
@@ -181,22 +170,39 @@ export const buildCompileSnapshot = async (
 
   const topics: { categories: string[]; tags: string[] }[] = []
   const compileEditions = []
-  for (const { editionId, version } of versionRows) {
-    const urlPathname = activeUrlByContent.get(editionId)
+  for (const { editionId, version, fallback } of versionRows) {
+    const urlPathname = (fallback ? publishedUrlByEdition : activeUrlByContent).get(editionId)
     if (urlPathname === undefined) continue
-    const addEvaluation = await passedSiteAddAssessmentId(db, editionId, options.siteId)
-    const assessment = latestAssessment.get(editionId)
-    const linkedAssessment =
-      addEvaluation.assessmentId === null
-        ? undefined
-        : (
-            await db
-              .select({ inputHash: qualityAssessments.inputHash, state: qualityAssessments.state })
-              .from(qualityAssessments)
-              .where(eq(qualityAssessments.id, addEvaluation.assessmentId))
-              .limit(1)
-          )[0]
-    const eligibleAssessment = addEvaluation.addOperationExists ? linkedAssessment : assessment
+    let eligibleAssessment: { readonly inputHash: string; readonly state: string } | undefined
+    if (fallback) {
+      // 编辑期只沿用本站同内容 hash 的评估；新草稿/新增站点操作的评估不能
+      // 代替线上旧内容的证据。缺失或失败仍交由编译器拒绝，不跳过质量门禁。
+      eligibleAssessment = (
+        await publishedAssessmentQuery(db, {
+          editionId,
+          inputHash: snapshotContentHash(version),
+          siteId: options.siteId,
+        })
+      )[0]
+    } else {
+      const addEvaluation = await passedSiteAddAssessmentId(db, editionId, options.siteId)
+      const linkedAssessment =
+        addEvaluation.assessmentId === null
+          ? undefined
+          : (
+              await db
+                .select({
+                  inputHash: qualityAssessments.inputHash,
+                  state: qualityAssessments.state,
+                })
+                .from(qualityAssessments)
+                .where(eq(qualityAssessments.id, addEvaluation.assessmentId))
+                .limit(1)
+            )[0]
+      eligibleAssessment = addEvaluation.addOperationExists
+        ? linkedAssessment
+        : latestAssessment.get(editionId)
+    }
     const blocks = blocksByEdition.get(editionId) ?? []
     const mapped = mapEdition({
       assessment: eligibleAssessment,
